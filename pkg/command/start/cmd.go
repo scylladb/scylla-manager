@@ -21,6 +21,8 @@ type command struct {
 
 	cluster    string
 	noContinue bool
+	enable     bool
+	soft       bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -46,6 +48,8 @@ func (cmd *command) init() {
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
 	w.Unwrap().BoolVar(&cmd.noContinue, "no-continue", false, "")
+	w.Unwrap().BoolVar(&cmd.enable, "enable", false, "")
+	w.Unwrap().BoolVar(&cmd.soft, "soft", false, "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -53,5 +57,10 @@ func (cmd *command) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	return cmd.client.StartTask(cmd.Context(), cmd.cluster, taskType, taskID, !cmd.noContinue)
+	params := managerclient.StartTaskParams{
+		Continue: !cmd.noContinue,
+		Enable:   cmd.enable,
+		Soft:     cmd.soft,
+	}
+	return cmd.client.StartTaskWithParams(cmd.Context(), cmd.cluster, taskType, taskID, params)
 }
