@@ -357,4 +357,22 @@ func TestTabletRepairIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+
+	t.Run("Ongoing scylla tablet repair tasks", func(t *testing.T) {
+		testCtx, testCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer testCancel()
+
+		h.Hrt.SetInterceptor(nil)
+		// Start lots of scylla tablet repair tasks
+		for ft := range allTables {
+			_, err = h.Client.TabletRepair(testCtx, ft.ks, ft.tab, "", nil, nil, scyllaclient.IncrementalModeDisabled)
+			if err != nil {
+				if _, _, ok := scyllaclient.IsColocatedTableErr(err); !ok {
+					t.Fatal(err)
+				}
+			}
+		}
+		// Verify that those scylla tablet repair tasks won't break SM tablet repair task
+		smokeTest(t, testCtx)
+	})
 }

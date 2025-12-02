@@ -1548,3 +1548,30 @@ func (c *Client) ScyllaSetUserTaskTTL(ctx context.Context, host string, ttlSecon
 	})
 	return err
 }
+
+// ScyllaTaskModule describes scylla task modules.
+type ScyllaTaskModule string
+
+// ScyllaTaskModuleTablets describes tablets ScyllaTaskModule.
+const ScyllaTaskModuleTablets ScyllaTaskModule = "tablets"
+
+// ScyllaTaskType describes scylla task types.
+type ScyllaTaskType string
+
+// ScyllaTaskTypeUserRepair describes user repair ScyllaTaskType.
+const ScyllaTaskTypeUserRepair ScyllaTaskType = "user_repair"
+
+// ScyllaListTasks lists Scylla tasks of given module.
+func (c *Client) ScyllaListTasks(ctx context.Context, host string, module ScyllaTaskModule) ([]*models.TaskStats, error) {
+	if host != "" {
+		ctx = forceHost(ctx, host)
+	}
+	tasks, err := c.scyllaOps.TaskManagerListModuleTasksModuleGet(&operations.TaskManagerListModuleTasksModuleGetParams{
+		Context: ctx,
+		Module:  string(module),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return tasks.GetPayload(), nil
+}
