@@ -56,6 +56,12 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 
 func (w *worker) repairAll(ctx context.Context, target Target) error {
 	w.init(ctx, target)
+	// We need to make sure that leftover scylla tablet repair tasks are not running,
+	// as scheduling new scylla tablet repair tasks on a table with an ongoing tablet repair
+	// ends with an error. On the other hand, this is just best effort, because we can't
+	// ensure that new scylla tablet repair tasks won't be created in the meantime or that
+	// the task that we were trying to abort has just finished on its own.
+	w.abortAllRepairTasks(ctx)
 
 	for ks, tabs := range target.KsTabs {
 		for _, tab := range tabs {
@@ -74,6 +80,22 @@ func (w *worker) init(ctx context.Context, target Target) {
 			w.logger.Info(ctx, "Plan to repair table", "keyspace", ks, "table", tab)
 			pr := newRunProgress(w.clusterID, w.taskID, w.runID, ks, tab)
 			w.upsertTableProgress(ctx, pr)
+		}
+	}
+}
+
+func (w *worker) abortAllRepairTasks(ctx context.Context) {
+	tasks, err := w.client.ScyllaListTasks(ctx, "", scyllaclient.ScyllaTaskModuleTablets)
+	if err != nil {
+		w.logger.Error(ctx, "Failed to list scylla tablet tasks", "error", err)
+		return
+	}
+	for _, t := range tasks {
+		if t == nil {
+			continue
+		}
+		if scyllaclient.ScyllaTaskType(t.Type) == scyllaclient.ScyllaTaskTypeUserRepair {
+			w.abortRepairTask(ctx, t.TaskID)
 		}
 	}
 }
@@ -115,6 +137,7 @@ func (w *worker) repairTable(ctx context.Context, client *scyllaclient.Client, k
 
 	status, err := client.ScyllaWaitTask(ctx, "", id, 0)
 	if err != nil {
+		w.abortRepairTask(context.Background(), id)
 		return errors.Wrap(err, "get tablet repair task status")
 	}
 	switch scyllaclient.ScyllaTaskState(status.State) {
@@ -132,6 +155,17 @@ func (w *worker) incrementalRepairMode() scyllaclient.IncrementalMode {
 		return scyllaclient.IncrementalModeIncremental
 	}
 	return ""
+}
+
+func (w *worker) abortRepairTask(ctx context.Context, id string) {
+	if err := w.client.ScyllaAbortTask(ctx, "", id); err != nil {
+		w.logger.Error(ctx, "Failed to abort scylla repair task",
+			"id", id,
+			"error", err,
+		)
+	} else {
+		w.logger.Info(ctx, "Aborted scylla tablet repair task", "id", id)
+	}
 }
 
 func (w *worker) upsertTableProgress(ctx context.Context, pr RunProgress) {
