@@ -1,3 +1,4 @@
+## workspace
 # cloud.google.com/go/compute/metadata v0.3.0
 ## explicit; go 1.19
 cloud.google.com/go/compute/metadata
@@ -281,6 +282,8 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
+# github.com/golang/snappy v0.0.4
+## explicit
 # github.com/google/go-cmp v0.6.0
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
@@ -341,6 +344,8 @@ github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/s2
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/kr/pretty v0.3.1
+## explicit; go 1.12
 # github.com/lnquy/cron v1.1.1
 ## explicit; go 1.11
 github.com/lnquy/cron
@@ -468,6 +473,8 @@ github.com/rivo/uniseg
 # github.com/robfig/cron/v3 v3.0.1
 ## explicit; go 1.12
 github.com/robfig/cron/v3
+# github.com/rogpeppe/go-internal v1.11.0
+## explicit; go 1.19
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
@@ -497,54 +504,14 @@ github.com/scylladb/gocqlx/v2/table
 github.com/scylladb/scylla-manager/backupspec
 # github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20251118100959-f48f8c2d4bdd
 ## explicit; go 1.23.2
-github.com/scylladb/scylla-manager/v3/pkg/managerclient
-github.com/scylladb/scylla-manager/v3/pkg/managerclient/table
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6
+## explicit; go 1.23.2
 # github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20251118100959-f48f8c2d4bdd
 ## explicit; go 1.23.2
-github.com/scylladb/scylla-manager/v3/pkg/util
-github.com/scylladb/scylla-manager/v3/pkg/util/certutil
-github.com/scylladb/scylla-manager/v3/pkg/util/cfgutil
-github.com/scylladb/scylla-manager/v3/pkg/util/clipper
-github.com/scylladb/scylla-manager/v3/pkg/util/cpuset
-github.com/scylladb/scylla-manager/v3/pkg/util/duration
-github.com/scylladb/scylla-manager/v3/pkg/util/fsutil
-github.com/scylladb/scylla-manager/v3/pkg/util/httplog
-github.com/scylladb/scylla-manager/v3/pkg/util/httppprof
-github.com/scylladb/scylla-manager/v3/pkg/util/httpx
-github.com/scylladb/scylla-manager/v3/pkg/util/inexlist
-github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter
-github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter
-github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil
-github.com/scylladb/scylla-manager/v3/pkg/util/logutil
-github.com/scylladb/scylla-manager/v3/pkg/util/maputil
-github.com/scylladb/scylla-manager/v3/pkg/util/netwait
-github.com/scylladb/scylla-manager/v3/pkg/util/osutil
-github.com/scylladb/scylla-manager/v3/pkg/util/parallel
-github.com/scylladb/scylla-manager/v3/pkg/util/pathparser
-github.com/scylladb/scylla-manager/v3/pkg/util/pointer
-github.com/scylladb/scylla-manager/v3/pkg/util/prom
-github.com/scylladb/scylla-manager/v3/pkg/util/query
-github.com/scylladb/scylla-manager/v3/pkg/util/retry
-github.com/scylladb/scylla-manager/v3/pkg/util/schedules
-github.com/scylladb/scylla-manager/v3/pkg/util/sizesuffix
-github.com/scylladb/scylla-manager/v3/pkg/util/slice
-github.com/scylladb/scylla-manager/v3/pkg/util/timeutc
-github.com/scylladb/scylla-manager/v3/pkg/util/uuid
-github.com/scylladb/scylla-manager/v3/pkg/util/version
-github.com/scylladb/scylla-manager/v3/pkg/util/workerpool
+# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20250818141015-50f1d9b3b087
+## explicit; go 1.23.2
 # github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20251118100959-f48f8c2d4bdd
 ## explicit; go 1.23.2
-github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client
-github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations
-github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/client/operations
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/client
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/client/config
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/models
 # github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 ## explicit
 github.com/scylladb/termtables
