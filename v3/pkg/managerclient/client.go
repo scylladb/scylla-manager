@@ -298,6 +298,27 @@ func (c *Client) StartTask(ctx context.Context, clusterID, taskType string, task
 	return err
 }
 
+// StartTaskParams describe additional params for starting a task.
+type StartTaskParams struct {
+	Continue bool
+	Enable   bool
+	Soft     bool
+}
+
+// StartTaskWithParams starts executing a task.
+func (c *Client) StartTaskWithParams(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, params StartTaskParams) error {
+	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStart(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStartParams{
+		Context:   ctx,
+		ClusterID: clusterID,
+		TaskType:  taskType,
+		TaskID:    taskID.String(),
+		Continue:  params.Continue,
+		Enable:    params.Enable,
+		Soft:      params.Soft,
+	})
+	return err
+}
+
 // StopTask stops executing a task.
 func (c *Client) StopTask(ctx context.Context, clusterID, taskType string, taskID uuid.UUID, disable bool) error {
 	_, err := c.operations.PutClusterClusterIDTaskTaskTypeTaskIDStop(&operations.PutClusterClusterIDTaskTaskTypeTaskIDStopParams{ // nolint: errcheck

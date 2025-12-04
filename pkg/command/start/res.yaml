@@ -8,3 +8,9 @@ long: |
 
 no-continue: |
   Do not resume the last run.
+
+enable: |
+  Enable the task if it was disabled.
+
+soft: |
+  The task will be started only if its last run hasn't finished successfully or when it finished successfully and it missed its activation scheduled after that.

@@ -123,7 +123,7 @@ func TestSctoolClusterListCredentialsIntegrationAPITest(t *testing.T) {
 				"--alternator-access-key-id", "id", "--alternator-secret-access-key", "key",
 			},
 			updateArgs:            []string{"--delete-alternator-credentials"},
-			expectedOutputPattern: `<cluster_id> .*\| .*\| .*\| .*\| Alternator`,
+			expectedOutputPattern: `<cluster_id> .*\| .*\| .*\| .*\| CQL`,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

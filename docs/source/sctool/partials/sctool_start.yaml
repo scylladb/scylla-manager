@@ -9,6 +9,10 @@ options:
       shorthand: c
       usage: |
         The target cluster `name or ID` (envvar SCYLLA_MANAGER_CLUSTER).
+    - name: enable
+      default_value: "false"
+      usage: |
+        Enable the task if it was disabled.
     - name: help
       shorthand: h
       default_value: "false"
@@ -17,6 +21,10 @@ options:
       default_value: "false"
       usage: |
         Do not resume the last run.
+    - name: soft
+      default_value: "false"
+      usage: |
+        The task will be started only if its last run hasn't finished successfully or when it finished successfully and it missed its activation scheduled after that.
 inherited_options:
     - name: api-cert-file
       usage: |

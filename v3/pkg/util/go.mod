@@ -19,19 +19,21 @@ require (
 	go.uber.org/atomic v1.11.0
 	go.uber.org/config v1.4.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/sys v0.24.0
+	golang.org/x/sys v0.38.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/scylladb/go-reflectx v1.0.1 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
-	golang.org/x/text v0.16.0 // indirect
-	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 )
