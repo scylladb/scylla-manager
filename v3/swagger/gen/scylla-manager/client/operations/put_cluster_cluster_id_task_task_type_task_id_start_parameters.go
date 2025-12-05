@@ -66,6 +66,16 @@ type PutClusterClusterIDTaskTaskTypeTaskIDStartParams struct {
 	ClusterID string
 	/*Continue*/
 	Continue bool
+	/*Enable
+	  Enable the task if it was disabled
+
+	*/
+	Enable bool
+	/*Soft
+	  The task will be started only if its last run hasn't finished successfully, or if it finished successfully but missed its next scheduled activation
+
+	*/
+	Soft bool
 	/*TaskID*/
 	TaskID string
 	/*TaskType*/
@@ -131,6 +141,28 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) SetContinue(continueV
 	o.Continue = continueVar
 }
 
+// WithEnable adds the enable to the put cluster cluster ID task task type task ID start params
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) WithEnable(enable bool) *PutClusterClusterIDTaskTaskTypeTaskIDStartParams {
+	o.SetEnable(enable)
+	return o
+}
+
+// SetEnable adds the enable to the put cluster cluster ID task task type task ID start params
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) SetEnable(enable bool) {
+	o.Enable = enable
+}
+
+// WithSoft adds the soft to the put cluster cluster ID task task type task ID start params
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) WithSoft(soft bool) *PutClusterClusterIDTaskTaskTypeTaskIDStartParams {
+	o.SetSoft(soft)
+	return o
+}
+
+// SetSoft adds the soft to the put cluster cluster ID task task type task ID start params
+func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) SetSoft(soft bool) {
+	o.Soft = soft
+}
+
 // WithTaskID adds the taskID to the put cluster cluster ID task task type task ID start params
 func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) WithTaskID(taskID string) *PutClusterClusterIDTaskTaskTypeTaskIDStartParams {
 	o.SetTaskID(taskID)
@@ -171,6 +203,24 @@ func (o *PutClusterClusterIDTaskTaskTypeTaskIDStartParams) WriteToRequest(r runt
 	qContinue := swag.FormatBool(qrContinue)
 	if qContinue != "" {
 		if err := r.SetQueryParam("continue", qContinue); err != nil {
+			return err
+		}
+	}
+
+	// query param enable
+	qrEnable := o.Enable
+	qEnable := swag.FormatBool(qrEnable)
+	if qEnable != "" {
+		if err := r.SetQueryParam("enable", qEnable); err != nil {
+			return err
+		}
+	}
+
+	// query param soft
+	qrSoft := o.Soft
+	qSoft := swag.FormatBool(qrSoft)
+	if qSoft != "" {
+		if err := r.SetQueryParam("soft", qSoft); err != nil {
 			return err
 		}
 	}
