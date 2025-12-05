@@ -2657,7 +2657,7 @@ func TestBackupMethodIntegration(t *testing.T) {
 	}
 }
 
-func TestTGetDescribeSchemaIntegration(t *testing.T) {
+func TestGetDescribeSchemaIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-describe-schema"
 		testKeyspace = "backuptest_describe_schema"
@@ -2709,6 +2709,7 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "DESCRIBE SCHEMA WITH INTERNALS"))
 	}
+	slices.SortFunc(cqlSchema1, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.CQLStmt, b.CQLStmt) })
 	tag1 := makeBackup()
 
 	// Second backup with table created with Alternator
@@ -2724,6 +2725,10 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 	TagAlternatorTable(t, client, tabAlt, tabAltTag)
 	UpdateAlternatorTableTTL(t, client, tabAlt, tabAltTTLAttr, true)
 	cqlSchema2, err := query.DescribeSchemaWithInternals(clusterSession)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "second DESCRIBE SCHEMA WITH INTERNALS"))
+	}
+	slices.SortFunc(cqlSchema2, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.CQLStmt, b.CQLStmt) })
 	tag2 := makeBackup()
 
 	testCases := []struct {
@@ -2801,9 +2806,8 @@ func TestTGetDescribeSchemaIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(errors.Wrap(err, "GetSchema"))
 			}
-			// Validate always existing CQL schema
 			slices.SortFunc(cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.CQLStmt, b.CQLStmt) })
-			slices.SortFunc(tc.cqlSchema, func(a, b query.DescribedSchemaRow) int { return stdCmp.Compare(a.CQLStmt, b.CQLStmt) })
+			// Validate always existing CQL schema
 			Print("Then: GetSchema returned correct cqlSchema")
 			if diff := cmp.Diff(cqlSchema, tc.cqlSchema); diff != "" {
 				t.Fatalf("Schema mismatch\n%s", diff)
