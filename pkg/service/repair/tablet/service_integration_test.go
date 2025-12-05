@@ -372,6 +372,12 @@ func TestTabletRepairIntegration(t *testing.T) {
 				}
 			}
 		}
+		// Make sure that they are visible on all nodes
+		for _, host := range ManagedClusterHosts() {
+			if err := h.Client.RaftReadBarrier(testCtx, host, ""); err != nil {
+				t.Fatal(err)
+			}
+		}
 		// Verify that those scylla tablet repair tasks won't break SM tablet repair task
 		smokeTest(t, testCtx)
 	})
