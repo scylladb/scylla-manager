@@ -279,6 +279,11 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 			schema.Tables[i].Describe.ProvisionedThroughput.LastIncreaseDateTime = nil
 			// Set table ID to ni as it is expected to differ
 			schema.Tables[i].Describe.TableId = nil
+			// Ignore index status and backfilling as they are temporary states
+			for _, gsi := range schema.Tables[i].Describe.GlobalSecondaryIndexes {
+				gsi.IndexStatus = ""
+				gsi.Backfilling = nil
+			}
 			slices.SortFunc(schema.Tables[i].Describe.GlobalSecondaryIndexes, func(a, b types.GlobalSecondaryIndexDescription) int {
 				return cmp.Compare(*a.IndexName, *b.IndexName)
 			})
