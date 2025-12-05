@@ -73,6 +73,7 @@ type BackupService interface {
 	// GetProgress must work even when the cluster is no longer available.
 	GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (backup.Progress, error)
 	DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locations []backupspec.Location, snapshotTags []string) error
+	DeleteLocalSnapshots(ctx context.Context, clusterID uuid.UUID) error
 	GetValidationTarget(_ context.Context, clusterID uuid.UUID, properties json.RawMessage) (backup.ValidationTarget, error)
 	// GetValidationProgress must work even when the cluster is no longer available.
 	GetValidationProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) ([]backup.ValidationHostProgress, error)

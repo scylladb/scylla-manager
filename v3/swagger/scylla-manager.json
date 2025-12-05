@@ -2444,6 +2444,31 @@
         }
       }
     },
+    "/cluster/{cluster_id}/backups/local_snapshots": {
+      "delete": {
+        "description": "Delete SM snapshots from all nodes' disks in the cluster",
+        "parameters": [
+          {
+            "description": "ID of the cluster which nodes' snapshots will be deleted",
+            "type": "string",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/cluster/{cluster_id}/repairs/intensity": {
       "put": {
         "parameters": [
