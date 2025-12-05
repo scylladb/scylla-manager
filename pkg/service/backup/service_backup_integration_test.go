@@ -176,7 +176,7 @@ func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scylla
 
 func defaultConfig() backup.Config {
 	c := backup.DefaultConfig()
-	c.DiskSpaceFreeMinPercent = 5
+	c.DiskSpaceFreeMinPercent = 1
 	return c
 }
 

@@ -189,7 +189,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 
 func defaultBackupTestConfig() backup.Config {
 	return backup.Config{
-		DiskSpaceFreeMinPercent:   5,
+		DiskSpaceFreeMinPercent:   1,
 		LongPollingTimeoutSeconds: 1,
 		AgeMax:                    24 * time.Hour,
 	}
