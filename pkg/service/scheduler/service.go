@@ -44,6 +44,9 @@ type (
 // PropertiesDecorator modifies task properties before running.
 type PropertiesDecorator func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error)
 
+// TaskCleaner performs task cleanup when suspending cluster with no continue.
+type TaskCleaner func(ctx context.Context, clusterID uuid.UUID) error
+
 type Service struct {
 	session gocqlx.Session
 	metrics metrics.SchedulerMetrics
@@ -51,6 +54,7 @@ type Service struct {
 	logger  log.Logger
 
 	decorators map[TaskType]PropertiesDecorator
+	cleaners   map[TaskType]TaskCleaner
 	runners    map[TaskType]Runner
 	runs       map[uuid.UUID]Run
 	resolver   resolver
@@ -82,6 +86,7 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 		logger:  logger,
 
 		decorators: make(map[TaskType]PropertiesDecorator),
+		cleaners:   make(map[TaskType]TaskCleaner),
 		runners:    make(map[TaskType]Runner),
 		runs:       make(map[uuid.UUID]Run),
 		resolver:   newResolver(),
@@ -111,6 +116,20 @@ func (s *Service) PropertiesDecorator(tp TaskType) PropertiesDecorator {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.decorators[tp]
+}
+
+// SetTaskCleaner sets optional cleaner for task type.
+func (s *Service) SetTaskCleaner(tt TaskType, c TaskCleaner) {
+	s.mu.Lock()
+	s.cleaners[tt] = c
+	s.mu.Unlock()
+}
+
+// TaskCleaner returns TaskCleaner for task type.
+func (s *Service) TaskCleaner(tt TaskType) TaskCleaner {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.cleaners[tt]
 }
 
 // SetRunner assigns runner for a given task type.

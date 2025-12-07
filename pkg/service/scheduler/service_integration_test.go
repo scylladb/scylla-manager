@@ -12,15 +12,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/scylla-manager/backupspec"
 	sched "github.com/scylladb/scylla-manager/v3/pkg/scheduler"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/healthcheck"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"go.uber.org/atomic"
@@ -103,6 +108,7 @@ func (r *mockRunner) Error() {
 
 type schedulerTestHelper struct {
 	session gocqlx.Session
+	client  *scyllaclient.Client
 	service *scheduler.Service
 	runner  *mockRunner
 
@@ -117,9 +123,16 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedulerTestHelp
 	ExecStmt(t, session, "TRUNCATE TABLE scheduler_task")
 	ExecStmt(t, session, "TRUNCATE TABLE scheduler_task_run")
 
+	c := scyllaclient.TestConfig(testconfig.ManagedClusterHosts(), AgentAuthToken())
+	client, err := scyllaclient.NewClient(c, log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	s := newTestService(session)
 	h := &schedulerTestHelper{
 		session:   session,
+		client:    client,
 		service:   s,
 		runner:    newMockRunner(),
 		clusterID: uuid.MustRandom(),
@@ -127,7 +140,30 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedulerTestHelp
 	}
 	s.SetRunner(mockTask, h.runner)
 	s.SetRunner(scheduler.BackupTask, h.runner)
+	s.SetRunner(scheduler.TabletRepairTask, h.runner)
 	s.SetRunner(scheduler.One2OneRestoreTask, h.runner)
+
+	backupSvc, err := backup.NewService(
+		session,
+		backup.Config{},
+		metrics.NewBackupMetrics(),
+		func(context.Context, uuid.UUID) (string, error) {
+			return "", errors.New("not implemented")
+		},
+		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+			return client, nil
+		},
+		func(context.Context, uuid.UUID, ...cluster.SessionConfigOption) (gocqlx.Session, error) {
+			return gocqlx.Session{}, errors.New("not implemented")
+		},
+		func(context.Context, uuid.UUID, string) (*dynamodb.Client, error) {
+			return nil, errors.New("not implemented")
+		},
+		nil,
+		log.NewDevelopment(),
+	)
+
+	s.SetTaskCleaner(scheduler.BackupTask, backupSvc.DeleteLocalSnapshots)
 
 	return h
 }
@@ -912,7 +948,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertNotStatus(task1, scheduler.StatusRunning)
 
 		Print("When: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -931,7 +967,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertError(h.service.StartTask(ctx, task0), "suspended")
 
 		Print("When: scheduler is resumed with start tasks option")
-		if err := h.service.Resume(ctx, h.clusterID, true); err != nil {
+		if err := h.service.Resume(ctx, h.clusterID, true, false, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -947,7 +983,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertNotStatus(task1, scheduler.StatusRunning)
 
 		Print("When: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -955,7 +991,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task0, scheduler.StatusStopped)
 
 		Print("When: scheduler is resumed")
-		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+		if err := h.service.Resume(ctx, h.clusterID, false, false, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -981,7 +1017,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task0, scheduler.StatusRunning)
 
 		Print("When: scheduler is suspended with allow 1_1_restore task")
-		if err := h.service.Suspend(ctx, h.clusterID, scheduler.One2OneRestoreTask.String()); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, scheduler.One2OneRestoreTask.String(), scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1009,7 +1045,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task1, scheduler.StatusRunning)
 
 		Print("When: scheduler is resumed")
-		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+		if err := h.service.Resume(ctx, h.clusterID, false, false, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1044,7 +1080,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task1, scheduler.StatusRunning)
 
 		Print("When: scheduler is suspended with allow 1_1_restore task")
-		if err := h.service.Suspend(ctx, h.clusterID, scheduler.One2OneRestoreTask.String()); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, scheduler.One2OneRestoreTask.String(), scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1067,7 +1103,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task1, scheduler.StatusRunning)
 
 		Print("When: scheduler is resumed")
-		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+		if err := h.service.Resume(ctx, h.clusterID, false, false, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1076,6 +1112,128 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("And: task1 (1_1_restore type) is running")
 		h.assertStatus(task1, scheduler.StatusRunning)
+	})
+
+	t.Run("suspend and resume with start tasks missed activation", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task0 is scheduled now")
+		task0 := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 runs")
+		h.assertStatus(task0, scheduler.StatusRunning)
+
+		Print("When: task1 is scheduled in future")
+		task1 := h.makeTask(scheduler.Schedule{
+			StartDate: future,
+		})
+		if err := h.service.PutTask(ctx, task1); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task1 is not executed")
+		h.assertNotStatus(task1, scheduler.StatusRunning)
+
+		Print("When: task3 is scheduled in the near future")
+		nearFutureDelta := 5 * time.Second
+		task3 := h.makeTaskWithStartDate(now().Add(nearFutureDelta))
+		if err := h.service.PutTask(ctx, task3); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task3 is not executed")
+		h.assertNotStatus(task3, scheduler.StatusRunning)
+
+		Print("When: scheduler is suspended")
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: scheduler reports suspended status")
+		if !h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected suspended")
+		}
+
+		Print("When: near future is now")
+		time.Sleep(nearFutureDelta)
+
+		Print("And: scheduler is resumed with start tasks missed activation")
+		if err := h.service.Resume(t.Context(), h.clusterID, true, true, false); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: scheduler reports not suspended status")
+		if h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected not suspended")
+		}
+
+		Print("And: task0 is executed (because start tasks)")
+		h.assertStatus(task0, scheduler.StatusRunning)
+
+		Print("And: task1 is not executed (because it is scheduled for the future)")
+		h.assertNotStatus(task1, scheduler.StatusRunning)
+
+		Print("And: task3 is executed (because it missed its activation)")
+		h.assertStatus(task3, scheduler.StatusRunning)
+	})
+
+	t.Run("suspend and resume with no continue", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := context.Background()
+
+		Print("When: task0 is scheduled now")
+		task0 := h.makeTaskWithStartDate(now())
+		task0.ID = uuid.Nil
+		task0.Sched.NumRetries = 1
+		task0.Sched.RetryWait = duration.Duration(time.Second)
+		if err := h.service.PutTask(ctx, task0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 runs")
+		h.assertStatus(task0, scheduler.StatusRunning)
+
+		Print("When: scheduler is suspended with no continue")
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, true); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: scheduler reports suspended status")
+		s := h.service.SuspendStatus(ctx, h.clusterID)
+		if !s.Suspended {
+			t.Fatal("Expected suspended")
+		}
+
+		Print("When: scheduler is resumed with no continue")
+		if err := h.service.Resume(ctx, h.clusterID, true, false, true); err != nil {
+			t.Fatal(err)
+		}
+
+		props := []json.RawMessage{
+			json.RawMessage(`{}`),
+			json.RawMessage(`{"continue":false}`),
+			json.RawMessage(`{}`),
+		}
+
+		Print("Then: task0 is executed 2 times")
+		h.assertStatus(task0, scheduler.StatusRunning)
+		h.runner.Error()
+		h.assertStatus(task0, scheduler.StatusError)
+
+		h.assertStatus(task0, scheduler.StatusRunning)
+		h.runner.Error()
+		h.assertStatus(task0, scheduler.StatusError)
+
+		Print("And: properties are preserved")
+		if diff := cmp.Diff(h.runner.Properties(), props); diff != "" {
+			t.Fatal(diff)
+		}
 	})
 
 	t.Run("suspend task", func(t *testing.T) {
@@ -1187,13 +1345,112 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task1, scheduler.StatusDone)
 	})
 
+	t.Run("suspend with dont stop running tasks", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+
+		Print("When: task0 (mock type) is scheduled now")
+		task0 := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(t.Context(), task0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 runs")
+		h.assertStatus(task0, scheduler.StatusRunning)
+
+		Print("When: task1 (tablet_repair type) is scheduled now")
+		task1 := h.makeTaskOfTypeWithStartDate(scheduler.TabletRepairTask, now())
+		if err := h.service.PutTask(t.Context(), task1); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task1 runs")
+		h.assertStatus(task1, scheduler.StatusRunning)
+
+		Print("And: scheduler is not suspended with allow tablet_repair task and dont stop running tasks")
+		err := h.service.Suspend(t.Context(), h.clusterID, scheduler.TabletRepairTask.String(), scheduler.SuspendPolicyFailIfRunningTasks, false)
+		if err == nil || !errors.Is(err, scheduler.ErrNotAllowedTasksRunning) {
+			t.Fatalf("Expected ErrNotAllowedTasksRunning, got %v", err)
+		}
+
+		Print("When: task0 is stopped")
+		if err := h.service.StopTask(t.Context(), task0); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task0 is not executed")
+		h.assertStatus(task0, scheduler.StatusStopped)
+
+		Print("And: scheduler is suspended with allow tablet_repair task and dont stop running tasks")
+		if err := h.service.Suspend(t.Context(), h.clusterID, scheduler.TabletRepairTask.String(), scheduler.SuspendPolicyFailIfRunningTasks, false); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("suspend with no continue performs cleanup", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+
+		Print("When: snapshots of system_schema are taken")
+		for i, host := range testconfig.ManagedClusterHosts() {
+			// Make snapshots with different tags for more coverage
+			tag := backupspec.SnapshotTagAt(timeutc.Now().Add(-time.Duration(i) * time.Second))
+			if err := h.client.TakeSnapshot(t.Context(), host, tag, "system_schema"); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		anySnapshotOnDisk := func() bool {
+			for _, host := range testconfig.ManagedClusterHosts() {
+				tags, err := h.client.Snapshots(t.Context(), host)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(tags) > 0 {
+					return true
+				}
+			}
+			return false
+		}
+
+		Print("Then: they are stored on nodes disks")
+		if !anySnapshotOnDisk() {
+			t.Fatal("Expected to find snapshot on disk after creating them manually")
+		}
+
+		Print("When: scheduler is suspended with no continue and allowed backup task")
+		if err := h.service.Suspend(t.Context(), h.clusterID, scheduler.BackupTask.String(), scheduler.SuspendPolicyStopRunningTasks, true); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: snapshots are preserved")
+		if !anySnapshotOnDisk() {
+			t.Fatal("Expected to find snapshot on disk after suspend with allowed backup task")
+		}
+
+		Print("When: scheduler is resumed")
+		if err := h.service.Resume(t.Context(), h.clusterID, false, false, true); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: scheduler is suspended with no continue and allowed tablet_repair task")
+		if err := h.service.Suspend(t.Context(), h.clusterID, scheduler.TabletRepairTask.String(), scheduler.SuspendPolicyStopRunningTasks, true); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: snapshots are deleted")
+		if anySnapshotOnDisk() {
+			t.Fatal("Expected snapshots to be cleaned up after suspend with allowed tablet_repair task")
+		}
+	})
+
 	t.Run("put task when suspended", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
 		ctx := context.Background()
 
 		Print("Given: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1227,7 +1484,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task, scheduler.StatusRunning)
 
 		Print("When: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1248,7 +1505,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertNotStatus(task, scheduler.StatusRunning)
 
 		Print("When: scheduler is resumed with start tasks option")
-		if err := h.service.Resume(ctx, h.clusterID, true); err != nil {
+		if err := h.service.Resume(ctx, h.clusterID, true, false, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1270,7 +1527,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 
 		Print("And: scheduler is suspended during the start time")
-		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1281,7 +1538,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		time.Sleep(wait)
 
 		Print("And: scheduler is resumed")
-		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+		if err := h.service.Resume(ctx, h.clusterID, false, false, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1295,7 +1552,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		ctx := context.Background()
 
 		Print("When: scheduler is suspended")
-		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -1305,12 +1562,12 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 
 		Print("And: suspending it again has no side effects")
-		if err := h.service.Suspend(ctx, h.clusterID, ""); err != nil {
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
 			t.Fatal(err)
 		}
 
 		Print("When: scheduler is resumed")
-		if err := h.service.Resume(ctx, h.clusterID, false); err != nil {
+		if err := h.service.Resume(ctx, h.clusterID, false, false, false); err != nil {
 			t.Fatal(err)
 		}
 
