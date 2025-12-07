@@ -2556,6 +2556,7 @@
         }
       },
       "put": {
+        "description": "RPC-style endpoint for suspending and resuming cluster",
         "parameters": [
           {
             "name": "suspended",
@@ -2568,19 +2569,52 @@
           {
             "type": "boolean",
             "name": "start_tasks",
+            "description": "Start tasks stopped by suspend on resume",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "name": "start_tasks_missed_activation",
+            "description": "Start tasks which missed their activation during suspend on resume",
+            "in": "query",
+            "required": false
+          },
+          {
+            "type": "boolean",
+            "name": "no_continue",
+            "description": "Start tasks from scratch on resume. Setting it on suspend allows for performing additional cleanup of disabled tasks",
+            "in": "query",
+            "required": false
           },
           {
             "type": "string",
             "name": "allow_task_type",
             "in": "query",
             "required": false
+          },
+          {
+            "type": "string",
+            "name": "suspend_policy",
+            "enum": [
+              "stop_running_tasks",
+              "fail_if_running_tasks"
+            ],
+            "default": "stop_running_tasks",
+            "in": "query",
+            "description": "Describes behavior towards running tasks (other than 'allowed_task_type') when suspend is requested. 'stop_running_tasks' results in stopping running tasks. 'fail_if_running_tasks' results in failing to suspend cluster and returning 409 HTTP status code",
+            "required": false
           }
         ],
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "409": {
+            "description": "Can't suspend cluster because tasks (other than 'allowed_task_type') are running. Use suspend_policy='stop_running_tasks' to stop those tasks before suspending cluster",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
           },
           "default": {
             "description": "Error",
