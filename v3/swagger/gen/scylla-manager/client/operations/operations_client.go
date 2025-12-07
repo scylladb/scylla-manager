@@ -1087,7 +1087,7 @@ func (a *Client) PutClusterClusterIDRepairsParallel(params *PutClusterClusterIDR
 }
 
 /*
-PutClusterClusterIDSuspended put cluster cluster ID suspended API
+PutClusterClusterIDSuspended RPC-style endpoint for suspending and resuming cluster
 */
 func (a *Client) PutClusterClusterIDSuspended(params *PutClusterClusterIDSuspendedParams) (*PutClusterClusterIDSuspendedOK, error) {
 	// TODO: Validate the params before sending
