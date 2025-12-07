@@ -103,8 +103,8 @@ type SchedService interface {
 	GetLastRuns(ctx context.Context, t *scheduler.Task, n int) ([]*scheduler.Run, error)
 	IsSuspended(ctx context.Context, clusterID uuid.UUID) bool
 	SuspendStatus(ctx context.Context, clusterID uuid.UUID) scheduler.SuspendStatus
-	Suspend(ctx context.Context, clusterID uuid.UUID, allowTaskType string) error
-	Resume(ctx context.Context, clusterID uuid.UUID, startTasks bool) error
+	Suspend(ctx context.Context, clusterID uuid.UUID, allowTaskType string, suspendPolicy scheduler.SuspendPolicy, noContinue bool) error
+	Resume(ctx context.Context, clusterID uuid.UUID, startTasks, startTasksMissedActivation, noContinue bool) error
 }
 
 // One2OneRestoreService service interface for the 1-1-restore REST API handlers.

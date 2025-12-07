@@ -286,11 +286,23 @@ func (s *Scheduler[K]) Stop(ctx context.Context, key K) {
 	}
 }
 
+// Running returns all currently running keys.
+func (s *Scheduler[K]) Running() []K {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	running := make([]K, 0, len(s.running))
+	for k := range s.running {
+		running = append(running, k)
+	}
+	return running
+}
+
 // Close makes Start function exit, stops all runs, call Wait to wait for the
 // runs to return.
 // It returns two sets of keys the running that were canceled and pending that
-// were scheduled to run.
-func (s *Scheduler[K]) Close() (running, pending []K) {
+// were scheduled to run. For pending keys, it also returns their next activation.
+func (s *Scheduler[K]) Close() (running, pending []K, pendingNextActivation []time.Time) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -302,6 +314,7 @@ func (s *Scheduler[K]) Close() (running, pending []K) {
 	}
 	for _, a := range s.queue.h {
 		pending = append(pending, a.Key)
+		pendingNextActivation = append(pendingNextActivation, a.Time)
 	}
 	return
 }

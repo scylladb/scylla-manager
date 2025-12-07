@@ -189,6 +189,9 @@ func (s *server) makeServices(ctx context.Context) error {
 	s.schedSvc.SetPropertiesDecorator(scheduler.BackupTask, s.backupSvc.TaskDecorator(s.schedSvc))
 	s.schedSvc.SetPropertiesDecorator(scheduler.ValidateBackupTask, s.backupSvc.ValidateBackupTaskDecorator(s.schedSvc))
 
+	// Perform additional cleanup when suspending cluster with no continue
+	s.schedSvc.SetTaskCleaner(scheduler.BackupTask, s.backupSvc.DeleteLocalSnapshots)
+
 	return nil
 }
 

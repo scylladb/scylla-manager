@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/go-set/b16set"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
@@ -21,11 +20,12 @@ import (
 )
 
 type suspendInfo struct {
-	ClusterID    uuid.UUID       `json:"-"`
-	StartedAt    time.Time       `json:"started_at"`
-	PendingTasks []uuid.UUID     `json:"pending_tasks"`
-	RunningTask  []uuid.UUID     `json:"running_tasks"`
-	AllowTask    AllowedTaskType `json:"allow_task_type"`
+	ClusterID                  uuid.UUID       `json:"-"`
+	StartedAt                  time.Time       `json:"started_at"`
+	PendingTasks               []uuid.UUID     `json:"pending_tasks"`
+	PendingTasksNextActivation []time.Time     `json:"pending_tasks_next_activation"`
+	RunningTask                []uuid.UUID     `json:"running_tasks"`
+	AllowTask                  AllowedTaskType `json:"allow_task_type"`
 }
 
 var _ store.Entry = &suspendInfo{}
@@ -42,12 +42,28 @@ func (v *suspendInfo) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, v)
 }
 
+// SuspendPolicy describes behavior towards running tasks (other than AllowTask) when suspend is requested.
+type SuspendPolicy string
+
+const (
+	// SuspendPolicyStopRunningTasks results in stopping running tasks.
+	SuspendPolicyStopRunningTasks SuspendPolicy = "stop_running_tasks"
+	// SuspendPolicyFailIfRunningTasks results in failing to suspend cluster and returning ErrNotAllowedTasksRunning.
+	SuspendPolicyFailIfRunningTasks SuspendPolicy = "fail_if_running_tasks"
+)
+
+// ErrNotAllowedTasksRunning is returned when there are not allowed tasks running
+// during suspend and SuspendPolicyFailIfRunningTasks is specified.
+var ErrNotAllowedTasksRunning = errors.New("not allowed tasks are running. Use suspend_policy='stop_running_tasks' to stop those tasks before suspending cluster")
+
 // SuspendProperties specify properties of Suspend task.
 type SuspendProperties struct {
-	Resume     bool              `json:"resume"`
-	Duration   duration.Duration `json:"duration"`
-	StartTasks bool              `json:"start_tasks"`
-	AllowTask  AllowedTaskType   `json:"allow_task_type"`
+	Resume        bool              `json:"resume"`
+	Duration      duration.Duration `json:"duration"`
+	StartTasks    bool              `json:"start_tasks"`
+	AllowTask     AllowedTaskType   `json:"allow_task_type"`
+	SuspendPolicy SuspendPolicy     `json:"suspend_policy"`
+	NoContinue    bool              `json:"no_continue"`
 }
 
 // GetSuspendProperties unmarshals suspend properties and validates them.
@@ -132,11 +148,14 @@ func (s *Service) isSuspendedForTaskLocked(clusterID uuid.UUID, taskType TaskTyp
 }
 
 // Suspend stops scheduler for a given cluster.
-// Running tasks will be stopped.
+// Behavior towards currently running tasks is described with suspendPolicy.
 // Scheduled task executions will be canceled.
 // Scheduler can be later resumed, see `Resume` function.
 // If allowTaskType is provided, it will allow the specified task type to be scheduled while the cluster is suspended.
-func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID, allowTaskType string) error {
+// If noContinue is set, next activation of disabled tasks will start from scratch.
+// In such case, task cleanup will also be performed.
+// If wait is set, this method call waits for the suspended tasks to stop running.
+func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID, allowTaskType string, suspendPolicy SuspendPolicy, noContinue bool) error {
 	var (
 		allowTask AllowedTaskType
 		props     SuspendProperties
@@ -145,14 +164,12 @@ func (s *Service) Suspend(ctx context.Context, clusterID uuid.UUID, allowTaskTyp
 		return err
 	}
 	props.AllowTask = allowTask
-	wait, err := s.suspend(ctx, clusterID, props)
-	if wait != nil {
-		wait()
-	}
-	return err
+	props.SuspendPolicy = suspendPolicy
+	props.NoContinue = noContinue
+	return s.suspend(ctx, clusterID, true, props)
 }
 
-func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, p SuspendProperties) (func(), error) {
+func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, wait bool, p SuspendProperties) error {
 	if p.Duration > 0 {
 		s.logger.Info(ctx, "Suspending cluster", "cluster_id", clusterID, "target", p, "allow_task_type", p.AllowTask)
 	} else {
@@ -165,12 +182,29 @@ func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, p SuspendPro
 		AllowTask: p.AllowTask,
 	}
 
+	var tasks []Task
+	if err := s.forEachClusterTask(clusterID, func(t *Task) error {
+		tasks = append(tasks, *t)
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "list tasks")
+	}
+
 	s.mu.Lock()
 	if s.isSuspendedLocked(clusterID) {
 		s.logger.Info(ctx, "Cluster already suspended", "cluster_id", clusterID)
 		s.mu.Unlock()
-		return nil, nil // nolint: nilnil
+		return nil // nolint: nilnil
 	}
+
+	if p.SuspendPolicy == SuspendPolicyFailIfRunningTasks {
+		notAllowedRunning := s.notAllowedRunningTasksLocked(clusterID, p.AllowTask, tasks)
+		if len(notAllowedRunning) != 0 {
+			s.mu.Unlock()
+			return errors.Wrapf(ErrNotAllowedTasksRunning, "running tasks %v", notAllowedRunning)
+		}
+	}
+
 	s.suspended[clusterID] = suspendParams{
 		AllowTask: p.AllowTask,
 	}
@@ -178,40 +212,63 @@ func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, p SuspendPro
 	l := s.resetSchedulerLocked(si)
 	s.mu.Unlock()
 
-	if err := s.forEachClusterTask(clusterID, func(t *Task) error {
-		if t.Type == p.AllowTask.TaskType {
-			s.schedule(ctx, t, slices.Contains(si.RunningTask, t.ID))
-			return nil
+	for i := range tasks {
+		if tasks[i].Type == p.AllowTask.TaskType {
+			s.schedule(ctx, &tasks[i], slices.Contains(si.RunningTask, tasks[i].ID))
+			continue
 		}
-		if t.Type == HealthCheckTask {
-			s.schedule(ctx, t, false)
-			return nil
+		if tasks[i].Type == HealthCheckTask {
+			s.schedule(ctx, &tasks[i], false)
+			continue
 		}
-		return nil
-	}); err != nil {
-		return nil, errors.Wrap(err, "schedule")
+		if p.NoContinue {
+			s.SetTaskNoContinue(tasks[i].ID, true)
+		}
 	}
 
 	if p.Duration > 0 {
 		rt, err := newResumeTask(si, p)
 		if err != nil {
-			return nil, errors.Wrap(err, "new resume task")
+			return errors.Wrap(err, "new resume task")
 		}
 		if err := table.SchedulerTask.InsertQuery(s.session).BindStruct(rt).ExecRelease(); err != nil {
-			return nil, errors.Wrap(err, "put task")
+			return errors.Wrap(err, "put task")
 		}
 		s.schedule(ctx, rt, false)
 	}
 
 	if err := s.drawer.Put(si); err != nil {
-		return nil, errors.Wrap(err, "save canceled tasks")
+		return errors.Wrap(err, "save canceled tasks")
 	}
 
-	var wait func()
-	if l != nil {
-		wait = l.Wait
+	if wait && l != nil {
+		l.Wait()
 	}
-	return wait, nil
+	if p.NoContinue {
+		if err := s.cleanup(ctx, clusterID, p.AllowTask); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// notAllowedRunningTasksLocked returns all currently running task IDs of types other than allowed.
+func (s *Service) notAllowedRunningTasksLocked(clusterID uuid.UUID, allowed AllowedTaskType, tasks []Task) []uuid.UUID {
+	l, ok := s.scheduler[clusterID]
+	if !ok || l == nil {
+		return nil
+	}
+	running := l.Running()
+	var notAllowedRunning []uuid.UUID
+	for i := range tasks {
+		if tasks[i].Type == allowed.TaskType || tasks[i].Type == HealthCheckTask || tasks[i].Type == SuspendTask {
+			continue
+		}
+		if slices.Contains(running, tasks[i].ID) {
+			notAllowedRunning = append(notAllowedRunning, tasks[i].ID)
+		}
+	}
+	return notAllowedRunning
 }
 
 // resetSchedulerLocked closes the current scheduler, records the information on running tasks, and creates a new empty scheduler.
@@ -220,10 +277,23 @@ func (s *Service) resetSchedulerLocked(si *suspendInfo) *Scheduler {
 	cid := si.ClusterID
 	l := s.scheduler[cid]
 	if l != nil {
-		si.RunningTask, si.PendingTasks = l.Close()
+		si.RunningTask, si.PendingTasks, si.PendingTasksNextActivation = l.Close()
 	}
 	s.scheduler[cid] = s.newScheduler(cid)
 	return l
+}
+
+// cleanup all tasks types except for the allowed one with Service.cleaners.
+func (s *Service) cleanup(ctx context.Context, clusterID uuid.UUID, allowed AllowedTaskType) error {
+	for tt, c := range s.cleaners {
+		if tt == allowed.TaskType {
+			continue
+		}
+		if err := c(ctx, clusterID); err != nil {
+			return errors.Wrapf(err, "cleanup %s tasks", tt)
+		}
+	}
+	return nil
 }
 
 // ResumeTaskID is a special task ID reserved for scheduled resume of suspended cluster.
@@ -265,7 +335,7 @@ func newDisabledResumeTask(clusterID uuid.UUID) *Task {
 }
 
 // Resume resumes scheduler for a suspended cluster.
-func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bool) error {
+func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks, startTasksMissedActivation, noContinue bool) error {
 	s.logger.Info(ctx, "Resuming cluster", "cluster_id", clusterID)
 
 	s.mu.Lock()
@@ -290,24 +360,16 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	s.metrics.Resume(clusterID)
 	s.mu.Unlock()
 
-	running := b16set.New()
-	if startTasks {
-		for _, u := range si.RunningTask {
-			running.Add(u.Bytes16())
-		}
-	}
 	if err := s.forEachClusterTask(clusterID, func(t *Task) error {
-		r := running.Has(t.ID.Bytes16())
 		if t.Type == si.AllowTask.TaskType {
 			return nil
 		}
-		if needsOneShotRun(t) {
-			r = true
+
+		if noContinue {
+			s.SetTaskNoContinue(t.ID, true)
 		}
-		if t.Type == SuspendTask {
-			r = false
-		}
-		s.schedule(ctx, t, r)
+
+		s.schedule(ctx, t, s.shouldStartTaskOnResume(si, t, startTasks, startTasksMissedActivation))
 		return nil
 	}); err != nil {
 		return errors.Wrap(err, "schedule")
@@ -318,6 +380,33 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks bo
 	}
 
 	return nil
+}
+
+func (s *Service) shouldStartTaskOnResume(si *suspendInfo, task *Task, startTasks, startTasksMissedActivation bool) bool {
+	if task.Type == SuspendTask || task.Type == HealthCheckTask {
+		return false
+	}
+
+	if startTasks {
+		if slices.Contains(si.RunningTask, task.ID) {
+			return true
+		}
+	}
+
+	if startTasksMissedActivation {
+		idx := slices.Index(si.PendingTasks, task.ID)
+		if idx >= 0 && len(si.PendingTasks) == len(si.PendingTasksNextActivation) {
+			if next := si.PendingTasksNextActivation[idx]; !next.IsZero() && next.Before(now()) {
+				return true
+			}
+		}
+	}
+
+	if needsOneShotRun(task) {
+		return true
+	}
+
+	return false
 }
 
 func (s *Service) forEachClusterTask(clusterID uuid.UUID, f func(t *Task) error) error {
@@ -337,13 +426,13 @@ func (s suspendRunner) Run(ctx context.Context, clusterID, _, _ uuid.UUID, prope
 	}
 
 	if p.Resume {
-		err = s.service.Resume(ctx, clusterID, p.StartTasks)
+		err = s.service.Resume(ctx, clusterID, p.StartTasks, false, false)
 	} else {
 		// Suspend close scheduler while running for this reason we need to
 		// - detach from the context
 		// - ignore wait for tasks completion
 		ctx = log.CopyTraceID(context.Background(), ctx)
-		_, err = s.service.suspend(ctx, clusterID, p)
+		err = s.service.suspend(ctx, clusterID, false, p)
 	}
 
 	return err
