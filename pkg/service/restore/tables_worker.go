@@ -323,9 +323,10 @@ func (w *tablesWorker) stageRepair(ctx context.Context) error {
 		}
 	}
 	repairProps, err := json.Marshal(map[string]any{
-		"keyspace":  keyspace,
-		"intensity": 0,
-		"parallel":  0,
+		"keyspace":    keyspace,
+		"intensity":   0,
+		"parallel":    0,
+		"allow_empty": true,
 	})
 	if err != nil {
 		return errors.Wrap(err, "parse repair properties")
@@ -333,9 +334,6 @@ func (w *tablesWorker) stageRepair(ctx context.Context) error {
 
 	repairTarget, err := w.repairSvc.GetTarget(ctx, w.run.ClusterID, repairProps)
 	if err != nil {
-		if errors.Is(err, repair.ErrEmptyRepair) {
-			return nil
-		}
 		return errors.Wrap(err, "get repair target")
 	}
 

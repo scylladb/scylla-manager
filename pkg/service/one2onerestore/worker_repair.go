@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -31,18 +30,16 @@ func (w *worker) repair(ctx context.Context, tablesToRepair []scyllaTable) error
 		keyspaceFilter = append(keyspaceFilter, table.keyspace+"."+table.table)
 	}
 	repairProps, err := json.Marshal(map[string]any{
-		"keyspace":  keyspaceFilter,
-		"intensity": 0,
-		"parallel":  0,
+		"keyspace":    keyspaceFilter,
+		"intensity":   0,
+		"parallel":    0,
+		"allow_empty": true,
 	})
 	if err != nil {
 		return errors.Wrap(err, "parse repair properties")
 	}
 	repairTarget, err := w.repairSvc.GetTarget(ctx, w.runInfo.ClusterID, repairProps)
 	if err != nil {
-		if errors.Is(err, repair.ErrEmptyRepair) {
-			return nil
-		}
 		return errors.Wrap(err, "get repair target")
 	}
 	start := timeutc.Now()
