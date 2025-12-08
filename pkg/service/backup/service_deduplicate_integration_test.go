@@ -58,9 +58,12 @@ func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 	var originalTotalSize int64
 	func() {
 		var deduplicatedOnFreshBackup int64
+		var mu sync.Mutex
 		after := func(skipped, uploaded, size int64) {
+			mu.Lock()
 			deduplicatedOnFreshBackup += skipped
 			originalTotalSize += size
+			mu.Unlock()
 		}
 		defer h.service.RemoveDeduplicateTestHooks()
 		h.service.SetDeduplicateTestHooks(func() {}, after)
@@ -77,10 +80,13 @@ func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 	Print("Then: another backup to deduplicate everything (no delta)")
 	func() {
 		var totalDeduplicated, totalUploaded, totalSize int64
+		var mu sync.Mutex
 		after := func(skipped, uploaded, size int64) {
+			mu.Lock()
 			totalDeduplicated += skipped
 			totalUploaded += uploaded
 			totalSize += size
+			mu.Unlock()
 		}
 		defer h.service.RemoveDeduplicateTestHooks()
 		h.service.SetDeduplicateTestHooks(func() {}, after)
@@ -103,7 +109,7 @@ func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 		}
 	}()
 
-	Print("Given: yet  another backup is started on empty delta (no data changes) and paused od DEDUPLICATE stage")
+	Print("Given: yet another backup is started on empty delta (no data changes) and paused od DEDUPLICATE stage")
 	func() {
 		onlyOneHostToProcessMutex := sync.Mutex{}
 		var totalDeduplicated, totalUploaded, totalSize int64
@@ -133,10 +139,13 @@ func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 	Print("When: backup is resumed with the new RunID")
 	func() {
 		var totalDeduplicated, totalUploaded, totalSize int64
+		var mu sync.Mutex
 		after := func(skipped, uploaded, size int64) {
+			mu.Lock()
 			totalDeduplicated += skipped
 			totalUploaded += uploaded
 			totalSize += size
+			mu.Unlock()
 		}
 		defer h.service.RemoveDeduplicateTestHooks()
 		h.service.SetDeduplicateTestHooks(func() {}, after)
