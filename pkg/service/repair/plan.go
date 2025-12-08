@@ -116,6 +116,9 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 	}
 
 	if len(ks) == 0 {
+		if target.AllowEmpty {
+			return &plan{}, nil
+		}
 		return nil, ErrEmptyRepair
 	}
 

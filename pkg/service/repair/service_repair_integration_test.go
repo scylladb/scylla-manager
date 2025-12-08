@@ -2469,6 +2469,45 @@ func TestServiceRepairIntegration(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Allow empty", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+
+		const ks = "test_keyspace_allow_empty"
+		createDefaultKeyspace(t, clusterSession, ks, 3, 3)
+		defer dropKeyspace(t, clusterSession, ks)
+		WriteData(t, clusterSession, ks, 0)
+
+		_, err := h.generateTarget(map[string]any{
+			"keyspace": []string{"fake"},
+		})
+		if err == nil || !errors.Is(err, repair.ErrEmptyRepair) {
+			t.Fatalf("Expected ErrEmptyRepair error, got: %v", err)
+		}
+
+		target, err := h.generateTarget(map[string]any{
+			"keyspace":    []string{"fake"},
+			"allow_empty": true,
+		})
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
+		}
+		if len(target.Units) != 0 {
+			t.Fatalf("Expected empty units, got: %v", target.Units)
+		}
+
+		if err := h.service.Repair(t.Context(), h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
+		}
+
+		pr, err := h.service.GetProgress(t.Context(), h.ClusterID, h.TaskID, h.RunID)
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
+		}
+		if len(pr.Tables) != 0 {
+			t.Fatalf("Expected empty tables, got: %v", pr.Tables)
+		}
+	})
 }
 
 func TestServiceRepairErrorNodetoolRepairRunningIntegration(t *testing.T) {

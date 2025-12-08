@@ -43,6 +43,7 @@ type Target struct {
 	Parallel            int                          `json:"parallel"`
 	SmallTableThreshold int64                        `json:"small_table_threshold"`
 	IncrementalMode     scyllaclient.IncrementalMode `json:"incremental_mode"`
+	AllowEmpty          bool                         `json:"allow_empty"`
 }
 
 // HostString is a wrapper for Target.Host.String().
@@ -66,6 +67,7 @@ type taskProperties struct {
 	Parallel            int                              `json:"parallel"`
 	SmallTableThreshold int64                            `json:"small_table_threshold"`
 	IncrementalMode     scyllaclient.IncrementalMode     `json:"incremental_mode"`
+	AllowEmpty          bool                             `json:"allow_empty"`
 }
 
 func defaultTaskProperties() *taskProperties {
@@ -80,6 +82,7 @@ func defaultTaskProperties() *taskProperties {
 		// Consider 1GB table as small by default.
 		SmallTableThreshold: 1 * 1024 * 1024 * 1024,
 		IncrementalMode:     scyllaclient.IncrementalModeIncremental,
+		AllowEmpty:          false,
 	}
 }
 

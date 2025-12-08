@@ -101,6 +101,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		Parallel:            props.Parallel,
 		SmallTableThreshold: props.SmallTableThreshold,
 		IncrementalMode:     props.IncrementalMode,
+		AllowEmpty:          props.AllowEmpty,
 	}
 
 	if err := validateKeyspaceReplication(props.KeyspaceReplication); err != nil {
@@ -167,7 +168,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 		}
 		f.Add(ks, tables)
 	}
-	t.Units, err = f.Apply(false)
+	t.Units, err = f.Apply(props.AllowEmpty)
 	if err != nil {
 		return t, errors.Wrap(ErrEmptyRepair, err.Error())
 	}
