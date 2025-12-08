@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2025 ScyllaDB
 
 package scyllaclient
 
@@ -650,13 +650,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	errCh := make(chan error)
 	go func() {
 		var v RcloneListDirItem
-		for dec.More() {
-			// Detect context cancellation
-			if ctx.Err() != nil {
-				errCh <- ctx.Err()
-				return
-			}
-
+		for dec.More() && ctx.Err() == nil {
 			// Read value
 			v = RcloneListDirItem{}
 			if err := dec.Decode(&v); err != nil {
@@ -666,6 +660,11 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 			f(&v)
 
 			errCh <- nil
+		}
+		// Detect context cancellation
+		if ctx.Err() != nil {
+			errCh <- ctx.Err()
+			return
 		}
 		close(errCh)
 	}()
