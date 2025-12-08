@@ -50,6 +50,10 @@ incremental-mode: |
   * 'full': The incremental repair logic is enabled. Both repaired and unrepaired sstables will be included for repair. The incremental repair states will be updated after repair.
   * 'disabled': The incremental repair logic is disabled completely. The incremental repair states, e.g., repaired_at in sstables and sstables_repaired_at in the system.tablets table, will not be updated after repair.
 
+allow-empty: |
+  By default, scheduling or running repair that would target no table ends with an error.
+  This flag allows to schedule and run such repairs without an error.
+
 dry-run: |
   Validates and displays repair information without actually scheduling the repair.
   This allows you to display what will happen should the repair run with the parameters you set.
