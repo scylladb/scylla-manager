@@ -1,4 +1,4 @@
-// Copyright (C) 2024 ScyllaDB
+// Copyright (C) 2025 ScyllaDB
 
 //go:build all || integration
 
@@ -280,9 +280,9 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 			// Set table ID to ni as it is expected to differ
 			schema.Tables[i].Describe.TableId = nil
 			// Ignore index status and backfilling as they are temporary states
-			for _, gsi := range schema.Tables[i].Describe.GlobalSecondaryIndexes {
-				gsi.IndexStatus = ""
-				gsi.Backfilling = nil
+			for j := range schema.Tables[i].Describe.GlobalSecondaryIndexes {
+				schema.Tables[i].Describe.GlobalSecondaryIndexes[j].IndexStatus = ""
+				schema.Tables[i].Describe.GlobalSecondaryIndexes[j].Backfilling = nil
 			}
 			slices.SortFunc(schema.Tables[i].Describe.GlobalSecondaryIndexes, func(a, b types.GlobalSecondaryIndexDescription) int {
 				return cmp.Compare(*a.IndexName, *b.IndexName)
