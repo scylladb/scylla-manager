@@ -45,6 +45,14 @@ type Target struct {
 	IncrementalMode     scyllaclient.IncrementalMode `json:"incremental_mode"`
 }
 
+// HostString is a wrapper for Target.Host.String().
+func (t Target) HostString() string {
+	if t.Host.IsValid() {
+		return t.Host.String()
+	}
+	return ""
+}
+
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
 	Keyspace            []string                         `json:"keyspace"`

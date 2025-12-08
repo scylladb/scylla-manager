@@ -289,7 +289,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		TaskID:    taskID,
 		ID:        runID,
 		DC:        target.DC,
-		Host:      target.Host.String(),
+		Host:      target.HostString(),
 		Parallel:  target.Parallel,
 		Intensity: target.Intensity,
 		StartTime: timeutc.Now(),
