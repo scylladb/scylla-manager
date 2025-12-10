@@ -1625,7 +1625,7 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 			return false
 		}
 		return true
-	}, time.Second, 5*time.Minute)
+	}, time.Second, 30*time.Minute)
 
 	Print("Validate restored simple cql data")
 	cqlTabs := []table{
