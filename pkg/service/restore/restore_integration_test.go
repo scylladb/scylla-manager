@@ -1616,7 +1616,16 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	// Reset alternator client in order to handle cluster restart
 	accessKeyID, secretAccessKey := GetAlternatorCreds(t, h.dstCluster.rootSession, "")
 	h.dstCluster.altClient = CreateAlternatorClient(t, h.dstCluster.Client, h.dstCluster.Client.Config().Hosts[0], accessKeyID, secretAccessKey)
-	ValidateAlternatorTableData(t, h.dstCluster.altClient, rowCnt, 2, 2, altTab1, altTab2)
+	// LSI updates are applied even after the restore task has finished.
+	// Because of that, it might take some time until the alternator data validation succeeds.
+	WaitCond(t, func() bool {
+		err := ValidateAlternatorTableData(t.Context(), h.dstCluster.altClient, rowCnt, 2, 2, altTab1, altTab2)
+		if err != nil {
+			t.Logf("Validate alternator table data failed with %q", err)
+			return false
+		}
+		return true
+	}, time.Second, 5*time.Minute)
 
 	Print("Validate restored simple cql data")
 	cqlTabs := []table{

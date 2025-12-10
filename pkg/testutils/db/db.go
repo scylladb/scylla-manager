@@ -619,46 +619,45 @@ func InsertAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt int
 
 // ValidateAlternatorTableData checks items count in provided alternator tables.
 // Since LSI names are auto-generated in CreateAlternatorTable, we also check for them here.
-func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, lsiCnt, gsiCnt int, tables ...string) {
-	t.Helper()
-
+func ValidateAlternatorTableData(ctx context.Context, client *dynamodb.Client, rowCnt, lsiCnt, gsiCnt int, tables ...string) error {
 	for _, table := range tables {
-		out, err := client.Scan(t.Context(), &dynamodb.ScanInput{
+		out, err := client.Scan(ctx, &dynamodb.ScanInput{
 			TableName: aws.String(table),
 		})
 		if err != nil {
-			t.Fatal(err)
+			return err
 		}
 		if out.Count != int32(rowCnt) {
-			t.Fatalf("expected %d items in table %q, got %d", rowCnt, table, out.Count)
+			return errors.Errorf("expected %d items in table %q, got %d", rowCnt, table, out.Count)
 		}
 
 		for lsi := range lsiCnt {
-			out, err = client.Scan(t.Context(), &dynamodb.ScanInput{
+			out, err = client.Scan(ctx, &dynamodb.ScanInput{
 				TableName: aws.String(table),
 				IndexName: aws.String(fmt.Sprint(AlternatorLSIPrefix, lsi)),
 			})
 			if err != nil {
-				t.Fatal(err)
+				return err
 			}
 			if out.Count != int32(rowCnt) {
-				t.Fatalf("expected %d items in LSI %q of %q, got %d", rowCnt, lsi, table, out.Count)
+				return errors.Errorf("expected %d items in LSI %q of %q, got %d", rowCnt, lsi, table, out.Count)
 			}
 		}
 
 		for gsi := range gsiCnt {
-			out, err = client.Scan(t.Context(), &dynamodb.ScanInput{
+			out, err = client.Scan(ctx, &dynamodb.ScanInput{
 				TableName: aws.String(table),
 				IndexName: aws.String(fmt.Sprint(AlternatorGSIPrefix, gsi)),
 			})
 			if err != nil {
-				t.Fatal(err)
+				return err
 			}
 			if out.Count != int32(rowCnt) {
-				t.Fatalf("expected %d items in GSI %q of %q, got %d", rowCnt, gsi, table, out.Count)
+				return errors.Errorf("expected %d items in GSI %q of %q, got %d", rowCnt, gsi, table, out.Count)
 			}
 		}
 	}
+	return nil
 }
 
 // ValidateAlternatorGSIData checks item count in provided alternator table GSIs.
