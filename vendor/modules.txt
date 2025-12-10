@@ -480,7 +480,6 @@ github.com/scylladb/go-log/gocqllog
 github.com/scylladb/go-reflectx
 # github.com/scylladb/go-set v1.0.2
 ## explicit
-github.com/scylladb/go-set/b16set
 github.com/scylladb/go-set/i64set
 github.com/scylladb/go-set/iset
 github.com/scylladb/go-set/strset
@@ -495,12 +494,12 @@ github.com/scylladb/gocqlx/v2/table
 # github.com/scylladb/scylla-manager/backupspec v1.0.3-0.20250818141015-50f1d9b3b087
 ## explicit; go 1.23.2
 github.com/scylladb/scylla-manager/backupspec
-# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20251118100959-f48f8c2d4bdd
-## explicit; go 1.23.2
+# github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20251210124012-76415801f13c
+## explicit; go 1.25.1
 github.com/scylladb/scylla-manager/v3/pkg/managerclient
 github.com/scylladb/scylla-manager/v3/pkg/managerclient/table
-# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20251118100959-f48f8c2d4bdd
-## explicit; go 1.23.2
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20251210124012-76415801f13c
+## explicit; go 1.25.1
 github.com/scylladb/scylla-manager/v3/pkg/util
 github.com/scylladb/scylla-manager/v3/pkg/util/certutil
 github.com/scylladb/scylla-manager/v3/pkg/util/cfgutil
@@ -532,8 +531,8 @@ github.com/scylladb/scylla-manager/v3/pkg/util/timeutc
 github.com/scylladb/scylla-manager/v3/pkg/util/uuid
 github.com/scylladb/scylla-manager/v3/pkg/util/version
 github.com/scylladb/scylla-manager/v3/pkg/util/workerpool
-# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20251118100959-f48f8c2d4bdd
-## explicit; go 1.23.2
+# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20251210124012-76415801f13c
+## explicit; go 1.25.1
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations
 github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models
