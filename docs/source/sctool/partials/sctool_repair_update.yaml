@@ -7,6 +7,11 @@ description: |
     For modifying already running repair task on the fly see 'sctool repair control' command.
 usage: sctool repair update --cluster <id|name> [flags] [<repair/task-id>]
 options:
+    - name: allow-empty
+      default_value: "false"
+      usage: |
+        By default, scheduling or running repair that would target no table ends with an error.
+        This flag allows to schedule and run such repairs without an error.
     - name: cluster
       shorthand: c
       usage: |
@@ -56,7 +61,6 @@ options:
       usage: |
         Do not repair nodes that are down i.e. in status DN.
     - name: incremental-mode
-      default_value: incremental
       usage: |
         Incremental repair mode used when repairing tablet tables.
         Available since ScyllaDB 2025.4. Setting it for older versions has no effect.
