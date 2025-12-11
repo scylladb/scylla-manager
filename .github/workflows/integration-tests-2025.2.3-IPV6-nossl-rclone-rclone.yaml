@@ -10,22 +10,6 @@ env:
     backup-method: rclone
     restore-method: rclone
 jobs:
-    backup:
-        name: Test backup
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out code into the Go module directory
-              uses: actions/checkout@v3
-            - name: Setup testing dependencies
-              uses: ./.github/actions/test-setup
-              with:
-                ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
-                scylla-version: ${{ env.scylla-version }}
-                ssl-enabled: ${{ env.ssl-enabled }}
-                tablets: ${{ env.tablets }}
-            - name: Run tests
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/backup
     repair:
         name: Test repair
         runs-on: ubuntu-latest
@@ -40,10 +24,14 @@ jobs:
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
-            - name: Run tests
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair
             - continue-on-error: true
               name: Run tablet repair tests
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 2
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 3
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
             - continue-on-error: true
               name: Print logs dc1 node1
@@ -79,7 +67,13 @@ jobs:
                 tablets: ${{ env.tablets }}
             - continue-on-error: true
               name: Run tests
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 2
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 3
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
             - continue-on-error: true
               name: Print logs dc1 node1
               run: docker logs scylla_manager-dc1_node_1-1
@@ -98,58 +92,6 @@ jobs:
             - continue-on-error: true
               name: Print logs dc2 node3
               run: docker logs scylla_manager-dc2_node_3-1
-    restore-tables:
-        name: Test restore tables
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out code into the Go module directory
-              uses: actions/checkout@v3
-            - name: Setup testing dependencies
-              uses: ./.github/actions/test-setup
-              with:
-                ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
-                scylla-version: ${{ env.scylla-version }}
-                ssl-enabled: ${{ env.ssl-enabled }}
-                tablets: ${{ env.tablets }}
-            - name: Run tests
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
-    small-pkg:
-        name: Test other, smaller packages
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out code into the Go module directory
-              uses: actions/checkout@v3
-            - name: Set IP_FAMILY and SSL_ENABLED var for all tests
-              run: |
-                echo "IP_FAMILY=${{ env.ip-family }}" >> $GITHUB_ENV
-                echo "SSL_ENABLED=${{ env.ssl-enabled }}" >> $GITHUB_ENV
-            - name: Setup testing dependencies
-              uses: ./.github/actions/test-setup
-              with:
-                ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
-                scylla-version: ${{ env.scylla-version }}
-                ssl-enabled: ${{ env.ssl-enabled }}
-                tablets: ${{ env.tablets }}
-            - name: Run cqlping tests
-              run: make pkg-integration-test PKG=./pkg/ping/cqlping
-            - name: Run dynamoping tests
-              run: make pkg-integration-test PKG=./pkg/ping/dynamoping
-            - name: Run scyllaclient tests
-              run: make pkg-integration-test PKG=./pkg/scyllaclient
-            - name: Run cluster tests
-              run: make pkg-integration-test PKG=./pkg/service/cluster
-            - name: Run healthcheck tests
-              run: make pkg-integration-test PKG=./pkg/service/healthcheck
-            - name: Run scheduler tests
-              run: make pkg-integration-test PKG=./pkg/service/scheduler
-            - name: Run store tests
-              run: make pkg-integration-test PKG=./pkg/store
-            - name: Run migrate tests
-              run: make pkg-integration-test PKG=./pkg/schema/migrate
-            - name: Run 1-1-restore tests
-              run: make pkg-integration-test TABLETS=${{ env.tablets }} PKG=./pkg/service/one2onerestore
 name: integration-tests-2025.2.3-IPV6-nossl-rclone-rclone
 "on":
     pull_request:

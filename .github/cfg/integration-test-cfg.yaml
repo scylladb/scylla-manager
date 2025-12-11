@@ -1,15 +1,3 @@
-- scylla-version: scylla-enterprise:2024.1.21
-  ip-family: IPV4
-  raft-schema: disabled
-  tablets: none
-  ssl-enabled: true
-
-- scylla-version: scylla-enterprise:2024.1.21
-  ip-family: IPV6
-  raft-schema: enabled
-  tablets: none
-  ssl-enabled: false
-
 - scylla-version: scylla:2025.1.9
   ip-family: IPV4
   raft-schema: none
