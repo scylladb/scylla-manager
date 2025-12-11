@@ -741,6 +741,9 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 }
 
 func TestRestoreTablesRestartAgentsIntegration(t *testing.T) {
+	t.Skip("Skip until we decide that we need to implement such mechanism " +
+		"or that it's not needed and the test should be removed (#4589)")
+
 	testBucket, testKeyspace, testUser := getBucketKeyspaceUser(t)
 	const (
 		testLoadCnt   = 3
@@ -800,7 +803,7 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 
 	Print("When: Restore is running")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target)); err != nil {
-		t.Errorf("Expected no error but got %+v", err)
+		t.Fatalf("Expected no error but got %+v", err)
 	}
 
 	dstH.validateRestoreSuccess(dstSession, srcSession, target, []table{{ks: keyspace, tab: BigTableName}})
