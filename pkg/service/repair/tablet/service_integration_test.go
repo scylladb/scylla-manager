@@ -157,11 +157,6 @@ func TestTabletRepairIntegration(t *testing.T) {
 		t.Skip("Tablet repair requires tablet repair API support")
 	}
 
-	incrementalRepairSupport, err := ni.SupportsIncrementalRepair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	const (
 		cqlKs   = "cql_ks"
 		cqlTab1 = "tab_1"
@@ -231,11 +226,8 @@ func TestTabletRepairIntegration(t *testing.T) {
 			}
 			repairedTables[ft] = struct{}{}
 			// Check incremental mode
-			if incrementalRepairSupport && trr.incrementalMode != scyllaclient.IncrementalModeIncremental {
-				t.Errorf("Expected incremental mode, got %q", trr.incrementalMode)
-			}
-			if !incrementalRepairSupport && trr.incrementalMode != "" {
-				t.Errorf("Expected no incremental mode, got %q", trr.incrementalMode)
+			if trr.incrementalMode != "" {
+				t.Errorf("Expected default incremental mode, got %q", trr.incrementalMode)
 			}
 			return nil, nil
 		}))
