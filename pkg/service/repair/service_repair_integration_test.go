@@ -2385,7 +2385,10 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		modes := []scyllaclient.IncrementalMode{scyllaclient.IncrementalModeIncremental, scyllaclient.IncrementalModeFull, scyllaclient.IncrementalModeDisabled}
+		modes := []scyllaclient.IncrementalMode{
+			"", scyllaclient.IncrementalModeIncremental,
+			scyllaclient.IncrementalModeFull, scyllaclient.IncrementalModeDisabled,
+		}
 		for _, m := range modes {
 			t.Run("IncrementalRepairMode: "+string(m), func(t *testing.T) {
 				var incrementalRepairUsed string
@@ -2401,13 +2404,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 				)
 
 				h.RunID = uuid.NewTime()
-				h.runRepair(ctx, map[string]any{
-					"keyspace":         []string{ks + "." + tab},
-					"incremental_mode": m,
-				})
+				props := map[string]any{
+					"keyspace": []string{ks + "." + tab},
+				}
+				if m != "" {
+					props["incremental_mode"] = m
+				}
+				h.runRepair(ctx, props)
 				h.assertDone(shortWait)
 
-				if incrementalRepairSupport && incrementalRepairUsed != string(m) {
+				if incrementalRepairSupport && incrementalRepairUsed != m {
 					t.Fatalf("Incremental repair is supported, expected mode: %q, got %q", m, incrementalRepairUsed)
 				}
 				if !incrementalRepairSupport && incrementalRepairUsed != "" {
