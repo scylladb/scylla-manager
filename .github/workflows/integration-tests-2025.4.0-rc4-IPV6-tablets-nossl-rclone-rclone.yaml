@@ -34,6 +34,33 @@ jobs:
               name: Run tablet repair tests 3
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
             - continue-on-error: true
+              name: Run tablet repair tests 4
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 5
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 6
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 7
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 8
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 9
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 10
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 11
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
+              name: Run tablet repair tests 12
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - continue-on-error: true
               name: Print logs dc1 node1
               run: docker logs scylla_manager-dc1_node_1-1
             - continue-on-error: true
@@ -73,6 +100,33 @@ jobs:
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
             - continue-on-error: true
               name: Run tests 3
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 4
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 5
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 6
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 7
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 8
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 9
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 10
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 11
+              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
+            - continue-on-error: true
+              name: Run tests 12
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
             - continue-on-error: true
               name: Print logs dc1 node1
