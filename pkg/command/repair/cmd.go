@@ -90,7 +90,7 @@ func (cmd *command) init() {
 	w.Unwrap().Var(cmd.intensity, "intensity", "")
 	w.Unwrap().IntVar(&cmd.parallel, "parallel", 0, "")
 	w.Unwrap().Var(&cmd.smallTableThreshold, "small-table-threshold", "")
-	w.Unwrap().StringVar(&cmd.incrementalMode, "incremental-mode", "incremental", "")
+	w.Unwrap().StringVar(&cmd.incrementalMode, "incremental-mode", "", "")
 	w.Unwrap().BoolVar(&cmd.allowEmpty, "allow-empty", false, "")
 	w.Unwrap().BoolVar(&cmd.dryRun, "dry-run", false, "")
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
