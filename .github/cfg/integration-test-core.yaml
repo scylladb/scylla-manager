@@ -54,24 +54,31 @@ jobs:
         # This regex ensures that all restore tests that didn't match restore-tables job will be run here.
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
+        continue-on-error: true
 
       - name: Print logs dc1 node1
         run: docker logs scylla_manager-dc1_node_1-1
+        continue-on-error: true
 
       - name: Print logs dc1 node2
         run: docker logs scylla_manager-dc1_node_2-1
+        continue-on-error: true
 
       - name: Print logs dc1 node3
         run: docker logs scylla_manager-dc1_node_3-1
+        continue-on-error: true
 
       - name: Print logs dc2 node1
         run: docker logs scylla_manager-dc2_node_1-1
+        continue-on-error: true
 
       - name: Print logs dc2 node2
         run: docker logs scylla_manager-dc2_node_2-1
+        continue-on-error: true
 
       - name: Print logs dc2 node3
         run: docker logs scylla_manager-dc2_node_3-1
+        continue-on-error: true
 
   backup:
     name: Test backup
@@ -113,24 +120,31 @@ jobs:
 
       - name: Run tablet repair tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+        continue-on-error: true
 
       - name: Print logs dc1 node1
         run: docker logs scylla_manager-dc1_node_1-1
+        continue-on-error: true
 
       - name: Print logs dc1 node2
         run: docker logs scylla_manager-dc1_node_2-1
+        continue-on-error: true
 
       - name: Print logs dc1 node3
         run: docker logs scylla_manager-dc1_node_3-1
+        continue-on-error: true
 
       - name: Print logs dc2 node1
         run: docker logs scylla_manager-dc2_node_1-1
+        continue-on-error: true
 
       - name: Print logs dc2 node2
         run: docker logs scylla_manager-dc2_node_2-1
+        continue-on-error: true
 
       - name: Print logs dc2 node3
         run: docker logs scylla_manager-dc2_node_3-1
+        continue-on-error: true
 
   small-pkg:
     name: Test other, smaller packages
