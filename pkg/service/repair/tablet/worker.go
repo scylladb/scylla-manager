@@ -25,8 +25,6 @@ type worker struct {
 	metrics   metrics.TabletRepairMetrics
 	smSession gocqlx.Session
 	client    *scyllaclient.Client
-
-	incrementalRepairSupport bool
 }
 
 func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*worker, error) {
@@ -34,23 +32,14 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 	if err != nil {
 		return nil, errors.Wrap(err, "get scylla client")
 	}
-	ni, err := client.AnyNodeInfo(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get any node info")
-	}
-	incrementalSupport, err := ni.SupportsIncrementalRepair()
-	if err != nil {
-		return nil, errors.Wrap(err, "check incremental tablet repair support")
-	}
 	return &worker{
-		clusterID:                clusterID,
-		taskID:                   taskID,
-		runID:                    runID,
-		logger:                   s.logger.Named("worker"),
-		metrics:                  s.metrics,
-		smSession:                s.smSession,
-		client:                   client,
-		incrementalRepairSupport: incrementalSupport,
+		clusterID: clusterID,
+		taskID:    taskID,
+		runID:     runID,
+		logger:    s.logger.Named("worker"),
+		metrics:   s.metrics,
+		smSession: s.smSession,
+		client:    client,
 	}, nil
 }
 
@@ -121,7 +110,8 @@ func (w *worker) repairTable(ctx context.Context, client *scyllaclient.Client, k
 		w.upsertTableProgress(ctx, pr)
 	}(start)
 
-	id, err := client.TabletRepair(ctx, ks, tab, "", nil, nil, w.incrementalRepairMode())
+	// Use scylla side default incremental mode (#4683)
+	id, err := client.TabletRepair(ctx, ks, tab, "", nil, nil, "")
 	if err != nil {
 		if _, _, ok := scyllaclient.IsColocatedTableErr(err); ok {
 			// Since we always repair all tablet tables,
@@ -148,13 +138,6 @@ func (w *worker) repairTable(ctx context.Context, client *scyllaclient.Client, k
 	default:
 		return errors.Errorf("unexpected tablet repair task status %q", status.State)
 	}
-}
-
-func (w *worker) incrementalRepairMode() scyllaclient.IncrementalMode {
-	if w.incrementalRepairSupport {
-		return scyllaclient.IncrementalModeIncremental
-	}
-	return ""
 }
 
 func (w *worker) abortRepairTask(ctx context.Context, id string) {

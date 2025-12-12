@@ -15,6 +15,5 @@
   "continue": false,
   "intensity": 1,
   "parallel": 0,
-  "small_table_threshold": 1073741824,
-  "incremental_mode": "incremental"
+  "small_table_threshold": 1073741824
 }

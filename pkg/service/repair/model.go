@@ -81,7 +81,6 @@ func defaultTaskProperties() *taskProperties {
 
 		// Consider 1GB table as small by default.
 		SmallTableThreshold: 1 * 1024 * 1024 * 1024,
-		IncrementalMode:     scyllaclient.IncrementalModeIncremental,
 		AllowEmpty:          false,
 	}
 }

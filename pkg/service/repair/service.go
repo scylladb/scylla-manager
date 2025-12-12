@@ -210,9 +210,12 @@ func validateKeyspaceReplication(replication scyllaclient.KeyspaceReplication) e
 }
 
 func validateIncrementalMode(incrementalMode scyllaclient.IncrementalMode) error {
-	knownIncrementalModes := []scyllaclient.IncrementalMode{scyllaclient.IncrementalModeIncremental, scyllaclient.IncrementalModeFull, scyllaclient.IncrementalModeDisabled}
+	knownIncrementalModes := []scyllaclient.IncrementalMode{
+		"", scyllaclient.IncrementalModeIncremental,
+		scyllaclient.IncrementalModeFull, scyllaclient.IncrementalModeDisabled,
+	}
 	if !slices.Contains(knownIncrementalModes, incrementalMode) {
-		return util.ErrValidate(errors.Errorf("unknown --incremental-mode: %s, known incremental modes: %v", incrementalMode, knownIncrementalModes))
+		return util.ErrValidate(errors.Errorf("unknown --incremental-mode: %q, known incremental modes: %v", incrementalMode, knownIncrementalModes))
 	}
 	return nil
 }
