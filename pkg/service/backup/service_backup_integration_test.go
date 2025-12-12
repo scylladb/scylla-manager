@@ -954,8 +954,8 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 		t.Errorf("SnapshotTag=%s, expected %s", mc.SnapshotTag, infoFromPath.SnapshotTag)
 	}
 
-	if mc.Rack != "rack1" {
-		t.Errorf("Rack=%s, expected rack1", mc.Rack)
+	if mc.Rack == "" {
+		t.Error(`Rack="", expected != ""`, mc.Rack)
 	}
 
 	if mc.ShardCount == 0 {

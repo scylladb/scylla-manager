@@ -7,7 +7,7 @@ services:
       AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
-        source: ./scylla/cassandra-rackdc.1.properties
+        source: ./scylla/cassandra-rackdc.dc1r1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla.yaml
@@ -27,7 +27,7 @@ services:
       AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
-        source: ./scylla/cassandra-rackdc.1.properties
+        source: ./scylla/cassandra-rackdc.dc1r2.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla.yaml
@@ -47,7 +47,7 @@ services:
       AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
-        source: ./scylla/cassandra-rackdc.1.properties
+        source: ./scylla/cassandra-rackdc.dc1r3.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla.yaml
@@ -67,7 +67,7 @@ services:
       AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
-        source: ./scylla/cassandra-rackdc.2.properties
+        source: ./scylla/cassandra-rackdc.dc2r1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla.yaml
@@ -87,7 +87,7 @@ services:
       AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
-        source: ./scylla/cassandra-rackdc.2.properties
+        source: ./scylla/cassandra-rackdc.dc2r2.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla.yaml
@@ -107,7 +107,7 @@ services:
       AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
-        source: ./scylla/cassandra-rackdc.2.properties
+        source: ./scylla/cassandra-rackdc.dc2r3.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla.yaml
@@ -127,7 +127,7 @@ services:
       AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
-        source: ./scylla/cassandra-rackdc.1.properties
+        source: ./scylla/cassandra-rackdc.dc1r1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla-second-cluster.yaml
@@ -147,7 +147,7 @@ services:
       AWS_SECRET_ACCESS_KEY: minio1234
     volumes:
       - type: bind
-        source: ./scylla/cassandra-rackdc.1.properties
+        source: ./scylla/cassandra-rackdc.dc1r2.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla-second-cluster.yaml
@@ -166,7 +166,7 @@ services:
       - "10000:10000"
     volumes:
       - type: bind
-        source: ./scylla/cassandra-rackdc.1.properties
+        source: ./scylla/cassandra-rackdc.dc1r1.properties
         target: /etc/scylla/cassandra-rackdc.properties
       - type: bind
         source: ./scylla/scylla-sm.yaml
