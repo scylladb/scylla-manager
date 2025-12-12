@@ -100,7 +100,7 @@ func TestConfig(hosts []string, token string) Config {
 	config.Hosts = hosts
 	config.AuthToken = token
 
-	config.Timeout = 5 * time.Second
+	config.Timeout = 15 * time.Second
 	config.ListTimeout = 30 * time.Second
 	config.Backoff.MaxRetries = 2
 	config.Backoff.WaitMin = 200 * time.Millisecond

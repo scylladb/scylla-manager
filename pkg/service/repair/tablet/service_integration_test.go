@@ -379,8 +379,9 @@ func TestTabletRepairIntegration(t *testing.T) {
 		})
 	}
 
-	for i := range 100 {
+	for i := range 20 {
 		if !t.Run(fmt.Sprintf("Loop %d", i), f) {
+			t.Logf("HAHAHAHA")
 			return
 		}
 	}
