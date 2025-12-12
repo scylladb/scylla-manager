@@ -28,124 +28,23 @@ jobs:
               name: Run tablet repair tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
             - continue-on-error: true
-              name: Run tablet repair tests 2
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 3
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 4
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 5
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 6
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 7
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 8
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 9
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 10
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 11
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
-              name: Run tablet repair tests 12
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
-            - continue-on-error: true
               name: Print logs dc1 node1
-              run: docker logs scylla_manager-dc1_node_1-1
+              run: echo "dc1nod1 logs" && docker logs scylla_manager-dc1_node_1-1
             - continue-on-error: true
               name: Print logs dc1 node2
-              run: docker logs scylla_manager-dc1_node_2-1
+              run: echo "dc1nod2 logs" && docker logs scylla_manager-dc1_node_2-1
             - continue-on-error: true
               name: Print logs dc1 node3
-              run: docker logs scylla_manager-dc1_node_3-1
+              run: echo "dc1nod3 logs" && docker logs scylla_manager-dc1_node_3-1
             - continue-on-error: true
               name: Print logs dc2 node1
-              run: docker logs scylla_manager-dc2_node_1-1
+              run: echo "dc2nod1 logs" && docker logs scylla_manager-dc2_node_1-1
             - continue-on-error: true
               name: Print logs dc2 node2
-              run: docker logs scylla_manager-dc2_node_2-1
+              run: echo "dc2nod2 logs" && docker logs scylla_manager-dc2_node_2-1
             - continue-on-error: true
               name: Print logs dc2 node3
-              run: docker logs scylla_manager-dc2_node_3-1
-    restore-schema:
-        name: Test restore schema
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out code into the Go module directory
-              uses: actions/checkout@v3
-            - name: Setup testing dependencies
-              uses: ./.github/actions/test-setup
-              with:
-                ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
-                scylla-version: ${{ env.scylla-version }}
-                ssl-enabled: ${{ env.ssl-enabled }}
-                tablets: ${{ env.tablets }}
-            - continue-on-error: true
-              name: Run tests
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 2
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 3
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 4
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 5
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 6
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 7
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 8
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 9
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 10
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 11
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Run tests 12
-              run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} PKG=./pkg/service/restore RUN=TestRestoreFullAlternatorIntegration
-            - continue-on-error: true
-              name: Print logs dc1 node1
-              run: docker logs scylla_manager-dc1_node_1-1
-            - continue-on-error: true
-              name: Print logs dc1 node2
-              run: docker logs scylla_manager-dc1_node_2-1
-            - continue-on-error: true
-              name: Print logs dc1 node3
-              run: docker logs scylla_manager-dc1_node_3-1
-            - continue-on-error: true
-              name: Print logs dc2 node1
-              run: docker logs scylla_manager-dc2_node_1-1
-            - continue-on-error: true
-              name: Print logs dc2 node2
-              run: docker logs scylla_manager-dc2_node_2-1
-            - continue-on-error: true
-              name: Print logs dc2 node3
-              run: docker logs scylla_manager-dc2_node_3-1
+              run: echo "dc2nod3 logs" && docker logs scylla_manager-dc2_node_3-1
 name: integration-tests-2025.4.0-rc4-IPV4-native-native
 "on":
     pull_request:
