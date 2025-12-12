@@ -733,6 +733,31 @@ func (c *Client) Suspend(ctx context.Context, clusterID string) error {
 	return err
 }
 
+// SuspendParams describes additional params for suspending the cluster.
+type SuspendParams struct {
+	AllowedTaskType string
+	SuspendPolicy   string
+	NoContinue      bool
+}
+
+// SuspendWithParams suspend the cluster.
+func (c *Client) SuspendWithParams(ctx context.Context, clusterID string, sp SuspendParams) error {
+	p := &operations.PutClusterClusterIDSuspendedParams{
+		Context:    ctx,
+		ClusterID:  clusterID,
+		Suspended:  true,
+		NoContinue: &sp.NoContinue,
+	}
+	if sp.AllowedTaskType != "" {
+		p.SetAllowTaskType(&sp.AllowedTaskType)
+	}
+	if sp.SuspendPolicy != "" {
+		p.SetSuspendPolicy(&sp.SuspendPolicy)
+	}
+	_, err := c.operations.PutClusterClusterIDSuspended(p)
+	return err
+}
+
 // Resume updates cluster suspended property.
 func (c *Client) Resume(ctx context.Context, clusterID string, startTasks bool) error {
 	p := &operations.PutClusterClusterIDSuspendedParams{
@@ -743,6 +768,27 @@ func (c *Client) Resume(ctx context.Context, clusterID string, startTasks bool) 
 	}
 
 	_, err := c.operations.PutClusterClusterIDSuspended(p) // nolint: errcheck
+	return err
+}
+
+// ResumeParams describes additional params for resuming the cluster.
+type ResumeParams struct {
+	StartTasks                 bool
+	StartTasksMissedActivation bool
+	NoContinue                 bool
+}
+
+// ResumeWithParams resumes the cluster.
+func (c *Client) ResumeWithParams(ctx context.Context, clusterID string, rp ResumeParams) error {
+	p := &operations.PutClusterClusterIDSuspendedParams{
+		Context:                    ctx,
+		ClusterID:                  clusterID,
+		Suspended:                  false,
+		StartTasks:                 rp.StartTasks,
+		StartTasksMissedActivation: &rp.StartTasksMissedActivation,
+		NoContinue:                 &rp.NoContinue,
+	}
+	_, err := c.operations.PutClusterClusterIDSuspended(p)
 	return err
 }
 
