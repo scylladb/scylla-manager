@@ -21,7 +21,7 @@ Scylla Manager consists of tree components:
 | **2025.1.9**     | ![integration-tests-2025.1.9-IPV4]<br/>![integration-tests-2025.1.9-IPV6-tablets-nossl]                                     | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
 | **2025.2.3**     | ![integration-tests-2025.2.3-IPV4-tablets-native-rclone]<br/>![integration-tests-2025.2.3-IPV6-nossl-rclone-rclone]         | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
 | **2025.3.3**     | ![integration-tests-2025.3.3-IPV4-tablets-rclone-native]<br/>![integration-tests-2025.3.3-IPV6-nossl-rclone-rclone]         | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
-| **2025.4.0-rc4** | ![integration-tests-2025.4.0-rc4-IPV4-native-native]<br/>![integration-tests-2025.4.0-rc4-IPV6-tablets-nossl-rclone-rclone] | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
+| **2025.4.0-rc6** | ![integration-tests-2025.4.0-rc6-IPV4-native-native]<br/>![integration-tests-2025.4.0-rc6-IPV6-tablets-nossl-rclone-rclone] | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
 | **latest**       | ![integration-tests-latest-IPV4-native-native]<br/>![integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]             | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
 
 [integration-tests-2024.1.21-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.21-IPV4.yaml/badge.svg?branch=master
@@ -32,8 +32,8 @@ Scylla Manager consists of tree components:
 [integration-tests-2025.2.3-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.2.3-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=master
 [integration-tests-2025.3.3-IPV4-tablets-rclone-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.3.3-IPV4-tablets-rclone-native.yaml/badge.svg?branch=master
 [integration-tests-2025.3.3-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.3.3-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=master
-[integration-tests-2025.4.0-rc4-IPV4-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.0-rc4-IPV4-native-native.yaml/badge.svg?branch=master
-[integration-tests-2025.4.0-rc4-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.0-rc4-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=master
+[integration-tests-2025.4.0-rc6-IPV4-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.0-rc6-IPV4-native-native.yaml/badge.svg?branch=master
+[integration-tests-2025.4.0-rc6-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.0-rc6-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=master
 [integration-tests-latest-IPV4-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV4-native-native.yaml/badge.svg?branch=master
 [integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=master
 

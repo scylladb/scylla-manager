@@ -54,7 +54,7 @@
   backup-method: rclone
   restore-method: rclone
 
-- scylla-version: scylla:2025.4.0-rc4
+- scylla-version: scylla:2025.4.0-rc6
   ip-family: IPV4
   raft-schema: none
   tablets: disabled
@@ -62,7 +62,7 @@
   backup-method: native
   restore-method: native
 
-- scylla-version: scylla:2025.4.0-rc4
+- scylla-version: scylla:2025.4.0-rc6
   ip-family: IPV6
   raft-schema: none
   tablets: enabled
