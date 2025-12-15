@@ -19,8 +19,10 @@ type command struct {
 
 	client *managerclient.Client
 
-	cluster    string
-	startTasks bool
+	cluster                    string
+	startTasks                 bool
+	startTasksMissedActivation bool
+	noContinue                 bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -43,8 +45,14 @@ func (cmd *command) init() {
 	w := flag.Wrap(cmd.Flags())
 	w.Cluster(&cmd.cluster)
 	w.Unwrap().BoolVar(&cmd.startTasks, "start-tasks", false, "")
+	w.Unwrap().BoolVar(&cmd.startTasksMissedActivation, "start-tasks-missed-activation", false, "")
+	w.Unwrap().BoolVar(&cmd.noContinue, "no-continue", false, "")
 }
 
 func (cmd *command) run() error {
-	return cmd.client.Resume(cmd.Context(), cmd.cluster, cmd.startTasks)
+	return cmd.client.ResumeWithParams(cmd.Context(), cmd.cluster, managerclient.ResumeParams{
+		StartTasks:                 cmd.startTasks,
+		StartTasksMissedActivation: cmd.startTasksMissedActivation,
+		NoContinue:                 cmd.noContinue,
+	})
 }
