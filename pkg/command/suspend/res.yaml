@@ -19,3 +19,18 @@ duration:
 
 on-resume-start-tasks:
   On resume start tasks that were stopped by the suspend.
+
+no-continue: |
+  Start tasks from scratch on resume. It allows for performing additional cleanup of disabled tasks.
+  Doesn't work with --duration.
+
+allow-task-type: |
+  Tasks of this type will keep on being executed and scheduled even when cluster is suspended.
+
+suspend-policy: |
+  Describes behavior towards running tasks (other than '--allow-task-type').
+  Doesn't work with --duration.
+  It accepts the following values:
+  
+  * 'stop_running_tasks': results in stopping running tasks.
+  * 'fail_if_running_tasks': results in failing to suspend cluster and returning 409 HTTP status code.
