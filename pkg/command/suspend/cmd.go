@@ -24,9 +24,12 @@ type command struct {
 
 	client *managerclient.Client
 
-	cluster    string
-	duration   flag.Duration
-	startTasks bool
+	cluster       string
+	duration      flag.Duration
+	startTasks    bool
+	noContinue    bool
+	allowTaskType string
+	suspendPolicy string
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -69,6 +72,9 @@ func (cmd *command) init() {
 	w.Cluster(&cmd.cluster)
 	w.Unwrap().Var(&cmd.duration, "duration", "")
 	w.Unwrap().BoolVar(&cmd.startTasks, "on-resume-start-tasks", false, "")
+	w.Unwrap().BoolVar(&cmd.noContinue, "no-continue", false, "")
+	w.Unwrap().StringVar(&cmd.allowTaskType, "allow-task-type", "", "")
+	w.Unwrap().StringVar(&cmd.suspendPolicy, "suspend-policy", "stop_running_tasks", "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -79,8 +85,16 @@ func (cmd *command) run(args []string) error {
 		}
 		t := cmd.CreateTask(managerclient.SuspendTask)
 		if t.Schedule.Cron == "" && t.Schedule.StartDate == nil {
-			return cmd.client.Suspend(cmd.Context(), cmd.cluster)
+			return cmd.client.SuspendWithParams(cmd.Context(), cmd.cluster, managerclient.SuspendParams{
+				AllowedTaskType: cmd.allowTaskType,
+				SuspendPolicy:   cmd.suspendPolicy,
+				NoContinue:      cmd.noContinue,
+			})
 		}
+	}
+
+	if cmd.Flag("no-continue").Changed || cmd.Flag("suspend-policy").Changed {
+		return errors.New("can't use --no-continue or --suspend-policy with --duration")
 	}
 
 	var (
