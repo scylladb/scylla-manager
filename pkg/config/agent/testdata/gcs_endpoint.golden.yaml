@@ -2,9 +2,9 @@ auth_token: ""
 https: 192.168.100.11:10001
 https_port: 10001
 tls_version: TLSv1.2
-tls_cert_file: ./testdata/auth/scylla_manager.crt
-tls_key_file: ./testdata/auth/scylla_manager.key
-prometheus: :1234
+tls_cert_file: ""
+tls_key_file: ""
+prometheus: :5090
 debug: 127.0.0.1:5112
 cpu: -1
 logger:
@@ -149,7 +149,7 @@ gcs:
   token: ""
   auth_url: ""
   token_url: ""
-  endpoint: ""
+  endpoint: http://localhost:32811
   project_number: ""
   service_account_file: ""
   service_account_credentials: ""

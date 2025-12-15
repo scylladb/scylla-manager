@@ -71,6 +71,11 @@ func TestParseConfig(t *testing.T) {
 			Input:  []string{"./testdata/multiple_cpus.input.yaml"},
 			Golden: "./testdata/multiple_cpus.golden.yaml",
 		},
+		{
+			Name:   "gcs endpoint",
+			Input:  []string{"./testdata/gcs_endpoint.input.yaml"},
+			Golden: "./testdata/gcs_endpoint.golden.yaml",
+		},
 	}
 
 	s := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
