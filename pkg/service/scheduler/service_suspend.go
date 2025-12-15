@@ -212,6 +212,10 @@ func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, wait bool, p
 	l := s.resetSchedulerLocked(si)
 	s.mu.Unlock()
 
+	if wait && l != nil {
+		l.Wait()
+	}
+
 	for i := range tasks {
 		if tasks[i].Type == p.AllowTask.TaskType {
 			s.schedule(ctx, &tasks[i], slices.Contains(si.RunningTask, tasks[i].ID))
@@ -241,9 +245,6 @@ func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, wait bool, p
 		return errors.Wrap(err, "save canceled tasks")
 	}
 
-	if wait && l != nil {
-		l.Wait()
-	}
 	if p.NoContinue {
 		if err := s.cleanup(ctx, clusterID, p.AllowTask); err != nil {
 			return err
