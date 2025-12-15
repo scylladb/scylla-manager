@@ -7,3 +7,9 @@ long: |
 
 start-tasks:
   Starts tasks that were stopped by the suspend command.
+
+start-tasks-missed-activation: |
+  Start tasks which missed their activation during suspend.
+
+no-continue: |
+  Start tasks from scratch.
