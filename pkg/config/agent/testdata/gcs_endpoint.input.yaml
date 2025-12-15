@@ -1,0 +1,2 @@
+gcs:
+  endpoint: "http://localhost:32811"
