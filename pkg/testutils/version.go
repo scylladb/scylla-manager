@@ -29,3 +29,14 @@ func CheckAnyConstraint(t *testing.T, client *scyllaclient.Client, constraints .
 	}
 	return false
 }
+
+// CheckConstraint calls version.CheckConstraint and fails in case of an error.
+func CheckConstraint(t *testing.T, v, c string) bool {
+	t.Helper()
+
+	ok, err := version.CheckConstraint(v, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ok
+}
