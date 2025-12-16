@@ -12,9 +12,16 @@ options:
       shorthand: h
       default_value: "false"
       usage: help for resume
+    - name: no-continue
+      default_value: "false"
+      usage: Start tasks from scratch.
     - name: start-tasks
       default_value: "false"
       usage: Starts tasks that were stopped by the suspend command.
+    - name: start-tasks-missed-activation
+      default_value: "false"
+      usage: |
+        Start tasks which missed their activation during suspend.
 inherited_options:
     - name: api-cert-file
       usage: |
