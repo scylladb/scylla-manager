@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/command/backup/backupdelete/localsnapshot"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
 	"github.com/spf13/cobra"
@@ -38,6 +39,7 @@ func NewCommand(client *managerclient.Client) *cobra.Command {
 	cmd.RunE = func(_ *cobra.Command, _ []string) error {
 		return cmd.run()
 	}
+	cmd.AddCommand(localsnapshot.NewCommand(client))
 	return &cmd.Command
 }
 
