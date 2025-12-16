@@ -29,3 +29,12 @@ repair update
 
 .. datatemplate:yaml:: partials/sctool_repair_update.yaml
    :template: command.tmpl
+
+.. _repair-tablet:
+
+repair tablet
+=============
+
+.. datatemplate:yaml:: partials/sctool_repair_tablet.yaml
+   :template: command.tmpl
+

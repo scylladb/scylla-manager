@@ -199,4 +199,5 @@ inherited_options:
 see_also:
     - sctool - Scylla Manager Snapshot
     - sctool repair control - Change parameters while a repair is running
+    - sctool repair tablet - Schedule tablet repair (ad-hoc or scheduled)
     - sctool repair update - Modify properties of the existing repair task
