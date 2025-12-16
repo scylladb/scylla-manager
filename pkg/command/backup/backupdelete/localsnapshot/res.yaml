@@ -1,0 +1,9 @@
+use: local-snapshot --cluster <id|name>
+
+short: Delete local ScyllaDB Manager snapshots of a given cluster
+
+long: |
+  This command removes local snapshots made by ScyllaDB Manager from nodes' disks.
+  It does not delete any files stored in the backup location.
+  Before running this command, ensure that all backup tasks are stopped.
+  After deletion, any interrupted backups should be started from scratch.

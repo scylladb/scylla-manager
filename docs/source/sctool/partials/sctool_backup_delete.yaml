@@ -42,3 +42,4 @@ inherited_options:
         If running sctool on the same machine as server, it's generated based on '/etc/scylla-manager/scylla-manager.yaml' file.
 see_also:
     - sctool backup - Schedule a backup (ad-hoc or scheduled)
+    - sctool backup delete local-snapshot - Delete local ScyllaDB Manager snapshots of a given cluster
