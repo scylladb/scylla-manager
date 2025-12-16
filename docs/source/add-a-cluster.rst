@@ -22,7 +22,8 @@ Add a Cluster
    .. code-block:: none
 
       sctool cluster add --host 34.203.122.52 --name prod-cluster \
-      --auth-token "6Es3dm24U72NzAu9ANWmU3C4ALyVZhwwPZZPWtK10eYGHJ24wMoh9SQxRZEluWMc0qDrsWCCshvfhk9uewOimQS2x5yNTYUEoIkO1VpSmTFu5fsFyoDgEkmNrCJpXtfM"
+      --auth-token "6Es3dm24U72NzAu9ANWmU3C4ALyVZhwwPZZPWtK10eYGHJ24wMoh9SQxRZEluWMc0qDrsWCCshvfhk9uewOimQS2x5yNTYUEoIkO1VpSmTFu5fsFyoDgEkmNrCJpXtfM" \
+      --username $SMUSER --password $PASSWORD
 
       c1bbabf3-cad1-4a59-ab8f-84e2a73b623f
        __  
@@ -59,9 +60,9 @@ Add a Cluster
    This can be canceled using ``--without-repair``.
    To use a different repair schedule, see :ref:`Schedule a Repair <schedule-a-repair>`.
 
-   Optionally you can provide CQL credentials to the cluster with ``--username`` and ``--password`` flags.
+   Scylla manager requires CQL credentials to the cluster with ``--username`` and ``--password`` flags.
    This enables :ref:`CQL query based health check <cql-query-health-check>` compared to :ref:`credentials agnostic health check <credentials-agnostic-health-check>` if you do not specify the credentials.
-   This also enables CQL schema backup in text format, which isn't performed if credentials aren't provided.
+   This also enables CQL schema backup in text format, which isn't performed if credentials aren't provided.  Restore uses the backed up schema as part of the restore process.
    For security reasons the CQL user should NOT have access to read your data.
 
 #. Verify the cluster you added has a registered repair task by running the ``sctool tasks`` command.
