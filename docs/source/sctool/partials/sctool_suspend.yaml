@@ -13,6 +13,9 @@ description: |
     The health check tasks are an exception and they run even after suspend.
 usage: sctool suspend --cluster <id|name> [--duration] [--on-resume-start-tasks] [flags]
 options:
+    - name: allow-task-type
+      usage: |
+        Tasks of this type will keep on being executed and scheduled even when cluster is suspended.
     - name: cluster
       shorthand: c
       usage: |
@@ -59,6 +62,11 @@ options:
     - name: name
       usage: |
         Task name that can be used instead of ID.
+    - name: no-continue
+      default_value: "false"
+      usage: |
+        Start tasks from scratch on resume. It allows for performing additional cleanup of disabled tasks.
+        Doesn't work with --duration.
     - name: num-retries
       shorthand: r
       default_value: "3"
@@ -86,6 +94,15 @@ options:
 
         If you want the task to start at a specified date use RFC3339 formatted string i.e. '2018-01-02T15:04:05-07:00'.
         If you want the repair to start immediately, use the value 'now' or skip this flag.
+    - name: suspend-policy
+      default_value: stop_running_tasks
+      usage: |
+        Describes behavior towards running tasks (other than '--allow-task-type').
+        Doesn't work with --duration.
+        It accepts the following values:
+
+        * 'stop_running_tasks': results in stopping running tasks.
+        * 'fail_if_running_tasks': results in failing to suspend cluster and returning 409 HTTP status code.
     - name: timezone
       default_value: UTC
       usage: |
