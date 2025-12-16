@@ -24,6 +24,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"go.uber.org/multierr"
 
@@ -398,7 +399,7 @@ const (
 // CreateAlternatorTable creates alternator tables with provided LSI count.
 // LSIs need to be created at table creation, so we can't move it to a separate function.
 // GSIs need to be created at table creation for scylla 2024.1, and can be added separately starting from 2025.1.
-func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, lsiCnt, gsiCnt int, tables ...string) {
+func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, ni *scyllaclient.NodeInfo, disableTablets bool, lsiCnt, gsiCnt int, tables ...string) {
 	t.Helper()
 
 	var gsi []types.GlobalSecondaryIndex
@@ -469,6 +470,14 @@ func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, lsiCnt, gsiCnt
 		)
 	}
 
+	var tags []types.Tag
+	if disableTablets && testutils.CheckConstraint(t, ni.ScyllaVersion, ">= 2025.4") {
+		tags = append(tags, types.Tag{
+			Key:   aws.String("system:initial_tablets"),
+			Value: aws.String("none"),
+		})
+	}
+
 	for _, table := range tables {
 		_, err := client.CreateTable(t.Context(), &dynamodb.CreateTableInput{
 			TableName:            aws.String(table),
@@ -486,6 +495,7 @@ func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, lsiCnt, gsiCnt
 			LocalSecondaryIndexes:  lsi,
 			GlobalSecondaryIndexes: gsi,
 			BillingMode:            types.BillingModePayPerRequest,
+			Tags:                   tags,
 		})
 		if err != nil {
 			t.Fatal(err)

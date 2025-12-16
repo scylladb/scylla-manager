@@ -24,7 +24,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair/tablet"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/sync/errgroup"
 
@@ -173,9 +172,7 @@ func TestTabletRepairIntegration(t *testing.T) {
 	// CQL setup
 	WriteData(t, h.clusterSession, cqlKs, 1, cqlTab1, cqlTab2, cqlTab3)
 	// Create CDC table (if supported on tablets)
-	if ok, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.4"); err != nil {
-		t.Fatal(err)
-	} else if ok {
+	if CheckConstraint(t, ni.ScyllaVersion, ">= 2025.4") {
 		ExecStmt(t, h.clusterSession, fmt.Sprintf("UPDATE %q.%q SET data = null WHERE id = 0 IF data != null", cqlKs, cqlTab3))
 	}
 
@@ -183,7 +180,7 @@ func TestTabletRepairIntegration(t *testing.T) {
 	// Note that alternator tables on tablets are not supported in all scylla versions
 	// which support tablet repair. Because of that, they might or might not be included
 	// in the tablet repair task.
-	CreateAlternatorTable(t, h.alternatorClient, 0, 0, altTab1, altTab2, altTab3)
+	CreateAlternatorTable(t, h.alternatorClient, ni, false, 0, 0, altTab1, altTab2, altTab3)
 
 	// Get all tables from scylla so that we don't need to handle alternator and cdc table names manually
 	allTables := make(map[fullTab]struct{})
