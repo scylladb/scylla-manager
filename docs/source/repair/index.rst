@@ -30,6 +30,15 @@ Note that ScyllaDB Manager stops `tablets <https://docs.scylladb.com/manual/stab
 When you create a cluster a repair task is automatically scheduled.
 This task is set to occur each week by default, but you can change it to another time, change its parameters or add additional repair tasks if needed.
 
+Tablet repair
+=============
+
+Regular repair task handles both Vnode and Tablet replicated keyspaces.
+It also supports :ref:`--keyspace-replication <sctool-repair>` flag allowing to filter keyspaces by their replication type.
+
+Apart from the regular repair task, there is a dedicated :ref:`tablet repair <repair-tablet>` task optimized for tablet keyspaces.
+This lightweight task is resilient to topology changes and uses ScyllaDB's incremental repair feature, allowing it to run more frequently with minimal overhead.
+
 Features
 ========
 
