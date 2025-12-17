@@ -28,6 +28,12 @@ var TasksTypes = strset.New(
 	ValidateBackupTask,
 )
 
+// TasksResilientToTopologyChanges is a slice of tasks that
+// can be running while nodes are added/removed from the cluster.
+var TasksResilientToTopologyChanges = []string{
+	TabletRepairTask,
+}
+
 // Status enumeration.
 const (
 	TaskStatusNew      string = "NEW"
