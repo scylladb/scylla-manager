@@ -765,7 +765,18 @@ func (c *Client) SuspendWithParams(ctx context.Context, clusterID string, sp Sus
 		p.SetSuspendPolicy(&sp.SuspendPolicy)
 	}
 	_, err := c.operations.PutClusterClusterIDSuspended(p)
-	return err
+	if err != nil {
+		var conflictErr *operations.PutClusterClusterIDSuspendedConflict
+		if errors.As(err, &conflictErr) {
+			if conflictErr.GetPayload() != nil {
+				return errors.Wrap(ErrRunningTasks, conflictErr.GetPayload().Message)
+			}
+			return ErrRunningTasks
+		}
+
+		return err
+	}
+	return nil
 }
 
 // Resume updates cluster suspended property.
