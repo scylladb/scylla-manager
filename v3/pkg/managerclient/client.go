@@ -746,9 +746,19 @@ func (c *Client) Suspend(ctx context.Context, clusterID string) error {
 // SuspendParams describes additional params for suspending the cluster.
 type SuspendParams struct {
 	AllowedTaskType string
-	SuspendPolicy   string
+	SuspendPolicy   SuspendPolicy
 	NoContinue      bool
 }
+
+// SuspendPolicy describes behavior towards running tasks (other than AllowedTaskType) when suspend is requested.
+type SuspendPolicy = string
+
+const (
+	// SuspendPolicyStopRunningTasks results in stopping running tasks.
+	SuspendPolicyStopRunningTasks SuspendPolicy = "stop_running_tasks"
+	// SuspendPolicyFailIfRunningTasks results in failing to suspend cluster and returning ErrRunningTasks.
+	SuspendPolicyFailIfRunningTasks SuspendPolicy = "fail_if_running_tasks"
+)
 
 // SuspendWithParams suspend the cluster.
 func (c *Client) SuspendWithParams(ctx context.Context, clusterID string, sp SuspendParams) error {
