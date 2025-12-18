@@ -28,35 +28,43 @@ type command struct {
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
-	cmd := newCommand(client, false)
-	updateCmd := newCommand(client, true)
+	cmd, err := newCommand(client, false)
+	if err != nil {
+		// You could print/log this error, but for CLI construction,
+		// it's often best to panic or return some placeholder Command.
+		panic(fmt.Errorf("failed to construct tablet repair command: %w", err))
+	}
+	updateCmd, err := newCommand(client, true)
+	if err != nil {
+		panic(fmt.Errorf("failed to construct tablet repair update subcommand: %w", err))
+	}
 	cmd.AddCommand(&updateCmd.Command)
 
 	return &cmd.Command
 }
 
-func newCommand(client *managerclient.Client, update bool) *command {
+func newCommand(client *managerclient.Client, update bool) (*command, error) {
 	var (
 		cmd = &command{
 			client: client,
 		}
-		r []byte
+		resourceBytes []byte
 	)
 	if update {
 		cmd.TaskBase = flag.NewUpdateTaskBase()
-		r = updateRes
+		resourceBytes = updateRes
 	} else {
 		cmd.TaskBase = flag.MakeTaskBase()
-		r = res
+		resourceBytes = res
 	}
-	if err := yaml.Unmarshal(r, &cmd.Command); err != nil {
-		panic(err)
+	if err := yaml.Unmarshal(resourceBytes, &cmd.Command); err != nil {
+		return nil, err
 	}
 	cmd.init()
 	cmd.RunE = func(_ *cobra.Command, args []string) error {
 		return cmd.run(args)
 	}
-	return cmd
+	return cmd, nil
 }
 
 func (cmd *command) init() {
@@ -74,11 +82,11 @@ func (cmd *command) run(args []string) error {
 	)
 
 	if cmd.Update() {
-		a := managerclient.TabletRepairTask
+		taskArg := managerclient.TabletRepairTask
 		if len(args) > 0 {
-			a = args[0]
+			taskArg = args[0]
 		}
-		taskType, taskID, err := cmd.client.TaskSplit(cmd.Context(), cmd.cluster, a)
+		taskType, taskID, err := cmd.client.TaskSplit(cmd.Context(), cmd.cluster, taskArg)
 		if err != nil {
 			return err
 		}
@@ -107,7 +115,7 @@ func (cmd *command) run(args []string) error {
 			return err
 		}
 	default:
-		return errors.New("nothing to do")
+		return errors.New("no task updates to apply")
 	}
 
 	_, err := fmt.Fprintln(cmd.OutOrStdout(), managerclient.TaskID(task))
