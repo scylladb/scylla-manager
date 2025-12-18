@@ -1,5 +1,5 @@
 RELEASE      := 0.$(shell date +%Y%m%d).$(shell git describe --always)
-VERSION      ?=3.8.0-dev
+VERSION         ?=3.9.0-dev
 PUBLISH      := 0
 
 ifdef $$VERSION
