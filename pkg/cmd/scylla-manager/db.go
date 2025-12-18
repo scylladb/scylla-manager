@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2025 ScyllaDB
 
 package main
 
@@ -119,6 +119,7 @@ func gocqlClusterConfigForDBInit(ctx context.Context, c config.Config, logger lo
 	cluster := gocqlClusterConfig(c)
 	cluster.Keyspace = "system"
 	cluster.Timeout = c.Database.MigrateTimeout
+	cluster.DefaultIdempotence = false
 	cluster.MaxWaitSchemaAgreement = c.Database.MigrateMaxWaitSchemaAgreement
 
 	cluster.Logger = gocqllog.StdLogger{
@@ -151,6 +152,7 @@ func gocqlClusterConfig(c config.Config) *gocql.ClusterConfig {
 
 	cluster.Keyspace = c.Database.Keyspace
 	cluster.Timeout = c.Database.Timeout
+	cluster.DefaultIdempotence = true
 	cluster.RetryPolicy = &gocql.ExponentialBackoffRetryPolicy{
 		NumRetries: 5,
 		Min:        time.Second,
