@@ -102,7 +102,7 @@ func main() {
 		}
 
 		versionBadges[v] = append(versionBadges[v], "!["+name+"]")
-		fmt.Printf("[%s]: https://github.com/scylladb/scylla-manager/actions/workflows/%s.yaml/badge.svg?branch=master\n",
+		fmt.Printf("[%s]: https://github.com/scylladb/scylla-manager/actions/workflows/%s.yaml/badge.svg?branch=branch-3.8\n",
 			name, name)
 	}
 
