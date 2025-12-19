@@ -67,35 +67,35 @@ up:
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
-	@$(YQ) write -i scylla/scylla.yaml 'object_storage_endpoints[0].(name)' $(MINIO_HOST)
+	@$(YQ) eval -i '.object_storage_endpoints[0].name = "$(MINIO_HOST)"' scylla/scylla.yaml
 
 ifeq ($(SSL_ENABLED),true)
 	# disable non-ssl ports
-	@$(YQ) delete -i scylla/scylla.yaml 'native_transport_port'
-	@$(YQ) delete -i scylla/scylla.yaml 'alternator_port'
+	@$(YQ) eval -i 'del(.native_transport_port)' scylla/scylla.yaml
+	@$(YQ) eval -i 'del(.alternator_port)' scylla/scylla.yaml
 	# merge into scylla.yaml values from config/scylla-ssl.yaml with overwrite option (-x)
-	@$(YQ) merge -i -x scylla/scylla.yaml scylla/config/scylla-ssl.yaml
+	@$(YQ) eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' scylla/scylla.yaml scylla/config/scylla-ssl.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
 else 
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
 
 ifeq ($(RAFT_SCHEMA),enabled)
-	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' true
+	@$(YQ) eval -i '.consistent_cluster_management = true' scylla/scylla.yaml
 endif
 ifeq ($(RAFT_SCHEMA),disabled)
-	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' false
+	@$(YQ) eval -i '.consistent_cluster_management = false' scylla/scylla.yaml
 endif
 ifeq ($(TABLETS),enabled)
-	@$(YQ) write -i scylla/scylla.yaml 'enable_tablets' true
-	@$(YQ) write -i scylla/scylla.yaml 'tablets_mode_for_new_keyspaces' enabled
+	@$(YQ) eval -i '.enable_tablets = true' scylla/scylla.yaml
+	@$(YQ) eval -i '.tablets_mode_for_new_keyspaces = "enabled"' scylla/scylla.yaml
 endif
 ifeq ($(TABLETS),disabled)
-	@$(YQ) write -i scylla/scylla.yaml 'enable_tablets' false
-	@$(YQ) write -i scylla/scylla.yaml 'tablets_mode_for_new_keyspaces' disabled
+	@$(YQ) eval -i '.enable_tablets = false' scylla/scylla.yaml
+	@$(YQ) eval -i '.tablets_mode_for_new_keyspaces = "disabled"' scylla/scylla.yaml
 endif
 	@cp scylla/scylla.yaml scylla/scylla-second-cluster.yaml
-	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'cluster_name' 'Managed Other Cluster'
+	@$(YQ) eval -i '.cluster_name = "Managed Other Cluster"' scylla/scylla-second-cluster.yaml
 
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
