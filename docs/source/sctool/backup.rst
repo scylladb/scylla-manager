@@ -44,6 +44,14 @@ backup delete
 .. datatemplate:yaml:: partials/sctool_backup_delete.yaml
    :template: command.tmpl
 
+.. _backup-delete-local-snapshots:
+
+backup delete local-snapshots
+=============================
+
+.. datatemplate:yaml:: partials/sctool_backup_delete_local-snapshot.yaml
+   :template: command.tmpl
+
 backup files
 =============
 
