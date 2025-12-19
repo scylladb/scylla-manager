@@ -102,3 +102,8 @@ However, it's recommended to delete the snapshots from the storage before removi
 Otherwise, you will need to add the cluster again, list the snapshots in the given location, and remove them using the new cluster as the coordinator.
 Another option is to purge them manually. If you want to remove the snapshots manually, please refer to the :doc:`backup specification <specification>`
 and remove them accordingly.
+
+Interrupted ScyllaDB Manager backup tasks might leave not yet uploaded snapshots on nodes' disks.
+They are automatically cleaned up after backup task finishes its execution (either after backup was resumed or it was started from scratch).
+In case those snapshots are not needed and only result in disk space amplification, they can be cleaned up manually with
+:ref:`sctool backup delete local-snapshots <backup-delete-local-snapshots>` command.
