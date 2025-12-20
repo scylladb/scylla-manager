@@ -44,6 +44,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
 
 	// NOTE: This API is deprecated
 	storage "google.golang.org/api/storage/v1"
@@ -93,6 +94,16 @@ func init() {
 			}
 		},
 		Options: append(oauthutil.SharedOptions, []fs.Option{{
+			Name: "endpoint",
+			Help: "Endpoint for GS API.\nRequired when using an GS clone.",
+			Examples: []fs.OptionExample{{
+				Value: "https://storage.googleapis.com",
+				Help:  "Default endpoint",
+			}, {
+				Value: "http://localhost:32811",
+				Help:  "Custom endpoint",
+			}},
+		}, {
 			Name: "project_number",
 			Help: "Project number.\nOptional - needed only for list/create/delete buckets - see your developer console.",
 		}, {
@@ -302,6 +313,7 @@ If bucket doesn't exists, error will be returned.'`,
 
 // Options defines the configuration for this backend
 type Options struct {
+	Endpoint                  string               `config:"endpoint"`
 	ProjectNumber             string               `config:"project_number"`
 	ServiceAccountFile        string               `config:"service_account_file"`
 	ServiceAccountCredentials string               `config:"service_account_credentials"`
@@ -499,7 +511,11 @@ func NewFs(ctx context.Context, name, root string, m configmap.Mapper) (fs.Fs, e
 
 	// Create a new authorized Drive client.
 	f.client = oAuthClient
-	f.svc, err = storage.New(f.client)
+	clientOpts := []option.ClientOption{option.WithHTTPClient(f.client)}
+	if opt.Endpoint != "" {
+		clientOpts = append(clientOpts, option.WithEndpoint(opt.Endpoint+"/storage/v1/"))
+	}
+	f.svc, err = storage.NewService(ctx, clientOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create Google Cloud Storage client")
 	}
