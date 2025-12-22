@@ -16,6 +16,8 @@ jobs:
   checks:
     name: Various checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
