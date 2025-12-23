@@ -30,7 +30,10 @@ func keyspaceExists(ctx context.Context, c config.Config, logger log.Logger) (bo
 
 	var cnt int
 	q := session.Query("SELECT COUNT(keyspace_name) FROM system_schema.keyspaces WHERE keyspace_name = ?").Bind(c.Database.Keyspace)
-	return cnt == 1, q.Scan(&cnt)
+	if err := q.Scan(&cnt); err != nil {
+		return false, err
+	}
+	return cnt == 1, nil
 }
 
 func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) error {
@@ -50,8 +53,8 @@ func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) err
 			return err
 		}
 		if peers > 0 {
-			rf := min(peers+1, 3)
-			c.Database.ReplicationFactor = rf
+			replicationFactor := min(peers+1, 3)
+			c.Database.ReplicationFactor = replicationFactor
 		}
 	}
 
@@ -61,13 +64,13 @@ func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) err
 const createKeyspaceStmt = "CREATE KEYSPACE {{.Keyspace}} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': {{.ReplicationFactor}}}"
 
 func mustEvaluateCreateKeyspaceStmt(c config.Config) string {
-	t := template.New("")
-	if _, err := t.Parse(createKeyspaceStmt); err != nil {
+	tmpl := template.New("")
+	if _, err := tmpl.Parse(createKeyspaceStmt); err != nil {
 		panic(err)
 	}
 
 	buf := new(bytes.Buffer)
-	if err := t.Execute(buf, c.Database); err != nil {
+	if err := tmpl.Execute(buf, c.Database); err != nil {
 		panic(err)
 	}
 
@@ -99,7 +102,7 @@ func fixSchedulerTaskTTL(session gocqlx.Session, logger log.Logger, keyspace str
 	ctx := context.Background()
 
 	var ttl int
-	if err := session.Query("SELECT default_time_to_live FROM system_schema.tables WHERE keyspace_name=? AND table_name=?", nil).
+	if err := session.Session.Query("SELECT default_time_to_live FROM system_schema.tables WHERE keyspace_name=? AND table_name=?").
 		Bind(keyspace, "scheduler_task").Scan(&ttl); err != nil {
 		logger.Info(ctx, "Failed to get scheduler_task table properties")
 	}
