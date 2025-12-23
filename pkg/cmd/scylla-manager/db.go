@@ -102,7 +102,7 @@ func fixSchedulerTaskTTL(session gocqlx.Session, logger log.Logger, keyspace str
 	ctx := context.Background()
 
 	var ttl int
-	if err := session.Session.Query("SELECT default_time_to_live FROM system_schema.tables WHERE keyspace_name=? AND table_name=?").
+	if err := session.Query("SELECT default_time_to_live FROM system_schema.tables WHERE keyspace_name=? AND table_name=?", []string{}).
 		Bind(keyspace, "scheduler_task").Scan(&ttl); err != nil {
 		logger.Info(ctx, "Failed to get scheduler_task table properties")
 	}
