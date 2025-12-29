@@ -152,11 +152,11 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 
 	dropAllKeyspaces(tb, session)
 
-	ExecStmt(tb, session, fmt.Sprintf(`CREATE KEYSPACE %s
-	WITH replication = {
-		'class' : 'SimpleStrategy',
-		'replication_factor' : %d
-	}`, keyspace, 1))
+	ksStmt := fmt.Sprintf(`CREATE KEYSPACE %s WITH replication = { 'class' : 'SimpleStrategy', 'replication_factor' : %d }`, keyspace, 1)
+	if tablets := os.Getenv("TABLETS"); tablets == "enabled" {
+		ksStmt += " AND tablets = {'enabled': false}"
+	}
+	ExecStmt(tb, session, ksStmt)
 }
 
 func dropAllKeyspaces(tb testing.TB, session gocqlx.Session) {
