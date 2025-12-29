@@ -126,6 +126,9 @@ type GCSOptions struct {
 	// Token server url.
 	// Leave blank to use the provider defaults.
 	TokenUrl string `yaml:"token_url"`
+	// Endpoint for GS API.
+	// Required when using an GS clone.
+	Endpoint string `yaml:"endpoint"`
 	// Project number.
 	// Optional - needed only for list/create/delete buckets - see your developer console.
 	ProjectNumber string `yaml:"project_number"`

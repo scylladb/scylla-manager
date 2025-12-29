@@ -149,6 +149,7 @@ gcs:
   token: ""
   auth_url: ""
   token_url: ""
+  endpoint: ""
   project_number: ""
   service_account_file: ""
   service_account_credentials: ""

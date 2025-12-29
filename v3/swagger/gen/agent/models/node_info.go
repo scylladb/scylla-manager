@@ -193,7 +193,7 @@ type NodeInfoRcloneBackendConfig struct {
 	Azure interface{} `json:"azure,omitempty"`
 
 	// gcs
-	Gcs interface{} `json:"gcs,omitempty"`
+	Gcs NodeInfoRcloneBackendConfigGcs `json:"gcs,omitempty"`
 
 	// s3
 	S3 NodeInfoRcloneBackendConfigS3 `json:"s3,omitempty"`
@@ -203,6 +203,10 @@ type NodeInfoRcloneBackendConfig struct {
 func (m *NodeInfoRcloneBackendConfig) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateGcs(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateS3(formats); err != nil {
 		res = append(res, err)
 	}
@@ -210,6 +214,22 @@ func (m *NodeInfoRcloneBackendConfig) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *NodeInfoRcloneBackendConfig) validateGcs(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Gcs) { // not required
+		return nil
+	}
+
+	if err := m.Gcs.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("rclone_backend_config" + "." + "gcs")
+		}
+		return err
+	}
+
 	return nil
 }
 
@@ -240,6 +260,38 @@ func (m *NodeInfoRcloneBackendConfig) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *NodeInfoRcloneBackendConfig) UnmarshalBinary(b []byte) error {
 	var res NodeInfoRcloneBackendConfig
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// NodeInfoRcloneBackendConfigGcs node info rclone backend config gcs
+//
+// swagger:model NodeInfoRcloneBackendConfigGcs
+type NodeInfoRcloneBackendConfigGcs struct {
+
+	// endpoint
+	Endpoint string `json:"endpoint,omitempty"`
+}
+
+// Validate validates this node info rclone backend config gcs
+func (m *NodeInfoRcloneBackendConfigGcs) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *NodeInfoRcloneBackendConfigGcs) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *NodeInfoRcloneBackendConfigGcs) UnmarshalBinary(b []byte) error {
+	var res NodeInfoRcloneBackendConfigGcs
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
