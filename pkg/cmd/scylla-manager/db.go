@@ -30,7 +30,10 @@ func keyspaceExists(ctx context.Context, c config.Config, logger log.Logger) (bo
 
 	var cnt int
 	q := session.Query("SELECT COUNT(keyspace_name) FROM system_schema.keyspaces WHERE keyspace_name = ?").Bind(c.Database.Keyspace)
-	return cnt == 1, q.Scan(&cnt)
+	if err := q.Scan(&cnt); err != nil {
+		return false, err
+	}
+	return cnt == 1, nil
 }
 
 func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) error {
