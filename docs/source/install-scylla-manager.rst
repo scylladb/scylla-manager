@@ -8,7 +8,7 @@ Install ScyllaDB Manager
    :depth: 2
    :local:
 
-.. note:: If you need to upgrade Scylla Manager from a previous version please see the :doc:`Upgrade guide <upgrade/index>`.
+.. note:: If you need to upgrade ScyllaDB Manager from a previous version please see the :doc:`Upgrade guide <upgrade/index>`.
 
 System requirements
 ===================
@@ -18,24 +18,24 @@ While a minimal server can run on a system with 2 cores and 1GB RAM, the followi
 * **CPU** - 2vCPUs
 * **Memory** - 8GB+ DRAM
 
-.. note::  If you are running `Scylla Monitoring Stack <https://monitoring.docs.scylladb.com/stable/index.html>`_ on the same server as Scylla Manager, your system should also meet the minimal `Monitoring requirements <https://monitoring.docs.scylladb.com/stable/install/monitoring-stack.html#minimal-production-system-recommendations>`_.
+.. note::  If you are running `Scylla Monitoring Stack <https://monitoring.docs.scylladb.com/stable/index.html>`_ on the same server as ScyllaDB Manager, your system should also meet the minimal `Monitoring requirements <https://monitoring.docs.scylladb.com/stable/install/monitoring-stack.html#minimal-production-system-recommendations>`_.
 
 Install package
 ===============
 
-Best practice is to install Scylla Manager Server on a dedicated machine not a Scylla production node.
-Download and install the Scylla Manager Server and Client packages from the `Scylla Download Center <https://www.scylladb.com/download/#manager>`_.
+Best practice is to install ScyllaDB Manager Server on a dedicated machine not a Scylla production node.
+Download and install the ScyllaDB Manager Server and Client packages from the `Scylla Download Center <https://www.scylladb.com/download/#manager>`_.
 
 Configure storage
 =================
 
-Scylla Manager uses Scylla to store its data.
-You can either use a local one-node Scylla cluster (recommended) or connect Scylla Manager to a remote cluster.
+ScyllaDB Manager uses Scylla to store its data.
+You can either use a local one-node Scylla cluster (recommended) or connect ScyllaDB Manager to a remote cluster.
 
 Local node
 ----------
 
-On the same node as you are installing Scylla Manager, download and install Scylla Server package.
+On the same node as you are installing ScyllaDB Manager, download and install Scylla Server package.
 You can either use `Scylla Enterprise <https://www.scylladb.com/download/#enterprise>`_ or `Scylla Open Source <https://www.scylladb.com/download/#open-source>`_.
 There is no need to run the Scylla setup, it is taken care of later, by the ``scyllamgr_setup`` script.
 When it's installed you can jump to `Run the scyllamgr_setup script`_ section.
@@ -43,11 +43,11 @@ When it's installed you can jump to `Run the scyllamgr_setup script`_ section.
 Remote cluster
 --------------
 
-Scylla Manager configuration file ``/etc/scylla-manager/scylla-manager.yaml`` contains a database configuration section.
+ScyllaDB Manager configuration file ``/etc/scylla-manager/scylla-manager.yaml`` contains a database configuration section.
 
 .. code-block:: yaml
 
-   # Scylla Manager database, used to store management data.
+   # ScyllaDB Manager database, used to store management data.
    database:
      hosts:
        - 127.0.0.1
@@ -79,13 +79,12 @@ Using an editor open the file and change relevant parameters.
 
 #. If authentication is needed, uncomment and edit the ``user`` and ``password`` parameters.
 
-
 #. If it's a single DC cluster, uncomment and edit the ``replication_factor`` parameter to match the required replication factor.
-   This would use SimpleStrategy to create a Scylla Manager keyspace, refer to `Scylla Architecture - Fault Tolerance <https://docs.scylladb.com/architecture/architecture-fault-tolerance/>`_ for more information on replication.
+   This would use SimpleStrategy to create a ScyllaDB Manager keyspace, refer to `Scylla Architecture - Fault Tolerance <https://docs.scylladb.com/architecture/architecture-fault-tolerance/>`_ for more information on replication.
 
 #. If it's a multi DC cluster, create a keyspace named ``scylla_manager`` yourself.
    You can use a different keyspace name, just remember to adjust the ``keyspace`` parameter value.
-   Set ``local_dc`` parameter to DC the closest to Scylla Manager Server.
+   Set ``local_dc`` parameter to DC the closest to ScyllaDB Manager Server.
 
 #. If client/server encryption is enabled, uncomment and set the ``ssl`` parameter to ``true``.
    Additional SSL configuration options can be set in the ``ssl`` configuration section.
@@ -105,7 +104,7 @@ Using an editor open the file and change relevant parameters.
    #  user_cert_file:
    #  user_key_file
 
-Sample configuration of Scylla Manager working with a remote cluster with authentication and replication factor 3 could look like this.
+Sample configuration of ScyllaDB Manager working with a remote cluster with authentication and replication factor 3 could look like this.
 
 .. code-block:: yaml
 
@@ -120,7 +119,7 @@ Sample configuration of Scylla Manager working with a remote cluster with authen
 Run the scyllamgr_setup script
 ==============================
 
-The Scylla Manager setup script automates configuration of Scylla Manager by asking you some questions.
+The ScyllaDB Manager setup script automates configuration of ScyllaDB Manager by asking you some questions.
 It can be run in non-interactive mode by using flags.
 
 .. code-block:: none
@@ -130,7 +129,7 @@ It can be run in non-interactive mode by using flags.
 
    Options:
      -y, --assume-yes          assume that the answer to any question which would be asked is yes
-     --no-scylla-setup         skip setting up and enabling local Scylla instance as a storage backend for Scylla Manager
+     --no-scylla-setup         skip setting up and enabling local Scylla instance as a storage backend for ScyllaDB Manager
      --no-enable-service       skip enabling service
      --no-check-for-updates    skip enabling periodic check for updates
      -h, --help                print this help
@@ -142,7 +141,7 @@ Run the ``scyllamgr_setup`` script to configure the service.
 Enable bash script completion
 =============================
 
-Enable bash completion for sctool (the Scylla Manager CLI) in the current bash session.
+Enable bash completion for sctool (the ScyllaDB Manager CLI) in the current bash session.
 Alternatively, you can just open a new terminal.
 
 .. code-block:: none
@@ -152,29 +151,29 @@ Alternatively, you can just open a new terminal.
 Start ScyllaDB Manager service
 ===============================
 
-Scylla Manager integrates with ``systemd`` and can be started and stopped using ``systemctl`` command. 
+ScyllaDB Manager integrates with ``systemd`` and can be started and stopped using ``systemctl`` command.
 
 **Procedure**
 
-#. Start the Scylla Manager server service.
+#. Start the ScyllaDB Manager server service.
 
    .. code-block:: none
 
       sudo systemctl start scylla-manager.service
 
-#. Verify the Scylla Manager server service is running.
+#. Verify the ScyllaDB Manager server service is running.
 
    .. code-block:: none
       
       sudo systemctl status scylla-manager.service -l
-      ● scylla-manager.service - Scylla Manager Server
+      ● scylla-manager.service - ScyllaDB Manager Server
          Loaded: loaded (/usr/lib/systemd/system/scylla-manager.service; enabled; vendor preset: disabled)
          Active: active (running) since Wed 2019-10-30 11:00:01 UTC; 20s ago
        Main PID: 5805 (scylla-manager)
          CGroup: /system.slice/scylla-manager.service
                  └─5805 /usr/bin/scylla-manager
 
-   .. note:: The first time you start Scylla Manager it may take a while. It creates a database schema. Follow the logs to see the progress.
+   .. note:: The first time you start ScyllaDB Manager it may take a while. It creates a database schema. Follow the logs to see the progress.
 
 #. Confirm sctool is running by displaying the sctool version.
 
@@ -188,4 +187,4 @@ Scylla Manager integrates with ``systemd`` and can be started and stopped using 
 Next steps
 ==========
 
-* :doc:`Install Scylla Manager Agent <install-scylla-manager-agent>`
+* :doc:`Install ScyllaDB Manager Agent <install-scylla-manager-agent>`
