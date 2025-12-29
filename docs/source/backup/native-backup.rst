@@ -72,7 +72,7 @@ To configure native backup, perform the following steps for each ScyllaDB node:
     .. code-block:: yaml
 
        object_storage_endpoints:
-         - name: s3.us-east-1.amazonaws
+         - name: s3.us-east-1.amazonaws.com
            port: 443
            https: true
            aws_region: us-east-1
