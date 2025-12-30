@@ -65,7 +65,7 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 	Print("Log in via restored user and check permissions")
 	userSession := CreateManagedClusterSession(t, false, h.dstCluster.Client, user, pass)
 	newKs := randomizedName("ks_")
-	ExecStmt(t, userSession, fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2}", newKs))
+	ExecStmt(t, userSession, fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 2}", newKs))
 }
 
 func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
@@ -74,7 +74,7 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 	ks := randomizedName("no_rep_ks_")
 	tab := randomizedName("tab_")
 	Printf("Create non replicated %s.%s in both cluster", ks, tab)
-	ksStmt := fmt.Sprintf("CREATE KEYSPACE %q WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}", ks)
+	ksStmt := fmt.Sprintf("CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1}", ks)
 	tabStmt := fmt.Sprintf("CREATE TABLE %q.%q (id int PRIMARY KEY, data int)", ks, tab)
 	ExecStmt(t, h.srcCluster.rootSession, ksStmt)
 	ExecStmt(t, h.srcCluster.rootSession, tabStmt)

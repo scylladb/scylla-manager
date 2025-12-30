@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2025 ScyllaDB
 
 package db
 
@@ -154,7 +154,7 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 
 	ExecStmt(tb, session, fmt.Sprintf(`CREATE KEYSPACE %s
 	WITH replication = {
-		'class' : 'SimpleStrategy',
+		'class' : 'NetworkTopologyStrategy',
 		'replication_factor' : %d
 	}`, keyspace, 1))
 }
