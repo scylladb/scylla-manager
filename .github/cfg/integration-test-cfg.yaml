@@ -22,22 +22,6 @@
   tablets: enabled
   ssl-enabled: false
 
-- scylla-version: scylla:2025.2.3
-  ip-family: IPV4
-  raft-schema: none
-  tablets: enabled
-  ssl-enabled: true
-  backup-method: native
-  restore-method: rclone
-
-- scylla-version: scylla:2025.2.3
-  ip-family: IPV6
-  raft-schema: none
-  tablets: disabled
-  ssl-enabled: false
-  backup-method: rclone
-  restore-method: rclone
-
 - scylla-version: scylla:2025.3.3
   ip-family: IPV4
   raft-schema: none
