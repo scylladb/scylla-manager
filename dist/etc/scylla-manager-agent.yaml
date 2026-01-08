@@ -172,6 +172,11 @@
 # if possible, otherwise set path to credentials here.
 #  service_account_file: /etc/scylla-manager-agent/gcs-service-account.json
 #
+# Endpoint for GCS API, only relevant when using GCS compatible API.
+# Example default endpoint: https://storage.googleapis.com.
+# Example custom endpoint: http://localhost:32811.
+#  endpoint:
+#
 # The storage class to use when storing new objects in Google Cloud Storage.
 #  storage_class:
 

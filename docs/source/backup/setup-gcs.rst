@@ -52,6 +52,13 @@ Use `this instruction <https://cloud.google.com/docs/authentication/production#m
 
       scylla-manager-agent check-location --location gcs:<your GCS bucket name>
 
+Additional features
+===================
+
+You can enable additional Google Cloud Storage features such as **storage class** or **endpoint**.
+Those need to be enabled on per Agent basis in the configuration file.
+Check out the ``gcs`` section in :doc:`ScyllaDB Manager Agent Config file <../config/scylla-manager-agent-config>`.
+
 Troubleshoot connectivity
 =========================
 
