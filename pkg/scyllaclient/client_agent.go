@@ -4,6 +4,7 @@ package scyllaclient
 
 import (
 	"context"
+	stdErr "errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -278,16 +279,28 @@ func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
 // ScyllaObjectStorageEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
 // It also validates that agent's and Scylla's configurations match.
 func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (string, error) {
-	if provider != backupspec.S3 {
-		return "", errors.Errorf("unsupported provider %s for native Scylla backup and restore", provider)
-	}
 	if len(ni.ObjectStorageEndpoints) == 0 {
 		return "", errors.New("no object storage endpoint configured")
 	}
+	var (
+		match         bool
+		unknownOSEErr error
+	)
 	for _, ose := range ni.ObjectStorageEndpoints {
-		if EqualObjectStorageEndpoints(ni.RcloneBackendConfig.S3, ose) {
+		switch {
+		case isS3ObjectStorageEndpoint(ose):
+			match = equalS3ObjectStorageEndpoints(ni.RcloneBackendConfig.S3, ose)
+		case isGSObjectStorageEndpoint(ose):
+			match = equalGSObjectStorageEndpoints(ni.RcloneBackendConfig.Gcs, ose)
+		default:
+			unknownOSEErr = stdErr.Join(unknownOSEErr, errors.Errorf("object storage endpoint %q has unknown type %q", ose.Name, ose.Type))
+		}
+		if match {
 			return ose.Name, nil
 		}
+	}
+	if unknownOSEErr != nil {
+		return "", unknownOSEErr
 	}
 	return "", errors.Errorf("scylla and scylla-manager-agent backup configurations don't match. "+
 		"Please make sure that the same endpoint is set in both `scylla-manager-agent.yaml` %s config "+
@@ -345,8 +358,14 @@ func (c *Client) CloudMetadata(ctx context.Context, host string) (InstanceMetada
 	}, nil
 }
 
-// EqualObjectStorageEndpoints checks if rclone and Scylla object storage endpoints match.
-func EqualObjectStorageEndpoints(rclone models.NodeInfoRcloneBackendConfigS3, scylla models.ObjectStorageEndpoint) bool {
+func isS3ObjectStorageEndpoint(ose models.ObjectStorageEndpoint) bool {
+	return ose.Type == "" || strings.EqualFold(ose.Type, "s3")
+}
+
+func equalS3ObjectStorageEndpoints(rclone models.NodeInfoRcloneBackendConfigS3, scylla models.ObjectStorageEndpoint) bool {
+	if !isS3ObjectStorageEndpoint(scylla) {
+		return false
+	}
 	// Get specified or region default rclone s3 endpoint
 	rcloneName := rclone.Endpoint
 	if rcloneName == "" {
@@ -384,6 +403,32 @@ func EqualObjectStorageEndpoints(rclone models.NodeInfoRcloneBackendConfigS3, sc
 		return false
 	}
 	return scyllaIP == rcloneIP
+}
+
+func isGSObjectStorageEndpoint(ose models.ObjectStorageEndpoint) bool {
+	return strings.EqualFold(ose.Type, "gs")
+}
+
+func equalGSObjectStorageEndpoints(rclone models.NodeInfoRcloneBackendConfigGcs, scylla models.ObjectStorageEndpoint) bool {
+	if !isGSObjectStorageEndpoint(scylla) {
+		return false
+	}
+	const (
+		defaultScyllaGSEndpointName = "default"
+		defaultGSEndpoint           = "https://storage.googleapis.com"
+	)
+
+	scyllaEndpoint := scylla.Name
+	if strings.EqualFold(scyllaEndpoint, defaultScyllaGSEndpointName) || scyllaEndpoint == "" {
+		scyllaEndpoint = defaultGSEndpoint
+	}
+
+	rcloneEndpoint := rclone.Endpoint
+	if rcloneEndpoint == "" {
+		rcloneEndpoint = defaultGSEndpoint
+	}
+
+	return scyllaEndpoint == rcloneEndpoint
 }
 
 func trimBrackets(e string) string {
