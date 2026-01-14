@@ -86,7 +86,7 @@ Usage
 =====
 
 The native backup usage is controlled with the :ref:`sctool backup --method <sctool-backup>` flag.
-It supports three values: ``rclone (default)``, ``native``, and ``auto``:
+It supports three values: ``rclone`` (default), ``native``, and ``auto``:
 
   * ``native``: Uses all native backup functionalities listed in `Status`_ section.
     Use this value for native backup configuration validation and testing.
