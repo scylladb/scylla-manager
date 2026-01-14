@@ -15,7 +15,7 @@ This solution results in:
 * Increased disk storage utilization (snapshots are stored on disk for a longer time)
 
 Native backup aims to solve these problems by moving backup responsibilities from rclone server into ScyllaDB itself.
-It's important to note that both native and rclone backups performed by ScyllaDB Manager have the same :doc:`specification <specification>` consisting of backup directory layout, manifest, schema and SSTable files. This means that all backups can be used for all types of restores (e.g. regular restore, 1-1-restore, native restore, ...).
+It is important to note that both native and rclone backups performed by ScyllaDB Manager have the same :doc:`specification <specification>` consisting of backup directory layout, manifest, schema and SSTable files. This means that all backups can be used for all types of restores (e.g. regular restore, 1-1-restore, native restore, ...).
 In the `Status`_ section you can find the parts of backup procedure already moved to ScyllaDB.
 
 Status
