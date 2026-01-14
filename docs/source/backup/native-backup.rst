@@ -3,7 +3,7 @@ Native Backup
 =============
 
 ScyllaDB Manager uses ScyllaDB Manager Agents deployed on each ScyllaDB node to coordinate backups.
-Those agents serve as a proxy to `ScyllaDB REST API <https://docs.scylladb.com/manual/stable/operating-scylla/rest.html>`_, but they also act as `rclone <https://github.com/scylladb/rclone>`_ servers responsible for communication between the node and backup location.
+These agents serve as a proxy to `ScyllaDB REST API <https://docs.scylladb.com/manual/stable/operating-scylla/rest.html>`_ and also act as `rclone <https://github.com/scylladb/rclone>`_ servers responsible for communication between the node and backup location.
 
 Since rclone server is separate from ScyllaDB internal schedulers, yet they both live on the same machine,
 it is allocated with limited resources not to interfere with ScyllaDB performance.
