@@ -666,8 +666,18 @@ func (s *Service) startTask(ctx context.Context, t *Task) error {
 
 // StopTask stops task execution of immediately, task is rescheduled according
 // to its run interval.
-func (s *Service) StopTask(ctx context.Context, t *Task) error {
+func (s *Service) StopTask(ctx context.Context, t *Task, disable bool) error {
 	s.logger.Debug(ctx, "StopTask", "task", t)
+
+	// Disabling the task prevents it from being scheduled again,
+	// but it does not stop the current execution, so we need to
+	// proceed with regular stop procedure.
+	if t.Enabled && disable {
+		t.Enabled = false
+		if err := s.PutTask(ctx, t); err != nil {
+			return errors.Wrapf(err, "update task %q", t.ID)
+		}
+	}
 
 	s.mu.Lock()
 	l, lok := s.scheduler[t.ClusterID]
