@@ -149,6 +149,9 @@ func (h clusterHandler) updateCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	newCluster.ID = c.ID
+	// Cluster.KnownHosts are not part of REST API definitions,
+	// so we need to fill them based on current cluster state.
+	newCluster.KnownHosts = c.KnownHosts
 
 	if err := h.svc.PutCluster(r.Context(), newCluster); err != nil {
 		respondError(w, r, errors.Wrapf(err, "update cluster %q", c.ID))

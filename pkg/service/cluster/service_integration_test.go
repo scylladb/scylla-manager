@@ -850,25 +850,45 @@ func TestServiceStorageIntegration(t *testing.T) {
 		if err = s.PutCluster(ctx, &initialCluster); err != nil {
 			t.Fatal(err)
 		}
-
-		unavailableHost := hosts[1]
-		Print("Block connectivity to host: " + unavailableHost)
-		if err := RunIptablesCommand(t, unavailableHost, CmdBlockScyllaREST); err != nil {
+		Print("Known hosts are set after cluster creation")
+		getCluster, err := s.GetClusterByID(t.Context(), initialCluster.ID)
+		if err != nil {
 			t.Fatal(err)
 		}
-		defer RunIptablesCommand(t, unavailableHost, CmdUnblockScyllaREST)
+		if len(getCluster.KnownHosts) != len(hosts) {
+			t.Fatalf("Expected %d known hosts, got %d", len(hosts), len(getCluster.KnownHosts))
+		}
+
+		Print("Block connectivity to host: " + clusterHost)
+		if err := RunIptablesCommand(t, clusterHost, CmdBlockScyllaREST); err != nil {
+			t.Fatal(err)
+		}
+		defer RunIptablesCommand(t, clusterHost, CmdUnblockScyllaREST)
 
 		Print("Expect connectivity failure when adding new cluster")
 		putCluster := *validCluster()
 		putCluster.Host = clusterHost
+		// Simulate missing known hosts and expect that
+		// they won't overwrite existing known hosts.
+		putCluster.KnownHosts = nil
 		if err := s.PutCluster(ctx, &putCluster); err == nil {
 			t.Fatal("Expected connectivity failure when adding new cluster, got nil")
 		}
 
-		newClusterHost := hosts[2]
+		Print("Known hosts are set after failed cluster update")
+		getCluster, err = s.GetClusterByID(t.Context(), initialCluster.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(getCluster.KnownHosts) != len(hosts) {
+			t.Fatalf("Expected %d known hosts, got %d", len(hosts), len(getCluster.KnownHosts))
+		}
+
+		newClusterHost := hosts[1]
 		Print("Expect connectivity failure when updating existing cluster host param: " + newClusterHost)
 		putCluster = initialCluster
 		putCluster.Host = newClusterHost
+		putCluster.KnownHosts = nil
 		if err := s.PutCluster(ctx, &putCluster); err == nil {
 			t.Fatal("Expected connectivity failure when updating existing cluster host param, got nil")
 		}
@@ -876,8 +896,18 @@ func TestServiceStorageIntegration(t *testing.T) {
 		Print("Expect success when updating existing cluster labels param")
 		putCluster = initialCluster
 		putCluster.Labels = map[string]string{"foo": "bar"}
+		putCluster.KnownHosts = nil
 		if err := s.PutCluster(ctx, &putCluster); err != nil {
 			t.Fatal(err)
+		}
+
+		Print("Known hosts are set after successful cluster update")
+		getCluster, err = s.GetClusterByID(t.Context(), initialCluster.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(getCluster.KnownHosts) != len(hosts) {
+			t.Fatalf("Expected %d known hosts, got %d", len(hosts), len(getCluster.KnownHosts))
 		}
 	})
 

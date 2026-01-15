@@ -442,6 +442,17 @@ func (s *Service) PutCluster(ctx context.Context, c *Cluster) (err error) {
 		s.logger.Info(ctx, "Adding new cluster", "cluster_id", c.ID)
 	} else {
 		s.logger.Info(ctx, "Updating cluster", "cluster_id", c.ID)
+		// Putting cluster should theoretically just set cluster state to the provided one.
+		// The problem is that Cluster.KnownHosts are not part of REST API definitions,
+		// so it's possible that cluster passed to PutCluster doesn't have it set by accident.
+		// This shouldn't be the case, but since it never makes sense for Cluster.KnownHosts
+		// to be empty (they should at least contain resolved Cluster.Host), we can add additional
+		// safety net here and load them if they are missing.
+		if len(c.KnownHosts) == 0 {
+			if err := s.loadKnownHosts(c); err != nil && !errors.Is(err, gocql.ErrNotFound) {
+				return errors.Wrap(err, "load known hosts")
+			}
+		}
 	}
 
 	// Validate cluster model
