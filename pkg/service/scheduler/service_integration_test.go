@@ -162,6 +162,9 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedulerTestHelp
 		nil,
 		log.NewDevelopment(),
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	s.SetTaskCleaner(scheduler.BackupTask, backupSvc.DeleteLocalSnapshots)
 
@@ -474,7 +477,9 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task, scheduler.StatusRunning)
 
 		Print("When: task is stopped")
-		h.service.StopTask(ctx, task)
+		if err := h.service.StopTask(ctx, task, false); err != nil {
+			t.Fatal(err)
+		}
 
 		Print("Then: task status is STOPPED")
 		h.assertStatus(task, scheduler.StatusStopped)
@@ -731,6 +736,10 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			StartDate: now(),
 			Interval:  interval,
 		})
+		// Remove ID to create task instead of updating it.
+		// On task update, the 'deleted' column is not set,
+		// hence it equals null and messes up task listing.
+		task.ID = uuid.Nil
 		if err := h.service.PutTask(ctx, task); err != nil {
 			t.Fatal(err)
 		}
@@ -738,20 +747,26 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Then: task runs")
 		h.assertStatus(task, scheduler.StatusRunning)
 
-		Print("When: task is stopped")
-		h.service.StopTask(ctx, task)
+		Print("When: task is stopped and disabled")
+		if err := h.service.StopTask(ctx, task, true); err != nil {
+			t.Fatal(err)
+		}
 
 		Print("Then: task stops")
 		h.assertStatus(task, scheduler.StatusStopped)
 
-		Print("When: task is disabled")
-		task.Enabled = false
-		if err := h.service.PutTask(ctx, task); err != nil {
+		tasks, err := h.service.ListTasks(ctx, h.clusterID, scheduler.ListFilter{Disabled: true})
+		if err != nil {
 			t.Fatal(err)
 		}
+		if len(tasks) != 1 {
+			t.Fatalf("Expected 1 task, got %d", len(tasks))
+		}
 
-		Print("Then: task is not executed")
-		h.assertNotStatus(task, scheduler.StatusRunning)
+		Print("Then: task has not next activation scheduled")
+		if tasks[0].NextActivation != nil {
+			t.Fatalf("Expected NextActivation to be nil, got %v", tasks[0].NextActivation)
+		}
 	})
 
 	t.Run("disable running task", func(t *testing.T) {
@@ -1374,7 +1389,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		}
 
 		Print("When: task0 is stopped")
-		if err := h.service.StopTask(t.Context(), task0); err != nil {
+		if err := h.service.StopTask(t.Context(), task0, false); err != nil {
 			t.Fatal(err)
 		}
 

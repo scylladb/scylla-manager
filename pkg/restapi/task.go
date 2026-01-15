@@ -410,14 +410,7 @@ func (h *taskHandler) stopTask(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if t.Enabled && disable {
-		t.Enabled = false
-		// current task is canceled on save no need to stop it again
-		if err := h.Scheduler.PutTask(r.Context(), t); err != nil {
-			respondError(w, r, errors.Wrapf(err, "update task %q", t.ID))
-			return
-		}
-	} else if err := h.Scheduler.StopTask(r.Context(), t); err != nil {
+	if err := h.Scheduler.StopTask(r.Context(), t, disable); err != nil {
 		respondError(w, r, errors.Wrapf(err, "stop task %q", t.ID))
 		return
 	}
