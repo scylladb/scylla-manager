@@ -148,7 +148,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	altGSI2 := "gsi_2_" + AlternatorProblematicTableChars
 	altTag := "tag"
 	altTTLAttr := "ttl_attr"
-	CreateAlternatorTable(t, h.srcCluster.altClient, ni, true, 2, 0, altTab1, altTab2)
+	CreateAlternatorTable(t, h.srcCluster.altClient, ni, "none", 2, 0, altTab1, altTab2)
 	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab1, altGSI1, altGSI2)
 	CreateAlternatorGSI(t, h.srcCluster.altClient, altTab2, altGSI1, altGSI2)
 	TagAlternatorTable(t, h.srcCluster.altClient, altTab1, altTag)
@@ -1502,7 +1502,7 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	Print("Prepare alternator schema")
 	altTab1 := "alt_full_1_" + AlternatorProblematicTableChars
 	altTab2 := "alt_full_2_" + AlternatorProblematicTableChars
-	CreateAlternatorTable(t, h.srcCluster.altClient, ni, true, 2, 2, altTab1, altTab2)
+	CreateAlternatorTable(t, h.srcCluster.altClient, ni, "none", 2, 2, altTab1, altTab2)
 
 	Print("Insert alternator rows")
 	const rowCnt = 100
@@ -1535,7 +1535,7 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	}
 	// Schema needs to be restored manually for scylla 2024.1 with raft schema
 	if schemaFromCQL == "" && ni.ConsistentClusterManagement {
-		CreateAlternatorTable(t, h.dstCluster.altClient, ni, true, 2, 2, altTab1, altTab2)
+		CreateAlternatorTable(t, h.dstCluster.altClient, ni, "", 2, 2, altTab1, altTab2)
 		ExecStmt(t, h.dstCluster.rootSession, ksStmt)
 		createTable(t, h.dstCluster.rootSession, "cql_ks", "cql_tab")
 		CreateMaterializedView(t, h.dstCluster.rootSession, "cql_ks", "cql_tab", "cql_mv_1")
