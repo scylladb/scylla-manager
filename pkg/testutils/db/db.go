@@ -274,6 +274,15 @@ func CreateSecondaryIndex(t *testing.T, session gocqlx.Session, keyspace, table,
 	WaitForViews(t, session)
 }
 
+// ExecuteLWTCQLQuery executes a no-op LWT query on a table.
+// It assumes tha the table was created with WriteData function family.
+// It might result in creation of LWT state table with table.LWTStateTableSuffix.
+func ExecuteLWTCQLQuery(t *testing.T, session gocqlx.Session, keyspace, table string) {
+	t.Helper()
+
+	ExecStmt(t, session, fmt.Sprintf("UPDATE %q.%q SET data = null WHERE id = 0 IF data = null", keyspace, table))
+}
+
 // FlushTable flushes memtable to sstables. It allows for more precise size calculations.
 func FlushTable(t *testing.T, client *scyllaclient.Client, hosts []string, keyspace, table string) {
 	t.Helper()
@@ -399,7 +408,9 @@ const (
 // CreateAlternatorTable creates alternator tables with provided LSI count.
 // LSIs need to be created at table creation, so we can't move it to a separate function.
 // GSIs need to be created at table creation for scylla 2024.1, and can be added separately starting from 2025.1.
-func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, ni *scyllaclient.NodeInfo, disableTablets bool, lsiCnt, gsiCnt int, tables ...string) {
+// Starting from 2025.4, it is also possible to set alternator tablet tag controlling tablet usage.
+// Alternator tablet tag documentation: https://docs.scylladb.com/manual/stable/alternator/new-apis.html#tablets.
+func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, ni *scyllaclient.NodeInfo, tabletTag string, lsiCnt, gsiCnt int, tables ...string) {
 	t.Helper()
 
 	var gsi []types.GlobalSecondaryIndex
@@ -471,10 +482,10 @@ func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, ni *scyllaclie
 	}
 
 	var tags []types.Tag
-	if disableTablets && testutils.CheckConstraint(t, ni.ScyllaVersion, ">= 2025.4") {
+	if tabletTag != "" && testutils.CheckConstraint(t, ni.ScyllaVersion, ">= 2025.4") {
 		tags = append(tags, types.Tag{
 			Key:   aws.String("system:initial_tablets"),
-			Value: aws.String("none"),
+			Value: aws.String(tabletTag),
 		})
 	}
 
@@ -686,5 +697,32 @@ func ValidateAlternatorGSIData(t *testing.T, client *dynamodb.Client, rowCnt int
 		if out.Count != int32(rowCnt) {
 			t.Fatalf("expected %d items in GSI %q of %q, got %d", rowCnt, gsi, table, out.Count)
 		}
+	}
+}
+
+// ExecuteLWTAlternatorQuery executes a no-op LWT query on a table.
+// It assumes tha the table was created with CreateAlternatorTable function.
+// It might result in creation of CQL LWT state table with table.LWTStateTableSuffix.
+func ExecuteLWTAlternatorQuery(t *testing.T, client *dynamodb.Client, table string) {
+	t.Helper()
+
+	m := map[string]int{
+		alternatorPK:    0,
+		alternatorSK:    0,
+		alternatorLSISK: 0,
+		alternatorGSIPK: 0,
+		alternatorGSISK: 0,
+	}
+	item, err := attributevalue.MarshalMap(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.PutItem(t.Context(), &dynamodb.PutItemInput{
+		Item:         item,
+		TableName:    &table,
+		ReturnValues: types.ReturnValueAllOld,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

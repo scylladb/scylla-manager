@@ -180,7 +180,7 @@ func TestTabletRepairIntegration(t *testing.T) {
 	// Note that alternator tables on tablets are not supported in all scylla versions
 	// which support tablet repair. Because of that, they might or might not be included
 	// in the tablet repair task.
-	CreateAlternatorTable(t, h.alternatorClient, ni, false, 0, 0, altTab1, altTab2, altTab3)
+	CreateAlternatorTable(t, h.alternatorClient, ni, "", 0, 0, altTab1, altTab2, altTab3)
 
 	// Get all tables from scylla so that we don't need to handle alternator and cdc table names manually
 	allTables := make(map[fullTab]struct{})
