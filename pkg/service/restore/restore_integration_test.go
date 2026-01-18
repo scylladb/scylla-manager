@@ -1583,6 +1583,95 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	}
 }
 
+func TestRestoreFullLWTIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+
+	ni, err := h.srcCluster.Client.AnyNodeInfo(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if CheckConstraint(t, ni.ScyllaVersion, "< 2025.1") {
+		t.Skip("Test expects that it's possible to create table with tablets")
+	}
+
+	Print("Given: CQl vnode table with LWT")
+	const (
+		cqlVnodeKs  = "cql_vnode_ks"
+		cqlVnodeTab = "cql_vnode_tab"
+	)
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("CREATE KEYSPACE IF NOT EXISTS %q WITH "+
+		"replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 2} AND "+
+		"tablets = {'enabled': 'false'}", cqlVnodeKs))
+	WriteDataSecondClusterSchema(t, h.srcCluster.rootSession, cqlVnodeKs, 0, 1, cqlVnodeTab)
+	ExecuteLWTCQLQuery(t, h.srcCluster.rootSession, cqlVnodeKs, cqlVnodeTab)
+
+	Print("And: CQl tablet table with LWT")
+	const (
+		cqlTabletKs  = "cql_tablet_ks"
+		cqlTabletTab = "cql_tablet_tab"
+	)
+	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("CREATE KEYSPACE IF NOT EXISTS %q WITH "+
+		"replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 2} AND "+
+		"tablets = {'enabled': 'true'}", cqlTabletKs))
+	WriteDataSecondClusterSchema(t, h.srcCluster.rootSession, cqlTabletKs, 0, 1, cqlTabletTab)
+	// LWT on tablets is enabled starting from 2025.4
+	if CheckConstraint(t, ni.ScyllaVersion, ">= 2025.4") {
+		ExecuteLWTCQLQuery(t, h.srcCluster.rootSession, cqlTabletKs, cqlTabletTab)
+	}
+
+	Print("And: Alternator vnode table with LWT")
+	const (
+		altVnodeTab = "alt_vnode_tab"
+		altVnodeKs  = "alternator_" + altVnodeTab
+	)
+	CreateAlternatorTable(t, h.srcCluster.altClient, ni, "none", 0, 0, altVnodeTab)
+	InsertAlternatorTableData(t, h.srcCluster.altClient, 100, altVnodeTab)
+	ExecuteLWTAlternatorQuery(t, h.srcCluster.altClient, altVnodeTab)
+
+	Print("And: Alternator tablet table with LWT")
+	const (
+		altTabletTab = "alt_tablet_tab"
+		altTabletKs  = "alternator_" + altTabletTab
+	)
+	CreateAlternatorTable(t, h.srcCluster.altClient, ni, "8", 0, 0, altTabletTab)
+	InsertAlternatorTableData(t, h.srcCluster.altClient, 100, altTabletTab)
+	if CheckConstraint(t, ni.ScyllaVersion, ">= 2025.4") {
+		ExecuteLWTAlternatorQuery(t, h.srcCluster.altClient, altTabletTab)
+	}
+
+	Print("And: backup of all user keyspaces")
+	loc := testLocation("lwt-full", "")
+	S3InitBucket(t, loc.Path)
+	backupProps := defaultTestBackupProperties(loc, "")
+	backupProps["keyspace"] = []string{cqlVnodeKs, cqlTabletKs, altVnodeKs, altTabletKs}
+	tag := h.runBackup(t, backupProps)
+
+	Print("When: restore schema")
+	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	props := defaultTestProperties(loc, tag, false)
+	h.runRestore(t, props)
+
+	Print("And: restore data")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
+	props = defaultTestProperties(loc, tag, true)
+	backupProps["keyspace"] = []string{cqlVnodeKs, cqlTabletKs, altVnodeKs, altTabletKs}
+	h.runRestore(t, props)
+
+	Print("Then: data is restored")
+	cqlTabs := []table{
+		{ks: cqlVnodeKs, tab: cqlVnodeTab},
+		{ks: cqlTabletKs, tab: cqlTabletTab},
+	}
+	for _, tab := range cqlTabs {
+		srcCnt := rowCount(t, h.srcCluster.rootSession, tab.ks, tab.tab)
+		dstCnt := rowCount(t, h.dstCluster.rootSession, tab.ks, tab.tab)
+		if srcCnt != dstCnt {
+			t.Fatalf("Expected %d rows in cql table %q.%q, got %d", srcCnt, tab.ks, tab.tab, dstCnt)
+		}
+	}
+	ValidateAlternatorTableData(t, h.dstCluster.altClient, 100, 0, 0, altVnodeTab, altTabletTab)
+}
+
 func getDCFromRemoteSSTableDir(t *testing.T, remoteSSTableDir string) string {
 	t.Helper()
 	// hacky way of extracting value of dc_name from  /dc/{dc_name}/node/
