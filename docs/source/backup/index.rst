@@ -52,9 +52,12 @@ Selecting tables and nodes to back up
 | All currently down nodes are ignored for the backup procedure.
 | In case table should be backed up, but some of its token ranges are not replicated on any currently live node in the cluster, the backup will fail.
 
-| Moreover, `Materialized Views <https://docs.scylladb.com/manual/stable/features/materialized-views.html>`_ and `Secondary Indexes <https://docs.scylladb.com/manual/stable/features/secondary-indexes.html>`_
+| `Materialized Views <https://docs.scylladb.com/manual/stable/features/materialized-views.html>`_ and `Secondary Indexes <https://docs.scylladb.com/manual/stable/features/secondary-indexes.html>`_
   won't be backed up, as they should be restored by recreating them on the restored base table (see `ScyllaDB docs <https://docs.scylladb.com/manual/stable/operating-scylla/procedures/backup-restore/restore.html#repeat-the-following-steps-for-each-node-in-the-cluster>`_).
 | In order to ensure that data residing in View table is preserved, make sure to backup its base table.
+
+| `LWT state tables <https://docs.scylladb.com/manual/stable/features/lwt.html#paxos-state-tables>`_ won't be backed up,
+  as they only store the state of ongoing LWT queries and do not store user data. Restoring these tables is not supported either.
 
 Process
 =======
