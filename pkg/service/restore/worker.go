@@ -27,6 +27,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	scyllaTable "github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -369,8 +370,8 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 		}
 	}
 
-	// Skip user cdc tables
-	skip = append(skip, "*.*_scylla_cdc_log")
+	skip = append(skip, "*.*_scylla_cdc_log", // Skip user cdc tables
+		"system.paxos", "*.*"+scyllaTable.LWTStateTableSuffix) // Skip LWT state tables (#4732)
 
 	// Skip views
 	views, err := query.GetAllViews(session)

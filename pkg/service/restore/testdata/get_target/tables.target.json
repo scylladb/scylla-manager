@@ -11,6 +11,8 @@
     "!system_distributed.cdc_streams_descriptions_v2",
     "!system_distributed.cdc_generation_timestamps",
     "!*.*_scylla_cdc_log",
+    "!system.paxos",
+    "!*.*$paxos",
     "!ks1.mv1",
     "!ks2.si1_index"
   ],

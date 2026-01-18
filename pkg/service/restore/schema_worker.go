@@ -12,6 +12,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 
 	"go.uber.org/atomic"
@@ -163,6 +164,11 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 		}
 		if row.Keyspace == "system_replicated_keys" {
 			// See https://github.com/scylladb/scylla-enterprise/issues/4168
+			continue
+		}
+		sanitizedName := strings.TrimPrefix(strings.TrimSuffix(row.Name, "\""), "\"")
+		if row.Type == "table" && strings.HasSuffix(sanitizedName, table.LWTStateTableSuffix) {
+			// No support for LWT state tables restoration (#4732)
 			continue
 		}
 		if aw.isAlternatorSchemaRow(row) {
