@@ -16,6 +16,7 @@ import (
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 )
@@ -41,6 +42,11 @@ func newAlternatorSchemaWorker(client *dynamodb.Client, schema backupspec.Altern
 	ksSchema := make(map[string]backupspec.AlternatorTableSchema, len(schema.Tables))
 	for _, t := range schema.Tables {
 		if t.Describe == nil || t.Describe.TableName == nil {
+			continue
+		}
+		// LWT state tables shouldn't be listed with alternator API,
+		// but this bug exists in early 2025.4 versions (#4732).
+		if strings.HasSuffix(*t.Describe.TableName, table.LWTStateTableSuffix) {
 			continue
 		}
 		ksSchema[w.cqlKeyspaceName(*t.Describe.TableName)] = t
