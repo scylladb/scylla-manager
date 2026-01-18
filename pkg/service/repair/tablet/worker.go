@@ -111,7 +111,7 @@ func (w *worker) repairTable(ctx context.Context, client *scyllaclient.Client, k
 	}(start)
 
 	// Use scylla side default incremental mode (#4683)
-	id, err := client.TabletRepair(ctx, ks, tab, "", nil, nil, "")
+	err = client.TabletRepair(ctx, ks, tab, scyllaclient.TabletRepairParams{})
 	if err != nil {
 		if _, _, ok := scyllaclient.IsColocatedTableErr(err); ok {
 			// Since we always repair all tablet tables,
@@ -119,25 +119,9 @@ func (w *worker) repairTable(ctx context.Context, client *scyllaclient.Client, k
 			w.logger.Info(ctx, "Skipping repair of colocated tablet table", "keyspace", ks, "table", tab, "error", err)
 			return nil
 		}
-		return errors.Wrapf(err, "schedule tablet repair")
+		return errors.Wrapf(err, "tablet repair")
 	}
-
-	w.logger.Info(ctx, "Scheduled tablet repair", "keyspace", ks, "table", tab, "task ID", id)
-	w.upsertTableProgress(ctx, pr)
-
-	status, err := client.ScyllaWaitTask(ctx, "", id, 0)
-	if err != nil {
-		w.abortRepairTask(context.Background(), id)
-		return errors.Wrap(err, "get tablet repair task status")
-	}
-	switch scyllaclient.ScyllaTaskState(status.State) {
-	case scyllaclient.ScyllaTaskStateDone:
-		return nil
-	case scyllaclient.ScyllaTaskStateFailed:
-		return errors.Errorf("tablet repair task finished with status %q", scyllaclient.ScyllaTaskStateFailed)
-	default:
-		return errors.Errorf("unexpected tablet repair task status %q", status.State)
-	}
+	return nil
 }
 
 func (w *worker) abortRepairTask(ctx context.Context, id string) {
