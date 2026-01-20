@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 
@@ -513,6 +514,17 @@ type viewFilter struct {
 
 func (f viewFilter) filter(ks, tab string, _ scyllaclient.Ring) bool {
 	return !f.views.Has(ks + "." + tab)
+}
+
+// Filter out LWT state tables (#4732).
+type lwtFilter struct{}
+
+func (lf lwtFilter) filter(ks, tab string, _ scyllaclient.Ring) bool {
+	t := table.CQLTable{
+		Keyspace: ks,
+		Name:     tab,
+	}
+	return t != table.LWTSystemTable && !strings.HasSuffix(tab, table.LWTStateTableSuffix)
 }
 
 // tableValidator checks if it's safe to back up table.
