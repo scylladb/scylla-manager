@@ -187,6 +187,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 		patternFilter{pattern: f},
 		dcFilter{dcs: strset.New(dcs...)},
 		localDataFilter{keyspaces: ks},
+		lwtFilter{},
 	}
 
 	// Try to add view filter - possible only when credentials are set

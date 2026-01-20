@@ -2447,6 +2447,142 @@ func TestBackupViewsIntegration(t *testing.T) {
 	}
 }
 
+func TestBackupLWTIntegration(t *testing.T) {
+	location := s3Location("backuptest-lwt")
+	config := defaultConfig()
+
+	var (
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	ni, err := h.Client.AnyNodeInfo(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if CheckConstraint(t, ni.ScyllaVersion, "< 2025.1") {
+		t.Skip("Test expects that it's possible to create table with tablets")
+	}
+
+	Print("Given: CQL vnode table with LWT")
+	const (
+		cqlVnodeKs  = "cql_vnode_ks"
+		cqlVnodeTab = "cql_vnode_tab"
+	)
+	ExecStmt(t, clusterSession, fmt.Sprintf("CREATE KEYSPACE IF NOT EXISTS %q WITH "+
+		"replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 3} AND "+
+		"tablets = {'enabled': 'false'}", cqlVnodeKs))
+	WriteData(t, clusterSession, cqlVnodeKs, 1, cqlVnodeTab)
+	ExecuteLWTCQLQuery(t, clusterSession, cqlVnodeKs, cqlVnodeTab)
+
+	Print("And: CQL tablet table with LWT")
+	const (
+		cqlTabletKs  = "cql_tablet_ks"
+		cqlTabletTab = "cql_tablet_tab"
+	)
+	ExecStmt(t, clusterSession, fmt.Sprintf("CREATE KEYSPACE IF NOT EXISTS %q WITH "+
+		"replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 3} AND "+
+		"tablets = {'enabled': 'true'}", cqlTabletKs))
+	WriteData(t, clusterSession, cqlTabletKs, 1, cqlTabletTab)
+	// LWT on tablets is enabled starting from 2025.4
+	if CheckConstraint(t, ni.ScyllaVersion, ">= 2025.4") {
+		ExecuteLWTCQLQuery(t, clusterSession, cqlTabletKs, cqlTabletTab)
+	}
+
+	Print("And: Alternator vnode table with LWT")
+	accessKeyID, secretAccessKey := GetAlternatorCreds(t, clusterSession, "")
+	altClient := CreateAlternatorClient(t, h.Client, ManagedClusterHost(), accessKeyID, secretAccessKey)
+	const (
+		altVnodeTab = "alt_vnode_tab"
+		altVnodeKs  = "alternator_" + altVnodeTab
+	)
+	CreateAlternatorTable(t, altClient, ni, "none", 0, 0, altVnodeTab)
+	InsertAlternatorTableData(t, altClient, 100, altVnodeTab)
+	ExecuteLWTAlternatorQuery(t, altClient, altVnodeTab)
+
+	Print("And: Alternator tablet table with LWT")
+	const (
+		altTabletTab = "alt_tablet_tab"
+		altTabletKs  = "alternator_" + altTabletTab
+	)
+	CreateAlternatorTable(t, altClient, ni, "8", 0, 0, altTabletTab)
+	InsertAlternatorTableData(t, altClient, 100, altTabletTab)
+	if CheckConstraint(t, ni.ScyllaVersion, ">= 2025.4") {
+		ExecuteLWTAlternatorQuery(t, altClient, altTabletTab)
+	}
+
+	Print("When: create backup target")
+	props := defaultTestProperties(location, "")
+	props["keyspace"] = []string{cqlVnodeKs, cqlTabletKs, altVnodeKs, altTabletKs}
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: target contains just the base table and system_schema")
+	expected := []backup.Unit{
+		{
+			Keyspace: cqlVnodeKs,
+			Tables:   []string{cqlVnodeTab},
+		},
+		{
+			Keyspace: cqlTabletKs,
+			Tables:   []string{cqlTabletTab},
+		},
+		{
+			Keyspace: altVnodeKs,
+			Tables:   []string{altVnodeTab},
+		},
+		{
+			Keyspace: altTabletKs,
+			Tables:   []string{altTabletTab},
+		},
+	}
+	if diff := cmp.Diff(target.Units, expected,
+		cmpopts.IgnoreFields(backup.Unit{}, "AllTables"),
+		cmpopts.SortSlices(func(a, b backup.Unit) bool { return a.Keyspace < b.Keyspace }),
+		cmpopts.SortSlices(func(a, b string) bool { return a < b }),
+		cmpopts.IgnoreSliceElements(func(u backup.Unit) bool { return u.Keyspace == "system_schema" }),
+	); diff != "" {
+		t.Fatal(diff)
+	}
+
+	Print("When: run backup with generated target")
+	if err = h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: backup files contains just the base table and system_schema")
+	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fi := range filesInfo {
+		for _, fm := range fi.Files {
+			if fm.Keyspace == "system_schema" {
+				continue
+			}
+			ok := false
+			for _, u := range expected {
+				for _, tab := range u.Tables {
+					if fm.Keyspace == u.Keyspace && fm.Table == tab {
+						ok = true
+					}
+				}
+			}
+			if !ok {
+				t.Fatalf("Unexpected table %q.%q found in backed up files", fm.Keyspace, fm.Table)
+			}
+		}
+	}
+}
+
 func TestBackupSkipSchemaIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-skip-schema"

@@ -4,12 +4,14 @@ package backup
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	"github.com/scylladb/scylla-manager/v3/pkg/table"
 )
 
 func (w *worker) DumpAlternatorSchema(ctx context.Context, his []hostInfo, alternatorFunc cluster.AlternatorClientFunc) error {
@@ -94,6 +96,12 @@ func GetAlternatorSchema(ctx context.Context, client *dynamodb.Client) (backupsp
 
 	var tableSchema []backupspec.AlternatorTableSchema
 	for _, name := range tableNames {
+		// LWT state tables shouldn't be listed with alternator API,
+		// but this bug exists in early 2025.4 versions (#4732).
+		if strings.HasSuffix(name, table.LWTStateTableSuffix) {
+			continue
+		}
+
 		describeOut, err := client.DescribeTable(ctx, &dynamodb.DescribeTableInput{
 			TableName: &name,
 		})
