@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package scheduler
 
@@ -853,6 +853,60 @@ func TestReschedule(t *testing.T) {
 			if c := f.Count(); c != len(runOutOfWindow) {
 				t.Fatal("Run mismatch")
 			}
+		}
+	})
+
+	t.Run("preserve cron timezone on task reschedule", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		// Use different timezones in time generator and trigger
+		zone0 := time.FixedZone("UTC", 0)
+		zone5 := time.FixedZone("UTC+5", 5*60*60)
+		// Trigger at midnight UTC+5
+		d := Details{
+			Trigger:  schedules.MustCron("0 0 * * *", time.Time{}),
+			Location: zone5,
+		}
+		// Returns noon in UTC+0
+		timeGen := func() time.Time {
+			return time.Date(2024, 1, 1, 12, 0, 0, 0, zone0)
+		}
+		// Since trigger timezone takes precedence over time generator timezone,
+		// expect next activation in 7 hours.
+		expectedNext := timeGen().Add(7 * time.Hour)
+
+		f := newFakeRunner()
+		s := NewScheduler[testKey](timeGen, f.Run, ll)
+		k := randomKey()
+
+		s.Schedule(ctx, k, d)
+		// Verify initial activation
+		a := s.Activations(k)
+		if len(a) != 1 {
+			t.Fatalf("expected 1 activation in queue, got %d", len(a))
+		}
+		if !expectedNext.Equal(a[0].Time) {
+			t.Fatalf("expected initial activation to be %v, got %v", expectedNext, a[0].Time)
+		}
+		// Start task in the background so that it's rescheduled when it finishes
+		time.AfterFunc(StartOffset, func() {
+			s.Trigger(ctx, k)
+		})
+		// Verify that task finished before timeout or closing scheduler
+		select {
+		case <-startAndWait(ctx, s):
+			t.Fatal("expected a run, scheduler exit")
+		case <-time.After(Timeout):
+			t.Fatal("expected a run, timeout")
+		case <-f.WaitKeys(k):
+		}
+		// Verify rescheduled activation
+		a = s.Activations(k)
+		if len(a) != 1 {
+			t.Fatalf("expected 1 activation in queue, got %d", len(a))
+		}
+		if !expectedNext.Equal(a[0].Time) {
+			t.Fatalf("expected rescheduled activation to be %v, got %v", expectedNext, a[0].Time)
 		}
 	})
 }

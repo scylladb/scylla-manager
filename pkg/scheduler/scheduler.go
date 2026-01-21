@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package scheduler
 
@@ -140,6 +140,7 @@ func (s *Scheduler[K]) reschedule(ctx *RunContext[K], initialActivation time.Tim
 	now := s.now()
 	if d.Location != nil {
 		now = now.In(d.Location)
+		initialActivation = initialActivation.In(d.Location)
 	}
 	next := d.Trigger.Next(now)
 
