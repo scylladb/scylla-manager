@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
 from datetime import date
 
 from sphinx_scylladb_theme.utils import multiversion_regex_builder
+sys.path.insert(0, os.path.abspath('./_ext'))
 
 # -- Global variables
 
@@ -29,6 +32,7 @@ extensions = [
     "sphinx_sitemap",
     "sphinx_scylladb_theme",
     'sphinxcontrib.datatemplates',
+    "scylladb_dynamic_substitutions",
     "sphinx_multiversion",
     "recommonmark",
 ]
