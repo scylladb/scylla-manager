@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
@@ -900,13 +901,21 @@ func TestReschedule(t *testing.T) {
 			t.Fatal("expected a run, timeout")
 		case <-f.WaitKeys(k):
 		}
-		// Verify rescheduled activation
-		a = s.Activations(k)
-		if len(a) != 1 {
-			t.Fatalf("expected 1 activation in queue, got %d", len(a))
-		}
-		if !expectedNext.Equal(a[0].Time) {
-			t.Fatalf("expected rescheduled activation to be %v, got %v", expectedNext, a[0].Time)
+		// There is some delay between WaitKeys return
+		// and the actual reschedule on scheduler side.
+		err := backoff.Retry(func() error {
+			// Verify rescheduled activation
+			a = s.Activations(k)
+			if len(a) != 1 {
+				return fmt.Errorf("expected 1 activation in queue, got %d", len(a))
+			}
+			if !expectedNext.Equal(a[0].Time) {
+				return fmt.Errorf("expected rescheduled activation to be %v, got %v", expectedNext, a[0].Time)
+			}
+			return nil
+		}, backoff.WithMaxRetries(backoff.NewConstantBackOff(10*time.Millisecond), 10))
+		if err != nil {
+			t.Fatal(err)
 		}
 	})
 }
