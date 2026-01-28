@@ -3,7 +3,7 @@ Native Backup
 =============
 
 ScyllaDB Manager uses ScyllaDB Manager Agents deployed on each ScyllaDB node to coordinate backups.
-Those agents serve as a proxy to `ScyllaDB REST API <https://docs.scylladb.com/manual/stable/operating-scylla/rest.html>`_, but they also act as `rclone <https://github.com/scylladb/rclone>`_ servers responsible for communication between the node and backup location.
+These agents serve as a proxy to `ScyllaDB REST API <https://docs.scylladb.com/manual/stable/operating-scylla/rest.html>`_ and also act as `rclone <https://github.com/scylladb/rclone>`_ servers responsible for communication between the node and backup location.
 
 Since rclone server is separate from ScyllaDB internal schedulers, yet they both live on the same machine,
 it is allocated with limited resources not to interfere with ScyllaDB performance.
@@ -15,7 +15,7 @@ This solution results in:
 * Increased disk storage utilization (snapshots are stored on disk for a longer time)
 
 Native backup aims to solve these problems by moving backup responsibilities from rclone server into ScyllaDB itself.
-It's important to note that both native and rclone backups performed by ScyllaDB Manager have the same :doc:`specification <specification>` consisting of backup directory layout, manifest, schema and SSTable files. This means that all backups can be used for all types of restores (e.g. regular restore, 1-1-restore, native restore, ...).
+It is important to note that both native and rclone backups performed by ScyllaDB Manager have the same :doc:`specification <specification>` consisting of backup directory layout, manifest, schema and SSTable files. This means that all backups can be used for all types of restores (e.g. regular restore, 1-1-restore, native restore, ...).
 In the `Status`_ section you can find the parts of backup procedure already moved to ScyllaDB.
 
 Status
@@ -86,7 +86,7 @@ Usage
 =====
 
 The native backup usage is controlled with the :ref:`sctool backup --method <sctool-backup>` flag.
-It supports three values: ``rclone (default)``, ``native``, and ``auto``:
+It supports three values: ``rclone`` (default), ``native``, and ``auto``:
 
   * ``native``: Uses all native backup functionalities listed in `Status`_ section.
     Use this value for native backup configuration validation and testing.
