@@ -29,6 +29,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore"
+	scyllatable "github.com/scylladb/scylla-manager/v3/pkg/table"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
@@ -232,7 +233,12 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		// DESC SCHEMA WITH INTERNALS (https://github.com/scylladb/scylladb/pull/20168).
 		// Those entities do not live in any particular keyspace, so that's how we identify them.
 		// We are skipping them until we properly support their restoration.
-		if row.Keyspace == "" {
+		// Moreover, even though audit ks is a system ks, it is still a part of
+		// DESC SCHEMA WITH INTERNALS output. We don't restore its schema,
+		// as it is managed by scylla itself, so there is no need to compare
+		// it here (especially, that it might have different replication
+		// settings as compared clusters have different dcs).
+		if row.Keyspace == "" || row.Keyspace == scyllatable.AuditKeyspace {
 			continue
 		}
 		// Don't validate alternator schema CQL statements
@@ -251,12 +257,12 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		t.Fatalf("Src CQL schema: %v, is missing created objects: %v", m1, objWithOpt)
 	}
 	for _, row := range dstCQLSchemaSrcBackup {
-		if row.Keyspace != "" && !strings.HasPrefix(row.Keyspace, "\"alternator_") {
+		if row.Keyspace != "" && row.Keyspace != scyllatable.AuditKeyspace && !strings.HasPrefix(row.Keyspace, "\"alternator_") {
 			m2[row] = struct{}{}
 		}
 	}
 	for _, row := range srcCQLSchemaDstBackup {
-		if row.Keyspace != "" && !strings.HasPrefix(row.Keyspace, "\"alternator_") {
+		if row.Keyspace != "" && row.Keyspace != scyllatable.AuditKeyspace && !strings.HasPrefix(row.Keyspace, "\"alternator_") {
 			m3[row] = struct{}{}
 		}
 	}

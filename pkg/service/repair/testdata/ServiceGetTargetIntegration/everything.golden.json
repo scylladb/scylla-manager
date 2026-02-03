@@ -37,6 +37,13 @@
         "node_slow_log"
       ],
       "AllTables": true
+    },
+    {
+      "Keyspace": "audit",
+      "Tables": [
+        "audit_log"
+      ],
+      "AllTables": true
     }
   ],
   "dc": [
