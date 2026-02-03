@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 //go:build all || integration
 
@@ -31,6 +31,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
+	scyllatable "github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
@@ -2662,6 +2663,70 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 	for _, f := range files {
 		if strings.Contains(f, "system_schema") {
 			t.Fatalf("Expected no system_schema sstables to be backed up, got: %s", f)
+		}
+	}
+}
+
+func TestBackupAuditIntegration(t *testing.T) {
+	location := s3Location("backuptest-audit")
+	config := defaultConfig()
+
+	var (
+		session = CreateScyllaManagerDBSession(t)
+		h       = newBackupTestHelper(t, session, config, location, nil)
+		ctx     = context.Background()
+	)
+
+	Print("When: create backup target with audit enabled in scylla.yaml")
+	props := defaultTestProperties(location, "")
+	props["keyspace"] = []string{scyllatable.AuditKeyspace}
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: target contains both audit and user keyspaces")
+	expected := []backup.Unit{
+		{
+			Keyspace:  scyllatable.AuditKeyspace,
+			Tables:    []string{scyllatable.AuditTable.Name},
+			AllTables: true,
+		},
+	}
+	if diff := cmp.Diff(target.Units, expected,
+		cmpopts.IgnoreSliceElements(func(u backup.Unit) bool { return u.Keyspace == "system_schema" }),
+	); diff != "" {
+		t.Fatal(diff)
+	}
+
+	Print("When: run backup with generated target")
+	if err = h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: backup files contains both audit and user keyspaces")
+	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, u := range expected {
+		for _, tab := range u.Tables {
+			ok := false
+			for _, fi := range filesInfo {
+				for _, fm := range fi.Files {
+					if u.Keyspace == fm.Keyspace && tab == fm.Table {
+						ok = true
+					}
+				}
+			}
+			if !ok {
+				t.Fatalf(" Expected %q.%q to be found in backed up files", u.Keyspace, tab)
+			}
 		}
 	}
 }
