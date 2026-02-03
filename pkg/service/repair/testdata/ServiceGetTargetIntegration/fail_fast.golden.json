@@ -37,6 +37,13 @@
         "events"
       ],
       "AllTables": true
+    },
+    {
+      "Keyspace": "audit",
+      "Tables": [
+        "audit_log"
+      ],
+      "AllTables": true
     }
   ],
   "dc": [

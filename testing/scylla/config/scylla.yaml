@@ -652,3 +652,6 @@ object_storage_endpoints:
   - port: 9000
     https: true
     aws_region: us-east-1
+
+audit: "table"
+audit_categories: "DCL,DDL,AUTH,ADMIN"

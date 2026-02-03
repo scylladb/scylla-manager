@@ -26,6 +26,13 @@
         "cdc_generation_descriptions_v2"
       ],
       "AllTables": true
+    },
+    {
+      "Keyspace": "audit",
+      "Tables": [
+        "audit_log"
+      ],
+      "AllTables": true
     }
   ],
   "dc": [
