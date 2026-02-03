@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package db
 
@@ -24,6 +24,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"go.uber.org/multierr"
@@ -171,7 +172,9 @@ func dropAllKeyspaces(tb testing.TB, session gocqlx.Session) {
 	}
 
 	for _, k := range all {
-		if !strings.HasPrefix(k, "system") {
+		// Even though audit keyspace is a system keyspace managed by scylla,
+		// it lacks the system prefix, and it is possible to drop it by accident.
+		if !strings.HasPrefix(k, "system") && k != table.AuditKeyspace {
 			dropKeyspace(tb, session, k)
 		}
 	}
