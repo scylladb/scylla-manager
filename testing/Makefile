@@ -133,6 +133,7 @@ endif
 	./minio/add_user.sh || true
 	@echo "==> Initialising cluster"
 	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}" || true
+	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE audit WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}" || true
 
 .PHONY: down
 down: ## Stop docker containers

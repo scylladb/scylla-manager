@@ -56,6 +56,13 @@
         "view_virtual_columns"
       ],
       "all_tables": true
+    },
+    {
+      "keyspace": "audit",
+      "tables": [
+        "audit_log"
+      ],
+      "all_tables": true
     }
   ],
   "dc": [
