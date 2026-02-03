@@ -114,5 +114,16 @@
         "size": 0
       }
     ]
+  },
+  {
+    "keyspace": "audit",
+    "size": 243420,
+    "tables": [
+      {
+        "table": "audit_log",
+        "tombstone_gc": "timeout",
+        "size": 243420
+      }
+    ]
   }
 ]
