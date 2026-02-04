@@ -1,4 +1,4 @@
-// Copyright (C) 2023 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package repair
 
@@ -25,14 +25,18 @@ func TestInternalTablePreferenceKLess(t *testing.T) {
 		{ks1: "system_auth", ks2: "system_traces", expected: true},
 		{ks1: "system_distributed", ks2: "system_distributed_everywhere", expected: true},
 		{ks1: "system_distributed_everywhere", ks2: "system_traces", expected: true},
+		{ks1: "audit", ks2: "system_replicated_keys", expected: false},
+		{ks1: "audit", ks2: "system_distributed", expected: true},
 		// System vs user
 		{ks1: "system_auth", ks2: "ks1", expected: true},
 		{ks1: "system_traces", ks2: "ks1", expected: true},
+		{ks1: "audit", ks2: "ks1", expected: true},
 		// Unknown system keyspace
 		{ks1: "system_auth", ks2: "system_unknown", expected: true},
 		{ks1: "system_distributed", ks2: "system_unknown", expected: true},
 		{ks1: "system_unknown", ks2: "ks1", expected: true},
 		{ks1: "system_unknown1", ks2: "system_unknown2", expected: false},
+		{ks1: "audit", ks2: "system_unknown", expected: true},
 	}
 
 	tp := NewInternalTablePreference()
