@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 //go:build all || integration
 
@@ -630,6 +630,7 @@ func TestServiceRepairOrderIntegration(t *testing.T) {
 	expectedRepairOrder := []string{
 		"system_auth.*",
 		"system_replicated_keys.*",
+		"audit.*",
 		"system_distributed.*",
 		"system_distributed_everywhere.*",
 		"system_traces.*",

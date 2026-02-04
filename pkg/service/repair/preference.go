@@ -1,8 +1,12 @@
-// Copyright (C) 2023 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package repair
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/table"
+)
 
 // TablePreference describes partial predefined order in which tables should be repaired.
 type TablePreference interface {
@@ -26,6 +30,7 @@ func NewInternalTablePreference() TablePreference {
 			},
 		},
 		{Keyspace: "system_replicated_keys"},
+		{Keyspace: "audit"},
 		{Keyspace: "system_distributed"},
 		{Keyspace: "system_distributed_everywhere"},
 		{Keyspace: "system_traces"},
@@ -33,8 +38,8 @@ func NewInternalTablePreference() TablePreference {
 }
 
 func (it internalTablePreference) KSLess(ks1, ks2 string) bool {
-	sys1 := strings.HasPrefix(ks1, "system")
-	sys2 := strings.HasPrefix(ks2, "system")
+	sys1 := isSysKs(ks1)
+	sys2 := isSysKs(ks2)
 	// Always repair internal keyspace before regular one
 	if sys1 != sys2 {
 		return sys1
@@ -72,4 +77,8 @@ func (it internalTablePreference) TLess(ks, t1, t2 string) bool {
 		}
 	}
 	return false
+}
+
+func isSysKs(ks string) bool {
+	return strings.HasPrefix(ks, "system") || ks == table.AuditKeyspace
 }
