@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package table
 
@@ -20,4 +20,15 @@ const LWTStateTableSuffix = "$paxos"
 var LWTSystemTable = CQLTable{
 	Keyspace: "system",
 	Name:     "paxos",
+}
+
+// AuditKeyspace stores audit data. It lacks "system" prefix
+// and can be altered by users, but it's still an internal keyspace.
+// See https://docs.scylladb.com/manual/stable/operating-scylla/security/auditing.html.
+const AuditKeyspace = "audit"
+
+// AuditTable describes the system table storing audit data.
+var AuditTable = CQLTable{
+	Keyspace: AuditKeyspace,
+	Name:     "audit_log",
 }
