@@ -7,7 +7,9 @@ package scheduler_test
 import (
 	"context"
 	"encoding/json"
+	"math/rand"
 	"regexp"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -106,6 +108,41 @@ func (r *mockRunner) Error() {
 	}
 }
 
+// overrideCtxRunner is a wrapper around mockRunner which overrides
+// task execution ctx. Such ctx is not canceled when task is stopped,
+// but can be canceled manually by calling Cancel method.
+type overrideCtxRunner struct {
+	*mockRunner
+
+	mu        sync.Mutex
+	cancelCtx map[uuid.UUID]context.CancelFunc
+}
+
+func newOverrideCtxRunner() *overrideCtxRunner {
+	return &overrideCtxRunner{
+		mockRunner: newMockRunner(),
+		cancelCtx:  make(map[uuid.UUID]context.CancelFunc),
+	}
+}
+
+func (r *overrideCtxRunner) Run(_ context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
+	r.mu.Lock()
+	ctx, cancel := context.WithCancel(context.Background())
+	r.cancelCtx[taskID] = cancel
+	r.mu.Unlock()
+
+	return r.mockRunner.Run(ctx, clusterID, taskID, runID, properties)
+}
+
+func (r *overrideCtxRunner) Cancel(taskID uuid.UUID) {
+	r.mu.Lock()
+	if cancel := r.cancelCtx[taskID]; cancel != nil {
+		cancel()
+	}
+	delete(r.cancelCtx, taskID)
+	r.mu.Unlock()
+}
+
 type schedulerTestHelper struct {
 	session gocqlx.Session
 	client  *scyllaclient.Client
@@ -185,12 +222,12 @@ func (h *schedulerTestHelper) assertError(err error, msg string) {
 	}
 }
 
-func (h *schedulerTestHelper) assertStatus(task *scheduler.Task, s scheduler.Status) {
+func (h *schedulerTestHelper) assertStatus(task *scheduler.Task, s ...scheduler.Status) {
 	h.t.Helper()
 
 	WaitCond(h.t, func() bool {
 		v := h.getStatus(task)
-		return v == s
+		return slices.Contains(s, v)
 	}, _interval, _wait)
 }
 
@@ -465,24 +502,127 @@ func TestServiceScheduleIntegration(t *testing.T) {
 	t.Run("stop task", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
-		ctx := context.Background()
+		ctx := t.Context()
 
-		Print("When: task is scheduled")
+		runner := newOverrideCtxRunner()
+		h.service.SetRunner(mockTask, runner)
+
+		Print("When: task is scheduled with overridden ctx")
 		task := h.makeTaskWithStartDate(now())
 		if err := h.service.PutTask(ctx, task); err != nil {
 			t.Fatal(err)
 		}
+		defer runner.Cancel(task.ID)
 
 		Print("Then: task runs")
 		h.assertStatus(task, scheduler.StatusRunning)
 
-		Print("When: task is stopped")
+		Print("When: task is stopped, yet it continues running on overridden ctx")
 		if err := h.service.StopTask(ctx, task, false); err != nil {
 			t.Fatal(err)
 		}
 
+		Print("Then: task status is STOPPING")
+		h.assertStatus(task, scheduler.StatusStopping)
+		dbTask, err := h.service.GetTaskByID(ctx, task.ClusterID, task.Type, task.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if dbTask.Status != scheduler.StatusStopping {
+			t.Fatalf("Expected task status: %s, got: %s", scheduler.StatusStopping, dbTask.Status)
+		}
+
+		Print("When: task overridden ctx is canceled")
+		runner.Cancel(task.ID)
+
 		Print("Then: task status is STOPPED")
 		h.assertStatus(task, scheduler.StatusStopped)
+		dbTask, err = h.service.GetTaskByID(ctx, task.ClusterID, task.Type, task.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if dbTask.Status != scheduler.StatusStopped {
+			t.Fatalf("Expected task status: %s, got: %s", scheduler.StatusStopped, dbTask.Status)
+		}
+	})
+
+	t.Run("stop task doesn't deadlock", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		runner := newOverrideCtxRunner()
+		h.service.SetRunner(mockTask, runner)
+
+		const (
+			taskCnt       = 10
+			taskRunCnt    = 50
+			cancelStopCnt = 5
+		)
+		tasks := make([]*scheduler.Task, taskCnt)
+		for i := range tasks {
+			// Start date in the future so that the tasks are not started on their own
+			tasks[i] = h.makeTaskWithStartDate(now().Add(time.Hour))
+			if err := h.service.PutTask(ctx, tasks[i]); err != nil {
+				t.Error(err)
+			}
+			// Ensure that task ctx is canceled,
+			// so that it doesn't block scheduler on closing.
+			defer runner.Cancel(tasks[i].ID)
+		}
+
+		randSleep := func(maxMs int) {
+			time.Sleep(time.Duration(rand.Intn(maxMs+1)) * time.Millisecond)
+		}
+		// The general idea is to start/end/stop tasks in random order
+		// to check if scheduler handles such scenarios well.
+		wg := sync.WaitGroup{}
+		for _, task := range tasks {
+			wg.Go(func() {
+				for range taskRunCnt {
+					if err := h.service.StartTask(ctx, task); err != nil {
+						t.Error(err)
+					}
+					h.assertStatus(task, scheduler.StatusRunning)
+
+					randSleep(5)
+					// Canceling task ctx directly mimics task finishing naturally with error.
+					// We randomly stop and cancel task ctx in different orders with possible
+					// small sleeps in between to verify that there are no races between task
+					// finishing naturally and task being stopped. Sleep duration was chosen
+					// empirically to have around 50/50% ratio of tasks finishing with
+					// scheduler.StatusStopped and scheduler.StatusError.
+					nestedWG := sync.WaitGroup{}
+					for range cancelStopCnt {
+						nestedWG.Go(func() {
+							randSleep(1)
+							if err := h.service.StopTask(ctx, task, false); err != nil {
+								t.Error(err)
+							}
+						})
+						nestedWG.Go(func() {
+							randSleep(5)
+							runner.Cancel(task.ID)
+						})
+					}
+					nestedWG.Wait()
+
+					h.assertStatus(task, scheduler.StatusStopped, scheduler.StatusError)
+				}
+			})
+		}
+
+		done := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+		case <-time.After(20 * time.Second):
+			t.Fatal("Scheduling didn't finish within expected timeout")
+		}
 	})
 
 	t.Run("service close aborts tasks", func(t *testing.T) {
