@@ -62,7 +62,18 @@ type Service struct {
 	suspended  map[uuid.UUID]suspendParams
 	noContinue map[uuid.UUID]noContinueParams
 	closed     bool
-	mu         sync.Mutex
+
+	mu sync.Mutex
+	// There is a race between updating task and run status in
+	// Service.StopTask and when run finishes naturally in Service.run.
+	// That's why the update needs to happen under mutex.
+	// As Service.StopTask is called very rarely, it is responsible for
+	// creating, acquiring and removing mutex for corresponding task ID,
+	// while Service.run tries to acquire it only, when it's set.
+	// This way, we can perform queries to SM DB under a per task ID mutex,
+	// which is created only when Service.StopTask is called, which provides
+	// minimal amount of locking.
+	taskLWTMu map[uuid.UUID]*sync.Mutex
 }
 
 type suspendParams struct {
@@ -93,6 +104,7 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 		scheduler:  make(map[uuid.UUID]*Scheduler),
 		suspended:  make(map[uuid.UUID]suspendParams),
 		noContinue: make(map[uuid.UUID]noContinueParams),
+		taskLWTMu:  make(map[uuid.UUID]*sync.Mutex),
 	}
 	s.runners[SuspendTask] = suspendRunner{service: s}
 
@@ -498,7 +510,30 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 				r.ID = uuid.NewTime()
 			}
 		}
-		if err := s.putRunAndUpdateTask(r); err != nil {
+		// The actual task execution is already over here.
+		// In general, we remove run from run map in the defer
+		// above, but we preemptively remove it here as well,
+		// as it notifies StopTask to perform a no-op instead
+		// of trying to stop the task and update its status.
+		s.mu.Lock()
+		delete(s.runs, ti.TaskID)
+		lwtMu, lwtok := s.taskLWTMu[ti.TaskID]
+		s.mu.Unlock()
+		// This mutex is set, and we are blocked on acquiring it only when
+		// Service.StopTask is currently updating task and run status.
+		// In those rare cases, we need to wait for it to finish
+		// the update first, so that the update performed here will
+		// set the final task and run status.
+		if lwtok {
+			lwtMu.Lock()
+		}
+		// Task and run status update happens only under per task ID lwtMu (if any)
+		err := s.putRunAndUpdateTask(r)
+		if lwtok {
+			lwtMu.Unlock()
+		}
+
+		if err != nil {
 			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
 		}
 		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
@@ -682,14 +717,35 @@ func (s *Service) StopTask(ctx context.Context, t *Task, disable bool) error {
 	s.mu.Lock()
 	l, lok := s.scheduler[t.ClusterID]
 	r, rok := s.runs[t.ID]
-	s.mu.Unlock()
-
-	if !lok || !rok {
+	// If Service.taskLWTMu is already set for this task ID,
+	// then this task is currently being stopped,
+	// so nothing to do here.
+	_, lwtok := s.taskLWTMu[t.ID]
+	if !lok || !rok || lwtok {
+		s.mu.Unlock()
 		return nil
 	}
+	// Create and acquire mutex on which Service.run can wait.
+	// We know that task is running and hasn't updated its status
+	// yet, as otherwise Service.run would have removed it from
+	// Service.runs. We need to acquire it before releasing Service.mu,
+	// so that Service.run doesn't perform status update before we do.
+	lwtMu := sync.Mutex{}
+	lwtMu.Lock()
+	s.taskLWTMu[t.ID] = &lwtMu
+	s.mu.Unlock()
 
+	// Task and run status update happens only under per task ID lwtMu
 	r.Status = StatusStopping
-	if err := s.updateRunStatus(&r); err != nil {
+	err := s.putRunAndUpdateTask(&r)
+
+	// Release lwtMu and remove it from Service.taskLWTMu
+	lwtMu.Unlock()
+	s.mu.Lock()
+	delete(s.taskLWTMu, t.ID)
+	s.mu.Unlock()
+
+	if err != nil {
 		return err
 	}
 	l.Stop(ctx, t.ID)
@@ -707,17 +763,6 @@ func (s *Service) SetTaskNoContinue(taskID uuid.UUID, force bool) {
 		force:     force,
 	}
 	s.mu.Unlock()
-}
-
-func (s *Service) updateRunStatus(r *Run) error {
-	// Only update if running as there is a race between manually stopping
-	// a run and the run returning normally.
-	return table.SchedulerTaskRun.
-		UpdateBuilder("status").
-		If(qb.EqNamed("status", "from_status")).
-		Query(s.session).
-		BindStructMap(r, qb.M{"from_status": StatusRunning}).
-		ExecRelease()
 }
 
 func (s *Service) isClosed() bool {
