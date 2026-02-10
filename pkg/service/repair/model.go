@@ -3,10 +3,13 @@
 package repair
 
 import (
+	"encoding/json"
 	"net/netip"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -32,9 +35,10 @@ func NewIntensityFromDeprecated(i float64) Intensity {
 
 // Target specifies what shall be repaired.
 type Target struct {
-	Units []Unit     `json:"units"`
-	DC    []string   `json:"dc"`
-	Host  netip.Addr `json:"host"`
+	Units               []Unit                           `json:"units"`
+	DC                  []string                         `json:"dc"`
+	Host                netip.Addr                       `json:"host"`
+	KeyspaceReplication scyllaclient.KeyspaceReplication `json:"keyspace_replication"`
 	// Down hosts excluded from repair by the --ignore-down-hosts flag.
 	IgnoreHosts         []netip.Addr                 `json:"ignore_hosts,omitempty"`
 	FailFast            bool                         `json:"fail_fast"`

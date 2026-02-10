@@ -32,6 +32,7 @@ import (
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"go.uber.org/atomic"
 	"go.uber.org/multierr"
+	"golang.org/x/sync/errgroup"
 )
 
 // Service orchestrates cluster repairs.
@@ -92,6 +93,7 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	}
 	// Copy basic properties
 	t := Target{
+		KeyspaceReplication: props.KeyspaceReplication,
 		FailFast:            props.FailFast,
 		Continue:            props.Continue,
 		Intensity:           NewIntensityFromDeprecated(props.Intensity),
@@ -392,10 +394,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}()
 
-	if active, err := client.ActiveRepairs(ctx, p.Hosts); err != nil {
-		s.logger.Error(ctx, "Active repair check failed", "error", err)
-	} else if len(active) > 0 {
-		return errors.Errorf("ensure no active repair on hosts, %s are repairing", strings.Join(active, ", "))
+	if err := s.ensureNoActiveRepairs(ctx, client, p, target.KeyspaceReplication); err != nil {
+		return errors.Wrap(err, "ensure no active repairs")
 	}
 
 	if err = gen.Run(gracefulCtx); (err != nil && target.FailFast) || ctx.Err() != nil {
@@ -414,6 +414,62 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	}
 
 	return multierr.Append(err, ctx.Err())
+}
+
+// ensureNoActiveRepairs checks if SM can proceed with repair
+// in the context of currently running repairs in the cluster.
+// It's behavior slightly differs for different scylla versions.
+// Note that scheduler takes care of not allowing multiple SM tasks with
+// the same type to be executed at the same time, but that does not
+// block general and tablet repair tasks from being executed at the same time.
+// They can run in parallel according to IsRepairCompatibleWithTabletRepair.
+//
+// For clusters which don't support tablet repair, tablet repair task is not available,
+// so the assumption is that no active repairs can be running in the cluster.
+// To check that, SM uses older scylla API providing no information about
+// listed repair tasks keyspace scope.
+//
+// For cluster which support tablet repair, it should be possible to repair
+// vnode (with general repair task) and tablet (with tablet repair task)
+// keyspaces at the same time. To check that, SM uses newer scylla API providing
+// information about listed repair tasks keyspace scope.
+func (s *Service) ensureNoActiveRepairs(ctx context.Context, client *scyllaclient.Client, p *plan, ksRep scyllaclient.KeyspaceReplication) error {
+	if !p.apiSupport.tabletRepair || ksRep != scyllaclient.ReplicationVnode {
+		if active, err := client.ActiveRepairs(ctx, p.Hosts); err != nil {
+			s.logger.Error(ctx, "Active repair check failed", "error", err)
+		} else if len(active) > 0 {
+			return errors.Errorf("%s are repairing", strings.Join(active, ", "))
+		}
+		return nil
+	}
+
+	rd := scyllaclient.NewRingDescriber(ctx, client)
+	eg, egCtx := errgroup.WithContext(ctx)
+	for _, host := range p.Hosts {
+		eg.Go(func() error {
+			tasks, err := client.ScyllaListTasks(egCtx, host, scyllaclient.ScyllaTaskModuleRepair)
+			if err != nil {
+				s.logger.Error(ctx, "Active repair check failed, skipping", "host", host, "error", err)
+				return nil
+			}
+			for _, task := range tasks {
+				if task == nil || scyllaclient.ScyllaTaskType(task.Type) != scyllaclient.ScyllaTaskTypeRepair ||
+					scyllaclient.ScyllaTaskState(task.State) == scyllaclient.ScyllaTaskStateDone ||
+					scyllaclient.ScyllaTaskState(task.State) == scyllaclient.ScyllaTaskStateFailed {
+					continue
+				}
+				if !rd.IsTabletKeyspace(task.Keyspace) {
+					return errors.Errorf("vnode keyspace %q is already repaired with task %v on host %s", task.Keyspace, task.TaskID, host)
+				}
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return errors.Wrap(err, "check active repairs")
+	}
+	return nil
 }
 
 func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Client, hosts []string) {
