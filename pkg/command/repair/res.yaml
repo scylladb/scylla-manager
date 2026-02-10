@@ -19,7 +19,7 @@ keyspace-replication: |
   
   * 'all': Repair all keyspaces.
   * 'tablets': Repair keyspaces replicated with tablets only.
-  * 'vnodes': Repair keyspaces replicated with vnodes only.
+  * 'vnodes': Repair keyspaces replicated with vnodes only. It also allows for running this task in parallel with the dedicated tablet repair task.
 
 ignore-down-hosts: |
   Do not repair nodes that are down i.e. in status DN.
