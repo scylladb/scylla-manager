@@ -11,6 +11,7 @@
   "dc": [
     "dc1"
   ],
+  "keyspace_replication": "all",
   "fail_fast": false,
   "continue": false,
   "intensity": 1,

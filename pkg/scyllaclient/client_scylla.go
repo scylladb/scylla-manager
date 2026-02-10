@@ -1553,13 +1553,29 @@ func (c *Client) ScyllaSetUserTaskTTL(ctx context.Context, host string, ttlSecon
 type ScyllaTaskModule string
 
 // ScyllaTaskModuleTablets describes tablets ScyllaTaskModule.
-const ScyllaTaskModuleTablets ScyllaTaskModule = "tablets"
+const (
+	// ScyllaTaskModuleTablets contains user level ScyllaTaskTypeUserRepair tasks.
+	// This module is cluster wide, meaning that any node can be queried for any task status.
+	ScyllaTaskModuleTablets ScyllaTaskModule = "tablets"
+	// ScyllaTaskModuleRepair contains low level ScyllaTaskTypeRepair tasks.
+	// This module is node wide, meaning that only the node on which
+	// task was scheduled has access to its status.
+	ScyllaTaskModuleRepair ScyllaTaskModule = "repair"
+)
 
 // ScyllaTaskType describes scylla task types.
 type ScyllaTaskType string
 
 // ScyllaTaskTypeUserRepair describes user repair ScyllaTaskType.
-const ScyllaTaskTypeUserRepair ScyllaTaskType = "user_repair"
+const (
+	// ScyllaTaskTypeUserRepair describes user requested tablet repair task.
+	// There is a single ScyllaTaskTypeUserRepair for each user requested repair.
+	ScyllaTaskTypeUserRepair ScyllaTaskType = "user_repair"
+	// ScyllaTaskTypeRepair describes all low level repair tasks.
+	// Single user requested tablet or vnode repair task
+	// is represented by multiple ScyllaTaskTypeRepair tasks.
+	ScyllaTaskTypeRepair ScyllaTaskType = "repair"
+)
 
 // ScyllaListTasks lists Scylla tasks of given module.
 func (c *Client) ScyllaListTasks(ctx context.Context, host string, module ScyllaTaskModule) ([]*models.TaskStats, error) {
