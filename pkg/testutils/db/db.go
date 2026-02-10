@@ -339,9 +339,9 @@ func GetAlternatorCreds(t *testing.T, s gocqlx.Session, role string) (accessKeyI
 
 	if role == "" {
 		role = testconfig.TestDBUsername()
+	} else {
+		ExecStmt(t, s, fmt.Sprintf("CREATE ROLE IF NOT EXISTS %q WITH PASSWORD = '%s' AND SUPERUSER = false AND LOGIN = true", role, role))
 	}
-
-	ExecStmt(t, s, fmt.Sprintf("CREATE ROLE IF NOT EXISTS %q WITH PASSWORD = '%s' AND SUPERUSER = false AND LOGIN = true", role, role))
 	accessKeyID = role
 
 	// Roles table is kept in different keyspaces depending on Scylla version
