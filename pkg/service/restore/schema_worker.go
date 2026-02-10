@@ -1,4 +1,4 @@
-// Copyright (C) 2023 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package restore
 
@@ -168,7 +168,11 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 		}
 		sanitizedName := strings.TrimPrefix(strings.TrimSuffix(row.Name, "\""), "\"")
 		if row.Type == "table" && strings.HasSuffix(sanitizedName, table.LWTStateTableSuffix) {
-			// No support for LWT state tables restoration (#4732)
+			// See https://github.com/scylladb/scylla-manager/issues/4732
+			continue
+		}
+		if row.Keyspace == table.AuditKeyspace {
+			// See https://github.com/scylladb/scylla-manager/issues/4748
 			continue
 		}
 		if aw.isAlternatorSchemaRow(row) {
