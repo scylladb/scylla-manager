@@ -117,7 +117,7 @@ options:
 
         * 'all': Repair all keyspaces.
         * 'tablets': Repair keyspaces replicated with tablets only.
-        * 'vnodes': Repair keyspaces replicated with vnodes only.
+        * 'vnodes': Repair keyspaces replicated with vnodes only. It also allows for running this task in parallel with the dedicated tablet repair task.
     - name: label
       usage: |
         A comma-separated list of label modifications. Labels are represented as a key-value store.

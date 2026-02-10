@@ -39,6 +39,9 @@ It also supports :ref:`--keyspace-replication <sctool-repair>` flag allowing to 
 Apart from the regular repair task, there is a dedicated :ref:`tablet repair <repair-tablet>` task optimized for tablet keyspaces.
 This lightweight task is resilient to topology changes and uses ScyllaDB's incremental repair feature, allowing it to run more frequently with minimal overhead.
 
+Regular and tablet repair tasks can run in parallel only when regular repair task uses :ref:`--keyspace-replication=vnodes <sctool-repair>`.
+Otherwise, the second task will fail to start and will be rescheduled according to its retry mechanism.
+
 Features
 ========
 
