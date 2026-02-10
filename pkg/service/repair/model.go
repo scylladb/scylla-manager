@@ -70,6 +70,14 @@ type taskProperties struct {
 	AllowEmpty          bool                             `json:"allow_empty"`
 }
 
+func parseTaskProperties(rawProps json.RawMessage) (*taskProperties, error) {
+	taskProps := defaultTaskProperties()
+	if err := json.Unmarshal(rawProps, taskProps); err != nil {
+		return nil, util.ErrValidate(errors.Wrapf(err, "parse task properties: %s", rawProps))
+	}
+	return taskProps, nil
+}
+
 func defaultTaskProperties() *taskProperties {
 	return &taskProperties{
 		// Don't repair system_traces unless it has been deliberately specified.
