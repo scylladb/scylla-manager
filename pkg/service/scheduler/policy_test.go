@@ -4,6 +4,7 @@ package scheduler
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -26,7 +27,7 @@ func TestPolicyRunner(t *testing.T) {
 		e := errors.New("test")
 
 		mp := NewmockPolicy(ctrl)
-		mp.EXPECT().PreRun(c, k, r, tt).Return(e)
+		mp.EXPECT().PreRun(c, k, r, tt, json.RawMessage("{}")).Return(e)
 		mr := NewmockRunner(ctrl)
 
 		p := PolicyRunner{
@@ -34,7 +35,7 @@ func TestPolicyRunner(t *testing.T) {
 			Runner:   mr,
 			TaskType: tt,
 		}
-		if err := p.Run(context.Background(), c, k, r, nil); err != e {
+		if err := p.Run(context.Background(), c, k, r, json.RawMessage("{}")); err != e {
 			t.Fatal("expected", e, "got", err)
 		}
 	})
@@ -51,7 +52,7 @@ func TestPolicyRunner(t *testing.T) {
 
 		mp := NewmockPolicy(ctrl)
 		gomock.InOrder(
-			mp.EXPECT().PreRun(c, k, r, tt).Return(nil),
+			mp.EXPECT().PreRun(c, k, r, tt, json.RawMessage("{}")).Return(nil),
 			mp.EXPECT().PostRun(c, k, r, tt),
 		)
 		mr := NewmockRunner(ctrl)
@@ -62,7 +63,7 @@ func TestPolicyRunner(t *testing.T) {
 			Runner:   mr,
 			TaskType: tt,
 		}
-		if err := p.Run(context.Background(), c, k, r, nil); err != e {
+		if err := p.Run(context.Background(), c, k, r, json.RawMessage("{}")); err != e {
 			t.Fatal("expected", e, "got", err)
 		}
 	})
@@ -76,7 +77,7 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 	t.Run("when no other task is running, preRun should return nil", func(t *testing.T) {
 		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
 
-		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
@@ -85,16 +86,16 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 	t.Run("when exclusive task is running, other tasks are not allowed", func(t *testing.T) {
 		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
 
-		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
 
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask, json.RawMessage("{}"))
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RepairTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RepairTask, json.RawMessage("{}"))
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
@@ -103,16 +104,16 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 	t.Run("when non exclusive task is running, exclusive task is not allowed", func(t *testing.T) {
 		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
 
-		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RepairTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RepairTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
 
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask, json.RawMessage("{}"))
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
@@ -121,21 +122,21 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 	t.Run("only one instance of a task type is allowed to run at a time", func(t *testing.T) {
 		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
 
-		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask, json.RawMessage("{}"))
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
 
 		restoreExclusiveTask = NewTaskExclusiveLockPolicy(RestoreTask)
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask, json.RawMessage("{}"))
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
@@ -144,21 +145,21 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 	t.Run("when there are two exclusive task types", func(t *testing.T) {
 		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask, One2OneRestoreTask)
 
-		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, One2OneRestoreTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, One2OneRestoreTask, json.RawMessage("{}"))
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
 
 		restoreExclusiveTask = NewTaskExclusiveLockPolicy(RestoreTask, One2OneRestoreTask)
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, BackupTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, One2OneRestoreTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, One2OneRestoreTask, json.RawMessage("{}"))
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
@@ -173,11 +174,11 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 	t.Run("PostRun should release lock for a given task type", func(t *testing.T) {
 		restoreExclusiveTask := NewTaskExclusiveLockPolicy(RestoreTask)
 
-		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		err := restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
 		}
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask, json.RawMessage("{}"))
 		if !errors.Is(err, errClusterBusy) {
 			t.Fatalf("PreRun: expected errClusterBusy, got: %v", err)
 		}
@@ -189,10 +190,63 @@ func TestExclusiveTaskLockPolicy(t *testing.T) {
 			t.Fatalf("t.running[clusterID] should be deleted")
 		}
 
-		// Lock can be acquried again.
-		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask)
+		// Lock can be acquired again.
+		err = restoreExclusiveTask.PreRun(clusterID, taskID, runID, RestoreTask, json.RawMessage("{}"))
 		if err != nil {
 			t.Fatalf("PreRun: unexpected err: %v", err)
+		}
+	})
+
+	t.Run("PreRun allows compatible repair tasks", func(t *testing.T) {
+		policy := NewTaskExclusiveLockPolicy(RestoreTask)
+		// Check if compatible general purpose repair task
+		// can be started when tablet repair task is running.
+		err := policy.PreRun(clusterID, taskID, runID, TabletRepairTask, json.RawMessage("{}"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = policy.PreRun(clusterID, taskID, runID, RepairTask, json.RawMessage(`{"keyspace_replication":"vnodes"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Reset policy state
+		policy.PostRun(clusterID, taskID, runID, TabletRepairTask)
+		policy.PostRun(clusterID, taskID, runID, RepairTask)
+		// Check if compatible tablet repair task can be started
+		// when general purpose repair task is running.
+		err = policy.PreRun(clusterID, taskID, runID, RepairTask, json.RawMessage(`{"keyspace_replication":"vnodes"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = policy.PreRun(clusterID, taskID, runID, TabletRepairTask, json.RawMessage("{}"))
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("PreRun forbids incompatible repair tasks", func(t *testing.T) {
+		policy := NewTaskExclusiveLockPolicy(RestoreTask)
+		// Check if incompatible general purpose repair task
+		// can't be started when tablet repair task is running.
+		err := policy.PreRun(clusterID, taskID, runID, TabletRepairTask, json.RawMessage("{}"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = policy.PreRun(clusterID, taskID, runID, RepairTask, json.RawMessage("{}"))
+		if !errors.Is(err, errClusterBusy) {
+			t.Fatalf("Expected errClusterBusy, got: %v", err)
+		}
+		// Reset policy state
+		policy.PostRun(clusterID, taskID, runID, TabletRepairTask)
+		// Check if incompatible tablet repair task can't be started
+		// when general purpose repair task is running.
+		err = policy.PreRun(clusterID, taskID, runID, RepairTask, json.RawMessage("{}"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = policy.PreRun(clusterID, taskID, runID, TabletRepairTask, json.RawMessage("{}"))
+		if !errors.Is(err, errClusterBusy) {
+			t.Fatalf("Expected errClusterBusy, got: %v", err)
 		}
 	})
 }

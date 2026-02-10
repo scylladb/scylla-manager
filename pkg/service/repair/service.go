@@ -86,13 +86,10 @@ var ErrEmptyRepair = errors.New("no replicas to repair")
 
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
-	props := defaultTaskProperties()
-
-	// Parse task properties
-	if err := json.Unmarshal(properties, &props); err != nil {
-		return Target{}, util.ErrValidate(errors.Wrapf(err, "parse runner properties: %s", properties))
+	props, err := parseTaskProperties(properties)
+	if err != nil {
+		return Target{}, err
 	}
-
 	// Copy basic properties
 	t := Target{
 		FailFast:            props.FailFast,
@@ -631,6 +628,21 @@ func getAllPrevRunIDs(session gocqlx.Session, clusterID, taskID, runID uuid.UUID
 		out = append(out, prevID)
 		runID = prevID
 	}
+}
+
+// IsRepairCompatibleWithTabletRepair checks if general purpose repair
+// and tablet repair tasks can be executed in parallel. That's true
+// if general purpose repair targets vnode keyspaces only with --keyspace-replication=vnodes flag.
+func IsRepairCompatibleWithTabletRepair(repairProperties json.RawMessage) error {
+	repairProps, err := parseTaskProperties(repairProperties)
+	if err != nil {
+		return err
+	}
+	if repairProps.KeyspaceReplication != scyllaclient.ReplicationVnode {
+		return errors.New("general purpose repair and tablet repair tasks can be executed in parallel " +
+			"if general purpose repair is targeting vnode keyspaces only with --keyspace-replication=vnodes flag")
+	}
+	return nil
 }
 
 // GetTabletTarget returns tablet repair target.
