@@ -5,6 +5,7 @@
 package scheduler
 
 import (
+	json "encoding/json"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -47,15 +48,15 @@ func (mr *mockPolicyMockRecorder) PostRun(arg0, arg1, arg2, arg3 interface{}) *g
 }
 
 // PreRun mocks base method.
-func (m *mockPolicy) PreRun(arg0, arg1, arg2 uuid.UUID, arg3 TaskType) error {
+func (m *mockPolicy) PreRun(arg0, arg1, arg2 uuid.UUID, arg3 TaskType, arg4 json.RawMessage) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PreRun", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "PreRun", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PreRun indicates an expected call of PreRun.
-func (mr *mockPolicyMockRecorder) PreRun(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *mockPolicyMockRecorder) PreRun(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreRun", reflect.TypeOf((*mockPolicy)(nil).PreRun), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreRun", reflect.TypeOf((*mockPolicy)(nil).PreRun), arg0, arg1, arg2, arg3, arg4)
 }

@@ -5,17 +5,19 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
+	stdErr "errors"
 	"fmt"
 	"slices"
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 // Policy decides if given task can be run.
 type Policy interface {
-	PreRun(clusterID, taskID, runID uuid.UUID, taskType TaskType) error
+	PreRun(clusterID, taskID, runID uuid.UUID, taskType TaskType, properties json.RawMessage) error
 	PostRun(clusterID, taskID, runID uuid.UUID, taskType TaskType)
 }
 
@@ -30,7 +32,7 @@ type PolicyRunner struct {
 
 // Run implements Runner.
 func (pr PolicyRunner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, properties json.RawMessage) error {
-	if err := pr.Policy.PreRun(clusterID, taskID, runID, pr.TaskType); err != nil {
+	if err := pr.Policy.PreRun(clusterID, taskID, runID, pr.TaskType, properties); err != nil {
 		return err
 	}
 	defer pr.Policy.PostRun(clusterID, taskID, runID, pr.TaskType)
@@ -41,30 +43,32 @@ var errClusterBusy = errors.New("another task is running")
 
 // TaskExclusiveLockPolicy is a policy that executes the exclusiveTask only if there are no other tasks in the cluster.
 // Conversely, other tasks can run only if the exclusiveTask is not running.
-// Additionally this policy ensures that only one task of a task type can be executed at a time in a cluster.
+// Additionally, this policy ensures that only one task of a task type can be executed at a time in a cluster.
+// In case of general purpose repair and tablet repair tasks, it uses repair.IsRepairCompatibleWithTabletRepair
+// to check if they can be executed in parallel.
 type TaskExclusiveLockPolicy struct {
 	mu      sync.Mutex
-	running map[uuid.UUID]map[TaskType]struct{}
+	running map[uuid.UUID]map[TaskType]json.RawMessage
 
 	exclusiveTasks []TaskType
 }
 
 func NewTaskExclusiveLockPolicy(exclusiveTasks ...TaskType) *TaskExclusiveLockPolicy {
 	return &TaskExclusiveLockPolicy{
-		running: map[uuid.UUID]map[TaskType]struct{}{},
+		running: map[uuid.UUID]map[TaskType]json.RawMessage{},
 
 		exclusiveTasks: exclusiveTasks,
 	}
 }
 
 // PreRun acquires exclusive lock on a cluster for a provided taskType.
-func (t *TaskExclusiveLockPolicy) PreRun(clusterID, _, _ uuid.UUID, taskType TaskType) error {
+func (t *TaskExclusiveLockPolicy) PreRun(clusterID, _, _ uuid.UUID, taskType TaskType, properties json.RawMessage) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	cluster, ok := t.running[clusterID]
 	if !ok {
-		cluster = map[TaskType]struct{}{}
+		cluster = map[TaskType]json.RawMessage{}
 		t.running[clusterID] = cluster
 	}
 
@@ -72,14 +76,17 @@ func (t *TaskExclusiveLockPolicy) PreRun(clusterID, _, _ uuid.UUID, taskType Tas
 		// cluster is busy
 		return err
 	}
+	if err := t.canRunRepairTask(cluster, taskType, properties); err != nil {
+		return err
+	}
 
-	cluster[taskType] = struct{}{}
+	cluster[taskType] = properties
 
 	return nil
 }
 
 // canRunTaskExclusively returns nil if taskType can be run in the cluster, otherwise err is returned.
-func (t *TaskExclusiveLockPolicy) canRunTaskExclusively(cluster map[TaskType]struct{}, taskType TaskType) error {
+func (t *TaskExclusiveLockPolicy) canRunTaskExclusively(cluster map[TaskType]json.RawMessage, taskType TaskType) error {
 	// No tasks are running, so we can start the task.
 	if len(cluster) == 0 {
 		return nil
@@ -102,6 +109,32 @@ func (t *TaskExclusiveLockPolicy) canRunTaskExclusively(cluster map[TaskType]str
 		return errClusterBusy
 	}
 
+	return nil
+}
+
+// canRunRepairTask checks if repair task can be started in the context of other running
+// repair task (RepairTask or TabletRepairTask). Returns nil for non repair tasks.
+func (t *TaskExclusiveLockPolicy) canRunRepairTask(cluster map[TaskType]json.RawMessage, taskType TaskType, properties json.RawMessage) error {
+	var (
+		repairProps    json.RawMessage
+		otherIsRunning bool
+	)
+	switch taskType {
+	case RepairTask:
+		repairProps = properties
+		_, otherIsRunning = cluster[TabletRepairTask]
+	case TabletRepairTask:
+		repairProps, otherIsRunning = cluster[RepairTask]
+	default:
+		return nil
+	}
+
+	if !otherIsRunning {
+		return nil
+	}
+	if err := repair.IsRepairCompatibleWithTabletRepair(repairProps); err != nil {
+		return stdErr.Join(err, errClusterBusy)
+	}
 	return nil
 }
 
