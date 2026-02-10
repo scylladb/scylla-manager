@@ -39,6 +39,7 @@
     "dc1",
     "dc2"
   ],
+  "keyspace_replication": "all",
   "fail_fast": false,
   "continue": true,
   "intensity": 1,

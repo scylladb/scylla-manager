@@ -50,6 +50,7 @@
     "dc1",
     "dc2"
   ],
+  "keyspace_replication": "all",
   "fail_fast": true,
   "continue": true,
   "intensity": 1,
