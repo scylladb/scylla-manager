@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 //go:build all || integration
 
@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
 	schematable "github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -67,6 +68,69 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 	userSession := CreateManagedClusterSession(t, false, h.dstCluster.Client, user, pass)
 	newKs := randomizedName("ks_")
 	ExecStmt(t, userSession, fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 2}", newKs))
+}
+
+func TestRestoreFullAuditIntegration(t *testing.T) {
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+
+	Print("Given: empty audit table in dst cluster")
+	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("TRUNCATE TABLE %q.%q", scyllatable.AuditKeyspace, scyllatable.AuditTable.Name))
+
+	Print("And: new DCL row in src cluster audit table")
+	ExecStmt(t, h.srcCluster.rootSession, "CREATE USER IF NOT EXISTS 'audit_user' WITH PASSWORD 'audit_pass'")
+
+	Print("And: audit data backup")
+	loc := testLocation("audit", "")
+	S3InitBucket(t, loc.Path)
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
+
+	Print("When: restore schema")
+	// In general, we don't need to restore audit ks schema, but we still
+	// want to test that it's not broken by the audit ks existence.
+	// Schema restoration is skipped only when it's not supported at all.
+	sstableSchemaSupport := restore.IsRestoreSchemaFromSSTablesSupported(t.Context(), h.dstCluster.Client)
+	cqlSchemaSupport := CheckAnyConstraint(t, h.dstCluster.Client, ">= 2024.2")
+	if sstableSchemaSupport == nil || cqlSchemaSupport {
+		grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+		props := defaultTestProperties(loc, tag, false)
+		h.runRestore(t, props)
+		// Restoring schema from sstables requires cluster restart
+		if !cqlSchemaSupport {
+			h.dstCluster.RestartScylla()
+		}
+	}
+
+	Print("And: restore tables")
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = []string{scyllatable.AuditKeyspace + ".*"}
+	h.runRestore(t, props)
+
+	Print("Then: audit data has been fully restored")
+	// We can't simply expect equality of audit.audit_logs in src and dst
+	// clusters, as they will contain additional ad-hoc entries.
+	// That's why we limit our check to rows with nodes from src cluster,
+	// and to DCL category only.
+	nodeRowCount := func(s gocqlx.Session, nodes ...string) int {
+		stmt := fmt.Sprintf("SELECT COUNT(*) FROM %q.%q WHERE category = 'DCL' AND node = ? ALLOW FILTERING", scyllatable.AuditKeyspace, scyllatable.AuditTable.Name)
+		q := s.Query(stmt, []string{"node"})
+		defer q.Release()
+
+		var total, cnt int
+		for _, n := range nodes {
+			if err := q.Bind(n).Scan(&cnt); err != nil {
+				t.Fatal(err)
+			}
+			total += cnt
+		}
+		return total
+	}
+
+	srcCnt := nodeRowCount(h.srcCluster.rootSession, ManagedSecondClusterHosts()...)
+	dstCnt := nodeRowCount(h.dstCluster.rootSession, ManagedSecondClusterHosts()...)
+	if dstCnt != srcCnt {
+		t.Fatalf("Expected %d src rows in audit.audit_log table, got %d", srcCnt, dstCnt)
+	}
 }
 
 func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
