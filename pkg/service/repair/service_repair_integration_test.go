@@ -35,6 +35,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -2600,5 +2601,64 @@ func TestServiceGetTargetSkipsKeyspaceHavingNoReplicasInGivenDCIntegration(t *te
 	}
 	if target.Units[0].Keyspace != "test_repair_0" {
 		t.Errorf("Expected only 'test_repair_0' keyspace in target units, got %s", target.Units[0].Keyspace)
+	}
+}
+
+func TestTabletRepairInteractionIntegration(t *testing.T) {
+	// This test validates that general purpose repair limited to vnodes
+	// can be executed in parallel with tablet repair.
+	session := CreateScyllaManagerDBSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
+
+	if CheckConstraint(t, globalNodeInfo.ScyllaVersion, "< 2025.1") {
+		t.Skip("This test requires tablet repair API")
+	}
+
+	const (
+		vnodeKs  = "test_vnode_ks"
+		tabletKs = "test_tablet_ks"
+	)
+	// Vnode ks setup
+	ExecStmt(t, clusterSession, fmt.Sprintf("CREATE KEYSPACE %q WITH "+
+		"replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 3} AND "+
+		"tablets = {'enabled': 'false'}", vnodeKs))
+	WriteData(t, clusterSession, vnodeKs, 2, "tab1", "tab2")
+	// Tablet ks setup
+	ExecStmt(t, clusterSession, fmt.Sprintf("CREATE KEYSPACE %q WITH "+
+		"replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 3} AND "+
+		"tablets = {'enabled': 'true'}", tabletKs))
+	WriteData(t, clusterSession, tabletKs, 2, "tab1", "tab2")
+
+	const rounds = 5
+	eg, egCtx := errgroup.WithContext(ctx)
+	// General purpose repair goroutine
+	eg.Go(func() error {
+		target, err := h.service.GetTarget(egCtx, h.ClusterID, json.RawMessage(`{"keyspace_replication":"vnodes"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for range rounds {
+			if err := h.service.Repair(egCtx, h.ClusterID, uuid.NewTime(), uuid.NewTime(), target); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	// Tablet repair goroutine
+	eg.Go(func() error {
+		for range rounds {
+			if err := h.service.TabletService.Run(egCtx, h.ClusterID, uuid.NewTime(), uuid.NewTime(), json.RawMessage("{}")); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		t.Fatal(err)
 	}
 }
