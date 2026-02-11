@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 //go:build all || integration
 
@@ -176,8 +176,11 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedulerTestHelp
 		t:         t,
 	}
 	s.SetRunner(mockTask, h.runner)
+	s.SetRunner(scheduler.HealthCheckTask, h.runner)
 	s.SetRunner(scheduler.BackupTask, h.runner)
+	s.SetRunner(scheduler.RepairTask, h.runner)
 	s.SetRunner(scheduler.TabletRepairTask, h.runner)
+	s.SetRunner(scheduler.RestoreTask, h.runner)
 	s.SetRunner(scheduler.One2OneRestoreTask, h.runner)
 
 	backupSvc, err := backup.NewService(
