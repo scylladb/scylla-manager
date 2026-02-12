@@ -352,6 +352,9 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		t.Status = StatusNew
 		create = true
 	}
+	if t != nil {
+		t.InitProperties()
+	}
 	s.logger.Info(ctx, "PutTask", "task", t, "schedule", t.Sched, "properties", t.Properties, "create", create)
 
 	if err := t.Validate(); err != nil {
@@ -626,8 +629,12 @@ func (s *Service) GetTaskByID(ctx context.Context, clusterID uuid.UUID, tp TaskT
 		Type:      tp,
 		ID:        id,
 	}
-	q := table.SchedulerTask.GetQuery(s.session).BindStruct(t)
-	return t, q.GetRelease(t)
+	err := table.SchedulerTask.GetQuery(s.session).BindStruct(t).GetRelease(t)
+	if err != nil {
+		return nil, err
+	}
+	t.InitProperties()
+	return t, err
 }
 
 func (s *Service) findTaskByID(key Key) (taskInfo, bool) {
