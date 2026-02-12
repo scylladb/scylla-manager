@@ -8,10 +8,10 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/gocql/gocql"
-	"github.com/pkg/errors"
-	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-log/gocqllog"
+
+	"github.com/gocql/gocql"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/dbutil"
 	"github.com/scylladb/gocqlx/v2/migrate"
@@ -58,15 +58,10 @@ func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) err
 		}
 	}
 
-	ksCreateStmt := mustEvaluateCreateKeyspaceStmt(c)
-	if err := session.Query(ksCreateStmt).Exec(); err != nil {
-		return errors.Wrapf(err, "failed to create manager keyspace with %q, "+
-			"consider creating it manually and starting manager server again", ksCreateStmt)
-	}
-	return nil
+	return session.Query(mustEvaluateCreateKeyspaceStmt(c)).Exec()
 }
 
-const createKeyspaceStmt = "CREATE KEYSPACE {{.Keyspace}} WITH replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': {{.ReplicationFactor}}}"
+const createKeyspaceStmt = "CREATE KEYSPACE {{.Keyspace}} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': {{.ReplicationFactor}}}"
 
 func mustEvaluateCreateKeyspaceStmt(c config.Config) string {
 	t := template.New("")
