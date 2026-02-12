@@ -298,6 +298,13 @@ func (t *Task) Validate() error {
 	return util.ErrValidate(errors.Wrap(errs, "invalid task"))
 }
 
+// InitProperties replaces nil properties with empty JSON object.
+func (t *Task) InitProperties() {
+	if len(t.Properties) == 0 || string(t.Properties) == "null" {
+		t.Properties = json.RawMessage("{}")
+	}
+}
+
 // Status specifies the status of a Task.
 type Status string
 
