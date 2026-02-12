@@ -88,6 +88,9 @@ func (s *Service) ListTasks(ctx context.Context, clusterID uuid.UUID, filter Lis
 			}
 		}
 	}
+	for _, task := range tasks {
+		task.InitProperties()
+	}
 
 	if filter.Short {
 		return tasks, nil
