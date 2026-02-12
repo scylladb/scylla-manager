@@ -259,25 +259,13 @@ type Task struct {
 	Deleted    bool              `json:"deleted,omitempty"`
 	Sched      Schedule          `json:"schedule"`
 	Properties json.RawMessage   `json:"properties,omitempty"`
-	Tags       []string          `json:"tags,omitempty"`
+	Tags       []string
 
 	Status       Status     `json:"status"`
 	SuccessCount int        `json:"success_count"`
 	ErrorCount   int        `json:"error_count"`
 	LastSuccess  *time.Time `json:"last_success"`
 	LastError    *time.Time `json:"last_error"`
-}
-
-// MarshalJSON is a wrapper around default JSON marshaller ensuring
-// that Task.Properties are marshaled as an empty JSON object instead
-// of null. This makes it easier and safer on SM client side.
-func (t Task) MarshalJSON() ([]byte, error) {
-	type Alias Task // To avoid infinite recursion
-	taskWithFilledProps := Alias(t)
-	if len(taskWithFilledProps.Properties) == 0 || string(taskWithFilledProps.Properties) == "null" {
-		taskWithFilledProps.Properties = json.RawMessage("{}")
-	}
-	return json.Marshal(taskWithFilledProps)
 }
 
 func (t *Task) String() string {
