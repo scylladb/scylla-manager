@@ -72,11 +72,6 @@ http: 127.0.0.1:5080
 #  local_dc:
 #
 # Keyspace for management data.
-# It will be created automatically on ScyllaDB Manager server startup if it does not already exist.
-# In such case, it will use NetworkTopologyStrategy and provided replication_factor.
-# In case different keyspace replication is required, it should be created manually
-# before starting ScyllaDB Manager server (this action is recommended for non default
-# ScyllaDB Manager database deployments - especially multi datacenter ones).
 #  keyspace: scylla_manager
 #  replication_factor: 1
 #
