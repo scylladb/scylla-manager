@@ -66,7 +66,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 	var ranges []scyllaclient.TokenRange
 	switch j.jobType {
 	case tabletJobType:
-		return w.fullTabletTableRepair(ctx, j.keyspace, j.table, j.master.String())
+		return w.fullTabletTableRepair(ctx, j.keyspace, j.table)
 	case smallTableJobType:
 		ranges = nil
 	case mergeRangesJobType:
@@ -170,17 +170,25 @@ func (w *worker) isTableDeleted(ctx context.Context, j job) bool {
 	return !exists
 }
 
-func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, host string) error {
+func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table string) error {
 	hostFilter, err := w.hostFilter(ctx)
 	if err != nil {
 		return errors.Wrap(err, "create host filter")
 	}
 
-	var incrementalMode string
-	if w.apiSupport.incrementalRepair {
-		incrementalMode = w.target.IncrementalMode
+	w.logger.Info(ctx, "Repairing entire tablet table",
+		"keyspace", keyspace,
+		"table", table,
+	)
+
+	p := scyllaclient.TabletRepairParams{
+		DCs:     w.target.DC,
+		HostIDs: hostFilter,
 	}
-	id, err := w.client.TabletRepair(ctx, keyspace, table, host, w.target.DC, hostFilter, incrementalMode)
+	if w.apiSupport.incrementalRepair {
+		p.Incremental = w.target.IncrementalMode
+	}
+	err = w.client.TabletRepair(ctx, keyspace, table, p)
 	if err != nil {
 		convertedErr := w.convertColocatedTableRepairErr(err)
 		if convertedErr == nil {
@@ -192,28 +200,7 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 		}
 		return errors.Wrap(convertedErr, "schedule tablet repair task")
 	}
-
-	w.logger.Info(ctx, "Repairing entire tablet table",
-		"keyspace", keyspace,
-		"table", table,
-		"task ID", id,
-	)
-
-	status, err := w.client.ScyllaWaitTask(ctx, host, id, 0)
-	if err != nil {
-		w.scyllaAbortTask(host, id)
-		return errors.Wrap(err, "get tablet repair task status")
-	}
-
-	switch scyllaclient.ScyllaTaskState(status.State) {
-	case scyllaclient.ScyllaTaskStateDone:
-		return nil
-	case scyllaclient.ScyllaTaskStateFailed:
-		return errors.Errorf("tablet repair task finished with status %q", scyllaclient.ScyllaTaskStateFailed)
-	default:
-		w.scyllaAbortTask(host, id)
-		return errors.Errorf("unexpected tablet repair task status %q", status.State)
-	}
+	return nil
 }
 
 func (w *worker) hostFilter(ctx context.Context) ([]string, error) {
@@ -251,6 +238,7 @@ func (w *worker) convertColocatedTableRepairErr(scheduleTabletRepairErr error) e
 	return errors.Wrap(scheduleTabletRepairErr, "base table is not repaired, use --keyspace flag to either include it or exclude its colocated tables")
 }
 
+// TODO: abort ongoing tablet repair tasks on start but only for planned tables
 func (w *worker) scyllaAbortTask(host, id string) {
 	if err := w.client.ScyllaAbortTask(context.Background(), host, id); err != nil {
 		w.logger.Error(context.Background(), "Failed to abort task",
