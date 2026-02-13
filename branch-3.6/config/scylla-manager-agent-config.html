@@ -1,0 +1,883 @@
+
+
+<!DOCTYPE html>
+<html class="no-js" lang="en" style="visibility: hidden;">
+    
+    
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width initial-scale=1" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>
+             Scylla Manager Agent Config | ScyllaDB Docs 
+        </title>
+        <meta name="description" content="ScyllaDB is an Apache Cassandra-compatible NoSQL data store that can handle 1 million transactions per second on a single server." />
+        <link rel="icon" href="../_static/img/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="../_static/img/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" href="../_static/img/favicon-228x228.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="../_static/img/favicon-228x228.png" />
+        <meta name="msapplication-TileImage" href="../_static/img/favicon-228x228.png" />
+
+        
+            
+            
+        
+
+        
+            
+            <link rel="canonical" href="https://manager.docs.scylladb.com/stable/config/scylla-manager-agent-config.html"/>
+        
+
+        <link rel="author" href="mailto:info@scylladb.com" />
+
+        
+            
+        <!-- increase expertrec loading priority-->
+        <link rel="dns-prefetch" href="https://cse.expertrec.com">
+
+        <!-- increase font loading priority -->
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preload" as="style"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- async CSS -->
+        <link rel="stylesheet" media="print" onload="this.onload=null;this.removeAttribute('media');"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- no-JS fallback -->
+        <noscript>
+            <link rel="stylesheet"
+                  href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+        </noscript>
+
+        
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.css">
+            <script type="module" src="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.esm.js"></script>
+        
+
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/css/main.css?v=0ebb4bd5" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/sphinx_collapse.css?v=226d88b4" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+            
+        
+    
+        
+        
+            
+        <script type="text/javascript" src="../_static/js/runtime.bundle.js"></script>
+        <script type="text/javascript" src="../_static/js/main.bundle.js"></script>
+        
+            
+                <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+            
+        
+            
+                <script src="../_static/doctools.js?v=9a2dae69"></script>
+            
+        
+            
+                <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+            
+        
+            
+                <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+            
+        
+            
+                <script src="../_static/copybutton.js?v=f281be69"></script>
+            
+        
+    
+            
+                <meta name='zd-site-verification' content='jiigc536se3g139312rad' />
+            
+            
+                <!-- Google Tag Manager docs -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-54NWVS4");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager global -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-T8P2JP");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Expertrec -->
+<script>
+    var id = "e2077224-9ccf-11e9-a0c9-0242ac130002";
+    var ci_search = document.createElement("script");
+    ci_search.type = "text/javascript";
+    ci_search.async = true;
+    ci_search.src = "https://cse.expertrec.com/api/js/ci_common.js?id=" + id;
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(ci_search, s);
+</script>
+<!-- End Expertrec -->
+            
+        
+    </head>
+
+    <body class="brand-product">
+        <section class="promo-banner  promo-banner--hide" style="display: none;">
+    <div class="promo-banner-wrapper">
+        <div class="promo-banner__content">
+            
+            <div class="promo-banner__title">ScyllaDB University Live | Free Virtual Training Event</div>
+            <a class="promo-banner__button button button--reverse" href="#"
+               target="_blank" rel="noopener noreferrer">Learn more</a>
+        </div>
+        <button class="promo-banner__close">
+            <i class="icon-cancel"></i>
+        </button>
+    </div>
+</section>
+        <header class="header">
+    <div class="header-logo">
+        <a class="header-logo__img" href="https://scylladb.com/">
+            <img src="../_static/img/scylladb-logo-horizontal.svg" alt="ScyllaDB Documentation Logo" />
+        </a>
+        <span class="header-logo__bar"></span>
+        <a class="header-logo__text" href="https://docs.scylladb.com/">
+            Documentation
+        </a>
+    </div>
+    <div class="header-navigation">
+        <ul class="dropdown menu scylla-dropdown scylla-dropdown--header" data-dropdown-menu>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Deployments <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/scylla-cloud/">
+                            <i class="icon-docs-cloud"></i>Cloud</a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/manual/">
+                            <i class="icon-server"></i>Server</a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Tools <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://manager.docs.scylladb.com/">
+                            <i class="icon-docs-manager"></i>ScyllaDB Manager</a>
+                    </li>
+                    <li>
+                        <a href="https://monitoring.docs.scylladb.com/">
+                            <i class="icon-docs-monitoring"></i>ScyllaDB
+                            Monitoring Stack</a>
+                    </li>
+                    <li>
+                        <a href="https://operator.docs.scylladb.com/">
+                            <i class="icon-docs-operator"></i>ScyllaDB Operator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Drivers <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/cql-drivers">
+                            <i class="icon-docs-nsql-guides"></i>CQL Drivers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/dynamo-drivers">
+                            <i class="icon-docs-alternator"></i>DynamoDB Drivers
+                        </a>
+
+                        <li>
+                            <a href="https://docs.scylladb.com/stable/versioning/driver-support">
+                                <i class="icon-docs-blog"></i>Supported Driver Versions
+                            </a>
+                        </li>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Resources
+                    <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://university.scylladb.com">
+                            <i class="icon-university"></i>
+                            ScyllaDB University
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://forum.scylladb.com">
+                            <i class="icon-docs-community"></i>
+                            Community Forum
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html">
+                            <i class="icon-docs-training"></i>
+                            Tutorials
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <div class="header-button">
+            <a href="https://docs.scylladb.com/manual/stable/getting-started/installation-common/scylla-web-installer.html" class="button"><i class="icon-download me-2"></i> Install</a>
+        </div>
+    </div>
+    <div class="header-search-box">
+        <i class="dark-theme-toggler icon-theme"></i>
+        <div class="search-box">
+            <ci-search></ci-search>
+        </div>
+        
+            <biel-button class="header-ask-ai" project="ddfdo8m94k"
+                         header-title="ScyllaDB chatbot (beta)"
+                         button-position="default"
+                         modal-position="bottom-right"
+                         button-style="dark">
+                Ask AI
+            </biel-button>
+        
+    </div>
+    <div class="side-nav-toggle">
+    <i class="dark-theme-toggler icon-theme"></i>
+    <div class="side-nav-toggle__button" data-toggle="side-nav">
+        <i class="icon-menu"></i>
+    </div>
+</div>
+</header>
+        <div class="title"></div>
+        <section
+            class="layout  layout--sidebar layout--has-secondary-sidebar ">
+            <div class="content large-order-2">
+                
+                    <div class="pre-content">
+                        <div class="breadcrumbs">
+    <span class="bread__item">
+        <a href="https://docs.scylladb.com"
+           class="bread__highlight">
+            <i class="icon-home"></i> ScyllaDB Docs
+        </a>
+    </span>
+    <span class="bread__item">
+        <a href="../index.html"
+           class="bread__highlight">
+            Scylla Manager
+        </a>
+    </span>
+    
+        <span class="bread__item">
+            <a href="index.html" class="bread__highlight">
+                Configuration Files
+            </a>
+        </span>
+    
+    <span class="bread__item bread__item--last">Scylla Manager Agent Config</span>
+</div>
+                    </div>
+                
+                
+                    <div class="sidebar-right-layout">
+                        <div class="body-container">
+                
+
+                <div class="content-body">
+                    
+                        
+    <div class="admonition caution">
+        <p class="admonition-title">Caution</p>
+        <p>
+            
+                You're viewing documentation for a previous version of Scylla Manager.
+            
+            <a href="../../stable/config/scylla-manager-agent-config.html">Switch to the latest stable version.</a>
+        </p>
+    </div>
+
+                    
+
+                    <section id="scylla-manager-agent-config">
+<h1>Scylla Manager Agent Config<a class="headerlink" href="#scylla-manager-agent-config" title="Link to this heading">¶</a></h1>
+<p>Scylla Manager Agent configuration file <code class="docutils literal notranslate"><span class="pre">/etc/scylla-manager-agent/scylla-manager-agent.yaml</span></code>.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Scylla Manager Agent config YAML</span>
+
+<span class="c1"># Specify authentication token, the auth_token needs to be the same for all the</span>
+<span class="c1"># nodes in a cluster. Use scyllamgr_auth_token_gen to generate the auth_token</span>
+<span class="c1"># value.</span>
+<span class="c1">#auth_token:</span>
+
+<span class="c1"># Bind REST API to the specified TCP address using HTTPS protocol. By default</span>
+<span class="c1"># Scylla Manager Agent uses Scylla listen/broadcast address that is read from</span>
+<span class="c1"># the Scylla API (see scylla section).</span>
+<span class="c1">#https: 0.0.0.0:10001</span>
+
+<span class="c1"># Use custom port instead of default 10001.</span>
+<span class="c1">#https_port:</span>
+
+<span class="c1"># Version of TLS protocol and cipher suites to use with HTTPS.</span>
+<span class="c1"># The supported versions are: TLSv1.3, TLSv1.2, TLSv1.0.</span>
+<span class="c1"># The TLSv1.2 is restricted to the following cipher suites:</span>
+<span class="c1"># ECDHE-ECDSA-WITH-AES-128-GCM-SHA256, ECDHE-RSA-WITH-AES-128-GCM-SHA256,</span>
+<span class="c1"># ECDHE-ECDSA-WITH-AES-256-GCM-SHA384, ECDHE-RSA-WITH-AES-256-GCM-SHA384,</span>
+<span class="c1"># ECDHE-ECDSA-WITH-CHACHA20-POLY1305, ECDHE-RSA-WITH-CHACHA20-POLY1305.</span>
+<span class="c1"># The TLSv1.0 should never be used as it&#39;s deprecated.</span>
+<span class="c1">#tls_mode: TLSv1.2</span>
+
+<span class="c1"># TLS certificate and key files to use with HTTPS. The files must contain PEM</span>
+<span class="c1"># encoded data. If not set a self-signed certificate will be generated,</span>
+<span class="c1"># the certificate is valid for 1 year after start and uses EC P256 private key.</span>
+<span class="c1">#tls_cert_file:</span>
+<span class="c1">#tls_key_file:</span>
+
+<span class="c1"># Bind prometheus API to the specified TCP address using HTTP protocol.</span>
+<span class="c1"># By default it binds to all network interfaces but you can restrict it</span>
+<span class="c1"># by specifying it like this 127:0.0.1:5090 or any other combination</span>
+<span class="c1"># of ip and port.</span>
+<span class="c1">#prometheus: &#39;:5090&#39;</span>
+
+<span class="c1"># Debug server that allows to run pporf profiling on demand on a live system.</span>
+<span class="c1">#debug: 127.0.0.1:5112</span>
+
+<span class="c1"># CPU to run Scylla Manager Agent on. By default the agent would read Scylla</span>
+<span class="c1"># configuration at /etc/scylla.d/cpuset.conf and try to find a core not used by</span>
+<span class="c1"># Scylla. If that&#39;s not possible user can specify a core to run agent on.</span>
+<span class="c1"># It&#39;s possible to specify a list of CPUs instead of a single value.</span>
+<span class="c1">#cpu: 0</span>
+
+<span class="c1"># Logging configuration.</span>
+<span class="c1">#logger:</span>
+<span class="c1"># Where to print logs, stderr or stdout.</span>
+<span class="c1">#  mode: stderr</span>
+<span class="c1"># How much logs to print, available levels are: error, info, debug.</span>
+<span class="c1">#  level: info</span>
+<span class="c1"># Sampling reduces number of logs by not printing duplicated log entries within</span>
+<span class="c1"># a second. The first N (initial) entries with a given level and message are</span>
+<span class="c1"># printed. If more entries with the same level and message are seen during</span>
+<span class="c1"># the same interval, every Mth (thereafter) message is logged and the rest is</span>
+<span class="c1"># dropped.</span>
+<span class="c1">#  sampling:</span>
+<span class="c1">#    initial: 1</span>
+<span class="c1">#    thereafter: 100</span>
+
+<span class="c1"># Copy api_address and api_port values from /etc/scylla/scylla.yaml. All the</span>
+<span class="c1"># needed Scylla configuration options are read from the API.</span>
+<span class="c1">#scylla:</span>
+<span class="c1">#  api_address: 0.0.0.0</span>
+<span class="c1">#  api_port: 10000</span>
+
+<span class="c1"># Backup general configuration.</span>
+<span class="c1">#rclone:</span>
+<span class="c1"># The number of checkers to run in parallel. Checkers do the equality checking</span>
+<span class="c1"># of files (local vs. backup location) at the beginning of backup.</span>
+<span class="c1">#  checkers: 100</span>
+<span class="c1">#</span>
+<span class="c1"># The number of file transfers to run in parallel. It can sometimes be useful</span>
+<span class="c1"># to set this to a smaller number if the remote is giving a lot of timeouts or</span>
+<span class="c1"># bigger if you have lots of bandwidth and a fast remote.</span>
+<span class="c1">#  transfers: 2</span>
+<span class="c1">#</span>
+<span class="c1"># Number of low level retries to do. This applies to operations like file chunk upload.</span>
+<span class="c1">#  low_level_retries: 20</span>
+
+<span class="c1"># Backup S3 configuration.</span>
+<span class="c1">#</span>
+<span class="c1"># Note that when running in AWS Scylla Manager Agent can read hosts IAM role.</span>
+<span class="c1"># It&#39;s recommended to define access rules based on IAM roles.</span>
+<span class="c1"># https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html</span>
+<span class="c1">#</span>
+<span class="c1"># To test bucket accessibility use `scylla-manager-agent check-location` command.</span>
+<span class="c1"># Example:</span>
+<span class="c1"># scylla-manager-agent check-location --location s3:scylla-manager-backup</span>
+<span class="c1">#</span>
+<span class="c1"># Sample IAM policy for &quot;scylla-manager-backup&quot; bucket:</span>
+<span class="c1">#</span>
+<span class="c1"># {</span>
+<span class="c1">#      &quot;Version&quot;: &quot;2012-10-17&quot;,</span>
+<span class="c1">#      &quot;Statement&quot;: [</span>
+<span class="c1">#          {</span>
+<span class="c1">#              &quot;Effect&quot;: &quot;Allow&quot;,</span>
+<span class="c1">#              &quot;Action&quot;: [</span>
+<span class="c1">#                  &quot;s3:GetBucketLocation&quot;,</span>
+<span class="c1">#                  &quot;s3:ListBucket&quot;,</span>
+<span class="c1">#                  &quot;s3:ListBucketMultipartUploads&quot;</span>
+<span class="c1">#              ],</span>
+<span class="c1">#              &quot;Resource&quot;: [</span>
+<span class="c1">#                  &quot;arn:aws:s3:::scylla-manager-backup&quot;</span>
+<span class="c1">#              ]</span>
+<span class="c1">#          },</span>
+<span class="c1">#          {</span>
+<span class="c1">#              &quot;Effect&quot;: &quot;Allow&quot;,</span>
+<span class="c1">#              &quot;Action&quot;: [</span>
+<span class="c1">#                  &quot;s3:PutObject&quot;,</span>
+<span class="c1">#                  &quot;s3:GetObject&quot;,</span>
+<span class="c1">#                  &quot;s3:DeleteObject&quot;,</span>
+<span class="c1">#                  &quot;s3:AbortMultipartUpload&quot;,</span>
+<span class="c1">#                  &quot;s3:ListMultipartUploadParts&quot;</span>
+<span class="c1">#              ],</span>
+<span class="c1">#              &quot;Resource&quot;: [</span>
+<span class="c1">#                  &quot;arn:aws:s3:::scylla-manager-backup/*&quot;</span>
+<span class="c1">#              ]</span>
+<span class="c1">#          }</span>
+<span class="c1">#      ]</span>
+<span class="c1">#  }</span>
+<span class="c1">#</span>
+<span class="c1">#s3:</span>
+<span class="c1"># S3 credentials, it&#39;s recommended to use IAM roles if possible, otherwise set</span>
+<span class="c1"># your AWS Access Key ID and AWS Secret Access Key (password) here.</span>
+<span class="c1">#  access_key_id:</span>
+<span class="c1">#  secret_access_key:</span>
+<span class="c1">#</span>
+<span class="c1"># Provider of the S3 service. By default this is AWS. There are multiple S3</span>
+<span class="c1"># API compatible providers that can be used instead. Due to minor differences</span>
+<span class="c1"># between them we require that exact provider is specified here for full</span>
+<span class="c1"># compatibility. Supported and tested options are: AWS and Minio.</span>
+<span class="c1"># The available providers are: Alibaba, AWS, Ceph, DigitalOcean, IBMCOS, Minio, </span>
+<span class="c1"># Wasabi, Dreamhost, Netease.</span>
+<span class="c1">#  provider: AWS</span>
+<span class="c1">#</span>
+<span class="c1"># Region to connect to, if running in AWS EC2 instance region is set</span>
+<span class="c1"># to the local region by default.</span>
+<span class="c1">#  region:</span>
+<span class="c1">#</span>
+<span class="c1"># Endpoint for S3 API, only relevant when using S3 compatible API.</span>
+<span class="c1">#  endpoint:</span>
+<span class="c1">#</span>
+<span class="c1"># The server-side encryption algorithm used when storing this object in S3.</span>
+<span class="c1"># If using KMS ID you must provide the ARN of Key.</span>
+<span class="c1">#  server_side_encryption:</span>
+<span class="c1">#  sse_kms_key_id:</span>
+<span class="c1">#</span>
+<span class="c1"># The storage class to use when storing new objects in S3.</span>
+<span class="c1">#  storage_class:</span>
+<span class="c1">#</span>
+<span class="c1"># Concurrency for multipart uploads.</span>
+<span class="c1">#  upload_concurrency: 2</span>
+<span class="c1">#</span>
+<span class="c1"># AWS S3 Transfer acceleration</span>
+<span class="c1"># https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html</span>
+<span class="c1">#  use_accelerate_endpoint: false</span>
+
+<span class="c1"># Backup GCS configuration.</span>
+<span class="c1">#</span>
+<span class="c1"># Note that when running in GCP Scylla Manager Agent can use instance</span>
+<span class="c1"># Service Account. It&#39;s recommended to define access rules based on IAM roles</span>
+<span class="c1"># attached to Service Account.</span>
+<span class="c1"># https://cloud.google.com/docs/authentication/production</span>
+<span class="c1">#</span>
+<span class="c1"># To test bucket accessibility use `scylla-manager-agent check-location` command.</span>
+<span class="c1"># Example:</span>
+<span class="c1"># scylla-manager-agent check-location --location gcs:scylla-manager-backup</span>
+<span class="c1">#</span>
+<span class="c1">#gcs:</span>
+<span class="c1"># GCS credentials, it&#39;s recommended to use Service Account authentication</span>
+<span class="c1"># if possible, otherwise set path to credentials here.</span>
+<span class="c1">#  service_account_file: /etc/scylla-manager-agent/gcs-service-account.json</span>
+<span class="c1">#</span>
+<span class="c1"># The storage class to use when storing new objects in Google Cloud Storage.</span>
+<span class="c1">#  storage_class:</span>
+
+<span class="c1"># Backup Microsoft Azure blob storage configuration.</span>
+<span class="c1">#</span>
+<span class="c1"># Access can be provided with account/key pair but it is recommended to use</span>
+<span class="c1"># Azure RBAC to the backup storage with IAM policy defined.</span>
+<span class="c1"># More about role based access https://docs.microsoft.com/en-us/azure/role-based-access-control/.</span>
+<span class="c1">#</span>
+<span class="c1"># Sample role JSON definition scoped to the *ScyllaManagerBackup* resource group:</span>
+<span class="c1">#</span>
+<span class="c1"># {</span>
+<span class="c1">#   &quot;properties&quot;: {</span>
+<span class="c1">#     &quot;roleName&quot;: &quot;Scylla Backup Storage Contributor&quot;,</span>
+<span class="c1">#     &quot;description&quot;: &quot;Contributor access to the blob service for Scylla cluster backups&quot;,</span>
+<span class="c1">#     &quot;assignableScopes&quot;: [</span>
+<span class="c1">#       &quot;/subscriptions/&lt;subscription_uuid&gt;/resourceGroups/ScyllaManagerBackup&quot;</span>
+<span class="c1">#     ],</span>
+<span class="c1">#     &quot;permissions&quot;: [</span>
+<span class="c1">#       {</span>
+<span class="c1">#         &quot;actions&quot;: [</span>
+<span class="c1">#           &quot;Microsoft.Storage/storageAccounts/blobServices/containers/delete&quot;,</span>
+<span class="c1">#           &quot;Microsoft.Storage/storageAccounts/blobServices/containers/read&quot;,</span>
+<span class="c1">#           &quot;Microsoft.Storage/storageAccounts/blobServices/containers/write&quot;,</span>
+<span class="c1">#           &quot;Microsoft.Storage/storageAccounts/blobServices/generateUserDelegationKey/action&quot;</span>
+<span class="c1">#         ],</span>
+<span class="c1">#         &quot;notActions&quot;: [],</span>
+<span class="c1">#         &quot;dataActions&quot;: [</span>
+<span class="c1">#           &quot;Microsoft.Storage/storageAccounts/blobServices/containers/blobs/delete&quot;,</span>
+<span class="c1">#           &quot;Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read&quot;,</span>
+<span class="c1">#           &quot;Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write&quot;,</span>
+<span class="c1">#           &quot;Microsoft.Storage/storageAccounts/blobServices/containers/blobs/move/action&quot;,</span>
+<span class="c1">#           &quot;Microsoft.Storage/storageAccounts/blobServices/containers/blobs/add/action&quot;</span>
+<span class="c1">#         ],</span>
+<span class="c1">#         &quot;notDataActions&quot;: []</span>
+<span class="c1">#       }</span>
+<span class="c1">#     ]</span>
+<span class="c1">#   }</span>
+<span class="c1"># }</span>
+<span class="c1">#</span>
+<span class="c1">#azure:</span>
+<span class="c1"># Storage account name.</span>
+<span class="c1">#  account:</span>
+<span class="c1"># Storage account authentication key.</span>
+<span class="c1">#  key:</span>
+</pre></div>
+</div>
+</section>
+
+                </div>
+                
+                    <div class="post-content">
+                        
+    <div class="feedback-container">
+        <p class="feedback-container__title">Was this page helpful?</p>
+        <span data-tooltip tabindex="1" title="Yes" data-position="top">
+            <button class="feedback-container__button" id="feedback-positive">
+                <i class="feedback-container__icon icon-docs-thumbs-up"></i>
+            </button>
+        </span>
+        <span data-tooltip tabindex="1" title="No" data-position="top">
+            <button class="feedback-container__button" id="feedback-negative">
+                <i class="feedback-container__icon icon-docs-thumbs-down"></i>
+            </button>
+        </span>
+        <div class="feedback-container__message" id="feedback-message"></div>
+    </div>
+
+    <script>
+        function resetFeedbackButtonActive() {
+            const feedbackButtons = document.getElementsByClassName('feedback-container__button');
+            for (let i = 0; i < feedbackButtons.length; i++) {
+                feedbackButtons[i].classList.remove('active');
+            }
+        }
+
+        function showMessage(liked) {
+            const feedbackMessage = document.getElementById('feedback-message');
+            const themeGithubRepository = true;
+            let message = 'Great! Thanks for your feedback.';
+            if (themeGithubRepository && !liked) {
+                message = "Thanks for your feedback! Please don't hesitate to <a href='https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Scylla Manager Agent Config&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/branch-3.6/config/scylla-manager-agent-config%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation'>create an issue</a> if you have any suggestions on how we can improve.";
+            }
+            feedbackMessage.innerHTML = message;
+        }
+
+        function sendGaEvent(liked) {
+            const event_label = liked ? "positive" : "negative";
+            const event = "feedback_" + event_label;
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': event,
+            });
+        }
+
+        const positiveFeebackButton = document.getElementById('feedback-positive');
+        const negativeFeedbackButton = document.getElementById('feedback-negative');
+
+        positiveFeebackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(true);
+            showMessage(true);
+            positiveFeebackButton.classList.add('active');
+        });
+
+        negativeFeedbackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(false);
+            showMessage(false);
+            negativeFeedbackButton.classList.add('active');
+        });
+    </script>
+
+                        <div class="content-navigation">
+    <div class="navigation navigation--prev">
+        
+            <a class="navigation__link" href="scylla-manager-config.html">
+                <button class="navigation__button">
+                    <i class="icon-chevron-left"></i>
+                </button>
+                <div class="navigation__title">
+                    <span class="colored">PREVIOUS</span> <br />Scylla Manager Config
+                </div>
+            </a>
+        
+    </div>
+    <div class="navigation navigation--next">
+        
+            <a class="navigation__link" href="../swagger/index.html">
+                <div class="navigation__title">
+                    <span class="colored">NEXT</span> <br />Swagger File
+                </div>
+                <button class="navigation__button">
+                    <i class="icon-chevron-right"></i>
+                </button>
+            </a>
+        
+    </div>
+</div>
+                        <!-- Post content text -->
+                    </div>
+                
+
+                
+                    </div>
+                    <div class="sidebar-right large-order-3">
+                        <div class="secondary-side-nav custom-scroll-bar">
+    
+    <ul class="contribute">
+        <li class="contribute__item">
+            <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Scylla Manager Agent Config&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/branch-3.6/config/scylla-manager-agent-config%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation"
+               target="_blank">
+                <i class="icon-github" aria-hidden="true"></i>Create an issue
+            </a>
+        </li>
+        
+            <li class="contribute__item">
+                <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/edit/master/docs/source/config/scylla-manager-agent-config.rst"
+                   target="_blank">
+                    <i class="icon-edit" aria-hidden="true"></i>Edit this page
+                </a>
+            </li>
+        
+    </ul>
+
+    
+</div>
+                    </div>
+                    </div>
+                
+            </div>
+            <div class="sidebar-left  large-order-1">
+                
+                    
+                        <div id="side-nav" class="side-nav custom-scroll-bar" data-closable data-toggler=".show">
+    <button class="collapsible-button">
+        <i class="icon-docs-menu-collapse"></i>
+    </button>
+    <div class="side-nav-content custom-scroll-bar">
+        <div class="side-nav__title">
+            <a href="../index.html">Scylla Manager</a>
+        </div>
+        <div class="side-nav__search">
+            <div class="search-box">
+                <ci-search></ci-search>
+            </div>
+        </div>
+        <div class="side-nav__versions"><ul class="dropdown menu scylla-dropdown scylla-dropdown--versions" data-dropdown-menu>
+    <li class="scylla-dropdown__item">
+        <a class="scylla-dropdown__title" href="#">
+            
+                3.6
+            
+            <i class="chevron icon-docs-chevron-right"></i>
+        </a>
+        <ul class="menu scylla-dropdown__content">
+            
+                
+                    <li>
+                        <a href="../../master/config/scylla-manager-agent-config.html">master</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../stable/config/scylla-manager-agent-config.html">3.8</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.7/config/scylla-manager-agent-config.html">3.7</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="scylla-manager-agent-config.html">3.6</a>
+                    </li>
+                
+            
+            
+        </ul>
+    </li>
+</ul></div>
+        <div class="side-nav__content">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../docker/index.html">Docker</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager.html">Install ScyllaDB Manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager-agent.html">Install ScyllaDB Manager Agent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../upgrade/index.html">ScyllaDB Manager Upgrade</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility-matrix.html">Compatibility Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../add-a-cluster.html">Add a Cluster</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../backup/index.html">Backup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-amazon-s3.html">Setup Amazon S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-s3-compatible-storage.html">Setup S3 compatible storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-gcs.html">Setup Google Cloud Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-azure-blobstorage.html">Setup Azure Blob Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/native-backup.html">Native Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/examples.html">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/specification.html">Specification</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../restore/index.html">Restore</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../restore/restore-tables.html">Restore tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/restore-schema.html">Restore schema for ScyllaDB 6.0/2024.2 or newer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/old-restore-schema.html">Restore schema for ScyllaDB 5.4/2024.1 or older</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../repair/index.html">Repair</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label for="toctree-checkbox-3"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-faster.html">Repair faster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-slower.html">Repair slower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../health-check.html">Health Check</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sctool/index.html">CLI sctool</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label for="toctree-checkbox-4"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/global-flags-and-variables.html">Environment variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/completion.html">Completion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/download-files.html">Download files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/backup.html">Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/restore.html">Restore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/cluster.html">Cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/info.html">Info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/progress.html">Progress</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/repair.html">Repair</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/start.html">Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/status.html">Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/stop.html">Stop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/suspend-resume.html">Suspend &amp; Resume</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/task.html">Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/version.html">Version</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Configuration Files</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label for="toctree-checkbox-5"><i class="icon-chevron-right"></i></label><div class="break"></div><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="scylla-manager-config.html">Scylla Manager Config</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Scylla Manager Agent Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../swagger/index.html">Swagger File</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../scylla-monitoring.html">ScyllaDB Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://scylladb-users.slack.com/archives/C01ERVBPWLU">Slack</a></li>
+</ul>
+
+        </div>
+    </div>
+</div>
+                    
+                
+            </div>
+
+        </section>
+
+        <footer class="footer">
+    <div class="footer-group">
+        <div class="footer-top">
+            <a class="footer-logo" href="https://www.scylladb.com"></a>
+            <div class="footer-links">
+                <a class="footer-links__link" href="https://docs.scylladb.com/" target="_blank">Docs</a>
+                <a class="footer-links__link" href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html" target="_blank">Tutorials</a>
+                <a class="footer-links__link" href="https://university.scylladb.com/" target="_blank">University</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/contact-us/"
+                   target="_blank">Contact Us</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/" target="_blank">About Us</a>
+            </div>
+            <div class="footer-actions">
+                <a class="footer-actions__link" href="http://slack.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="User Slack channel" data-position="bottom">
+                        <i class="icon-slack"></i>
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="https://forum.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="Community forum" data-position="bottom">
+                        <i class="icon-docs-community"></i>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        
+            <div class="footer-copyright">
+                
+                    
+                        &#169; 2026, ScyllaDB. All rights reserved.
+                    
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/tos/" target="_blank">Terms of Service</a>
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/privacy/" target="_blank">Privacy Policy</a>
+                    | ScyllaDB, and ScyllaDB Cloud, are registered trademarks of ScyllaDB, Inc.
+                
+            </div>
+        
+
+
+        <div class="footer-bottom">
+            
+                <div class="footer-bottom__last-updated">
+                    
+                        Last updated on 13 February 2026.
+                    
+                </div>
+            
+            <div class="footer-bottom__version">
+                Powered by
+                <a class="footer-bottom__link" href="http://sphinx-doc.org/">Sphinx 7.4.7</a> &amp;
+                <a class="footer-bottom__link" href="https://sphinx-theme.scylladb.com/">ScyllaDB Theme 1.8.10</a>
+            </div>
+        </div>
+    </div>
+    
+        <biel-button class="footer-ask-ai" project="ddfdo8m94k"
+                     header-title="ScyllaDB chatbot (beta)"
+                     button-position="bottom-right"
+                     modal-position="bottom-right"
+                     button-style="dark">
+            Ask AI
+        </biel-button>
+    
+</footer>
+
+        <noscript>
+            <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8P2JP" height="0" width="0"
+                    style="display: none; visibility: hidden"></iframe>
+        </noscript>
+    </body>
+
+</html>

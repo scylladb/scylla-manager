@@ -1,0 +1,745 @@
+
+
+<!DOCTYPE html>
+<html class="no-js" lang="en" style="visibility: hidden;">
+    
+    
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width initial-scale=1" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>
+             Setup Google Cloud Storage | ScyllaDB Docs 
+        </title>
+        <meta name="description" content="ScyllaDB is an Apache Cassandra-compatible NoSQL data store that can handle 1 million transactions per second on a single server." />
+        <link rel="icon" href="../_static/img/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="../_static/img/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" href="../_static/img/favicon-228x228.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="../_static/img/favicon-228x228.png" />
+        <meta name="msapplication-TileImage" href="../_static/img/favicon-228x228.png" />
+
+        
+            
+            
+        
+
+        
+            
+            <link rel="canonical" href="https://manager.docs.scylladb.com/stable/backup/setup-gcs.html"/>
+        
+
+        <link rel="author" href="mailto:info@scylladb.com" />
+
+        
+            
+        <!-- increase expertrec loading priority-->
+        <link rel="dns-prefetch" href="https://cse.expertrec.com">
+
+        <!-- increase font loading priority -->
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preload" as="style"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- async CSS -->
+        <link rel="stylesheet" media="print" onload="this.onload=null;this.removeAttribute('media');"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- no-JS fallback -->
+        <noscript>
+            <link rel="stylesheet"
+                  href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+        </noscript>
+
+        
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.css">
+            <script type="module" src="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.esm.js"></script>
+        
+
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/css/main.css?v=0ebb4bd5" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/sphinx_collapse.css?v=226d88b4" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+            
+        
+    
+        
+        
+            
+        <script type="text/javascript" src="../_static/js/runtime.bundle.js"></script>
+        <script type="text/javascript" src="../_static/js/main.bundle.js"></script>
+        
+            
+                <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+            
+        
+            
+                <script src="../_static/doctools.js?v=9a2dae69"></script>
+            
+        
+            
+                <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+            
+        
+            
+                <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+            
+        
+            
+                <script src="../_static/copybutton.js?v=f281be69"></script>
+            
+        
+    
+            
+                <meta name='zd-site-verification' content='jiigc536se3g139312rad' />
+            
+            
+                <!-- Google Tag Manager docs -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-54NWVS4");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager global -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-T8P2JP");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Expertrec -->
+<script>
+    var id = "e2077224-9ccf-11e9-a0c9-0242ac130002";
+    var ci_search = document.createElement("script");
+    ci_search.type = "text/javascript";
+    ci_search.async = true;
+    ci_search.src = "https://cse.expertrec.com/api/js/ci_common.js?id=" + id;
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(ci_search, s);
+</script>
+<!-- End Expertrec -->
+            
+        
+    </head>
+
+    <body class="brand-product">
+        <section class="promo-banner  promo-banner--hide" style="display: none;">
+    <div class="promo-banner-wrapper">
+        <div class="promo-banner__content">
+            
+            <div class="promo-banner__title">ScyllaDB University Live | Free Virtual Training Event</div>
+            <a class="promo-banner__button button button--reverse" href="#"
+               target="_blank" rel="noopener noreferrer">Learn more</a>
+        </div>
+        <button class="promo-banner__close">
+            <i class="icon-cancel"></i>
+        </button>
+    </div>
+</section>
+        <header class="header">
+    <div class="header-logo">
+        <a class="header-logo__img" href="https://scylladb.com/">
+            <img src="../_static/img/scylladb-logo-horizontal.svg" alt="ScyllaDB Documentation Logo" />
+        </a>
+        <span class="header-logo__bar"></span>
+        <a class="header-logo__text" href="https://docs.scylladb.com/">
+            Documentation
+        </a>
+    </div>
+    <div class="header-navigation">
+        <ul class="dropdown menu scylla-dropdown scylla-dropdown--header" data-dropdown-menu>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Deployments <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/scylla-cloud/">
+                            <i class="icon-docs-cloud"></i>Cloud</a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/manual/">
+                            <i class="icon-server"></i>Server</a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Tools <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://manager.docs.scylladb.com/">
+                            <i class="icon-docs-manager"></i>ScyllaDB Manager</a>
+                    </li>
+                    <li>
+                        <a href="https://monitoring.docs.scylladb.com/">
+                            <i class="icon-docs-monitoring"></i>ScyllaDB
+                            Monitoring Stack</a>
+                    </li>
+                    <li>
+                        <a href="https://operator.docs.scylladb.com/">
+                            <i class="icon-docs-operator"></i>ScyllaDB Operator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Drivers <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/cql-drivers">
+                            <i class="icon-docs-nsql-guides"></i>CQL Drivers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/dynamo-drivers">
+                            <i class="icon-docs-alternator"></i>DynamoDB Drivers
+                        </a>
+
+                        <li>
+                            <a href="https://docs.scylladb.com/stable/versioning/driver-support">
+                                <i class="icon-docs-blog"></i>Supported Driver Versions
+                            </a>
+                        </li>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Resources
+                    <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://university.scylladb.com">
+                            <i class="icon-university"></i>
+                            ScyllaDB University
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://forum.scylladb.com">
+                            <i class="icon-docs-community"></i>
+                            Community Forum
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html">
+                            <i class="icon-docs-training"></i>
+                            Tutorials
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <div class="header-button">
+            <a href="https://docs.scylladb.com/manual/stable/getting-started/installation-common/scylla-web-installer.html" class="button"><i class="icon-download me-2"></i> Install</a>
+        </div>
+    </div>
+    <div class="header-search-box">
+        <i class="dark-theme-toggler icon-theme"></i>
+        <div class="search-box">
+            <ci-search></ci-search>
+        </div>
+        
+            <biel-button class="header-ask-ai" project="ddfdo8m94k"
+                         header-title="ScyllaDB chatbot (beta)"
+                         button-position="default"
+                         modal-position="bottom-right"
+                         button-style="dark">
+                Ask AI
+            </biel-button>
+        
+    </div>
+    <div class="side-nav-toggle">
+    <i class="dark-theme-toggler icon-theme"></i>
+    <div class="side-nav-toggle__button" data-toggle="side-nav">
+        <i class="icon-menu"></i>
+    </div>
+</div>
+</header>
+        <div class="title"></div>
+        <section
+            class="layout  layout--sidebar layout--has-secondary-sidebar ">
+            <div class="content large-order-2">
+                
+                    <div class="pre-content">
+                        <div class="breadcrumbs">
+    <span class="bread__item">
+        <a href="https://docs.scylladb.com"
+           class="bread__highlight">
+            <i class="icon-home"></i> ScyllaDB Docs
+        </a>
+    </span>
+    <span class="bread__item">
+        <a href="../index.html"
+           class="bread__highlight">
+            Scylla Manager
+        </a>
+    </span>
+    
+        <span class="bread__item">
+            <a href="index.html" class="bread__highlight">
+                Backup
+            </a>
+        </span>
+    
+    <span class="bread__item bread__item--last">Setup Google Cloud Storage</span>
+</div>
+                    </div>
+                
+                
+                    <div class="sidebar-right-layout">
+                        <div class="body-container">
+                
+
+                <div class="content-body">
+                    
+                        
+    <div class="admonition caution">
+        <p class="admonition-title">Caution</p>
+        <p>
+            
+                You're viewing documentation for an unstable version of Scylla Manager.
+            
+            <a href="../../stable/backup/setup-gcs.html">Switch to the latest stable version.</a>
+        </p>
+    </div>
+
+                    
+
+                    <section id="setup-google-cloud-storage">
+<h1>Setup Google Cloud Storage<a class="headerlink" href="#setup-google-cloud-storage" title="Link to this heading">¶</a></h1>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#create-a-bucket" id="id1">Create a bucket</a></p></li>
+<li><p><a class="reference internal" href="#grant-access" id="id2">Grant access</a></p>
+<ul>
+<li><p><a class="reference internal" href="#automatic-service-account-authorization" id="id3">Automatic service account authorization</a></p></li>
+<li><p><a class="reference internal" href="#service-account-file" id="id4">Service account file</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#additional-features" id="id5">Additional features</a></p></li>
+<li><p><a class="reference internal" href="#troubleshoot-connectivity" id="id6">Troubleshoot connectivity</a></p></li>
+</ul>
+</nav>
+<section id="create-a-bucket">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Create a bucket</a><a class="headerlink" href="#create-a-bucket" title="Link to this heading">¶</a></h2>
+<p>Go to <a class="reference external" href="https://cloud.google.com/storage">Google Cloud Storage</a> and create a new bucket in a region where Scylla nodes are.
+If your cluster is deployed in multiple regions create a bucket per region.
+You may decide to backup only a single datacenter to save on costs, in that case create only one bucket in a region you want to backup.</p>
+</section>
+<section id="grant-access">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Grant access</a><a class="headerlink" href="#grant-access" title="Link to this heading">¶</a></h2>
+<p>This procedure is required so that Scylla Manager can access your bucket.</p>
+<p>Choose how you want to configure access to the bucket.
+If your application runs inside a Google Cloud environment we recommend using automatic Service account authentication.
+Otherwise you can add your credentials to the agent configuration file.
+The later method is less secure as you will be propagating each node with this security information and in cases where you need to change the key, you will have to replace it on each node.</p>
+<section id="automatic-service-account-authorization">
+<h3><a class="toc-backref" href="#id3" role="doc-backlink">Automatic service account authorization</a><a class="headerlink" href="#automatic-service-account-authorization" title="Link to this heading">¶</a></h3>
+<p><strong>Procedure</strong></p>
+<ol class="arabic simple">
+<li><p>Collect list of <a class="reference external" href="https://cloud.google.com/compute/docs/access/service-accounts">service accounts</a> used by <strong>each</strong> of the Scylla nodes.</p></li>
+<li><p>Make sure that each of service account has read/write <a class="reference external" href="https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam">access scope</a> to Cloud Storage.</p></li>
+<li><p>For each service account from the list, add <a class="reference external" href="https://cloud.google.com/storage/docs/access-control/iam-roles">Storage Object Admin role</a> in bucket permissions settings.</p></li>
+</ol>
+</section>
+<section id="service-account-file">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">Service account file</a><a class="headerlink" href="#service-account-file" title="Link to this heading">¶</a></h3>
+<p>Note that this procedure needs to be repeated for each Scylla node.</p>
+<p><strong>Prerequisites</strong></p>
+<p>Use <a class="reference external" href="https://cloud.google.com/docs/authentication/production#manually">this instruction</a> to get the service account file.</p>
+<p><strong>Procedure</strong></p>
+<ol class="arabic">
+<li><p>Upload service account file to <code class="docutils literal notranslate"><span class="pre">/etc/scylla-manager-agent/gcs-service-account.json</span></code>.
+If you want to use different path change service_account_file parameter in <code class="docutils literal notranslate"><span class="pre">gcs</span></code> section in <a class="reference internal" href="../config/scylla-manager-agent-config.html"><span class="doc">Scylla Manager Agent Config file</span></a>.</p></li>
+<li><p>Validate that the manager has access to the backup location.
+If there is no response, the bucket is accessible. If not, you will see an error.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>scylla-manager-agent check-location --location gcs:&lt;your GCS bucket name&gt;
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+<section id="additional-features">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Additional features</a><a class="headerlink" href="#additional-features" title="Link to this heading">¶</a></h2>
+<p>You can enable additional Google Cloud Storage features such as <strong>storage class</strong> or <strong>endpoint</strong>.
+Those need to be enabled on per Agent basis in the configuration file.
+Check out the <code class="docutils literal notranslate"><span class="pre">gcs</span></code> section in <a class="reference internal" href="../config/scylla-manager-agent-config.html"><span class="doc">ScyllaDB Manager Agent Config file</span></a>.</p>
+</section>
+<section id="troubleshoot-connectivity">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Troubleshoot connectivity</a><a class="headerlink" href="#troubleshoot-connectivity" title="Link to this heading">¶</a></h2>
+<p>To troubleshoot Node to bucket connectivity issues you can run:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>scylla-manager-agent check-location --debug --location gcs:&lt;your GCS bucket name&gt;
+</pre></div>
+</div>
+</section>
+</section>
+
+                </div>
+                
+                    <div class="post-content">
+                        
+    <div class="feedback-container">
+        <p class="feedback-container__title">Was this page helpful?</p>
+        <span data-tooltip tabindex="1" title="Yes" data-position="top">
+            <button class="feedback-container__button" id="feedback-positive">
+                <i class="feedback-container__icon icon-docs-thumbs-up"></i>
+            </button>
+        </span>
+        <span data-tooltip tabindex="1" title="No" data-position="top">
+            <button class="feedback-container__button" id="feedback-negative">
+                <i class="feedback-container__icon icon-docs-thumbs-down"></i>
+            </button>
+        </span>
+        <div class="feedback-container__message" id="feedback-message"></div>
+    </div>
+
+    <script>
+        function resetFeedbackButtonActive() {
+            const feedbackButtons = document.getElementsByClassName('feedback-container__button');
+            for (let i = 0; i < feedbackButtons.length; i++) {
+                feedbackButtons[i].classList.remove('active');
+            }
+        }
+
+        function showMessage(liked) {
+            const feedbackMessage = document.getElementById('feedback-message');
+            const themeGithubRepository = true;
+            let message = 'Great! Thanks for your feedback.';
+            if (themeGithubRepository && !liked) {
+                message = "Thanks for your feedback! Please don't hesitate to <a href='https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Setup Google Cloud Storage&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/master/backup/setup-gcs%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation'>create an issue</a> if you have any suggestions on how we can improve.";
+            }
+            feedbackMessage.innerHTML = message;
+        }
+
+        function sendGaEvent(liked) {
+            const event_label = liked ? "positive" : "negative";
+            const event = "feedback_" + event_label;
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': event,
+            });
+        }
+
+        const positiveFeebackButton = document.getElementById('feedback-positive');
+        const negativeFeedbackButton = document.getElementById('feedback-negative');
+
+        positiveFeebackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(true);
+            showMessage(true);
+            positiveFeebackButton.classList.add('active');
+        });
+
+        negativeFeedbackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(false);
+            showMessage(false);
+            negativeFeedbackButton.classList.add('active');
+        });
+    </script>
+
+                        <div class="content-navigation">
+    <div class="navigation navigation--prev">
+        
+            <a class="navigation__link" href="setup-s3-compatible-storage.html">
+                <button class="navigation__button">
+                    <i class="icon-chevron-left"></i>
+                </button>
+                <div class="navigation__title">
+                    <span class="colored">PREVIOUS</span> <br />Setup S3 compatible storage
+                </div>
+            </a>
+        
+    </div>
+    <div class="navigation navigation--next">
+        
+            <a class="navigation__link" href="setup-azure-blobstorage.html">
+                <div class="navigation__title">
+                    <span class="colored">NEXT</span> <br />Setup Azure Blob Storage
+                </div>
+                <button class="navigation__button">
+                    <i class="icon-chevron-right"></i>
+                </button>
+            </a>
+        
+    </div>
+</div>
+                        <!-- Post content text -->
+                    </div>
+                
+
+                
+                    </div>
+                    <div class="sidebar-right large-order-3">
+                        <div class="secondary-side-nav custom-scroll-bar">
+    
+    <ul class="contribute">
+        <li class="contribute__item">
+            <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Setup Google Cloud Storage&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/master/backup/setup-gcs%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation"
+               target="_blank">
+                <i class="icon-github" aria-hidden="true"></i>Create an issue
+            </a>
+        </li>
+        
+            <li class="contribute__item">
+                <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/edit/master/docs/source/backup/setup-gcs.rst"
+                   target="_blank">
+                    <i class="icon-edit" aria-hidden="true"></i>Edit this page
+                </a>
+            </li>
+        
+    </ul>
+
+    
+        <div class="secondary-side-nav__content">
+            <p class="topic-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Setup Google Cloud Storage</a><ul>
+<li><a class="reference internal" href="#create-a-bucket">Create a bucket</a></li>
+<li><a class="reference internal" href="#grant-access">Grant access</a><ul>
+<li><a class="reference internal" href="#automatic-service-account-authorization">Automatic service account authorization</a></li>
+<li><a class="reference internal" href="#service-account-file">Service account file</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#additional-features">Additional features</a></li>
+<li><a class="reference internal" href="#troubleshoot-connectivity">Troubleshoot connectivity</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+    
+</div>
+                    </div>
+                    </div>
+                
+            </div>
+            <div class="sidebar-left  large-order-1">
+                
+                    
+                        <div id="side-nav" class="side-nav custom-scroll-bar" data-closable data-toggler=".show">
+    <button class="collapsible-button">
+        <i class="icon-docs-menu-collapse"></i>
+    </button>
+    <div class="side-nav-content custom-scroll-bar">
+        <div class="side-nav__title">
+            <a href="../index.html">Scylla Manager</a>
+        </div>
+        <div class="side-nav__search">
+            <div class="search-box">
+                <ci-search></ci-search>
+            </div>
+        </div>
+        <div class="side-nav__versions"><ul class="dropdown menu scylla-dropdown scylla-dropdown--versions" data-dropdown-menu>
+    <li class="scylla-dropdown__item">
+        <a class="scylla-dropdown__title" href="#">
+            
+                master
+            
+            <i class="chevron icon-docs-chevron-right"></i>
+        </a>
+        <ul class="menu scylla-dropdown__content">
+            
+                
+                    <li>
+                        <a href="setup-gcs.html">master</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../stable/backup/setup-gcs.html">3.8</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.7/backup/setup-gcs.html">3.7</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.6/backup/setup-gcs.html">3.6</a>
+                    </li>
+                
+            
+            
+        </ul>
+    </li>
+</ul></div>
+        <div class="side-nav__content">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../docker/index.html">Docker</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager.html">Install ScyllaDB Manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager-agent.html">Install ScyllaDB Manager Agent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../upgrade/index.html">ScyllaDB Manager Upgrade</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility-matrix.html">Compatibility Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../add-a-cluster.html">Add a Cluster</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Backup</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="icon-chevron-right"></i></label><div class="break"></div><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="setup-amazon-s3.html">Setup Amazon S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup-s3-compatible-storage.html">Setup S3 compatible storage</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Setup Google Cloud Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup-azure-blobstorage.html">Setup Azure Blob Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="native-backup.html">Native Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="specification.html">Specification</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../restore/index.html">Restore</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../restore/restore-tables.html">Restore tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/restore-schema.html">Restore schema for ScyllaDB 6.0/2024.2 or newer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/old-restore-schema.html">Restore schema for ScyllaDB 5.4/2024.1 or older</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../repair/index.html">Repair</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label for="toctree-checkbox-3"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-faster.html">Repair faster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-slower.html">Repair slower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../health-check.html">Health Check</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sctool/index.html">CLI sctool</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label for="toctree-checkbox-4"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/global-flags-and-variables.html">Environment variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/completion.html">Completion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/download-files.html">Download files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/backup.html">Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/restore.html">Restore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/cluster.html">Cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/info.html">Info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/progress.html">Progress</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/repair.html">Repair</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/start.html">Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/status.html">Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/stop.html">Stop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/suspend-resume.html">Suspend &amp; Resume</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/task.html">Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/version.html">Version</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../config/index.html">Configuration Files</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label for="toctree-checkbox-5"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-config.html">Scylla Manager Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-agent-config.html">Scylla Manager Agent Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../swagger/index.html">Swagger File</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../scylla-monitoring.html">ScyllaDB Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://scylladb-users.slack.com/archives/C01ERVBPWLU">Slack</a></li>
+</ul>
+
+        </div>
+    </div>
+</div>
+                    
+                
+            </div>
+
+        </section>
+
+        <footer class="footer">
+    <div class="footer-group">
+        <div class="footer-top">
+            <a class="footer-logo" href="https://www.scylladb.com"></a>
+            <div class="footer-links">
+                <a class="footer-links__link" href="https://docs.scylladb.com/" target="_blank">Docs</a>
+                <a class="footer-links__link" href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html" target="_blank">Tutorials</a>
+                <a class="footer-links__link" href="https://university.scylladb.com/" target="_blank">University</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/contact-us/"
+                   target="_blank">Contact Us</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/" target="_blank">About Us</a>
+            </div>
+            <div class="footer-actions">
+                <a class="footer-actions__link" href="http://slack.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="User Slack channel" data-position="bottom">
+                        <i class="icon-slack"></i>
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="https://forum.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="Community forum" data-position="bottom">
+                        <i class="icon-docs-community"></i>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        
+            <div class="footer-copyright">
+                
+                    
+                        &#169; 2026, ScyllaDB. All rights reserved.
+                    
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/tos/" target="_blank">Terms of Service</a>
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/privacy/" target="_blank">Privacy Policy</a>
+                    | ScyllaDB, and ScyllaDB Cloud, are registered trademarks of ScyllaDB, Inc.
+                
+            </div>
+        
+
+
+        <div class="footer-bottom">
+            
+                <div class="footer-bottom__last-updated">
+                    
+                        Last updated on 13 February 2026.
+                    
+                </div>
+            
+            <div class="footer-bottom__version">
+                Powered by
+                <a class="footer-bottom__link" href="http://sphinx-doc.org/">Sphinx 7.4.7</a> &amp;
+                <a class="footer-bottom__link" href="https://sphinx-theme.scylladb.com/">ScyllaDB Theme 1.8.10</a>
+            </div>
+        </div>
+    </div>
+    
+        <biel-button class="footer-ask-ai" project="ddfdo8m94k"
+                     header-title="ScyllaDB chatbot (beta)"
+                     button-position="bottom-right"
+                     modal-position="bottom-right"
+                     button-style="dark">
+            Ask AI
+        </biel-button>
+    
+</footer>
+
+        <noscript>
+            <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8P2JP" height="0" width="0"
+                    style="display: none; visibility: hidden"></iframe>
+        </noscript>
+    </body>
+
+</html>

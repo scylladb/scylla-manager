@@ -1,0 +1,1573 @@
+
+
+<!DOCTYPE html>
+<html class="no-js" lang="en" style="visibility: hidden;">
+    
+    
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width initial-scale=1" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>
+             Restore | ScyllaDB Docs 
+        </title>
+        <meta name="description" content="ScyllaDB is an Apache Cassandra-compatible NoSQL data store that can handle 1 million transactions per second on a single server." />
+        <link rel="icon" href="../_static/img/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="../_static/img/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" href="../_static/img/favicon-228x228.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="../_static/img/favicon-228x228.png" />
+        <meta name="msapplication-TileImage" href="../_static/img/favicon-228x228.png" />
+
+        
+            
+            
+        
+
+        
+            
+            <link rel="canonical" href="https://manager.docs.scylladb.com/stable/sctool/restore.html"/>
+        
+
+        <link rel="author" href="mailto:info@scylladb.com" />
+
+        
+            
+        <!-- increase expertrec loading priority-->
+        <link rel="dns-prefetch" href="https://cse.expertrec.com">
+
+        <!-- increase font loading priority -->
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preload" as="style"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- async CSS -->
+        <link rel="stylesheet" media="print" onload="this.onload=null;this.removeAttribute('media');"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- no-JS fallback -->
+        <noscript>
+            <link rel="stylesheet"
+                  href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+        </noscript>
+
+        
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.css">
+            <script type="module" src="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.esm.js"></script>
+        
+
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/css/main.css?v=0ebb4bd5" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/sphinx_collapse.css?v=226d88b4" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+            
+        
+    
+        
+        
+            
+        <script type="text/javascript" src="../_static/js/runtime.bundle.js"></script>
+        <script type="text/javascript" src="../_static/js/main.bundle.js"></script>
+        
+            
+                <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+            
+        
+            
+                <script src="../_static/doctools.js?v=9a2dae69"></script>
+            
+        
+            
+                <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+            
+        
+            
+                <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+            
+        
+            
+                <script src="../_static/copybutton.js?v=f281be69"></script>
+            
+        
+    
+            
+                <meta name='zd-site-verification' content='jiigc536se3g139312rad' />
+            
+            
+                <!-- Google Tag Manager docs -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-54NWVS4");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager global -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-T8P2JP");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Expertrec -->
+<script>
+    var id = "e2077224-9ccf-11e9-a0c9-0242ac130002";
+    var ci_search = document.createElement("script");
+    ci_search.type = "text/javascript";
+    ci_search.async = true;
+    ci_search.src = "https://cse.expertrec.com/api/js/ci_common.js?id=" + id;
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(ci_search, s);
+</script>
+<!-- End Expertrec -->
+            
+        
+    </head>
+
+    <body class="brand-product">
+        <section class="promo-banner  promo-banner--hide" style="display: none;">
+    <div class="promo-banner-wrapper">
+        <div class="promo-banner__content">
+            
+            <div class="promo-banner__title">ScyllaDB University Live | Free Virtual Training Event</div>
+            <a class="promo-banner__button button button--reverse" href="#"
+               target="_blank" rel="noopener noreferrer">Learn more</a>
+        </div>
+        <button class="promo-banner__close">
+            <i class="icon-cancel"></i>
+        </button>
+    </div>
+</section>
+        <header class="header">
+    <div class="header-logo">
+        <a class="header-logo__img" href="https://scylladb.com/">
+            <img src="../_static/img/scylladb-logo-horizontal.svg" alt="ScyllaDB Documentation Logo" />
+        </a>
+        <span class="header-logo__bar"></span>
+        <a class="header-logo__text" href="https://docs.scylladb.com/">
+            Documentation
+        </a>
+    </div>
+    <div class="header-navigation">
+        <ul class="dropdown menu scylla-dropdown scylla-dropdown--header" data-dropdown-menu>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Deployments <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/scylla-cloud/">
+                            <i class="icon-docs-cloud"></i>Cloud</a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/manual/">
+                            <i class="icon-server"></i>Server</a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Tools <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://manager.docs.scylladb.com/">
+                            <i class="icon-docs-manager"></i>ScyllaDB Manager</a>
+                    </li>
+                    <li>
+                        <a href="https://monitoring.docs.scylladb.com/">
+                            <i class="icon-docs-monitoring"></i>ScyllaDB
+                            Monitoring Stack</a>
+                    </li>
+                    <li>
+                        <a href="https://operator.docs.scylladb.com/">
+                            <i class="icon-docs-operator"></i>ScyllaDB Operator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Drivers <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/cql-drivers">
+                            <i class="icon-docs-nsql-guides"></i>CQL Drivers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/dynamo-drivers">
+                            <i class="icon-docs-alternator"></i>DynamoDB Drivers
+                        </a>
+
+                        <li>
+                            <a href="https://docs.scylladb.com/stable/versioning/driver-support">
+                                <i class="icon-docs-blog"></i>Supported Driver Versions
+                            </a>
+                        </li>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Resources
+                    <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://university.scylladb.com">
+                            <i class="icon-university"></i>
+                            ScyllaDB University
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://forum.scylladb.com">
+                            <i class="icon-docs-community"></i>
+                            Community Forum
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html">
+                            <i class="icon-docs-training"></i>
+                            Tutorials
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <div class="header-button">
+            <a href="https://docs.scylladb.com/manual/stable/getting-started/installation-common/scylla-web-installer.html" class="button"><i class="icon-download me-2"></i> Install</a>
+        </div>
+    </div>
+    <div class="header-search-box">
+        <i class="dark-theme-toggler icon-theme"></i>
+        <div class="search-box">
+            <ci-search></ci-search>
+        </div>
+        
+            <biel-button class="header-ask-ai" project="ddfdo8m94k"
+                         header-title="ScyllaDB chatbot (beta)"
+                         button-position="default"
+                         modal-position="bottom-right"
+                         button-style="dark">
+                Ask AI
+            </biel-button>
+        
+    </div>
+    <div class="side-nav-toggle">
+    <i class="dark-theme-toggler icon-theme"></i>
+    <div class="side-nav-toggle__button" data-toggle="side-nav">
+        <i class="icon-menu"></i>
+    </div>
+</div>
+</header>
+        <div class="title"></div>
+        <section
+            class="layout  layout--sidebar layout--has-secondary-sidebar ">
+            <div class="content large-order-2">
+                
+                    <div class="pre-content">
+                        <div class="breadcrumbs">
+    <span class="bread__item">
+        <a href="https://docs.scylladb.com"
+           class="bread__highlight">
+            <i class="icon-home"></i> ScyllaDB Docs
+        </a>
+    </span>
+    <span class="bread__item">
+        <a href="../index.html"
+           class="bread__highlight">
+            Scylla Manager
+        </a>
+    </span>
+    
+        <span class="bread__item">
+            <a href="index.html" class="bread__highlight">
+                CLI sctool
+            </a>
+        </span>
+    
+    <span class="bread__item bread__item--last">Restore</span>
+</div>
+                    </div>
+                
+                
+                    <div class="sidebar-right-layout">
+                        <div class="body-container">
+                
+
+                <div class="content-body">
+                    
+                        
+    <div class="admonition caution">
+        <p class="admonition-title">Caution</p>
+        <p>
+            
+                You're viewing documentation for a previous version of Scylla Manager.
+            
+            <a href="../../stable/sctool/restore.html">Switch to the latest stable version.</a>
+        </p>
+    </div>
+
+                    
+
+                    <section id="restore">
+<h1>Restore<a class="headerlink" href="#restore" title="Link to this heading">¶</a></h1>
+<p>The restore commands allow you to create and update a restore (ad-hoc or scheduled).</p>
+<section id="sctool-restore">
+<span id="id1"></span><h2>restore<a class="headerlink" href="#sctool-restore" title="Link to this heading">¶</a></h2>
+<p>This command allows you to run an ad-hoc restore.
+Restore is always one of two types: restore schema (’–restore-schema’ flag) or restore tables’ contents (’–restore-tables’ flag).
+In both cases, for the restore effects to be visible, you need to perform
+a specific follow-up action described by selected type.</p>
+<section id="syntax">
+<h3>Syntax<a class="headerlink" href="#syntax" title="Link to this heading">¶</a></h3>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool restore --cluster &lt;id|name&gt; --location [&lt;dc&gt;:]&lt;provider&gt;:&lt;bucket&gt; --snapshot-tag &lt;tag&gt; [flags]
+</pre></div>
+</div>
+</section>
+<section id="command-options">
+<h3>Command options<a class="headerlink" href="#command-options" title="Link to this heading">¶</a></h3>
+<section id="allow-compaction">
+<h4><code class="docutils literal notranslate"><span class="pre">--allow-compaction</span></code><a class="headerlink" href="#allow-compaction" title="Link to this heading">¶</a></h4>
+<p>Defines if auto compactions should be running on Scylla nodes during restore.
+Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="batch-size">
+<h4><code class="docutils literal notranslate"><span class="pre">--batch-size</span></code><a class="headerlink" href="#batch-size" title="Link to this heading">¶</a></h4>
+<p>Number of SSTables per shard to process in one request by one node.
+Increasing the default batch size might significantly increase restore performance, as only one shard can work on restoring a single SSTable bundle.
+Set to 0 for best performance (batches will contain sstables of total size up to 5% of expected total node workload).</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">2</span></code></p>
+</section>
+<section id="c-cluster">
+<h4><code class="docutils literal notranslate"><span class="pre">-c,</span> <span class="pre">--cluster</span></code><a class="headerlink" href="#c-cluster" title="Link to this heading">¶</a></h4>
+<p>The target cluster <cite>name or ID</cite> (envvar SCYLLA_MANAGER_CLUSTER).</p>
+</section>
+<section id="cron">
+<h4><code class="docutils literal notranslate"><span class="pre">--cron</span></code><a class="headerlink" href="#cron" title="Link to this heading">¶</a></h4>
+<p>Task schedule as a cron <cite>expression</cite>.
+It supports the extended syntax including &#64;monthly, &#64;weekly, &#64;daily, &#64;midnight, &#64;hourly, &#64;every X[h|m|s].</p>
+</section>
+<section id="dc-mapping">
+<h4><code class="docutils literal notranslate"><span class="pre">--dc-mapping</span></code><a class="headerlink" href="#dc-mapping" title="Link to this heading">¶</a></h4>
+<p>Specifies mapping between DCs from the backup and DCs in the restored(target) cluster.</p>
+<p>The Syntax is “source_dc1=target_dc1,source_dc2=target_dc2” where multiple mappings are separated by comma (,)
+and source and target DCs are separated by equal (=).</p>
+<p>Example: “dc1=dc3,dc2=dc4” - data from dc1 should be restored to dc3 and data from dc2 should be restored to dc4.</p>
+<p>Only works with tables restoration (–restore-tables=true). 
+Note: Only DCs that are provided in mappings will be restored.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="dry-run">
+<h4><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code><a class="headerlink" href="#dry-run" title="Link to this heading">¶</a></h4>
+<p>Validates and displays restore information without actually running the restore.
+This allows you to display what will happen should the restore run with the parameters you set.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="enabled">
+<h4><code class="docutils literal notranslate"><span class="pre">--enabled</span></code><a class="headerlink" href="#enabled" title="Link to this heading">¶</a></h4>
+<p>Not enabled tasks are not executed and are hidden from the task list.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+</section>
+<section id="h-help">
+<h4><code class="docutils literal notranslate"><span class="pre">-h,</span> <span class="pre">--help</span></code><a class="headerlink" href="#h-help" title="Link to this heading">¶</a></h4>
+<p>help for restore</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="i-interval">
+<h4><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span></code><a class="headerlink" href="#i-interval" title="Link to this heading">¶</a></h4>
+<p>–interval is deprecated, please use <cite>–cron</cite> instead</p>
+<p>Time after which a successfully completed task would be run again. The supported units are:</p>
+<ul class="simple">
+<li><p>‘d’ - days</p></li>
+<li><p>‘h’ - hours</p></li>
+<li><p>‘m’ - minutes</p></li>
+<li><p>‘s’ - seconds</p></li>
+<li><p>‘ms’ - milliseconds</p></li>
+</ul>
+<p>The task run date is aligned with ‘–start date’ value.
+For example, if you select ‘–interval 7d’ task would run weekly at the ‘–start-date’ time.</p>
+</section>
+<section id="k-keyspace">
+<h4><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span></code><a class="headerlink" href="#k-keyspace" title="Link to this heading">¶</a></h4>
+<p>A list of <cite>glob</cite> patterns separated by a comma used to include or exclude tables.
+The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. ‘keyspace,!keyspace.table_prefix_*’.
+The following syntax for glob patterns is supported:</p>
+<ul class="simple">
+<li><p>‘*’ - matches any number of any characters including none</p></li>
+<li><p>‘?’ - matches any single character</p></li>
+<li><p>‘[abc]’ - matches one character given in the bracket</p></li>
+<li><p>‘[a-z]’ - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with ‘!’ it unselects items that were selected by previous patterns i.e. ‘a?,!aa’ selects <em>ab</em> but not <em>aa</em>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="label">
+<h4><code class="docutils literal notranslate"><span class="pre">--label</span></code><a class="headerlink" href="#label" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of label modifications. Labels are represented as a key-value store.
+Character ‘=’ has a special meaning and cannot be a part of label’s key nor value.
+A single modification takes form of:
+* ‘&lt;key&gt;=&lt;value&gt;’ - sets the label &lt;key&gt; to &lt;value&gt;
+* ‘&lt;key&gt;-’        - removes the label</p>
+<p>For example, ‘–label k1=v1,k2-’ will set the label ‘k1’ to ‘v1’ and will also remove label ‘k2’.</p>
+</section>
+<section id="l-location">
+<h4><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span></code><a class="headerlink" href="#l-location" title="Link to this heading">¶</a></h4>
+<p>A list of backup locations separated by a comma, specifies places where restored backup is stored.</p>
+<p>The format is <cite>[&lt;dc&gt;:]&lt;provider&gt;:&lt;bucket&gt;</cite>.
+The <cite>&lt;dc&gt;</cite> parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
+from this location in a multi-dc setting, it must match Scylla nodes datacenter.
+By default, all live nodes are used to restore data from specified locations.
+If <cite>–dc-mapping</cite> is used, then <cite>&lt;dc&gt;</cite> parameter will be ignored.</p>
+<p>Note that specifying datacenters closest to backup locations might reduce download time of restored data.
+The supported storage ‘&lt;provider&gt;’s are ‘azure’, ‘gcs’, ‘s3’.
+The <cite>&lt;bucket&gt;</cite> parameter is a bucket name, it must be an alphanumeric string and <strong>may contain a dash and or a dot, but other characters are forbidden</strong>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="name">
+<h4><code class="docutils literal notranslate"><span class="pre">--name</span></code><a class="headerlink" href="#name" title="Link to this heading">¶</a></h4>
+<p>Task name that can be used instead of ID.</p>
+</section>
+<section id="r-num-retries">
+<h4><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span></code><a class="headerlink" href="#r-num-retries" title="Link to this heading">¶</a></h4>
+<p>Number of times a task reruns following a failure.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">3</span></code></p>
+</section>
+<section id="parallel">
+<h4><code class="docutils literal notranslate"><span class="pre">--parallel</span></code><a class="headerlink" href="#parallel" title="Link to this heading">¶</a></h4>
+<p>The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
+Each node can take part in at most one restore at any given moment.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">0</span></code></p>
+</section>
+<section id="rate-limit">
+<h4><code class="docutils literal notranslate"><span class="pre">--rate-limit</span></code><a class="headerlink" href="#rate-limit" title="Link to this heading">¶</a></h4>
+<p>Limits the download rate (as expressed in  megabytes (MiB) per second) at which sstables can be downloaded from backup location to Scylla nodes.
+You can set limits for more than one DC using a comma-separated list expressed in the format <cite>[&lt;dc&gt;:]&lt;limit&gt;</cite>.
+The &lt;dc&gt;: part is optional and is only needed when different datacenters require different download limits.
+Set to 0 for no limit (default 0).</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="restore-schema">
+<h4><code class="docutils literal notranslate"><span class="pre">--restore-schema</span></code><a class="headerlink" href="#restore-schema" title="Link to this heading">¶</a></h4>
+<p>Specifies restore type (alternative to ‘–restore-tables’ flag).
+Restore will recreate schema by applying the backed up output of DESCRIBE SCHEMA WITH INTERNALS via CQL.
+It requires that restored keyspaces aren’t present in the cluster.
+For the full list of prerequisites, please see <a class="reference external" href="https://manager.docs.scylladb.com/stable/restore/restore-schema.html">https://manager.docs.scylladb.com/stable/restore/restore-schema.html</a>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="restore-tables">
+<h4><code class="docutils literal notranslate"><span class="pre">--restore-tables</span></code><a class="headerlink" href="#restore-tables" title="Link to this heading">¶</a></h4>
+<p>Specifies restore type (alternative to ‘–restore-schema’ flag).
+Restore will recreate contents of tables specified by ‘–keyspace’ flag.
+It requires that correct schema of restored tables is already present in the cluster (schema can be restored using ‘–restore-schema’ flag).
+Moreover, in order to prevent situation in which current tables’ contents overlaps restored data,
+tables should be truncated before initializing restore.
+For the full list of prerequisites, please see <a class="reference external" href="https://manager.docs.scylladb.com/stable/restore/restore-tables.html">https://manager.docs.scylladb.com/stable/restore/restore-tables.html</a>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="retry-wait">
+<h4><code class="docutils literal notranslate"><span class="pre">--retry-wait</span></code><a class="headerlink" href="#retry-wait" title="Link to this heading">¶</a></h4>
+<p>Initial exponential backoff <cite>duration</cite> X[h|m|s].
+With –retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">10m</span></code></p>
+</section>
+<section id="show-tables">
+<h4><code class="docutils literal notranslate"><span class="pre">--show-tables</span></code><a class="headerlink" href="#show-tables" title="Link to this heading">¶</a></h4>
+<p>Prints table names together with keyspace, used in combination with –dry-run.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="t-snapshot-tag">
+<h4><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span></code><a class="headerlink" href="#t-snapshot-tag" title="Link to this heading">¶</a></h4>
+<p>Scylla Manager snapshot tag identifying restored backup.
+Snapshot tags can be obtained from backup listing (‘./sctool backup list’ command - e.g. sm_20060102150405UTC).</p>
+</section>
+<section id="s-start-date">
+<h4><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span></code><a class="headerlink" href="#s-start-date" title="Link to this heading">¶</a></h4>
+<p>The date can be expressed relatively to now or as a RFC3339 formatted string.
+To run the task in 2 hours use ‘now+2h’. The supported units are:</p>
+<ul class="simple">
+<li><p>‘d’ - days</p></li>
+<li><p>‘h’ - hours</p></li>
+<li><p>‘m’ - minutes</p></li>
+<li><p>‘s’ - seconds</p></li>
+<li><p>‘ms’ - milliseconds</p></li>
+</ul>
+<p>If you want the task to start at a specified date use RFC3339 formatted string i.e. ‘2018-01-02T15:04:05-07:00’.
+If you want the repair to start immediately, use the value ‘now’ or skip this flag.</p>
+</section>
+<section id="timezone">
+<h4><code class="docutils literal notranslate"><span class="pre">--timezone</span></code><a class="headerlink" href="#timezone" title="Link to this heading">¶</a></h4>
+<p>Timezone of –cron and –window flag values.
+The default value is taken from this system, namely ‘TZ’ envvar or ‘/etc/localtime’ file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">UTC</span></code></p>
+</section>
+<section id="transfers">
+<h4><code class="docutils literal notranslate"><span class="pre">--transfers</span></code><a class="headerlink" href="#transfers" title="Link to this heading">¶</a></h4>
+<p>Sets the amount of file transfers to run in parallel when downloading files from backup location to Scylla node.
+Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
+Set to -1 for using the transfers value defined in node’s ‘scylla-manager-agent.yaml’ config file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">0</span></code></p>
+</section>
+<section id="unpin-agent-cpu">
+<h4><code class="docutils literal notranslate"><span class="pre">--unpin-agent-cpu</span></code><a class="headerlink" href="#unpin-agent-cpu" title="Link to this heading">¶</a></h4>
+<p>Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.
+This might significantly improve download speed at the cost of decreasing streaming speed.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="window">
+<h4><code class="docutils literal notranslate"><span class="pre">--window</span></code><a class="headerlink" href="#window" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of time markers in a form <cite>[WEEKDAY-]HH:MM</cite>.
+WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.</p>
+<ul class="simple">
+<li><p>‘MON-00:00,FRI-15:00’ - can be executed from Monday to Friday 3PM</p></li>
+<li><p>‘23:00,06:00’ - can be executed every night from 11PM to 6AM</p></li>
+<li><p>‘23:00,06:00,SAT-00:00,SUN-23:59’ - can be executed every night from 11PM to 6AM and all day during the weekend</p></li>
+</ul>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+<div class="sphinx_collapse docutils container">
+<input class="sphinx_collapse__input" id="e70dac2b-5b2b-40a4-aa45-a89b20b2cb38" name="e70dac2b-5b2b-40a4-aa45-a89b20b2cb38" type="checkbox"><label class="sphinx_collapse__label" for="e70dac2b-5b2b-40a4-aa45-a89b20b2cb38"><i class="sphinx_collapse__icon"></i>Inherited Options</label><div class="sphinx_collapse__content docutils container">
+<p><code class="docutils literal notranslate"><span class="pre">--api-cert-file</span></code></p>
+<p>File <cite>path</cite> to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--api-key-file</span></code></p>
+<p>File <cite>path</cite> to HTTPS client key associated with –api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--api-url</span></code></p>
+<p>Base <cite>URL</cite> of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).</p>
+<p>If running sctool on the same machine as server, it’s generated based on ‘/etc/scylla-manager/scylla-manager.yaml’ file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:5080/api/v1</span></code></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="restore-update">
+<span id="id2"></span><h2>restore update<a class="headerlink" href="#restore-update" title="Link to this heading">¶</a></h2>
+<p>This command allows you to modify properties of an already existing restore task.
+If there is one restore task the ‘restore/task-id’ argument is not needed.</p>
+<section id="id3">
+<h3>Syntax<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool restore update --cluster &lt;id|name&gt; [flags] [&lt;restore/task-id&gt;]
+</pre></div>
+</div>
+</section>
+<section id="id4">
+<h3>Command options<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<section id="id5">
+<h4><code class="docutils literal notranslate"><span class="pre">--allow-compaction</span></code><a class="headerlink" href="#id5" title="Link to this heading">¶</a></h4>
+<p>Defines if auto compactions should be running on Scylla nodes during restore.
+Disabling auto compactions decreases restore time duration, but increases compaction workload after the restore is done.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id6">
+<h4><code class="docutils literal notranslate"><span class="pre">--batch-size</span></code><a class="headerlink" href="#id6" title="Link to this heading">¶</a></h4>
+<p>Number of SSTables per shard to process in one request by one node.
+Increasing the default batch size might significantly increase restore performance, as only one shard can work on restoring a single SSTable bundle.
+Set to 0 for best performance (batches will contain sstables of total size up to 5% of expected total node workload).</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">2</span></code></p>
+</section>
+<section id="id7">
+<h4><code class="docutils literal notranslate"><span class="pre">-c,</span> <span class="pre">--cluster</span></code><a class="headerlink" href="#id7" title="Link to this heading">¶</a></h4>
+<p>The target cluster <cite>name or ID</cite> (envvar SCYLLA_MANAGER_CLUSTER).</p>
+</section>
+<section id="id8">
+<h4><code class="docutils literal notranslate"><span class="pre">--cron</span></code><a class="headerlink" href="#id8" title="Link to this heading">¶</a></h4>
+<p>Task schedule as a cron <cite>expression</cite>.
+It supports the extended syntax including &#64;monthly, &#64;weekly, &#64;daily, &#64;midnight, &#64;hourly, &#64;every X[h|m|s].</p>
+</section>
+<section id="id9">
+<h4><code class="docutils literal notranslate"><span class="pre">--dc-mapping</span></code><a class="headerlink" href="#id9" title="Link to this heading">¶</a></h4>
+<p>Specifies mapping between DCs from the backup and DCs in the restored(target) cluster.</p>
+<p>The Syntax is “source_dc1=target_dc1,source_dc2=target_dc2” where multiple mappings are separated by comma (,)
+and source and target DCs are separated by equal (=).</p>
+<p>Example: “dc1=dc3,dc2=dc4” - data from dc1 should be restored to dc3 and data from dc2 should be restored to dc4.</p>
+<p>Only works with tables restoration (–restore-tables=true). 
+Note: Only DCs that are provided in mappings will be restored.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="id10">
+<h4><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code><a class="headerlink" href="#id10" title="Link to this heading">¶</a></h4>
+<p>Validates and displays restore information without actually running the restore.
+This allows you to display what will happen should the restore run with the parameters you set.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id11">
+<h4><code class="docutils literal notranslate"><span class="pre">--enabled</span></code><a class="headerlink" href="#id11" title="Link to this heading">¶</a></h4>
+<p>Not enabled tasks are not executed and are hidden from the task list.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+</section>
+<section id="id12">
+<h4><code class="docutils literal notranslate"><span class="pre">-h,</span> <span class="pre">--help</span></code><a class="headerlink" href="#id12" title="Link to this heading">¶</a></h4>
+<p>help for update</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id13">
+<h4><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span></code><a class="headerlink" href="#id13" title="Link to this heading">¶</a></h4>
+<p>–interval is deprecated, please use <cite>–cron</cite> instead</p>
+<p>Time after which a successfully completed task would be run again. The supported units are:</p>
+<ul class="simple">
+<li><p>‘d’ - days</p></li>
+<li><p>‘h’ - hours</p></li>
+<li><p>‘m’ - minutes</p></li>
+<li><p>‘s’ - seconds</p></li>
+<li><p>‘ms’ - milliseconds</p></li>
+</ul>
+<p>The task run date is aligned with ‘–start date’ value.
+For example, if you select ‘–interval 7d’ task would run weekly at the ‘–start-date’ time.</p>
+</section>
+<section id="id14">
+<h4><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span></code><a class="headerlink" href="#id14" title="Link to this heading">¶</a></h4>
+<p>A list of <cite>glob</cite> patterns separated by a comma used to include or exclude tables.
+The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. ‘keyspace,!keyspace.table_prefix_*’.
+The following syntax for glob patterns is supported:</p>
+<ul class="simple">
+<li><p>‘*’ - matches any number of any characters including none</p></li>
+<li><p>‘?’ - matches any single character</p></li>
+<li><p>‘[abc]’ - matches one character given in the bracket</p></li>
+<li><p>‘[a-z]’ - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with ‘!’ it unselects items that were selected by previous patterns i.e. ‘a?,!aa’ selects <em>ab</em> but not <em>aa</em>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="id15">
+<h4><code class="docutils literal notranslate"><span class="pre">--label</span></code><a class="headerlink" href="#id15" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of label modifications. Labels are represented as a key-value store.
+Character ‘=’ has a special meaning and cannot be a part of label’s key nor value.
+A single modification takes form of:
+* ‘&lt;key&gt;=&lt;value&gt;’ - sets the label &lt;key&gt; to &lt;value&gt;
+* ‘&lt;key&gt;-’        - removes the label</p>
+<p>For example, ‘–label k1=v1,k2-’ will set the label ‘k1’ to ‘v1’ and will also remove label ‘k2’.</p>
+</section>
+<section id="id16">
+<h4><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span></code><a class="headerlink" href="#id16" title="Link to this heading">¶</a></h4>
+<p>A list of backup locations separated by a comma, specifies places where restored backup is stored.</p>
+<p>The format is <cite>[&lt;dc&gt;:]&lt;provider&gt;:&lt;bucket&gt;</cite>.
+The <cite>&lt;dc&gt;</cite> parameter is optional. It allows you to specify the datacenter whose nodes will be used to restore the data
+from this location in a multi-dc setting, it must match Scylla nodes datacenter.
+By default, all live nodes are used to restore data from specified locations.
+If <cite>–dc-mapping</cite> is used, then <cite>&lt;dc&gt;</cite> parameter will be ignored.</p>
+<p>Note that specifying datacenters closest to backup locations might reduce download time of restored data.
+The supported storage ‘&lt;provider&gt;’s are ‘azure’, ‘gcs’, ‘s3’.
+The <cite>&lt;bucket&gt;</cite> parameter is a bucket name, it must be an alphanumeric string and <strong>may contain a dash and or a dot, but other characters are forbidden</strong>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="id17">
+<h4><code class="docutils literal notranslate"><span class="pre">--name</span></code><a class="headerlink" href="#id17" title="Link to this heading">¶</a></h4>
+<p>Task name that can be used instead of ID.</p>
+</section>
+<section id="id18">
+<h4><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span></code><a class="headerlink" href="#id18" title="Link to this heading">¶</a></h4>
+<p>Number of times a task reruns following a failure.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">3</span></code></p>
+</section>
+<section id="id19">
+<h4><code class="docutils literal notranslate"><span class="pre">--parallel</span></code><a class="headerlink" href="#id19" title="Link to this heading">¶</a></h4>
+<p>The maximum number of Scylla restore jobs that can be run at the same time (on different SSTables).
+Each node can take part in at most one restore at any given moment.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">0</span></code></p>
+</section>
+<section id="id20">
+<h4><code class="docutils literal notranslate"><span class="pre">--rate-limit</span></code><a class="headerlink" href="#id20" title="Link to this heading">¶</a></h4>
+<p>Limits the download rate (as expressed in  megabytes (MiB) per second) at which sstables can be downloaded from backup location to Scylla nodes.
+You can set limits for more than one DC using a comma-separated list expressed in the format <cite>[&lt;dc&gt;:]&lt;limit&gt;</cite>.
+The &lt;dc&gt;: part is optional and is only needed when different datacenters require different download limits.
+Set to 0 for no limit (default 0).</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="id21">
+<h4><code class="docutils literal notranslate"><span class="pre">--restore-schema</span></code><a class="headerlink" href="#id21" title="Link to this heading">¶</a></h4>
+<p>Specifies restore type (alternative to ‘–restore-tables’ flag).
+Restore will recreate schema by applying the backed up output of DESCRIBE SCHEMA WITH INTERNALS via CQL.
+It requires that restored keyspaces aren’t present in the cluster.
+For the full list of prerequisites, please see <a class="reference external" href="https://manager.docs.scylladb.com/stable/restore/restore-schema.html">https://manager.docs.scylladb.com/stable/restore/restore-schema.html</a>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id22">
+<h4><code class="docutils literal notranslate"><span class="pre">--restore-tables</span></code><a class="headerlink" href="#id22" title="Link to this heading">¶</a></h4>
+<p>Specifies restore type (alternative to ‘–restore-schema’ flag).
+Restore will recreate contents of tables specified by ‘–keyspace’ flag.
+It requires that correct schema of restored tables is already present in the cluster (schema can be restored using ‘–restore-schema’ flag).
+Moreover, in order to prevent situation in which current tables’ contents overlaps restored data,
+tables should be truncated before initializing restore.
+For the full list of prerequisites, please see <a class="reference external" href="https://manager.docs.scylladb.com/stable/restore/restore-tables.html">https://manager.docs.scylladb.com/stable/restore/restore-tables.html</a>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id23">
+<h4><code class="docutils literal notranslate"><span class="pre">--retry-wait</span></code><a class="headerlink" href="#id23" title="Link to this heading">¶</a></h4>
+<p>Initial exponential backoff <cite>duration</cite> X[h|m|s].
+With –retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">10m</span></code></p>
+</section>
+<section id="id24">
+<h4><code class="docutils literal notranslate"><span class="pre">--show-tables</span></code><a class="headerlink" href="#id24" title="Link to this heading">¶</a></h4>
+<p>Prints table names together with keyspace, used in combination with –dry-run.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id25">
+<h4><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span></code><a class="headerlink" href="#id25" title="Link to this heading">¶</a></h4>
+<p>Scylla Manager snapshot tag identifying restored backup.
+Snapshot tags can be obtained from backup listing (‘./sctool backup list’ command - e.g. sm_20060102150405UTC).</p>
+</section>
+<section id="id26">
+<h4><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span></code><a class="headerlink" href="#id26" title="Link to this heading">¶</a></h4>
+<p>The date can be expressed relatively to now or as a RFC3339 formatted string.
+To run the task in 2 hours use ‘now+2h’. The supported units are:</p>
+<ul class="simple">
+<li><p>‘d’ - days</p></li>
+<li><p>‘h’ - hours</p></li>
+<li><p>‘m’ - minutes</p></li>
+<li><p>‘s’ - seconds</p></li>
+<li><p>‘ms’ - milliseconds</p></li>
+</ul>
+<p>If you want the task to start at a specified date use RFC3339 formatted string i.e. ‘2018-01-02T15:04:05-07:00’.
+If you want the repair to start immediately, use the value ‘now’ or skip this flag.</p>
+</section>
+<section id="id27">
+<h4><code class="docutils literal notranslate"><span class="pre">--timezone</span></code><a class="headerlink" href="#id27" title="Link to this heading">¶</a></h4>
+<p>Timezone of –cron and –window flag values.
+The default value is taken from this system, namely ‘TZ’ envvar or ‘/etc/localtime’ file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">UTC</span></code></p>
+</section>
+<section id="id28">
+<h4><code class="docutils literal notranslate"><span class="pre">--transfers</span></code><a class="headerlink" href="#id28" title="Link to this heading">¶</a></h4>
+<p>Sets the amount of file transfers to run in parallel when downloading files from backup location to Scylla node.
+Set to 0 for the fastest download (results in setting transfers to 2*node_shard_count).
+Set to -1 for using the transfers value defined in node’s ‘scylla-manager-agent.yaml’ config file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">0</span></code></p>
+</section>
+<section id="id29">
+<h4><code class="docutils literal notranslate"><span class="pre">--unpin-agent-cpu</span></code><a class="headerlink" href="#id29" title="Link to this heading">¶</a></h4>
+<p>Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.
+This might significantly improve download speed at the cost of decreasing streaming speed.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id30">
+<h4><code class="docutils literal notranslate"><span class="pre">--window</span></code><a class="headerlink" href="#id30" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of time markers in a form <cite>[WEEKDAY-]HH:MM</cite>.
+WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.</p>
+<ul class="simple">
+<li><p>‘MON-00:00,FRI-15:00’ - can be executed from Monday to Friday 3PM</p></li>
+<li><p>‘23:00,06:00’ - can be executed every night from 11PM to 6AM</p></li>
+<li><p>‘23:00,06:00,SAT-00:00,SUN-23:59’ - can be executed every night from 11PM to 6AM and all day during the weekend</p></li>
+</ul>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+<div class="sphinx_collapse docutils container">
+<input class="sphinx_collapse__input" id="e89221dd-e736-4320-b76f-f8ae52a312ee" name="e89221dd-e736-4320-b76f-f8ae52a312ee" type="checkbox"><label class="sphinx_collapse__label" for="e89221dd-e736-4320-b76f-f8ae52a312ee"><i class="sphinx_collapse__icon"></i>Inherited Options</label><div class="sphinx_collapse__content docutils container">
+<p><code class="docutils literal notranslate"><span class="pre">--api-cert-file</span></code></p>
+<p>File <cite>path</cite> to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--api-key-file</span></code></p>
+<p>File <cite>path</cite> to HTTPS client key associated with –api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--api-url</span></code></p>
+<p>Base <cite>URL</cite> of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).</p>
+<p>If running sctool on the same machine as server, it’s generated based on ‘/etc/scylla-manager/scylla-manager.yaml’ file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:5080/api/v1</span></code></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="sctool-1-1-restore">
+<span id="id31"></span><h2>1-1-restore<a class="headerlink" href="#sctool-1-1-restore" title="Link to this heading">¶</a></h2>
+<p>This command allows you to run ad-hoc restore of tables to a cluster that mirrors the topology of a backup cluster. This means that the target cluster must have 
+the same number of nodes in each datacenter and rack, as well as the same token assignment for each node.</p>
+<dl class="simple">
+<dt><strong>Note:</strong>  </dt><dd><ul class="simple">
+<li><p>Pefromance of 1-1-restore procedure is significantly better if Scylla version is 2025.2 or later.</p></li>
+<li><p>This command works only with vnode based keyspaces. Attempting to restore tablet keyspaces will result in an error. To restore from a backup that includes both vnode and tablet keyspaces, use the –keyspace flag to select only the vnode keyspaces.</p></li>
+<li><p>This command sets tombstone_gc mode to <cite>repair</cite> for the restored tables and views which is required to avoid running repair operation as part of the restore procedure. After restoration, the <cite>tombstone_gc</cite> mode can only be changed once the tables have been repaired — otherwise, data resurrection may occur.</p></li>
+<li><p>This command only restores the data within the tables. You must first restore the schema of the database separately using the regular restore command with the <cite>–restore-schema</cite> flag.</p></li>
+</ul>
+</dd>
+</dl>
+<section id="id32">
+<h3>Syntax<a class="headerlink" href="#id32" title="Link to this heading">¶</a></h3>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool restore 1-1-restore --cluster &lt;id|name&gt; --location [&lt;dc&gt;:]&lt;provider&gt;:&lt;bucket&gt; --snapshot-tag &lt;tag&gt; [flags] --source-cluster-id &lt;id&gt; --nodes-mapping &lt;filepath&gt;
+</pre></div>
+</div>
+</section>
+<section id="id33">
+<h3>Command options<a class="headerlink" href="#id33" title="Link to this heading">¶</a></h3>
+<section id="id34">
+<h4><code class="docutils literal notranslate"><span class="pre">-c,</span> <span class="pre">--cluster</span></code><a class="headerlink" href="#id34" title="Link to this heading">¶</a></h4>
+<p>The target cluster <cite>name or ID</cite> (envvar SCYLLA_MANAGER_CLUSTER).</p>
+</section>
+<section id="id35">
+<h4><code class="docutils literal notranslate"><span class="pre">--cron</span></code><a class="headerlink" href="#id35" title="Link to this heading">¶</a></h4>
+<p>Task schedule as a cron <cite>expression</cite>.
+It supports the extended syntax including &#64;monthly, &#64;weekly, &#64;daily, &#64;midnight, &#64;hourly, &#64;every X[h|m|s].</p>
+</section>
+<section id="id36">
+<h4><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code><a class="headerlink" href="#id36" title="Link to this heading">¶</a></h4>
+<p>Validates and displays restore information without actually running the restore.
+This allows you to display what will happen should the restore run with the parameters you set.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id37">
+<h4><code class="docutils literal notranslate"><span class="pre">--enabled</span></code><a class="headerlink" href="#id37" title="Link to this heading">¶</a></h4>
+<p>Not enabled tasks are not executed and are hidden from the task list.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+</section>
+<section id="id38">
+<h4><code class="docutils literal notranslate"><span class="pre">-h,</span> <span class="pre">--help</span></code><a class="headerlink" href="#id38" title="Link to this heading">¶</a></h4>
+<p>help for 1-1-restore</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id39">
+<h4><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span></code><a class="headerlink" href="#id39" title="Link to this heading">¶</a></h4>
+<p>–interval is deprecated, please use <cite>–cron</cite> instead</p>
+<p>Time after which a successfully completed task would be run again. The supported units are:</p>
+<ul class="simple">
+<li><p>‘d’ - days</p></li>
+<li><p>‘h’ - hours</p></li>
+<li><p>‘m’ - minutes</p></li>
+<li><p>‘s’ - seconds</p></li>
+<li><p>‘ms’ - milliseconds</p></li>
+</ul>
+<p>The task run date is aligned with ‘–start date’ value.
+For example, if you select ‘–interval 7d’ task would run weekly at the ‘–start-date’ time.</p>
+</section>
+<section id="id40">
+<h4><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span></code><a class="headerlink" href="#id40" title="Link to this heading">¶</a></h4>
+<p>A list of <cite>glob</cite> patterns separated by a comma used to include or exclude tables.
+The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. ‘keyspace,!keyspace.table_prefix_*’.
+The following syntax for glob patterns is supported:</p>
+<ul class="simple">
+<li><p>‘*’ - matches any number of any characters including none</p></li>
+<li><p>‘?’ - matches any single character</p></li>
+<li><p>‘[abc]’ - matches one character given in the bracket</p></li>
+<li><p>‘[a-z]’ - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with ‘!’ it unselects items that were selected by previous patterns i.e. ‘a?,!aa’ selects <em>ab</em> but not <em>aa</em>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="id41">
+<h4><code class="docutils literal notranslate"><span class="pre">--label</span></code><a class="headerlink" href="#id41" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of label modifications. Labels are represented as a key-value store.
+Character ‘=’ has a special meaning and cannot be a part of label’s key nor value.
+A single modification takes form of:
+* ‘&lt;key&gt;=&lt;value&gt;’ - sets the label &lt;key&gt; to &lt;value&gt;
+* ‘&lt;key&gt;-’        - removes the label</p>
+<p>For example, ‘–label k1=v1,k2-’ will set the label ‘k1’ to ‘v1’ and will also remove label ‘k2’.</p>
+</section>
+<section id="id42">
+<h4><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span></code><a class="headerlink" href="#id42" title="Link to this heading">¶</a></h4>
+<p>A list of backup locations separated by a comma, specifies places where restored backup is stored.</p>
+<p>The format is <cite>[&lt;dc&gt;:]&lt;provider&gt;:&lt;bucket&gt;</cite>.
+The <cite>&lt;dc&gt;</cite> parameter will be ignored and nodes-mapping will be used instead.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="id43">
+<h4><code class="docutils literal notranslate"><span class="pre">--name</span></code><a class="headerlink" href="#id43" title="Link to this heading">¶</a></h4>
+<p>Task name that can be used instead of ID.</p>
+</section>
+<section id="nodes-mapping">
+<h4><code class="docutils literal notranslate"><span class="pre">--nodes-mapping</span></code><a class="headerlink" href="#nodes-mapping" title="Link to this heading">¶</a></h4>
+<p>Path to a file with source cluster and target cluster nodes mapping. Each line should contain node mapping in the following format &lt;source_dc&gt;:&lt;source_rack&gt;:&lt;source_host_id&gt;=&lt;destination_dc&gt;:&lt;destination_rack&gt;:&lt;destination_host_id&gt;</p>
+</section>
+<section id="id44">
+<h4><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span></code><a class="headerlink" href="#id44" title="Link to this heading">¶</a></h4>
+<p>Number of times a task reruns following a failure.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">3</span></code></p>
+</section>
+<section id="id45">
+<h4><code class="docutils literal notranslate"><span class="pre">--retry-wait</span></code><a class="headerlink" href="#id45" title="Link to this heading">¶</a></h4>
+<p>Initial exponential backoff <cite>duration</cite> X[h|m|s].
+With –retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">10m</span></code></p>
+</section>
+<section id="id46">
+<h4><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span></code><a class="headerlink" href="#id46" title="Link to this heading">¶</a></h4>
+<p>Scylla Manager snapshot tag identifying restored backup.
+Snapshot tags can be obtained from backup listing (‘./sctool backup list’ command - e.g. sm_20060102150405UTC).</p>
+</section>
+<section id="source-cluster-id">
+<h4><code class="docutils literal notranslate"><span class="pre">--source-cluster-id</span></code><a class="headerlink" href="#source-cluster-id" title="Link to this heading">¶</a></h4>
+<p>Cluster ID of the backup cluster.</p>
+</section>
+<section id="id47">
+<h4><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span></code><a class="headerlink" href="#id47" title="Link to this heading">¶</a></h4>
+<p>The date can be expressed relatively to now or as a RFC3339 formatted string.
+To run the task in 2 hours use ‘now+2h’. The supported units are:</p>
+<ul class="simple">
+<li><p>‘d’ - days</p></li>
+<li><p>‘h’ - hours</p></li>
+<li><p>‘m’ - minutes</p></li>
+<li><p>‘s’ - seconds</p></li>
+<li><p>‘ms’ - milliseconds</p></li>
+</ul>
+<p>If you want the task to start at a specified date use RFC3339 formatted string i.e. ‘2018-01-02T15:04:05-07:00’.
+If you want the repair to start immediately, use the value ‘now’ or skip this flag.</p>
+</section>
+<section id="id48">
+<h4><code class="docutils literal notranslate"><span class="pre">--timezone</span></code><a class="headerlink" href="#id48" title="Link to this heading">¶</a></h4>
+<p>Timezone of –cron and –window flag values.
+The default value is taken from this system, namely ‘TZ’ envvar or ‘/etc/localtime’ file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">UTC</span></code></p>
+</section>
+<section id="id49">
+<h4><code class="docutils literal notranslate"><span class="pre">--unpin-agent-cpu</span></code><a class="headerlink" href="#id49" title="Link to this heading">¶</a></h4>
+<p>Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id50">
+<h4><code class="docutils literal notranslate"><span class="pre">--window</span></code><a class="headerlink" href="#id50" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of time markers in a form <cite>[WEEKDAY-]HH:MM</cite>.
+WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.</p>
+<ul class="simple">
+<li><p>‘MON-00:00,FRI-15:00’ - can be executed from Monday to Friday 3PM</p></li>
+<li><p>‘23:00,06:00’ - can be executed every night from 11PM to 6AM</p></li>
+<li><p>‘23:00,06:00,SAT-00:00,SUN-23:59’ - can be executed every night from 11PM to 6AM and all day during the weekend</p></li>
+</ul>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+<div class="sphinx_collapse docutils container">
+<input class="sphinx_collapse__input" id="c6d640ab-e697-4807-9146-329c90616be9" name="c6d640ab-e697-4807-9146-329c90616be9" type="checkbox"><label class="sphinx_collapse__label" for="c6d640ab-e697-4807-9146-329c90616be9"><i class="sphinx_collapse__icon"></i>Inherited Options</label><div class="sphinx_collapse__content docutils container">
+<p><code class="docutils literal notranslate"><span class="pre">--api-cert-file</span></code></p>
+<p>File <cite>path</cite> to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--api-key-file</span></code></p>
+<p>File <cite>path</cite> to HTTPS client key associated with –api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--api-url</span></code></p>
+<p>Base <cite>URL</cite> of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).</p>
+<p>If running sctool on the same machine as server, it’s generated based on ‘/etc/scylla-manager/scylla-manager.yaml’ file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:5080/api/v1</span></code></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="id51">
+<h2>1-1-restore update<a class="headerlink" href="#id51" title="Link to this heading">¶</a></h2>
+<p>This command allows you to modify properties of an already existing 1-1-restore task.
+If there is one 1-1-restore task the ‘1_1_restore/task-id’ argument is not needed.</p>
+<section id="id52">
+<h3>Syntax<a class="headerlink" href="#id52" title="Link to this heading">¶</a></h3>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool restore 1-1-restore update --cluster &lt;id|name&gt; [flags] [&lt;1_1_restore/task-id&gt;]
+</pre></div>
+</div>
+</section>
+<section id="id53">
+<h3>Command options<a class="headerlink" href="#id53" title="Link to this heading">¶</a></h3>
+<section id="id54">
+<h4><code class="docutils literal notranslate"><span class="pre">-c,</span> <span class="pre">--cluster</span></code><a class="headerlink" href="#id54" title="Link to this heading">¶</a></h4>
+<p>The target cluster <cite>name or ID</cite> (envvar SCYLLA_MANAGER_CLUSTER).</p>
+</section>
+<section id="id55">
+<h4><code class="docutils literal notranslate"><span class="pre">--cron</span></code><a class="headerlink" href="#id55" title="Link to this heading">¶</a></h4>
+<p>Task schedule as a cron <cite>expression</cite>.
+It supports the extended syntax including &#64;monthly, &#64;weekly, &#64;daily, &#64;midnight, &#64;hourly, &#64;every X[h|m|s].</p>
+</section>
+<section id="id56">
+<h4><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code><a class="headerlink" href="#id56" title="Link to this heading">¶</a></h4>
+<p>Validates and displays restore information without actually running the restore.
+This allows you to display what will happen should the restore run with the parameters you set.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id57">
+<h4><code class="docutils literal notranslate"><span class="pre">--enabled</span></code><a class="headerlink" href="#id57" title="Link to this heading">¶</a></h4>
+<p>Not enabled tasks are not executed and are hidden from the task list.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+</section>
+<section id="id58">
+<h4><code class="docutils literal notranslate"><span class="pre">-h,</span> <span class="pre">--help</span></code><a class="headerlink" href="#id58" title="Link to this heading">¶</a></h4>
+<p>help for update</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id59">
+<h4><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span></code><a class="headerlink" href="#id59" title="Link to this heading">¶</a></h4>
+<p>–interval is deprecated, please use <cite>–cron</cite> instead</p>
+<p>Time after which a successfully completed task would be run again. The supported units are:</p>
+<ul class="simple">
+<li><p>‘d’ - days</p></li>
+<li><p>‘h’ - hours</p></li>
+<li><p>‘m’ - minutes</p></li>
+<li><p>‘s’ - seconds</p></li>
+<li><p>‘ms’ - milliseconds</p></li>
+</ul>
+<p>The task run date is aligned with ‘–start date’ value.
+For example, if you select ‘–interval 7d’ task would run weekly at the ‘–start-date’ time.</p>
+</section>
+<section id="id60">
+<h4><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span></code><a class="headerlink" href="#id60" title="Link to this heading">¶</a></h4>
+<p>A list of <cite>glob</cite> patterns separated by a comma used to include or exclude tables.
+The patterns match keyspaces and tables, separate the keyspace name from the table name with a dot e.g. ‘keyspace,!keyspace.table_prefix_*’.
+The following syntax for glob patterns is supported:</p>
+<ul class="simple">
+<li><p>‘*’ - matches any number of any characters including none</p></li>
+<li><p>‘?’ - matches any single character</p></li>
+<li><p>‘[abc]’ - matches one character given in the bracket</p></li>
+<li><p>‘[a-z]’ - matches one character from the range given in the bracket</p></li>
+</ul>
+<p>Patterns are evaluated from left to right.
+If a pattern starts with ‘!’ it unselects items that were selected by previous patterns i.e. ‘a?,!aa’ selects <em>ab</em> but not <em>aa</em>.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="id61">
+<h4><code class="docutils literal notranslate"><span class="pre">--label</span></code><a class="headerlink" href="#id61" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of label modifications. Labels are represented as a key-value store.
+Character ‘=’ has a special meaning and cannot be a part of label’s key nor value.
+A single modification takes form of:
+* ‘&lt;key&gt;=&lt;value&gt;’ - sets the label &lt;key&gt; to &lt;value&gt;
+* ‘&lt;key&gt;-’        - removes the label</p>
+<p>For example, ‘–label k1=v1,k2-’ will set the label ‘k1’ to ‘v1’ and will also remove label ‘k2’.</p>
+</section>
+<section id="id62">
+<h4><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span></code><a class="headerlink" href="#id62" title="Link to this heading">¶</a></h4>
+<p>A list of backup locations separated by a comma, specifies places where restored backup is stored.</p>
+<p>The format is <cite>[&lt;dc&gt;:]&lt;provider&gt;:&lt;bucket&gt;</cite>.
+The <cite>&lt;dc&gt;</cite> parameter will be ignored and nodes-mapping will be used instead.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+</section>
+<section id="id63">
+<h4><code class="docutils literal notranslate"><span class="pre">--name</span></code><a class="headerlink" href="#id63" title="Link to this heading">¶</a></h4>
+<p>Task name that can be used instead of ID.</p>
+</section>
+<section id="id64">
+<h4><code class="docutils literal notranslate"><span class="pre">--nodes-mapping</span></code><a class="headerlink" href="#id64" title="Link to this heading">¶</a></h4>
+<p>Path to a file with source cluster and target cluster nodes mapping. Each line should contain node mapping in the following format &lt;source_dc&gt;:&lt;source_rack&gt;:&lt;source_host_id&gt;=&lt;destination_dc&gt;:&lt;destination_rack&gt;:&lt;destination_host_id&gt;</p>
+</section>
+<section id="id65">
+<h4><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span></code><a class="headerlink" href="#id65" title="Link to this heading">¶</a></h4>
+<p>Number of times a task reruns following a failure.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">3</span></code></p>
+</section>
+<section id="id66">
+<h4><code class="docutils literal notranslate"><span class="pre">--retry-wait</span></code><a class="headerlink" href="#id66" title="Link to this heading">¶</a></h4>
+<p>Initial exponential backoff <cite>duration</cite> X[h|m|s].
+With –retry-wait 10m task will wait 10 minutes, 20 minutes and 40 minutes after first, second and third consecutire failure.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">10m</span></code></p>
+</section>
+<section id="id67">
+<h4><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span></code><a class="headerlink" href="#id67" title="Link to this heading">¶</a></h4>
+<p>Scylla Manager snapshot tag identifying restored backup.
+Snapshot tags can be obtained from backup listing (‘./sctool backup list’ command - e.g. sm_20060102150405UTC).</p>
+</section>
+<section id="id68">
+<h4><code class="docutils literal notranslate"><span class="pre">--source-cluster-id</span></code><a class="headerlink" href="#id68" title="Link to this heading">¶</a></h4>
+<p>Cluster ID of the backup cluster.</p>
+</section>
+<section id="id69">
+<h4><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span></code><a class="headerlink" href="#id69" title="Link to this heading">¶</a></h4>
+<p>The date can be expressed relatively to now or as a RFC3339 formatted string.
+To run the task in 2 hours use ‘now+2h’. The supported units are:</p>
+<ul class="simple">
+<li><p>‘d’ - days</p></li>
+<li><p>‘h’ - hours</p></li>
+<li><p>‘m’ - minutes</p></li>
+<li><p>‘s’ - seconds</p></li>
+<li><p>‘ms’ - milliseconds</p></li>
+</ul>
+<p>If you want the task to start at a specified date use RFC3339 formatted string i.e. ‘2018-01-02T15:04:05-07:00’.
+If you want the repair to start immediately, use the value ‘now’ or skip this flag.</p>
+</section>
+<section id="id70">
+<h4><code class="docutils literal notranslate"><span class="pre">--timezone</span></code><a class="headerlink" href="#id70" title="Link to this heading">¶</a></h4>
+<p>Timezone of –cron and –window flag values.
+The default value is taken from this system, namely ‘TZ’ envvar or ‘/etc/localtime’ file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">UTC</span></code></p>
+</section>
+<section id="id71">
+<h4><code class="docutils literal notranslate"><span class="pre">--unpin-agent-cpu</span></code><a class="headerlink" href="#id71" title="Link to this heading">¶</a></h4>
+<p>Defines if ScyllaDB Manager Agent should be unpinned from CPUs during restore.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="id72">
+<h4><code class="docutils literal notranslate"><span class="pre">--window</span></code><a class="headerlink" href="#id72" title="Link to this heading">¶</a></h4>
+<p>A comma-separated list of time markers in a form <cite>[WEEKDAY-]HH:MM</cite>.
+WEEKDAY can be written as the whole word or only using the first 3 characters, HH:MM is an hour from 00:00 to 23:59.</p>
+<ul class="simple">
+<li><p>‘MON-00:00,FRI-15:00’ - can be executed from Monday to Friday 3PM</p></li>
+<li><p>‘23:00,06:00’ - can be executed every night from 11PM to 6AM</p></li>
+<li><p>‘23:00,06:00,SAT-00:00,SUN-23:59’ - can be executed every night from 11PM to 6AM and all day during the weekend</p></li>
+</ul>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
+<div class="sphinx_collapse docutils container">
+<input class="sphinx_collapse__input" id="99e99ec2-984a-4903-83b6-7a9739a52b8a" name="99e99ec2-984a-4903-83b6-7a9739a52b8a" type="checkbox"><label class="sphinx_collapse__label" for="99e99ec2-984a-4903-83b6-7a9739a52b8a"><i class="sphinx_collapse__icon"></i>Inherited Options</label><div class="sphinx_collapse__content docutils container">
+<p><code class="docutils literal notranslate"><span class="pre">--api-cert-file</span></code></p>
+<p>File <cite>path</cite> to HTTPS client certificate used to access the Scylla Manager server when client certificate validation is enabled (envvar SCYLLA_MANAGER_API_CERT_FILE).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--api-key-file</span></code></p>
+<p>File <cite>path</cite> to HTTPS client key associated with –api-cert-file flag (envvar SCYLLA_MANAGER_API_KEY_FILE).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--api-url</span></code></p>
+<p>Base <cite>URL</cite> of Scylla Manager server (envvar SCYLLA_MANAGER_API_URL).</p>
+<p>If running sctool on the same machine as server, it’s generated based on ‘/etc/scylla-manager/scylla-manager.yaml’ file.</p>
+<p><strong>Default value:</strong> <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:5080/api/v1</span></code></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+</section>
+
+                </div>
+                
+                    <div class="post-content">
+                        
+    <div class="feedback-container">
+        <p class="feedback-container__title">Was this page helpful?</p>
+        <span data-tooltip tabindex="1" title="Yes" data-position="top">
+            <button class="feedback-container__button" id="feedback-positive">
+                <i class="feedback-container__icon icon-docs-thumbs-up"></i>
+            </button>
+        </span>
+        <span data-tooltip tabindex="1" title="No" data-position="top">
+            <button class="feedback-container__button" id="feedback-negative">
+                <i class="feedback-container__icon icon-docs-thumbs-down"></i>
+            </button>
+        </span>
+        <div class="feedback-container__message" id="feedback-message"></div>
+    </div>
+
+    <script>
+        function resetFeedbackButtonActive() {
+            const feedbackButtons = document.getElementsByClassName('feedback-container__button');
+            for (let i = 0; i < feedbackButtons.length; i++) {
+                feedbackButtons[i].classList.remove('active');
+            }
+        }
+
+        function showMessage(liked) {
+            const feedbackMessage = document.getElementById('feedback-message');
+            const themeGithubRepository = true;
+            let message = 'Great! Thanks for your feedback.';
+            if (themeGithubRepository && !liked) {
+                message = "Thanks for your feedback! Please don't hesitate to <a href='https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Restore&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/branch-3.6/sctool/restore%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation'>create an issue</a> if you have any suggestions on how we can improve.";
+            }
+            feedbackMessage.innerHTML = message;
+        }
+
+        function sendGaEvent(liked) {
+            const event_label = liked ? "positive" : "negative";
+            const event = "feedback_" + event_label;
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': event,
+            });
+        }
+
+        const positiveFeebackButton = document.getElementById('feedback-positive');
+        const negativeFeedbackButton = document.getElementById('feedback-negative');
+
+        positiveFeebackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(true);
+            showMessage(true);
+            positiveFeebackButton.classList.add('active');
+        });
+
+        negativeFeedbackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(false);
+            showMessage(false);
+            negativeFeedbackButton.classList.add('active');
+        });
+    </script>
+
+                        <div class="content-navigation">
+    <div class="navigation navigation--prev">
+        
+            <a class="navigation__link" href="backup.html">
+                <button class="navigation__button">
+                    <i class="icon-chevron-left"></i>
+                </button>
+                <div class="navigation__title">
+                    <span class="colored">PREVIOUS</span> <br />Backup
+                </div>
+            </a>
+        
+    </div>
+    <div class="navigation navigation--next">
+        
+            <a class="navigation__link" href="cluster.html">
+                <div class="navigation__title">
+                    <span class="colored">NEXT</span> <br />Cluster
+                </div>
+                <button class="navigation__button">
+                    <i class="icon-chevron-right"></i>
+                </button>
+            </a>
+        
+    </div>
+</div>
+                        <!-- Post content text -->
+                    </div>
+                
+
+                
+                    </div>
+                    <div class="sidebar-right large-order-3">
+                        <div class="secondary-side-nav custom-scroll-bar">
+    
+    <ul class="contribute">
+        <li class="contribute__item">
+            <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Restore&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/branch-3.6/sctool/restore%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation"
+               target="_blank">
+                <i class="icon-github" aria-hidden="true"></i>Create an issue
+            </a>
+        </li>
+        
+            <li class="contribute__item">
+                <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/edit/master/docs/source/sctool/restore.rst"
+                   target="_blank">
+                    <i class="icon-edit" aria-hidden="true"></i>Edit this page
+                </a>
+            </li>
+        
+    </ul>
+
+    
+        <div class="secondary-side-nav__content">
+            <p class="topic-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Restore</a><ul>
+<li><a class="reference internal" href="#sctool-restore">restore</a><ul>
+<li><a class="reference internal" href="#syntax">Syntax</a></li>
+<li><a class="reference internal" href="#command-options">Command options</a><ul>
+<li><a class="reference internal" href="#allow-compaction"><code class="docutils literal notranslate"><span class="pre">--allow-compaction</span></code></a></li>
+<li><a class="reference internal" href="#batch-size"><code class="docutils literal notranslate"><span class="pre">--batch-size</span></code></a></li>
+<li><a class="reference internal" href="#c-cluster"><code class="docutils literal notranslate"><span class="pre">-c,</span> <span class="pre">--cluster</span></code></a></li>
+<li><a class="reference internal" href="#cron"><code class="docutils literal notranslate"><span class="pre">--cron</span></code></a></li>
+<li><a class="reference internal" href="#dc-mapping"><code class="docutils literal notranslate"><span class="pre">--dc-mapping</span></code></a></li>
+<li><a class="reference internal" href="#dry-run"><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></a></li>
+<li><a class="reference internal" href="#enabled"><code class="docutils literal notranslate"><span class="pre">--enabled</span></code></a></li>
+<li><a class="reference internal" href="#h-help"><code class="docutils literal notranslate"><span class="pre">-h,</span> <span class="pre">--help</span></code></a></li>
+<li><a class="reference internal" href="#i-interval"><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span></code></a></li>
+<li><a class="reference internal" href="#k-keyspace"><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span></code></a></li>
+<li><a class="reference internal" href="#label"><code class="docutils literal notranslate"><span class="pre">--label</span></code></a></li>
+<li><a class="reference internal" href="#l-location"><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span></code></a></li>
+<li><a class="reference internal" href="#name"><code class="docutils literal notranslate"><span class="pre">--name</span></code></a></li>
+<li><a class="reference internal" href="#r-num-retries"><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span></code></a></li>
+<li><a class="reference internal" href="#parallel"><code class="docutils literal notranslate"><span class="pre">--parallel</span></code></a></li>
+<li><a class="reference internal" href="#rate-limit"><code class="docutils literal notranslate"><span class="pre">--rate-limit</span></code></a></li>
+<li><a class="reference internal" href="#restore-schema"><code class="docutils literal notranslate"><span class="pre">--restore-schema</span></code></a></li>
+<li><a class="reference internal" href="#restore-tables"><code class="docutils literal notranslate"><span class="pre">--restore-tables</span></code></a></li>
+<li><a class="reference internal" href="#retry-wait"><code class="docutils literal notranslate"><span class="pre">--retry-wait</span></code></a></li>
+<li><a class="reference internal" href="#show-tables"><code class="docutils literal notranslate"><span class="pre">--show-tables</span></code></a></li>
+<li><a class="reference internal" href="#t-snapshot-tag"><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span></code></a></li>
+<li><a class="reference internal" href="#s-start-date"><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span></code></a></li>
+<li><a class="reference internal" href="#timezone"><code class="docutils literal notranslate"><span class="pre">--timezone</span></code></a></li>
+<li><a class="reference internal" href="#transfers"><code class="docutils literal notranslate"><span class="pre">--transfers</span></code></a></li>
+<li><a class="reference internal" href="#unpin-agent-cpu"><code class="docutils literal notranslate"><span class="pre">--unpin-agent-cpu</span></code></a></li>
+<li><a class="reference internal" href="#window"><code class="docutils literal notranslate"><span class="pre">--window</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#restore-update">restore update</a><ul>
+<li><a class="reference internal" href="#id3">Syntax</a></li>
+<li><a class="reference internal" href="#id4">Command options</a><ul>
+<li><a class="reference internal" href="#id5"><code class="docutils literal notranslate"><span class="pre">--allow-compaction</span></code></a></li>
+<li><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">--batch-size</span></code></a></li>
+<li><a class="reference internal" href="#id7"><code class="docutils literal notranslate"><span class="pre">-c,</span> <span class="pre">--cluster</span></code></a></li>
+<li><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">--cron</span></code></a></li>
+<li><a class="reference internal" href="#id9"><code class="docutils literal notranslate"><span class="pre">--dc-mapping</span></code></a></li>
+<li><a class="reference internal" href="#id10"><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></a></li>
+<li><a class="reference internal" href="#id11"><code class="docutils literal notranslate"><span class="pre">--enabled</span></code></a></li>
+<li><a class="reference internal" href="#id12"><code class="docutils literal notranslate"><span class="pre">-h,</span> <span class="pre">--help</span></code></a></li>
+<li><a class="reference internal" href="#id13"><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span></code></a></li>
+<li><a class="reference internal" href="#id14"><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span></code></a></li>
+<li><a class="reference internal" href="#id15"><code class="docutils literal notranslate"><span class="pre">--label</span></code></a></li>
+<li><a class="reference internal" href="#id16"><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span></code></a></li>
+<li><a class="reference internal" href="#id17"><code class="docutils literal notranslate"><span class="pre">--name</span></code></a></li>
+<li><a class="reference internal" href="#id18"><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span></code></a></li>
+<li><a class="reference internal" href="#id19"><code class="docutils literal notranslate"><span class="pre">--parallel</span></code></a></li>
+<li><a class="reference internal" href="#id20"><code class="docutils literal notranslate"><span class="pre">--rate-limit</span></code></a></li>
+<li><a class="reference internal" href="#id21"><code class="docutils literal notranslate"><span class="pre">--restore-schema</span></code></a></li>
+<li><a class="reference internal" href="#id22"><code class="docutils literal notranslate"><span class="pre">--restore-tables</span></code></a></li>
+<li><a class="reference internal" href="#id23"><code class="docutils literal notranslate"><span class="pre">--retry-wait</span></code></a></li>
+<li><a class="reference internal" href="#id24"><code class="docutils literal notranslate"><span class="pre">--show-tables</span></code></a></li>
+<li><a class="reference internal" href="#id25"><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span></code></a></li>
+<li><a class="reference internal" href="#id26"><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span></code></a></li>
+<li><a class="reference internal" href="#id27"><code class="docutils literal notranslate"><span class="pre">--timezone</span></code></a></li>
+<li><a class="reference internal" href="#id28"><code class="docutils literal notranslate"><span class="pre">--transfers</span></code></a></li>
+<li><a class="reference internal" href="#id29"><code class="docutils literal notranslate"><span class="pre">--unpin-agent-cpu</span></code></a></li>
+<li><a class="reference internal" href="#id30"><code class="docutils literal notranslate"><span class="pre">--window</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sctool-1-1-restore">1-1-restore</a><ul>
+<li><a class="reference internal" href="#id32">Syntax</a></li>
+<li><a class="reference internal" href="#id33">Command options</a><ul>
+<li><a class="reference internal" href="#id34"><code class="docutils literal notranslate"><span class="pre">-c,</span> <span class="pre">--cluster</span></code></a></li>
+<li><a class="reference internal" href="#id35"><code class="docutils literal notranslate"><span class="pre">--cron</span></code></a></li>
+<li><a class="reference internal" href="#id36"><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></a></li>
+<li><a class="reference internal" href="#id37"><code class="docutils literal notranslate"><span class="pre">--enabled</span></code></a></li>
+<li><a class="reference internal" href="#id38"><code class="docutils literal notranslate"><span class="pre">-h,</span> <span class="pre">--help</span></code></a></li>
+<li><a class="reference internal" href="#id39"><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span></code></a></li>
+<li><a class="reference internal" href="#id40"><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span></code></a></li>
+<li><a class="reference internal" href="#id41"><code class="docutils literal notranslate"><span class="pre">--label</span></code></a></li>
+<li><a class="reference internal" href="#id42"><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span></code></a></li>
+<li><a class="reference internal" href="#id43"><code class="docutils literal notranslate"><span class="pre">--name</span></code></a></li>
+<li><a class="reference internal" href="#nodes-mapping"><code class="docutils literal notranslate"><span class="pre">--nodes-mapping</span></code></a></li>
+<li><a class="reference internal" href="#id44"><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span></code></a></li>
+<li><a class="reference internal" href="#id45"><code class="docutils literal notranslate"><span class="pre">--retry-wait</span></code></a></li>
+<li><a class="reference internal" href="#id46"><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span></code></a></li>
+<li><a class="reference internal" href="#source-cluster-id"><code class="docutils literal notranslate"><span class="pre">--source-cluster-id</span></code></a></li>
+<li><a class="reference internal" href="#id47"><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span></code></a></li>
+<li><a class="reference internal" href="#id48"><code class="docutils literal notranslate"><span class="pre">--timezone</span></code></a></li>
+<li><a class="reference internal" href="#id49"><code class="docutils literal notranslate"><span class="pre">--unpin-agent-cpu</span></code></a></li>
+<li><a class="reference internal" href="#id50"><code class="docutils literal notranslate"><span class="pre">--window</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id51">1-1-restore update</a><ul>
+<li><a class="reference internal" href="#id52">Syntax</a></li>
+<li><a class="reference internal" href="#id53">Command options</a><ul>
+<li><a class="reference internal" href="#id54"><code class="docutils literal notranslate"><span class="pre">-c,</span> <span class="pre">--cluster</span></code></a></li>
+<li><a class="reference internal" href="#id55"><code class="docutils literal notranslate"><span class="pre">--cron</span></code></a></li>
+<li><a class="reference internal" href="#id56"><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></a></li>
+<li><a class="reference internal" href="#id57"><code class="docutils literal notranslate"><span class="pre">--enabled</span></code></a></li>
+<li><a class="reference internal" href="#id58"><code class="docutils literal notranslate"><span class="pre">-h,</span> <span class="pre">--help</span></code></a></li>
+<li><a class="reference internal" href="#id59"><code class="docutils literal notranslate"><span class="pre">-i,</span> <span class="pre">--interval</span></code></a></li>
+<li><a class="reference internal" href="#id60"><code class="docutils literal notranslate"><span class="pre">-K,</span> <span class="pre">--keyspace</span></code></a></li>
+<li><a class="reference internal" href="#id61"><code class="docutils literal notranslate"><span class="pre">--label</span></code></a></li>
+<li><a class="reference internal" href="#id62"><code class="docutils literal notranslate"><span class="pre">-L,</span> <span class="pre">--location</span></code></a></li>
+<li><a class="reference internal" href="#id63"><code class="docutils literal notranslate"><span class="pre">--name</span></code></a></li>
+<li><a class="reference internal" href="#id64"><code class="docutils literal notranslate"><span class="pre">--nodes-mapping</span></code></a></li>
+<li><a class="reference internal" href="#id65"><code class="docutils literal notranslate"><span class="pre">-r,</span> <span class="pre">--num-retries</span></code></a></li>
+<li><a class="reference internal" href="#id66"><code class="docutils literal notranslate"><span class="pre">--retry-wait</span></code></a></li>
+<li><a class="reference internal" href="#id67"><code class="docutils literal notranslate"><span class="pre">-T,</span> <span class="pre">--snapshot-tag</span></code></a></li>
+<li><a class="reference internal" href="#id68"><code class="docutils literal notranslate"><span class="pre">--source-cluster-id</span></code></a></li>
+<li><a class="reference internal" href="#id69"><code class="docutils literal notranslate"><span class="pre">-s,</span> <span class="pre">--start-date</span></code></a></li>
+<li><a class="reference internal" href="#id70"><code class="docutils literal notranslate"><span class="pre">--timezone</span></code></a></li>
+<li><a class="reference internal" href="#id71"><code class="docutils literal notranslate"><span class="pre">--unpin-agent-cpu</span></code></a></li>
+<li><a class="reference internal" href="#id72"><code class="docutils literal notranslate"><span class="pre">--window</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+    
+</div>
+                    </div>
+                    </div>
+                
+            </div>
+            <div class="sidebar-left  large-order-1">
+                
+                    
+                        <div id="side-nav" class="side-nav custom-scroll-bar" data-closable data-toggler=".show">
+    <button class="collapsible-button">
+        <i class="icon-docs-menu-collapse"></i>
+    </button>
+    <div class="side-nav-content custom-scroll-bar">
+        <div class="side-nav__title">
+            <a href="../index.html">Scylla Manager</a>
+        </div>
+        <div class="side-nav__search">
+            <div class="search-box">
+                <ci-search></ci-search>
+            </div>
+        </div>
+        <div class="side-nav__versions"><ul class="dropdown menu scylla-dropdown scylla-dropdown--versions" data-dropdown-menu>
+    <li class="scylla-dropdown__item">
+        <a class="scylla-dropdown__title" href="#">
+            
+                3.6
+            
+            <i class="chevron icon-docs-chevron-right"></i>
+        </a>
+        <ul class="menu scylla-dropdown__content">
+            
+                
+                    <li>
+                        <a href="../../master/sctool/restore.html">master</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../stable/sctool/restore.html">3.8</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.7/sctool/restore.html">3.7</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="restore.html">3.6</a>
+                    </li>
+                
+            
+            
+        </ul>
+    </li>
+</ul></div>
+        <div class="side-nav__content">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../docker/index.html">Docker</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager.html">Install ScyllaDB Manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager-agent.html">Install ScyllaDB Manager Agent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../upgrade/index.html">ScyllaDB Manager Upgrade</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility-matrix.html">Compatibility Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../add-a-cluster.html">Add a Cluster</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../backup/index.html">Backup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-amazon-s3.html">Setup Amazon S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-s3-compatible-storage.html">Setup S3 compatible storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-gcs.html">Setup Google Cloud Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/setup-azure-blobstorage.html">Setup Azure Blob Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/native-backup.html">Native Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/examples.html">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../backup/specification.html">Specification</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../restore/index.html">Restore</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../restore/restore-tables.html">Restore tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/restore-schema.html">Restore schema for ScyllaDB 6.0/2024.2 or newer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/old-restore-schema.html">Restore schema for ScyllaDB 5.4/2024.1 or older</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../repair/index.html">Repair</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label for="toctree-checkbox-3"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-faster.html">Repair faster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-slower.html">Repair slower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../health-check.html">Health Check</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">CLI sctool</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label for="toctree-checkbox-4"><i class="icon-chevron-right"></i></label><div class="break"></div><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="global-flags-and-variables.html">Environment variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="completion.html">Completion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="download-files.html">Download files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html">Backup</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Restore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cluster.html">Cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="info.html">Info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="progress.html">Progress</a></li>
+<li class="toctree-l2"><a class="reference internal" href="repair.html">Repair</a></li>
+<li class="toctree-l2"><a class="reference internal" href="start.html">Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="status.html">Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stop.html">Stop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="suspend-resume.html">Suspend &amp; Resume</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task.html">Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="version.html">Version</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../config/index.html">Configuration Files</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label for="toctree-checkbox-5"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-config.html">Scylla Manager Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-agent-config.html">Scylla Manager Agent Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../swagger/index.html">Swagger File</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../scylla-monitoring.html">ScyllaDB Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://scylladb-users.slack.com/archives/C01ERVBPWLU">Slack</a></li>
+</ul>
+
+        </div>
+    </div>
+</div>
+                    
+                
+            </div>
+
+        </section>
+
+        <footer class="footer">
+    <div class="footer-group">
+        <div class="footer-top">
+            <a class="footer-logo" href="https://www.scylladb.com"></a>
+            <div class="footer-links">
+                <a class="footer-links__link" href="https://docs.scylladb.com/" target="_blank">Docs</a>
+                <a class="footer-links__link" href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html" target="_blank">Tutorials</a>
+                <a class="footer-links__link" href="https://university.scylladb.com/" target="_blank">University</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/contact-us/"
+                   target="_blank">Contact Us</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/" target="_blank">About Us</a>
+            </div>
+            <div class="footer-actions">
+                <a class="footer-actions__link" href="http://slack.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="User Slack channel" data-position="bottom">
+                        <i class="icon-slack"></i>
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="https://forum.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="Community forum" data-position="bottom">
+                        <i class="icon-docs-community"></i>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        
+            <div class="footer-copyright">
+                
+                    
+                        &#169; 2026, ScyllaDB. All rights reserved.
+                    
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/tos/" target="_blank">Terms of Service</a>
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/privacy/" target="_blank">Privacy Policy</a>
+                    | ScyllaDB, and ScyllaDB Cloud, are registered trademarks of ScyllaDB, Inc.
+                
+            </div>
+        
+
+
+        <div class="footer-bottom">
+            
+                <div class="footer-bottom__last-updated">
+                    
+                        Last updated on 13 February 2026.
+                    
+                </div>
+            
+            <div class="footer-bottom__version">
+                Powered by
+                <a class="footer-bottom__link" href="http://sphinx-doc.org/">Sphinx 7.4.7</a> &amp;
+                <a class="footer-bottom__link" href="https://sphinx-theme.scylladb.com/">ScyllaDB Theme 1.8.10</a>
+            </div>
+        </div>
+    </div>
+    
+        <biel-button class="footer-ask-ai" project="ddfdo8m94k"
+                     header-title="ScyllaDB chatbot (beta)"
+                     button-position="bottom-right"
+                     modal-position="bottom-right"
+                     button-style="dark">
+            Ask AI
+        </biel-button>
+    
+</footer>
+
+        <noscript>
+            <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8P2JP" height="0" width="0"
+                    style="display: none; visibility: hidden"></iframe>
+        </noscript>
+    </body>
+
+</html>

@@ -1,0 +1,858 @@
+
+
+<!DOCTYPE html>
+<html class="no-js" lang="en" style="visibility: hidden;">
+    
+    
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width initial-scale=1" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>
+             Install ScyllaDB Manager | ScyllaDB Docs 
+        </title>
+        <meta name="description" content="ScyllaDB is an Apache Cassandra-compatible NoSQL data store that can handle 1 million transactions per second on a single server." />
+        <link rel="icon" href="_static/img/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="_static/img/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" href="_static/img/favicon-228x228.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="_static/img/favicon-228x228.png" />
+        <meta name="msapplication-TileImage" href="_static/img/favicon-228x228.png" />
+
+        
+            
+            
+        
+
+        
+            
+            <link rel="canonical" href="https://manager.docs.scylladb.com/stable/install-scylla-manager.html"/>
+        
+
+        <link rel="author" href="mailto:info@scylladb.com" />
+
+        
+            
+        <!-- increase expertrec loading priority-->
+        <link rel="dns-prefetch" href="https://cse.expertrec.com">
+
+        <!-- increase font loading priority -->
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preload" as="style"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- async CSS -->
+        <link rel="stylesheet" media="print" onload="this.onload=null;this.removeAttribute('media');"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- no-JS fallback -->
+        <noscript>
+            <link rel="stylesheet"
+                  href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+        </noscript>
+
+        
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.css">
+            <script type="module" src="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.esm.js"></script>
+        
+
+        
+            
+                <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="_static/css/main.css?v=0ebb4bd5" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="_static/sphinx_collapse.css?v=226d88b4" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+            
+        
+    
+        
+        
+            
+        <script type="text/javascript" src="_static/js/runtime.bundle.js"></script>
+        <script type="text/javascript" src="_static/js/main.bundle.js"></script>
+        
+            
+                <script src="_static/documentation_options.js?v=5929fcd5"></script>
+            
+        
+            
+                <script src="_static/doctools.js?v=9a2dae69"></script>
+            
+        
+            
+                <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+            
+        
+            
+                <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+            
+        
+            
+                <script src="_static/copybutton.js?v=f281be69"></script>
+            
+        
+    
+            
+                <meta name='zd-site-verification' content='jiigc536se3g139312rad' />
+            
+            
+                <!-- Google Tag Manager docs -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-54NWVS4");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager global -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-T8P2JP");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Expertrec -->
+<script>
+    var id = "e2077224-9ccf-11e9-a0c9-0242ac130002";
+    var ci_search = document.createElement("script");
+    ci_search.type = "text/javascript";
+    ci_search.async = true;
+    ci_search.src = "https://cse.expertrec.com/api/js/ci_common.js?id=" + id;
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(ci_search, s);
+</script>
+<!-- End Expertrec -->
+            
+        
+    </head>
+
+    <body class="brand-product">
+        <section class="promo-banner  promo-banner--hide" style="display: none;">
+    <div class="promo-banner-wrapper">
+        <div class="promo-banner__content">
+            
+            <div class="promo-banner__title">ScyllaDB University Live | Free Virtual Training Event</div>
+            <a class="promo-banner__button button button--reverse" href="#"
+               target="_blank" rel="noopener noreferrer">Learn more</a>
+        </div>
+        <button class="promo-banner__close">
+            <i class="icon-cancel"></i>
+        </button>
+    </div>
+</section>
+        <header class="header">
+    <div class="header-logo">
+        <a class="header-logo__img" href="https://scylladb.com/">
+            <img src="_static/img/scylladb-logo-horizontal.svg" alt="ScyllaDB Documentation Logo" />
+        </a>
+        <span class="header-logo__bar"></span>
+        <a class="header-logo__text" href="https://docs.scylladb.com/">
+            Documentation
+        </a>
+    </div>
+    <div class="header-navigation">
+        <ul class="dropdown menu scylla-dropdown scylla-dropdown--header" data-dropdown-menu>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Deployments <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/scylla-cloud/">
+                            <i class="icon-docs-cloud"></i>Cloud</a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/manual/">
+                            <i class="icon-server"></i>Server</a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Tools <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://manager.docs.scylladb.com/">
+                            <i class="icon-docs-manager"></i>ScyllaDB Manager</a>
+                    </li>
+                    <li>
+                        <a href="https://monitoring.docs.scylladb.com/">
+                            <i class="icon-docs-monitoring"></i>ScyllaDB
+                            Monitoring Stack</a>
+                    </li>
+                    <li>
+                        <a href="https://operator.docs.scylladb.com/">
+                            <i class="icon-docs-operator"></i>ScyllaDB Operator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Drivers <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/cql-drivers">
+                            <i class="icon-docs-nsql-guides"></i>CQL Drivers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/dynamo-drivers">
+                            <i class="icon-docs-alternator"></i>DynamoDB Drivers
+                        </a>
+
+                        <li>
+                            <a href="https://docs.scylladb.com/stable/versioning/driver-support">
+                                <i class="icon-docs-blog"></i>Supported Driver Versions
+                            </a>
+                        </li>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Resources
+                    <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://university.scylladb.com">
+                            <i class="icon-university"></i>
+                            ScyllaDB University
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://forum.scylladb.com">
+                            <i class="icon-docs-community"></i>
+                            Community Forum
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html">
+                            <i class="icon-docs-training"></i>
+                            Tutorials
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <div class="header-button">
+            <a href="https://docs.scylladb.com/manual/stable/getting-started/installation-common/scylla-web-installer.html" class="button"><i class="icon-download me-2"></i> Install</a>
+        </div>
+    </div>
+    <div class="header-search-box">
+        <i class="dark-theme-toggler icon-theme"></i>
+        <div class="search-box">
+            <ci-search></ci-search>
+        </div>
+        
+            <biel-button class="header-ask-ai" project="ddfdo8m94k"
+                         header-title="ScyllaDB chatbot (beta)"
+                         button-position="default"
+                         modal-position="bottom-right"
+                         button-style="dark">
+                Ask AI
+            </biel-button>
+        
+    </div>
+    <div class="side-nav-toggle">
+    <i class="dark-theme-toggler icon-theme"></i>
+    <div class="side-nav-toggle__button" data-toggle="side-nav">
+        <i class="icon-menu"></i>
+    </div>
+</div>
+</header>
+        <div class="title"></div>
+        <section
+            class="layout  layout--sidebar layout--has-secondary-sidebar ">
+            <div class="content large-order-2">
+                
+                    <div class="pre-content">
+                        <div class="breadcrumbs">
+    <span class="bread__item">
+        <a href="https://docs.scylladb.com"
+           class="bread__highlight">
+            <i class="icon-home"></i> ScyllaDB Docs
+        </a>
+    </span>
+    <span class="bread__item">
+        <a href="index.html"
+           class="bread__highlight">
+            Scylla Manager
+        </a>
+    </span>
+    
+    <span class="bread__item bread__item--last">Install ScyllaDB Manager</span>
+</div>
+                    </div>
+                
+                
+                    <div class="sidebar-right-layout">
+                        <div class="body-container">
+                
+
+                <div class="content-body">
+                    
+                        
+    <div class="admonition caution">
+        <p class="admonition-title">Caution</p>
+        <p>
+            
+                You're viewing documentation for an unstable version of Scylla Manager.
+            
+            <a href="../stable/install-scylla-manager.html">Switch to the latest stable version.</a>
+        </p>
+    </div>
+
+                    
+
+                    <section id="install-scylladb-manager">
+<span id="install-manager"></span><h1>Install ScyllaDB Manager<a class="headerlink" href="#install-scylladb-manager" title="Link to this heading">¶</a></h1>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#system-requirements" id="id1">System requirements</a></p></li>
+<li><p><a class="reference internal" href="#install-package" id="id2">Install package</a></p></li>
+<li><p><a class="reference internal" href="#configure-storage" id="id3">Configure storage</a></p>
+<ul>
+<li><p><a class="reference internal" href="#local-node" id="id4">Local node</a></p></li>
+<li><p><a class="reference internal" href="#remote-cluster" id="id5">Remote cluster</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#run-the-scyllamgr-setup-script" id="id6">Run the scyllamgr_setup script</a></p></li>
+<li><p><a class="reference internal" href="#enable-bash-script-completion" id="id7">Enable bash script completion</a></p></li>
+<li><p><a class="reference internal" href="#start-scylladb-manager-service" id="id8">Start ScyllaDB Manager service</a></p></li>
+<li><p><a class="reference internal" href="#next-steps" id="id9">Next steps</a></p></li>
+</ul>
+</nav>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you need to upgrade ScyllaDB Manager from a previous version please see the <a class="reference internal" href="upgrade/index.html"><span class="doc">Upgrade guide</span></a>.</p>
+</div>
+<section id="system-requirements">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">System requirements</a><a class="headerlink" href="#system-requirements" title="Link to this heading">¶</a></h2>
+<p>While a minimal server can run on a system with 2 cores and 1GB RAM, the following configuration is recommended:</p>
+<ul class="simple">
+<li><p><strong>CPU</strong> - 2vCPUs</p></li>
+<li><p><strong>Memory</strong> - 8GB+ DRAM</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are running <a class="reference external" href="https://monitoring.docs.scylladb.com/stable/index.html">Scylla Monitoring Stack</a> on the same server as ScyllaDB Manager, your system should also meet the minimal <a class="reference external" href="https://monitoring.docs.scylladb.com/stable/install/monitoring-stack.html#minimal-production-system-recommendations">Monitoring requirements</a>.</p>
+</div>
+</section>
+<section id="install-package">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Install package</a><a class="headerlink" href="#install-package" title="Link to this heading">¶</a></h2>
+<p>Best practice is to install ScyllaDB Manager Server on a dedicated machine not a Scylla production node.
+Download and install the ScyllaDB Manager Server and Client packages from the <a class="reference external" href="https://www.scylladb.com/download/#manager">Scylla Download Center</a>.</p>
+</section>
+<section id="configure-storage">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Configure storage</a><a class="headerlink" href="#configure-storage" title="Link to this heading">¶</a></h2>
+<p>ScyllaDB Manager uses Scylla to store its data.
+You can either use a local one-node Scylla cluster (recommended) or connect ScyllaDB Manager to a remote cluster.</p>
+<section id="local-node">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">Local node</a><a class="headerlink" href="#local-node" title="Link to this heading">¶</a></h3>
+<p>On the same node as you are installing ScyllaDB Manager, download and install Scylla Server package.
+You can either use <a class="reference external" href="https://www.scylladb.com/download/#enterprise">Scylla Enterprise</a> or <a class="reference external" href="https://www.scylladb.com/download/#open-source">Scylla Open Source</a>.
+There is no need to run the Scylla setup, it is taken care of later, by the <code class="docutils literal notranslate"><span class="pre">scyllamgr_setup</span></code> script.
+When it’s installed you can jump to <a class="reference internal" href="#run-the-scyllamgr-setup-script">Run the scyllamgr_setup script</a> section.</p>
+</section>
+<section id="remote-cluster">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">Remote cluster</a><a class="headerlink" href="#remote-cluster" title="Link to this heading">¶</a></h3>
+<p>ScyllaDB Manager configuration file <code class="docutils literal notranslate"><span class="pre">/etc/scylla-manager/scylla-manager.yaml</span></code> contains a database configuration section.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># ScyllaDB Manager database, used to store management data.</span>
+<span class="nt">database</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">hosts</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">127.0.0.1</span>
+<span class="c1"># Override default 9042 CQL port</span>
+<span class="c1">#  port: 5555</span>
+<span class="c1">#</span>
+<span class="c1"># Enable or disable client/server encryption.</span>
+<span class="c1">#  ssl: false</span>
+<span class="c1">#</span>
+<span class="c1"># Database credentials.</span>
+<span class="c1">#  user: user</span>
+<span class="c1">#  password: password</span>
+<span class="c1">#</span>
+<span class="c1"># Local datacenter name, specify if using a remote, multi-dc cluster.</span>
+<span class="c1">#  local_dc:</span>
+<span class="c1">#</span>
+<span class="c1"># Database connection timeout.</span>
+<span class="c1">#  timeout: 600ms</span>
+<span class="c1">#</span>
+<span class="c1"># Keyspace for management data, for create statement see /etc/scylla-manager/create_keyspace.cql.tpl.</span>
+<span class="c1">#  keyspace: scylla_manager</span>
+<span class="c1">#  replication_factor: 1</span>
+</pre></div>
+</div>
+<p>Using an editor open the file and change relevant parameters.</p>
+<p><strong>Procedure</strong></p>
+<ol class="arabic simple">
+<li><p>Edit the <code class="docutils literal notranslate"><span class="pre">hosts</span></code> parameter, change the IP address to the IP address or addressees of the remote cluster.</p></li>
+<li><p>If authentication is needed, uncomment and edit the <code class="docutils literal notranslate"><span class="pre">user</span></code> and <code class="docutils literal notranslate"><span class="pre">password</span></code> parameters.</p></li>
+<li><p>If it’s a single DC cluster, uncomment and edit the <code class="docutils literal notranslate"><span class="pre">replication_factor</span></code> parameter to match the required replication factor.
+This would use NetworkTopologyStrategy to create a ScyllaDB Manager keyspace, refer to <a class="reference external" href="https://docs.scylladb.com/architecture/architecture-fault-tolerance/">Scylla Architecture - Fault Tolerance</a> for more information on replication.</p></li>
+<li><p>If it’s a multi DC cluster, create a keyspace named <code class="docutils literal notranslate"><span class="pre">scylla_manager</span></code> yourself.
+You can use a different keyspace name, just remember to adjust the <code class="docutils literal notranslate"><span class="pre">keyspace</span></code> parameter value.
+Set <code class="docutils literal notranslate"><span class="pre">local_dc</span></code> parameter to DC the closest to ScyllaDB Manager Server.</p></li>
+<li><p>If client/server encryption is enabled, uncomment and set the <code class="docutils literal notranslate"><span class="pre">ssl</span></code> parameter to <code class="docutils literal notranslate"><span class="pre">true</span></code>.
+Additional SSL configuration options can be set in the <code class="docutils literal notranslate"><span class="pre">ssl</span></code> configuration section.</p></li>
+</ol>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Optional custom client/server encryption options.</span>
+<span class="c1">#ssl:</span>
+<span class="c1"># CA certificate used to validate server cert. If not set will use he host&#39;s root CA set.</span>
+<span class="c1">#  cert_file:</span>
+<span class="c1">#</span>
+<span class="c1"># Verify the hostname and server cert.</span>
+<span class="c1">#  validate: true</span>
+<span class="c1">#</span>
+<span class="c1"># Client certificate and key in PEM format. It has to be provided when</span>
+<span class="c1"># client_encryption_options.require_client_auth=true is set on server.</span>
+<span class="c1">#  user_cert_file:</span>
+<span class="c1">#  user_key_file</span>
+</pre></div>
+</div>
+<p>Sample configuration of ScyllaDB Manager working with a remote cluster with authentication and replication factor 3 could look like this.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">database</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">hosts</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">198.100.51.11</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">198.100.51.12</span>
+<span class="w">  </span><span class="nt">user</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user</span>
+<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">  </span><span class="nt">replication_factor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="run-the-scyllamgr-setup-script">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Run the scyllamgr_setup script</a><a class="headerlink" href="#run-the-scyllamgr-setup-script" title="Link to this heading">¶</a></h2>
+<p>The ScyllaDB Manager setup script automates configuration of ScyllaDB Manager by asking you some questions.
+It can be run in non-interactive mode by using flags.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>scyllamgr_setup -h
+Usage: scyllamgr_setup [-y][--no-scylla-setup][--no-enable-service][--no-check-for-updates]
+
+Options:
+  -y, --assume-yes          assume that the answer to any question which would be asked is yes
+  --no-scylla-setup         skip setting up and enabling local Scylla instance as a storage backend for ScyllaDB Manager
+  --no-enable-service       skip enabling service
+  --no-check-for-updates    skip enabling periodic check for updates
+  -h, --help                print this help
+
+Interactive mode is enabled when no flags are provided.
+</pre></div>
+</div>
+<p>Run the <code class="docutils literal notranslate"><span class="pre">scyllamgr_setup</span></code> script to configure the service.</p>
+</section>
+<section id="enable-bash-script-completion">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Enable bash script completion</a><a class="headerlink" href="#enable-bash-script-completion" title="Link to this heading">¶</a></h2>
+<p>Enable bash completion for sctool (the ScyllaDB Manager CLI) in the current bash session.
+Alternatively, you can just open a new terminal.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>source /etc/bash_completion.d/sctool.bash
+</pre></div>
+</div>
+</section>
+<section id="start-scylladb-manager-service">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Start ScyllaDB Manager service</a><a class="headerlink" href="#start-scylladb-manager-service" title="Link to this heading">¶</a></h2>
+<p>ScyllaDB Manager integrates with <code class="docutils literal notranslate"><span class="pre">systemd</span></code> and can be started and stopped using <code class="docutils literal notranslate"><span class="pre">systemctl</span></code> command.</p>
+<p><strong>Procedure</strong></p>
+<ol class="arabic">
+<li><p>Start the ScyllaDB Manager server service.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo systemctl start scylla-manager.service
+</pre></div>
+</div>
+</li>
+<li><p>Verify the ScyllaDB Manager server service is running.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo systemctl status scylla-manager.service -l
+● scylla-manager.service - ScyllaDB Manager Server
+   Loaded: loaded (/usr/lib/systemd/system/scylla-manager.service; enabled; vendor preset: disabled)
+   Active: active (running) since Wed 2019-10-30 11:00:01 UTC; 20s ago
+ Main PID: 5805 (scylla-manager)
+   CGroup: /system.slice/scylla-manager.service
+           └─5805 /usr/bin/scylla-manager
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The first time you start ScyllaDB Manager it may take a while. It creates a database schema. Follow the logs to see the progress.</p>
+</div>
+</li>
+<li><p>Confirm sctool is running by displaying the sctool version.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool version
+Client version: 2.1-0.20200401.ce91f2ad
+Server version: 2.1-0.20200401.ce91f2ad
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="next-steps">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Next steps</a><a class="headerlink" href="#next-steps" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="install-scylla-manager-agent.html"><span class="doc">Install ScyllaDB Manager Agent</span></a></p></li>
+</ul>
+</section>
+</section>
+
+                </div>
+                
+                    <div class="post-content">
+                        
+    <div class="feedback-container">
+        <p class="feedback-container__title">Was this page helpful?</p>
+        <span data-tooltip tabindex="1" title="Yes" data-position="top">
+            <button class="feedback-container__button" id="feedback-positive">
+                <i class="feedback-container__icon icon-docs-thumbs-up"></i>
+            </button>
+        </span>
+        <span data-tooltip tabindex="1" title="No" data-position="top">
+            <button class="feedback-container__button" id="feedback-negative">
+                <i class="feedback-container__icon icon-docs-thumbs-down"></i>
+            </button>
+        </span>
+        <div class="feedback-container__message" id="feedback-message"></div>
+    </div>
+
+    <script>
+        function resetFeedbackButtonActive() {
+            const feedbackButtons = document.getElementsByClassName('feedback-container__button');
+            for (let i = 0; i < feedbackButtons.length; i++) {
+                feedbackButtons[i].classList.remove('active');
+            }
+        }
+
+        function showMessage(liked) {
+            const feedbackMessage = document.getElementById('feedback-message');
+            const themeGithubRepository = true;
+            let message = 'Great! Thanks for your feedback.';
+            if (themeGithubRepository && !liked) {
+                message = "Thanks for your feedback! Please don't hesitate to <a href='https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Install ScyllaDB Manager&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/master/install-scylla-manager%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation'>create an issue</a> if you have any suggestions on how we can improve.";
+            }
+            feedbackMessage.innerHTML = message;
+        }
+
+        function sendGaEvent(liked) {
+            const event_label = liked ? "positive" : "negative";
+            const event = "feedback_" + event_label;
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': event,
+            });
+        }
+
+        const positiveFeebackButton = document.getElementById('feedback-positive');
+        const negativeFeedbackButton = document.getElementById('feedback-negative');
+
+        positiveFeebackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(true);
+            showMessage(true);
+            positiveFeebackButton.classList.add('active');
+        });
+
+        negativeFeedbackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(false);
+            showMessage(false);
+            negativeFeedbackButton.classList.add('active');
+        });
+    </script>
+
+                        <div class="content-navigation">
+    <div class="navigation navigation--prev">
+        
+            <a class="navigation__link" href="docker/index.html">
+                <button class="navigation__button">
+                    <i class="icon-chevron-left"></i>
+                </button>
+                <div class="navigation__title">
+                    <span class="colored">PREVIOUS</span> <br />Docker
+                </div>
+            </a>
+        
+    </div>
+    <div class="navigation navigation--next">
+        
+            <a class="navigation__link" href="install-scylla-manager-agent.html">
+                <div class="navigation__title">
+                    <span class="colored">NEXT</span> <br />Install ScyllaDB Manager Agent
+                </div>
+                <button class="navigation__button">
+                    <i class="icon-chevron-right"></i>
+                </button>
+            </a>
+        
+    </div>
+</div>
+                        <!-- Post content text -->
+                    </div>
+                
+
+                
+                    </div>
+                    <div class="sidebar-right large-order-3">
+                        <div class="secondary-side-nav custom-scroll-bar">
+    
+    <ul class="contribute">
+        <li class="contribute__item">
+            <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Install ScyllaDB Manager&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/master/install-scylla-manager%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation"
+               target="_blank">
+                <i class="icon-github" aria-hidden="true"></i>Create an issue
+            </a>
+        </li>
+        
+            <li class="contribute__item">
+                <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/edit/master/docs/source/install-scylla-manager.rst"
+                   target="_blank">
+                    <i class="icon-edit" aria-hidden="true"></i>Edit this page
+                </a>
+            </li>
+        
+    </ul>
+
+    
+        <div class="secondary-side-nav__content">
+            <p class="topic-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Install ScyllaDB Manager</a><ul>
+<li><a class="reference internal" href="#system-requirements">System requirements</a></li>
+<li><a class="reference internal" href="#install-package">Install package</a></li>
+<li><a class="reference internal" href="#configure-storage">Configure storage</a><ul>
+<li><a class="reference internal" href="#local-node">Local node</a></li>
+<li><a class="reference internal" href="#remote-cluster">Remote cluster</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#run-the-scyllamgr-setup-script">Run the scyllamgr_setup script</a></li>
+<li><a class="reference internal" href="#enable-bash-script-completion">Enable bash script completion</a></li>
+<li><a class="reference internal" href="#start-scylladb-manager-service">Start ScyllaDB Manager service</a></li>
+<li><a class="reference internal" href="#next-steps">Next steps</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+    
+</div>
+                    </div>
+                    </div>
+                
+            </div>
+            <div class="sidebar-left  large-order-1">
+                
+                    
+                        <div id="side-nav" class="side-nav custom-scroll-bar" data-closable data-toggler=".show">
+    <button class="collapsible-button">
+        <i class="icon-docs-menu-collapse"></i>
+    </button>
+    <div class="side-nav-content custom-scroll-bar">
+        <div class="side-nav__title">
+            <a href="index.html">Scylla Manager</a>
+        </div>
+        <div class="side-nav__search">
+            <div class="search-box">
+                <ci-search></ci-search>
+            </div>
+        </div>
+        <div class="side-nav__versions"><ul class="dropdown menu scylla-dropdown scylla-dropdown--versions" data-dropdown-menu>
+    <li class="scylla-dropdown__item">
+        <a class="scylla-dropdown__title" href="#">
+            
+                master
+            
+            <i class="chevron icon-docs-chevron-right"></i>
+        </a>
+        <ul class="menu scylla-dropdown__content">
+            
+                
+                    <li>
+                        <a href="install-scylla-manager.html">master</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../stable/install-scylla-manager.html">3.8</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../branch-3.7/install-scylla-manager.html">3.7</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../branch-3.6/install-scylla-manager.html">3.6</a>
+                    </li>
+                
+            
+            
+        </ul>
+    </li>
+</ul></div>
+        <div class="side-nav__content">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="docker/index.html">Docker</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Install ScyllaDB Manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install-scylla-manager-agent.html">Install ScyllaDB Manager Agent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="upgrade/index.html">ScyllaDB Manager Upgrade</a></li>
+<li class="toctree-l1"><a class="reference internal" href="compatibility-matrix.html">Compatibility Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="add-a-cluster.html">Add a Cluster</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="backup/index.html">Backup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="backup/setup-amazon-s3.html">Setup Amazon S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup/setup-s3-compatible-storage.html">Setup S3 compatible storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup/setup-gcs.html">Setup Google Cloud Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup/setup-azure-blobstorage.html">Setup Azure Blob Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup/native-backup.html">Native Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup/examples.html">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup/specification.html">Specification</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="restore/index.html">Restore</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="restore/restore-tables.html">Restore tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="restore/restore-schema.html">Restore schema for ScyllaDB 6.0/2024.2 or newer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="restore/old-restore-schema.html">Restore schema for ScyllaDB 5.4/2024.1 or older</a></li>
+<li class="toctree-l2"><a class="reference internal" href="restore/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="repair/index.html">Repair</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label for="toctree-checkbox-3"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="repair/repair-faster.html">Repair faster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="repair/repair-slower.html">Repair slower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="repair/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="health-check.html">Health Check</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="sctool/index.html">CLI sctool</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label for="toctree-checkbox-4"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="sctool/global-flags-and-variables.html">Environment variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/completion.html">Completion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/download-files.html">Download files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/backup.html">Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/restore.html">Restore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/cluster.html">Cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/info.html">Info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/progress.html">Progress</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/repair.html">Repair</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/start.html">Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/status.html">Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/stop.html">Stop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/suspend-resume.html">Suspend &amp; Resume</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/task.html">Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sctool/version.html">Version</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="config/index.html">Configuration Files</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label for="toctree-checkbox-5"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="config/scylla-manager-config.html">Scylla Manager Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="config/scylla-manager-agent-config.html">Scylla Manager Agent Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="swagger/index.html">Swagger File</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scylla-monitoring.html">ScyllaDB Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://scylladb-users.slack.com/archives/C01ERVBPWLU">Slack</a></li>
+</ul>
+
+        </div>
+    </div>
+</div>
+                    
+                
+            </div>
+
+        </section>
+
+        <footer class="footer">
+    <div class="footer-group">
+        <div class="footer-top">
+            <a class="footer-logo" href="https://www.scylladb.com"></a>
+            <div class="footer-links">
+                <a class="footer-links__link" href="https://docs.scylladb.com/" target="_blank">Docs</a>
+                <a class="footer-links__link" href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html" target="_blank">Tutorials</a>
+                <a class="footer-links__link" href="https://university.scylladb.com/" target="_blank">University</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/contact-us/"
+                   target="_blank">Contact Us</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/" target="_blank">About Us</a>
+            </div>
+            <div class="footer-actions">
+                <a class="footer-actions__link" href="http://slack.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="User Slack channel" data-position="bottom">
+                        <i class="icon-slack"></i>
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="https://forum.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="Community forum" data-position="bottom">
+                        <i class="icon-docs-community"></i>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        
+            <div class="footer-copyright">
+                
+                    
+                        &#169; 2026, ScyllaDB. All rights reserved.
+                    
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/tos/" target="_blank">Terms of Service</a>
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/privacy/" target="_blank">Privacy Policy</a>
+                    | ScyllaDB, and ScyllaDB Cloud, are registered trademarks of ScyllaDB, Inc.
+                
+            </div>
+        
+
+
+        <div class="footer-bottom">
+            
+                <div class="footer-bottom__last-updated">
+                    
+                        Last updated on 13 February 2026.
+                    
+                </div>
+            
+            <div class="footer-bottom__version">
+                Powered by
+                <a class="footer-bottom__link" href="http://sphinx-doc.org/">Sphinx 7.4.7</a> &amp;
+                <a class="footer-bottom__link" href="https://sphinx-theme.scylladb.com/">ScyllaDB Theme 1.8.10</a>
+            </div>
+        </div>
+    </div>
+    
+        <biel-button class="footer-ask-ai" project="ddfdo8m94k"
+                     header-title="ScyllaDB chatbot (beta)"
+                     button-position="bottom-right"
+                     modal-position="bottom-right"
+                     button-style="dark">
+            Ask AI
+        </biel-button>
+    
+</footer>
+
+        <noscript>
+            <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8P2JP" height="0" width="0"
+                    style="display: none; visibility: hidden"></iframe>
+        </noscript>
+    </body>
+
+</html>

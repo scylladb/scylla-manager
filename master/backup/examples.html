@@ -1,0 +1,864 @@
+
+
+<!DOCTYPE html>
+<html class="no-js" lang="en" style="visibility: hidden;">
+    
+    
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width initial-scale=1" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>
+             Examples | ScyllaDB Docs 
+        </title>
+        <meta name="description" content="ScyllaDB is an Apache Cassandra-compatible NoSQL data store that can handle 1 million transactions per second on a single server." />
+        <link rel="icon" href="../_static/img/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="../_static/img/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" href="../_static/img/favicon-228x228.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="../_static/img/favicon-228x228.png" />
+        <meta name="msapplication-TileImage" href="../_static/img/favicon-228x228.png" />
+
+        
+            
+            
+        
+
+        
+            
+            <link rel="canonical" href="https://manager.docs.scylladb.com/stable/backup/examples.html"/>
+        
+
+        <link rel="author" href="mailto:info@scylladb.com" />
+
+        
+            
+        <!-- increase expertrec loading priority-->
+        <link rel="dns-prefetch" href="https://cse.expertrec.com">
+
+        <!-- increase font loading priority -->
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preload" as="style"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- async CSS -->
+        <link rel="stylesheet" media="print" onload="this.onload=null;this.removeAttribute('media');"
+              href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+
+        <!-- no-JS fallback -->
+        <noscript>
+            <link rel="stylesheet"
+                  href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&display=swap" />
+        </noscript>
+
+        
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.css">
+            <script type="module" src="https://cdn.jsdelivr.net/npm/biel-search@latest/dist/biel-search/biel-search.esm.js"></script>
+        
+
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/css/main.css?v=0ebb4bd5" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/sphinx_collapse.css?v=226d88b4" />
+            
+        
+            
+                <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+            
+        
+    
+        
+        
+            
+        <script type="text/javascript" src="../_static/js/runtime.bundle.js"></script>
+        <script type="text/javascript" src="../_static/js/main.bundle.js"></script>
+        
+            
+                <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+            
+        
+            
+                <script src="../_static/doctools.js?v=9a2dae69"></script>
+            
+        
+            
+                <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+            
+        
+            
+                <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+            
+        
+            
+                <script src="../_static/copybutton.js?v=f281be69"></script>
+            
+        
+    
+            
+                <meta name='zd-site-verification' content='jiigc536se3g139312rad' />
+            
+            
+                <!-- Google Tag Manager docs -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-54NWVS4");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager global -->
+<script>
+    (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js"
+        });
+        var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, "script", "dataLayer", "GTM-T8P2JP");
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Expertrec -->
+<script>
+    var id = "e2077224-9ccf-11e9-a0c9-0242ac130002";
+    var ci_search = document.createElement("script");
+    ci_search.type = "text/javascript";
+    ci_search.async = true;
+    ci_search.src = "https://cse.expertrec.com/api/js/ci_common.js?id=" + id;
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(ci_search, s);
+</script>
+<!-- End Expertrec -->
+            
+        
+    </head>
+
+    <body class="brand-product">
+        <section class="promo-banner  promo-banner--hide" style="display: none;">
+    <div class="promo-banner-wrapper">
+        <div class="promo-banner__content">
+            
+            <div class="promo-banner__title">ScyllaDB University Live | Free Virtual Training Event</div>
+            <a class="promo-banner__button button button--reverse" href="#"
+               target="_blank" rel="noopener noreferrer">Learn more</a>
+        </div>
+        <button class="promo-banner__close">
+            <i class="icon-cancel"></i>
+        </button>
+    </div>
+</section>
+        <header class="header">
+    <div class="header-logo">
+        <a class="header-logo__img" href="https://scylladb.com/">
+            <img src="../_static/img/scylladb-logo-horizontal.svg" alt="ScyllaDB Documentation Logo" />
+        </a>
+        <span class="header-logo__bar"></span>
+        <a class="header-logo__text" href="https://docs.scylladb.com/">
+            Documentation
+        </a>
+    </div>
+    <div class="header-navigation">
+        <ul class="dropdown menu scylla-dropdown scylla-dropdown--header" data-dropdown-menu>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Deployments <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/scylla-cloud/">
+                            <i class="icon-docs-cloud"></i>Cloud</a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/manual/">
+                            <i class="icon-server"></i>Server</a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Tools <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://manager.docs.scylladb.com/">
+                            <i class="icon-docs-manager"></i>ScyllaDB Manager</a>
+                    </li>
+                    <li>
+                        <a href="https://monitoring.docs.scylladb.com/">
+                            <i class="icon-docs-monitoring"></i>ScyllaDB
+                            Monitoring Stack</a>
+                    </li>
+                    <li>
+                        <a href="https://operator.docs.scylladb.com/">
+                            <i class="icon-docs-operator"></i>ScyllaDB Operator
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Drivers <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/cql-drivers">
+                            <i class="icon-docs-nsql-guides"></i>CQL Drivers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/drivers/dynamo-drivers">
+                            <i class="icon-docs-alternator"></i>DynamoDB Drivers
+                        </a>
+
+                        <li>
+                            <a href="https://docs.scylladb.com/stable/versioning/driver-support">
+                                <i class="icon-docs-blog"></i>Supported Driver Versions
+                            </a>
+                        </li>
+                    </li>
+                </ul>
+            </li>
+            <li class="scylla-dropdown__item">
+                <a href="#" class="scylla-dropdown__title">Resources
+                    <i class="chevron icon-arrow-dropdown"></i></a>
+                <ul class="menu scylla-dropdown__content">
+                    <li>
+                        <a href="https://university.scylladb.com">
+                            <i class="icon-university"></i>
+                            ScyllaDB University
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://forum.scylladb.com">
+                            <i class="icon-docs-community"></i>
+                            Community Forum
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html">
+                            <i class="icon-docs-training"></i>
+                            Tutorials
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+        <div class="header-button">
+            <a href="https://docs.scylladb.com/manual/stable/getting-started/installation-common/scylla-web-installer.html" class="button"><i class="icon-download me-2"></i> Install</a>
+        </div>
+    </div>
+    <div class="header-search-box">
+        <i class="dark-theme-toggler icon-theme"></i>
+        <div class="search-box">
+            <ci-search></ci-search>
+        </div>
+        
+            <biel-button class="header-ask-ai" project="ddfdo8m94k"
+                         header-title="ScyllaDB chatbot (beta)"
+                         button-position="default"
+                         modal-position="bottom-right"
+                         button-style="dark">
+                Ask AI
+            </biel-button>
+        
+    </div>
+    <div class="side-nav-toggle">
+    <i class="dark-theme-toggler icon-theme"></i>
+    <div class="side-nav-toggle__button" data-toggle="side-nav">
+        <i class="icon-menu"></i>
+    </div>
+</div>
+</header>
+        <div class="title"></div>
+        <section
+            class="layout  layout--sidebar layout--has-secondary-sidebar ">
+            <div class="content large-order-2">
+                
+                    <div class="pre-content">
+                        <div class="breadcrumbs">
+    <span class="bread__item">
+        <a href="https://docs.scylladb.com"
+           class="bread__highlight">
+            <i class="icon-home"></i> ScyllaDB Docs
+        </a>
+    </span>
+    <span class="bread__item">
+        <a href="../index.html"
+           class="bread__highlight">
+            Scylla Manager
+        </a>
+    </span>
+    
+        <span class="bread__item">
+            <a href="index.html" class="bread__highlight">
+                Backup
+            </a>
+        </span>
+    
+    <span class="bread__item bread__item--last">Examples</span>
+</div>
+                    </div>
+                
+                
+                    <div class="sidebar-right-layout">
+                        <div class="body-container">
+                
+
+                <div class="content-body">
+                    
+                        
+    <div class="admonition caution">
+        <p class="admonition-title">Caution</p>
+        <p>
+            
+                You're viewing documentation for an unstable version of Scylla Manager.
+            
+            <a href="../../stable/backup/examples.html">Switch to the latest stable version.</a>
+        </p>
+    </div>
+
+                    
+
+                    <section id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h1>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#create-a-scheduled-backup" id="id1">Create a scheduled backup</a></p></li>
+<li><p><a class="reference internal" href="#schedule-a-backup-for-a-specific-dc-keyspace-or-table" id="id2">Schedule a backup for a specific DC, keyspace, or table</a></p></li>
+<li><p><a class="reference internal" href="#create-an-ad-hoc-backup" id="id3">Create an ad-hoc backup</a></p></li>
+<li><p><a class="reference internal" href="#create-backup-for-archiving-keyspace" id="id4">Create backup for archiving keyspace</a></p></li>
+<li><p><a class="reference internal" href="#perform-a-dry-run-of-a-backup" id="id5">Perform a dry run of a backup</a></p></li>
+<li><p><a class="reference internal" href="#monitor-progress-of-the-backup-task" id="id6">Monitor progress of the backup task</a></p></li>
+</ul>
+</nav>
+<p>The most recommended way to run a backup is across an entire cluster.
+Backups can be scheduled to run on single or multiple datacenters, keyspaces or tables.
+The backup procedure can be customized allowing you to plan your backups according to your IT policy.
+All parameters can be found in the <a class="reference internal" href="../sctool/backup.html#sctool-backup"><span class="std std-ref">sctool backup</span></a> command reference.
+If you want to check if all of your nodes can connect to the backup storage location see <a class="reference internal" href="#dry-run"><span class="std std-ref">Perform a dry run of a Backup</span></a>.
+Following examples will use Amazon S3 as a storage provider.</p>
+<p><strong>Prerequisites</strong></p>
+<ol class="arabic simple">
+<li><p>Backup locations (buckets) created and configured.</p></li>
+</ol>
+<section id="create-a-scheduled-backup">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Create a scheduled backup</a><a class="headerlink" href="#create-a-scheduled-backup" title="Link to this heading">¶</a></h2>
+<p>Use the example below to run the sctool backup command.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c &lt;id|name&gt; -L &lt;list of locations&gt; [-s &lt;date&gt;] [-i &lt;time-unit&gt;]
+</pre></div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-c</span></code> - the <a class="reference internal" href="../sctool/cluster.html#cluster-add"><span class="std std-ref">name</span></a> you used when you created the cluster</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-L</span></code> - points to backup storage location in <code class="docutils literal notranslate"><span class="pre">s3:&lt;your</span> <span class="pre">S3</span> <span class="pre">bucket</span> <span class="pre">name&gt;</span></code> format or <code class="docutils literal notranslate"><span class="pre">&lt;your</span> <span class="pre">DC</span> <span class="pre">name&gt;:s3:&lt;your</span> <span class="pre">S3</span> <span class="pre">bucket</span> <span class="pre">name&gt;</span></code> if you want to specify location for a datacenter</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-s</span></code> - the time you want the backup to begin</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-i</span></code> - the time interval you want to use in between consecutive backups</p></li>
+</ul>
+<p>The command returns the task ID. You will need this ID for additional actions.
+If you want to run the backup only once, leave out the interval argument (<code class="docutils literal notranslate"><span class="pre">-i</span></code>).
+In case you want the backup to start immediately, but you want it to schedule it to repeat at a determined interval, leave out the start flag (<code class="docutils literal notranslate"><span class="pre">-s</span></code>) and set the interval flag (<code class="docutils literal notranslate"><span class="pre">-i</span></code>) to the time you want the backup to reoccur.</p>
+<section id="schedule-a-daily-backup">
+<h3>Schedule a daily backup<a class="headerlink" href="#schedule-a-daily-backup" title="Link to this heading">¶</a></h3>
+<p>This command will schedule a backup at 9th Dec 2019 at 15:15:06 UTC time zone, backup will be repeated every day, and all the data will be stored in S3 under the <code class="docutils literal notranslate"><span class="pre">my-backups</span></code> bucket.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -L &#39;s3:my-backups&#39; -s &#39;2019-12-09T15:16:05Z&#39; -i 24h
+backup/3208ff15-6e8f-48b2-875c-d3c73f545410
+</pre></div>
+</div>
+<p>The above command returns the task ID (backup/3208ff15-6e8f-48b2-875c-d3c73f545410, in this case).
+This ID can be used to query the status of the backup task, to defer the task to another time, or to cancel the task See <a class="reference internal" href="../sctool/task.html#task-commands"><span class="std std-ref">Managing Tasks</span></a>.</p>
+</section>
+<section id="schedule-a-daily-weekly-and-monthly-backup">
+<h3>Schedule a daily, weekly, and monthly backup<a class="headerlink" href="#schedule-a-daily-weekly-and-monthly-backup" title="Link to this heading">¶</a></h3>
+<p>This command series will schedule a backup on 9th Dec 2019 at 15:15:06 UTC time zone, and will repeat the backup every day (keeping the last 7 days), every week (keeping the previous week), and every month (keeping the previous month).
+All the data will be stored in S3 under the <code class="docutils literal notranslate"><span class="pre">my-backups</span></code> bucket.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -L &#39;s3:my-backups&#39; --retention 7 -s &#39;2019-12-09T15:16:05Z&#39; -i 24h
+
+sctool backup -c prod-cluster -L &#39;s3:my-backups&#39; --retention 2 -s &#39;2019-12-09T15:16:05Z&#39; -i 7d
+
+sctool backup -c prod-cluster -L &#39;s3:my-backups&#39; --retention 2 -s &#39;2019-12-09T15:16:05Z&#39; -i 30d
+</pre></div>
+</div>
+</section>
+</section>
+<section id="schedule-a-backup-for-a-specific-dc-keyspace-or-table">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Schedule a backup for a specific DC, keyspace, or table</a><a class="headerlink" href="#schedule-a-backup-for-a-specific-dc-keyspace-or-table" title="Link to this heading">¶</a></h2>
+<p>In order to schedule backup of particular data center, you have to specify <code class="docutils literal notranslate"><span class="pre">--dc</span></code> parameter.
+You can specify more than one DC, or use glob pattern to match multiple DCs or exclude some of them.</p>
+<p>For Example, you have the following DCs in your cluster: dc1, dc2, dc3</p>
+<section id="backup-one-specific-dc">
+<h3>Backup one specific DC<a class="headerlink" href="#backup-one-specific-dc" title="Link to this heading">¶</a></h3>
+<p>In this example you backup the only dc1 every 2 days.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster --dc &#39;dc1&#39; -L &#39;s3:dc1-backups&#39; -i 2d
+</pre></div>
+</div>
+</section>
+<section id="backup-all-dcs-except-for-those-specified">
+<h3>Backup all DCs except for those specified<a class="headerlink" href="#backup-all-dcs-except-for-those-specified" title="Link to this heading">¶</a></h3>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -i 30d --dc &#39;*,!dc2&#39; -L &#39;s3:my-backups&#39;
+</pre></div>
+</div>
+</section>
+<section id="backup-to-a-specific-location-per-dc">
+<h3>Backup to a specific location per DC<a class="headerlink" href="#backup-to-a-specific-location-per-dc" title="Link to this heading">¶</a></h3>
+<p>If your data centers are located in different regions, you can also specify different locations.
+If your buckets are created in the same regions as your data centers, you may save some bandwidth costs.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -i 30d --dc &#39;eu-dc,us-dc&#39; -L &#39;eu-dc:s3:eu-backups,us-dc:s3:us-backups&#39;
+</pre></div>
+</div>
+</section>
+<section id="backup-a-specific-keyspace-or-table">
+<h3>Backup a specific keyspace or table<a class="headerlink" href="#backup-a-specific-keyspace-or-table" title="Link to this heading">¶</a></h3>
+<p>In order to schedule backup of a particular keyspace or table, you have to provide <code class="docutils literal notranslate"><span class="pre">-K</span></code> parameter.
+You can specify more than one keyspace/table or use glob pattern to match multiple keyspaces/tables or exclude them.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -i 30d -K &#39;auth_service.*,!auth_service.lru_cache&#39; --dc &#39;dc1&#39; -L &#39;s3:dc1-backups&#39;
+</pre></div>
+</div>
+</section>
+</section>
+<section id="create-an-ad-hoc-backup">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Create an ad-hoc backup</a><a class="headerlink" href="#create-an-ad-hoc-backup" title="Link to this heading">¶</a></h2>
+<p>An ad-hoc backup runs immediately and does not repeat.
+This procedure shows the most frequently used backup commands.
+Additional parameters can be used. Refer to <a class="reference internal" href="../sctool/backup.html#sctool-backup"><span class="std std-ref">backup parameters</span></a>.</p>
+<p><strong>Procedure</strong></p>
+<p>To run an immediate backup on the prod-cluster cluster, saving the backup in my-backups, run the following command
+replacing the <code class="docutils literal notranslate"><span class="pre">-c</span></code> cluster flag with your cluster’s cluster name or ID and replace the <code class="docutils literal notranslate"><span class="pre">-L</span></code> flag with your backup’s location:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -L &#39;s3:my-backups&#39;
+</pre></div>
+</div>
+</section>
+<section id="create-backup-for-archiving-keyspace">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Create backup for archiving keyspace</a><a class="headerlink" href="#create-backup-for-archiving-keyspace" title="Link to this heading">¶</a></h2>
+<p>We can archive any particular keyspace, and keep it in our bucket regardless of an already scheduled backup.</p>
+<p><strong>Procedure</strong></p>
+<p>For this purpose we can create separate backup task.
+This task will be run only once, without repeating time and with <code class="docutils literal notranslate"><span class="pre">--retention</span> <span class="pre">1</span></code>.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -L &#39;s3:my-backups&#39; -K &#39;Keyspace&#39; --retention 1
+</pre></div>
+</div>
+<p>Now we can disable it by command:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup update backup/4d79ee63-7721-4105-8c6a-5b98c65c3e21 -e false
+</pre></div>
+</div>
+<p>If we decide to delete above task, backup will be kept in our storage for the next 30 days.</p>
+</section>
+<section id="perform-a-dry-run-of-a-backup">
+<span id="dry-run"></span><h2><a class="toc-backref" href="#id5" role="doc-backlink">Perform a dry run of a backup</a><a class="headerlink" href="#perform-a-dry-run-of-a-backup" title="Link to this heading">¶</a></h2>
+<p>We recommend to use <code class="docutils literal notranslate"><span class="pre">--dry-run</span></code> parameter prior to scheduling a backup.
+It’s a useful way to verify whether all necessary prerequisites are fulfilled.
+Add the parameter to the end of your backup command, so if it works, you can erase it and schedule the backup with no need to make any other changes.</p>
+<p>Dry run verifies if nodes are able to access the backup location provided.
+If it’s not accessible, an error message will be displayed, and the backup is not be scheduled.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -L &#39;s3:test-bucket&#39; --dry-run
+NOTICE: dry run mode, backup is not scheduled
+
+Error: failed to get backup target: location is not accessible
+ 192.168.100.23: failed to access s3:test-bucket make sure that the location is correct and credentials are set
+ 192.168.100.22: failed to access s3:test-bucket make sure that the location is correct and credentials are set
+ 192.168.100.21: failed to access s3:test-bucket make sure that the location is correct and credentials are set
+</pre></div>
+</div>
+<p>The dry run gives you the chance to resolve all configuration or access issues before executing an actual backup.</p>
+<p>If the dry run completes successfully, a summary of the backup is displayed. For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool backup -c prod-cluster -L &#39;s3:backups&#39; --dry-run
+NOTICE: dry run mode, backup is not scheduled
+
+Data Centers:
+- AWS_EU_CENTRAL_1
+
+Keyspaces:
+- system_auth all (4 tables)
+- system_distributed all (2 tables)
+- system_schema all (12 tables)
+- system_traces all (5 tables)
+- test_keyspace all (10 tables)
+
+Disk size: ~740.69GiB
+
+Locations:
+- s3:backups
+
+Bandwidth Limits:
+- 100 MiB/s
+
+Snapshot Parallel Limits:
+- All hosts in parallel
+
+Upload Parallel Limits:
+- All hosts in parallel
+
+Retention: Last 3 backups
+</pre></div>
+</div>
+</section>
+<section id="monitor-progress-of-the-backup-task">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Monitor progress of the backup task</a><a class="headerlink" href="#monitor-progress-of-the-backup-task" title="Link to this heading">¶</a></h2>
+<p>Progress of the backup task can be monitored by using <a class="reference internal" href="../sctool/progress.html#task-progress"><span class="std std-ref">sctool progress</span></a> command and providing UUID of the backup task.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sctool progress backup/3208ff15-6e8f-48b2-875c-d3c73f545410 -c prod-cluster
+</pre></div>
+</div>
+</section>
+</section>
+
+                </div>
+                
+                    <div class="post-content">
+                        
+    <div class="feedback-container">
+        <p class="feedback-container__title">Was this page helpful?</p>
+        <span data-tooltip tabindex="1" title="Yes" data-position="top">
+            <button class="feedback-container__button" id="feedback-positive">
+                <i class="feedback-container__icon icon-docs-thumbs-up"></i>
+            </button>
+        </span>
+        <span data-tooltip tabindex="1" title="No" data-position="top">
+            <button class="feedback-container__button" id="feedback-negative">
+                <i class="feedback-container__icon icon-docs-thumbs-down"></i>
+            </button>
+        </span>
+        <div class="feedback-container__message" id="feedback-message"></div>
+    </div>
+
+    <script>
+        function resetFeedbackButtonActive() {
+            const feedbackButtons = document.getElementsByClassName('feedback-container__button');
+            for (let i = 0; i < feedbackButtons.length; i++) {
+                feedbackButtons[i].classList.remove('active');
+            }
+        }
+
+        function showMessage(liked) {
+            const feedbackMessage = document.getElementById('feedback-message');
+            const themeGithubRepository = true;
+            let message = 'Great! Thanks for your feedback.';
+            if (themeGithubRepository && !liked) {
+                message = "Thanks for your feedback! Please don't hesitate to <a href='https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Examples&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/master/backup/examples%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation'>create an issue</a> if you have any suggestions on how we can improve.";
+            }
+            feedbackMessage.innerHTML = message;
+        }
+
+        function sendGaEvent(liked) {
+            const event_label = liked ? "positive" : "negative";
+            const event = "feedback_" + event_label;
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': event,
+            });
+        }
+
+        const positiveFeebackButton = document.getElementById('feedback-positive');
+        const negativeFeedbackButton = document.getElementById('feedback-negative');
+
+        positiveFeebackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(true);
+            showMessage(true);
+            positiveFeebackButton.classList.add('active');
+        });
+
+        negativeFeedbackButton.addEventListener('click', function() {
+            resetFeedbackButtonActive();
+            sendGaEvent(false);
+            showMessage(false);
+            negativeFeedbackButton.classList.add('active');
+        });
+    </script>
+
+                        <div class="content-navigation">
+    <div class="navigation navigation--prev">
+        
+            <a class="navigation__link" href="native-backup.html">
+                <button class="navigation__button">
+                    <i class="icon-chevron-left"></i>
+                </button>
+                <div class="navigation__title">
+                    <span class="colored">PREVIOUS</span> <br />Native Backup
+                </div>
+            </a>
+        
+    </div>
+    <div class="navigation navigation--next">
+        
+            <a class="navigation__link" href="specification.html">
+                <div class="navigation__title">
+                    <span class="colored">NEXT</span> <br />Specification
+                </div>
+                <button class="navigation__button">
+                    <i class="icon-chevron-right"></i>
+                </button>
+            </a>
+        
+    </div>
+</div>
+                        <!-- Post content text -->
+                    </div>
+                
+
+                
+                    </div>
+                    <div class="sidebar-right large-order-3">
+                        <div class="secondary-side-nav custom-scroll-bar">
+    
+    <ul class="contribute">
+        <li class="contribute__item">
+            <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/issues/new?title=docs:%20Issue on page Examples&&body=I%20would%20like%20to%20report%20an%20issue%20on%20page%20https://manager.docs.scylladb.com/master/backup/examples%0A%0A%23%23%23%20Problem%0A%0A%23%23%23%20%20Suggest%20a%20fix&labels=documentation"
+               target="_blank">
+                <i class="icon-github" aria-hidden="true"></i>Create an issue
+            </a>
+        </li>
+        
+            <li class="contribute__item">
+                <a class="button button-sm" href="https://github.com/scylladb/scylla-manager/edit/master/docs/source/backup/examples.rst"
+                   target="_blank">
+                    <i class="icon-edit" aria-hidden="true"></i>Edit this page
+                </a>
+            </li>
+        
+    </ul>
+
+    
+        <div class="secondary-side-nav__content">
+            <p class="topic-title">On this page</p>
+            <ul>
+<li><a class="reference internal" href="#">Examples</a><ul>
+<li><a class="reference internal" href="#create-a-scheduled-backup">Create a scheduled backup</a><ul>
+<li><a class="reference internal" href="#schedule-a-daily-backup">Schedule a daily backup</a></li>
+<li><a class="reference internal" href="#schedule-a-daily-weekly-and-monthly-backup">Schedule a daily, weekly, and monthly backup</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#schedule-a-backup-for-a-specific-dc-keyspace-or-table">Schedule a backup for a specific DC, keyspace, or table</a><ul>
+<li><a class="reference internal" href="#backup-one-specific-dc">Backup one specific DC</a></li>
+<li><a class="reference internal" href="#backup-all-dcs-except-for-those-specified">Backup all DCs except for those specified</a></li>
+<li><a class="reference internal" href="#backup-to-a-specific-location-per-dc">Backup to a specific location per DC</a></li>
+<li><a class="reference internal" href="#backup-a-specific-keyspace-or-table">Backup a specific keyspace or table</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#create-an-ad-hoc-backup">Create an ad-hoc backup</a></li>
+<li><a class="reference internal" href="#create-backup-for-archiving-keyspace">Create backup for archiving keyspace</a></li>
+<li><a class="reference internal" href="#perform-a-dry-run-of-a-backup">Perform a dry run of a backup</a></li>
+<li><a class="reference internal" href="#monitor-progress-of-the-backup-task">Monitor progress of the backup task</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+    
+</div>
+                    </div>
+                    </div>
+                
+            </div>
+            <div class="sidebar-left  large-order-1">
+                
+                    
+                        <div id="side-nav" class="side-nav custom-scroll-bar" data-closable data-toggler=".show">
+    <button class="collapsible-button">
+        <i class="icon-docs-menu-collapse"></i>
+    </button>
+    <div class="side-nav-content custom-scroll-bar">
+        <div class="side-nav__title">
+            <a href="../index.html">Scylla Manager</a>
+        </div>
+        <div class="side-nav__search">
+            <div class="search-box">
+                <ci-search></ci-search>
+            </div>
+        </div>
+        <div class="side-nav__versions"><ul class="dropdown menu scylla-dropdown scylla-dropdown--versions" data-dropdown-menu>
+    <li class="scylla-dropdown__item">
+        <a class="scylla-dropdown__title" href="#">
+            
+                master
+            
+            <i class="chevron icon-docs-chevron-right"></i>
+        </a>
+        <ul class="menu scylla-dropdown__content">
+            
+                
+                    <li>
+                        <a href="examples.html">master</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../stable/backup/examples.html">3.8</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.7/backup/examples.html">3.7</a>
+                    </li>
+                
+            
+                
+                    <li>
+                        <a href="../../branch-3.6/backup/examples.html">3.6</a>
+                    </li>
+                
+            
+            
+        </ul>
+    </li>
+</ul></div>
+        <div class="side-nav__content">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../docker/index.html">Docker</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager.html">Install ScyllaDB Manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install-scylla-manager-agent.html">Install ScyllaDB Manager Agent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../upgrade/index.html">ScyllaDB Manager Upgrade</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../compatibility-matrix.html">Compatibility Matrix</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../add-a-cluster.html">Add a Cluster</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Backup</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label for="toctree-checkbox-1"><i class="icon-chevron-right"></i></label><div class="break"></div><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="setup-amazon-s3.html">Setup Amazon S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup-s3-compatible-storage.html">Setup S3 compatible storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup-gcs.html">Setup Google Cloud Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup-azure-blobstorage.html">Setup Azure Blob Storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="native-backup.html">Native Backup</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="specification.html">Specification</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../restore/index.html">Restore</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label for="toctree-checkbox-2"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../restore/restore-tables.html">Restore tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/restore-schema.html">Restore schema for ScyllaDB 6.0/2024.2 or newer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/old-restore-schema.html">Restore schema for ScyllaDB 5.4/2024.1 or older</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../restore/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../repair/index.html">Repair</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label for="toctree-checkbox-3"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-faster.html">Repair faster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/repair-slower.html">Repair slower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../repair/examples.html">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../health-check.html">Health Check</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sctool/index.html">CLI sctool</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label for="toctree-checkbox-4"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/global-flags-and-variables.html">Environment variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/completion.html">Completion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/download-files.html">Download files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/backup.html">Backup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/restore.html">Restore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/cluster.html">Cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/info.html">Info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/progress.html">Progress</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/repair.html">Repair</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/start.html">Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/status.html">Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/stop.html">Stop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/suspend-resume.html">Suspend &amp; Resume</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/task.html">Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sctool/version.html">Version</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../config/index.html">Configuration Files</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label for="toctree-checkbox-5"><i class="icon-chevron-right"></i></label><div class="break"></div><ul>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-config.html">Scylla Manager Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../config/scylla-manager-agent-config.html">Scylla Manager Agent Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../swagger/index.html">Swagger File</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../scylla-monitoring.html">ScyllaDB Monitoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://scylladb-users.slack.com/archives/C01ERVBPWLU">Slack</a></li>
+</ul>
+
+        </div>
+    </div>
+</div>
+                    
+                
+            </div>
+
+        </section>
+
+        <footer class="footer">
+    <div class="footer-group">
+        <div class="footer-top">
+            <a class="footer-logo" href="https://www.scylladb.com"></a>
+            <div class="footer-links">
+                <a class="footer-links__link" href="https://docs.scylladb.com/" target="_blank">Docs</a>
+                <a class="footer-links__link" href="https://docs.scylladb.com/stable/get-started/develop-with-scylladb/tutorials-example-projects.html" target="_blank">Tutorials</a>
+                <a class="footer-links__link" href="https://university.scylladb.com/" target="_blank">University</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/contact-us/"
+                   target="_blank">Contact Us</a>
+                <a class="footer-links__link" href="https://www.scylladb.com/company/" target="_blank">About Us</a>
+            </div>
+            <div class="footer-actions">
+                <a class="footer-actions__link" href="http://slack.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="User Slack channel" data-position="bottom">
+                        <i class="icon-slack"></i>
+                    </span>
+                </a>
+                <a class="footer-actions__link" href="https://forum.scylladb.com/" target="_blank">
+                    <span data-tooltip tabindex="1" title="Community forum" data-position="bottom">
+                        <i class="icon-docs-community"></i>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        
+            <div class="footer-copyright">
+                
+                    
+                        &#169; 2026, ScyllaDB. All rights reserved.
+                    
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/tos/" target="_blank">Terms of Service</a>
+                    | <a class="footer-copyright__link" href="https://www.scylladb.com/privacy/" target="_blank">Privacy Policy</a>
+                    | ScyllaDB, and ScyllaDB Cloud, are registered trademarks of ScyllaDB, Inc.
+                
+            </div>
+        
+
+
+        <div class="footer-bottom">
+            
+                <div class="footer-bottom__last-updated">
+                    
+                        Last updated on 13 February 2026.
+                    
+                </div>
+            
+            <div class="footer-bottom__version">
+                Powered by
+                <a class="footer-bottom__link" href="http://sphinx-doc.org/">Sphinx 7.4.7</a> &amp;
+                <a class="footer-bottom__link" href="https://sphinx-theme.scylladb.com/">ScyllaDB Theme 1.8.10</a>
+            </div>
+        </div>
+    </div>
+    
+        <biel-button class="footer-ask-ai" project="ddfdo8m94k"
+                     header-title="ScyllaDB chatbot (beta)"
+                     button-position="bottom-right"
+                     modal-position="bottom-right"
+                     button-style="dark">
+            Ask AI
+        </biel-button>
+    
+</footer>
+
+        <noscript>
+            <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8P2JP" height="0" width="0"
+                    style="display: none; visibility: hidden"></iframe>
+        </noscript>
+    </body>
+
+</html>
