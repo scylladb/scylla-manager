@@ -82,38 +82,31 @@ It should have a status of *“Active: inactive (dead)”*.
 Upgrade the ScyllaDB Manager Server and Client 
 ----------------------------------------------
 
-.. TODO This section must be updated when the installation instructions are moved to the docs:
-.. The link should take the user to the relevant page in the docs, not to the Download Center.
-
-#. **On the Manager server**, update the Manager repo file. Go to ScyllaDB Manager in 
-   the `ScyllaDB Download Center <https://www.scylladb.com/download/#manager>`_, 
-   and select your platform and the version to which you want to upgrade to display the relevant command.
-   
-   The following examples show how to update the repo for Manager 3.6:
+#. **On the Manager server**, update the Manager repo file.
 
    .. tabs::
 
-      .. group-tab:: Example for Centos
+      .. group-tab:: Centos
 
-           .. code:: console
-              :class: hide-copy-button
+           .. code-block:: console
+               :substitutions:
 
-              sudo curl -o /etc/yum.repos.d/scylla-manager.repo -L https://downloads.scylladb.com/rpm/centos/scylladb-manager-3.6.repo
+               sudo curl -o /etc/yum.repos.d/scylla-manager.repo -L https://downloads.scylladb.com/rpm/centos/|CENTOS_SCYLLADB_REPO|
 
-      .. group-tab::  Example for Ubuntu
+          .. group-tab::  Ubuntu
 
-           .. code:: console
-              :class: hide-copy-button
+           .. code-block:: console
+               :substitutions:
 
-              sudo wget -O /etc/apt/sources.list.d/scylla-manager.list https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.6.list
+               sudo wget -O /etc/apt/sources.list.d/scylla-manager.list https://downloads.scylladb.com/deb/ubuntu/|UBUNTU_SCYLLADB_LIST|
 
    .. note:: 
     
      You don't need to update the repo file if you upgrade to a patch release, for example, 
-     from Manager 3.5.0 to 3.5.1.
+     from Manager 3.8.0 to 3.8.1.
 
    You can display the contents of the Manager repo file to confirm that the displayed version 
-   is the ver#4487sion to which you want to upgrade.
+   is the version to which you want to upgrade.
 
      - On CentOS/Red Hat, run: ``cat /etc/yum.repos.d/scylla-manager.repo``
      - On Debian/Ubuntu, run: ``cat /etc/apt/sources.list.d/scylla-manager.list``
