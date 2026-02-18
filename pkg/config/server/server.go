@@ -107,6 +107,9 @@ func (c Config) Validate() error {
 	if c.HTTP == "" && c.HTTPS == "" {
 		return errors.New("missing http or https")
 	}
+	if strings.Contains(c.Database.Keyspace, "\"") {
+		return errors.New("database.keyspace contains quotes")
+	}
 	if len(c.Database.Hosts) == 0 {
 		return errors.New("missing database.hosts")
 	}
