@@ -111,6 +111,8 @@ jobs:
 name: integration-tests-2025.1.7-IPV4
 "on":
     pull_request:
+        paths-ignore:
+            - docs/**
         types:
             - opened
             - synchronize
@@ -119,3 +121,5 @@ name: integration-tests-2025.1.7-IPV4
         branches:
             - master
             - branch-**
+        paths-ignore:
+            - docs/**
