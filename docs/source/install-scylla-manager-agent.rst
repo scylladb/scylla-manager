@@ -18,7 +18,46 @@ Agent serves as a reverse proxy to Scylla REST API, and provides additional feat
 Install package
 ===============
 
-Download and install Scylla Manager Agent from the `Scylla Download Center <https://www.scylladb.com/download/#manager>`_.
+.. tabs::
+
+   .. group-tab:: Debian/Ubuntu
+
+      #. Import the ScyllaDB GPG signing key. *Note*: If ScyllaDB is already installed on this node, the key was
+         imported during ScyllaDB installation.
+
+            .. code-block:: console
+
+               sudo mkdir -p /etc/apt/keyrings
+               sudo gpg --homedir /tmp --no-default-keyring --keyring /etc/apt/keyrings/scylladb.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys a43e06657bac99e3
+
+      #. Add the ScyllaDB Manager APT repository to your system.
+
+            .. code-block:: console
+               :substitutions:
+
+               sudo curl -o /etc/apt/sources.list.d/scylla-manager.list -L https://downloads.scylladb.com/deb/debian/|UBUNTU_SCYLLADB_LIST|
+
+      #. Install ScyllaDB Manager Agent.
+
+            .. code-block:: console
+
+               sudo apt update
+               sudo apt install -y scylla-manager-agent
+
+   .. group-tab:: Centos/RHEL
+
+        #. Add the ScyllaDB Manager RPM repository to your system.
+
+            .. code-block:: console
+               :substitutions:
+
+               sudo curl -o /etc/yum.repos.d/scylla-manager.repo -L https://downloads.scylladb.com/rpm/centos/|CENTOS_SCYLLADB_REPO|
+
+      #. Install ScyllaDB Manager Agent. 
+
+            .. code-block:: console
+
+               sudo yum install scylla-manager-agent
 
 Run the scyllamgr_agent_setup script
 ====================================
