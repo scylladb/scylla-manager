@@ -115,6 +115,8 @@ jobs:
 name: integration-tests-2025.2.3-IPV6-nossl-rclone-rclone
 "on":
     pull_request:
+        paths-ignore:
+            - docs/**
         types:
             - opened
             - synchronize
@@ -123,5 +125,7 @@ name: integration-tests-2025.2.3-IPV6-nossl-rclone-rclone
         branches:
             - master
             - branch-**
+        paths-ignore:
+            - docs/**
 permissions:
     contents: read
