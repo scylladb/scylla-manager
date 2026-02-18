@@ -13,6 +13,8 @@ This document contains examples for scheduling and running repairs.
 Schedule a repair
 =================
 
+AAA
+
 A cluster, added to Scylla Manager, has a repair task created for it.
 This task repairs the entire cluster every week.
 You can change it, add additional repairs, or delete it.
