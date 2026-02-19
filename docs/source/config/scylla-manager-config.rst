@@ -1,10 +1,10 @@
 .. _configuration-file:
 
 =====================
-Scylla Manager Config
+ScyllaDB Manager Config
 =====================
 
-Scylla Manager configuration file ``/etc/scylla-manager/scylla-manager.yaml``.
+ScyllaDB Manager configuration file ``/etc/scylla-manager/scylla-manager.yaml``.
 
 .. literalinclude:: scylla-manager.yaml
    :language: yaml

@@ -9,14 +9,14 @@ Setup Google Cloud Storage
 Create a bucket
 ===============
 
-Go to `Google Cloud Storage <https://cloud.google.com/storage>`_ and create a new bucket in a region where Scylla nodes are.
+Go to `Google Cloud Storage <https://cloud.google.com/storage>`_ and create a new bucket in a region where ScyllaDB nodes are.
 If your cluster is deployed in multiple regions create a bucket per region.
 You may decide to backup only a single datacenter to save on costs, in that case create only one bucket in a region you want to backup.
 
 Grant access
 ============
 
-This procedure is required so that Scylla Manager can access your bucket.
+This procedure is required so that ScyllaDB Manager can access your bucket.
 
 Choose how you want to configure access to the bucket.
 If your application runs inside a Google Cloud environment we recommend using automatic Service account authentication.
@@ -28,14 +28,14 @@ Automatic service account authorization
 
 **Procedure**
 
-#. Collect list of `service accounts <https://cloud.google.com/compute/docs/access/service-accounts>`_ used by **each** of the Scylla nodes.
+#. Collect list of `service accounts <https://cloud.google.com/compute/docs/access/service-accounts>`_ used by **each** of the ScyllaDB nodes.
 #. Make sure that each of service account has read/write `access scope <https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam>`_ to Cloud Storage.
 #. For each service account from the list, add `Storage Object Admin role <https://cloud.google.com/storage/docs/access-control/iam-roles>`_ in bucket permissions settings.
 
 Service account file
 --------------------
 
-Note that this procedure needs to be repeated for each Scylla node.
+Note that this procedure needs to be repeated for each ScyllaDB node.
 
 **Prerequisites**
 
@@ -44,7 +44,7 @@ Use `this instruction <https://cloud.google.com/docs/authentication/production#m
 **Procedure**
 
 #. Upload service account file to ``/etc/scylla-manager-agent/gcs-service-account.json``.
-   If you want to use different path change service_account_file parameter in ``gcs`` section in :doc:`Scylla Manager Agent Config file <../config/scylla-manager-agent-config>`.
+   If you want to use different path change service_account_file parameter in ``gcs`` section in :doc:`ScyllaDB Manager Agent Config file <../config/scylla-manager-agent-config>`.
 #. Validate that the manager has access to the backup location.
    If there is no response, the bucket is accessible. If not, you will see an error.
 

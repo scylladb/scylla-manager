@@ -2,7 +2,7 @@
 Restore schema for ScyllaDB 5.4/2024.1 or older
 ===============================================
 
-.. note:: Currently, Scylla Manager supports only entire schema restoration, so ``--keyspace`` flag is not allowed.
+.. note:: Currently, ScyllaDB Manager supports only entire schema restoration, so ``--keyspace`` flag is not allowed.
 
 .. note:: Because of small size of schema files, resuming schema restoration always starts from scratch.
 

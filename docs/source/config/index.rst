@@ -9,4 +9,4 @@ Configuration Files
    scylla-manager-config
    scylla-manager-agent-config
 
-This page is where you will find information on Scylla Manager and Scylla Manager Agent configuration files.
+This page is where you will find information on ScyllaDB Manager and ScyllaDB Manager Agent configuration files.

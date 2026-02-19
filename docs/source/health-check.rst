@@ -2,7 +2,7 @@
 Health Check
 ============
 
-Scylla Manager automatically adds three health check tasks when the cluster is added to the Scylla Manager and to existing clusters
+ScyllaDB Manager automatically adds three health check tasks when the cluster is added to the ScyllaDB Manager and to existing clusters
 during the upgrade procedure. You can see the tasks created by the healthcheck when you run
 the :ref:`sctool tasks <task-list>` command.
 
@@ -32,11 +32,11 @@ We can see three healthcheck related tasks:
 
 .. _scylla-health-check:
 
-Scylla Health Check
+ScyllaDB Health Check
 -------------------
 
-The Scylla health check task ensures that CQL native port is accessible on all the nodes.
-Scylla Manager reads CQL IP address and port from the node configuration, and can automatically detect TLS/SSL connection.
+The ScyllaDB health check task ensures that CQL native port is accessible on all the nodes.
+ScyllaDB Manager reads CQL IP address and port from the node configuration, and can automatically detect TLS/SSL connection.
 There are two types of CQL health check :ref:`credentials-agnostic-health-check` and :ref:`cql-query-health-check`.
 
 The results are available using the :ref:`sctool status <status>` command.
@@ -56,7 +56,7 @@ For example:
    │ UN │ UP (10ms)  │ UP (4ms)  │ UP (5ms)  │ 10.0.66.115   │ 237h2m1s │ 4    │ 15.43GiB │ 4.1.0  │ 2.2.0    │ 918a52aa-cc42-43a4-a499-f7b1ccb53b18 │
    ╰────┴────────────┴───────────┴───────────┴───────────────┴──────────┴──────┴──────────┴────────┴──────────┴──────────────────────────────────────╯
 
-The status information is also available as a metric in Scylla Monitoring Manager dashboard.
+The status information is also available as a metric in ScyllaDB Monitoring Manager dashboard.
 The `healthcheck` task checks nodes every 15 seconds, the interval can be changed using ``task-update`` command.
 
 The CQL column shows the CQL status, SSL indicator if SSL is enabled on a node, and time the check took.
@@ -69,7 +69,7 @@ Available statuses are:
 * UNAUTHORISED - Wrong username or password - only if ``username`` is specified for cluster
 * TIMEOUT - Timeout
 
-The REST column shows the status of Scylla Manager Server to Scylla API communication, and time the check took.
+The REST column shows the status of ScyllaDB Manager Server to ScyllaDB API communication, and time the check took.
 
 Available statuses are:
 
@@ -83,7 +83,7 @@ Available statuses are:
 Error information
 -----------------
 
-.. versionadded:: 2.5 Scylla Manager
+.. versionadded:: 2.5 ScyllaDB Manager
 
 In case of error (status ERROR or DOWN) there is additional error section below the table describing the errors.
 
@@ -104,30 +104,30 @@ In case of error (status ERROR or DOWN) there is additional error section below 
 Node information
 ----------------
 
-.. versionadded:: 2.2 Scylla Manager
+.. versionadded:: 2.2 ScyllaDB Manager
 
 Node status check also provides additional columns that show properties of the available nodes. Those are:
 
 - CPUs - Total OS CPU count
 - Memory - Total OS memory available
 - Uptime - How long the system has been running without restarts
-- Scylla - Version of Scylla server running on the node
-- Agent - Version of Scylla Manager Agent running on the node
+- ScyllaDB - Version of ScyllaDB server running on the node
+- Agent - Version of ScyllaDB Manager Agent running on the node
 - Host - UUID of the node
 - Address - IP address of the node
 
-Scylla Monitoring
+ScyllaDB Monitoring
 -----------------
 
-If you have enabled the Scylla Monitoring stack, Scylla Manager dashboard includes the same cluster status report.
-In addition, the Prometheus Alert Manager has an alert to report when a Scylla node health check fails.
+If you have enabled the ScyllaDB Monitoring stack, ScyllaDB Manager dashboard includes the same cluster status report.
+In addition, the Prometheus Alert Manager has an alert to report when a ScyllaDB node health check fails.
 
 .. _credentials-agnostic-health-check:
 
 Credentials agnostic health check
 ---------------------------------
 
-Scylla Manager does not require database credentials to work.
+ScyllaDB Manager does not require database credentials to work.
 CQL health check is based on sending `CQL OPTIONS frame <https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v4.spec#L302>`_ and does not start a CQL session.
 This is simple and effective but does not test CQL all the way down.
 For that you may consider upgrading to :ref: <cql-query-health-check>`.
@@ -137,29 +137,29 @@ For that you may consider upgrading to :ref: <cql-query-health-check>`.
 CQL query health check
 ----------------------
 
-.. versionadded:: 2.2 Scylla Manager
+.. versionadded:: 2.2 ScyllaDB Manager
 
-You may specify CQL ``username`` and ``password`` flags when adding cluster to Scylla Manager using :ref:`sctool cluster add <cluster-add>` command.
+You may specify CQL ``username`` and ``password`` flags when adding cluster to ScyllaDB Manager using :ref:`sctool cluster add <cluster-add>` command.
 It's also possible to add or change that using :ref:`sctool cluster update <cluster-update>` command.
-Once Scylla Manager has CQL credential to the cluster, when performing a health check, it would try to connect to each node and execute ``SELECT now() FROM system.local WHERE key='local'`` query.
+Once ScyllaDB Manager has CQL credential to the cluster, when performing a health check, it would try to connect to each node and execute ``SELECT now() FROM system.local WHERE key='local'`` query.
 
 
 .. _scylla-alternator-health-check:
 
-Scylla Alternator Health Check
+ScyllaDB Alternator Health Check
 ------------------------------
 
-.. versionadded:: 2.2 Scylla Manager
+.. versionadded:: 2.2 ScyllaDB Manager
 
-If Alternator is enabled it will check the Scylla Alternator API connectivity for all nodes in parallel. In Scylla 4.0, it uses simplified ping checking if the socket is open and if it’s responding. In Scylla 4.1+, it queries the system table.
+If Alternator is enabled it will check the ScyllaDB Alternator API connectivity for all nodes in parallel. In ScyllaDB 4.0, it uses simplified ping checking if the socket is open and if it’s responding. In ScyllaDB 4.1+, it queries the system table.
 
-Please check the Scylla Manager :ref:`configuration-file` to adjust timeouts for your cluster.
+Please check the ScyllaDB Manager :ref:`configuration-file` to adjust timeouts for your cluster.
 
 .. _scylla-api:
 
-Scylla REST API Health Check
+ScyllaDB REST API Health Check
 ----------------------------
 
-Checks Scylla REST API connectivity by performing single HTTP request-response cycle between Scylla Manager Server and all Scylla nodes in parallel.
+Checks ScyllaDB REST API connectivity by performing single HTTP request-response cycle between ScyllaDB Manager Server and all ScyllaDB nodes in parallel.
 
-Please check the Scylla Manager :ref:`configuration-file` to adjust timeouts for your cluster.
+Please check the ScyllaDB Manager :ref:`configuration-file` to adjust timeouts for your cluster.

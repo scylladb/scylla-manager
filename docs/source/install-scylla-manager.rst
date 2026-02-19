@@ -18,7 +18,7 @@ While a minimal server can run on a system with 2 cores and 1GB RAM, the followi
 * **CPU** - 2vCPUs
 * **Memory** - 8GB+ DRAM
 
-.. note::  If you are running `Scylla Monitoring Stack <https://monitoring.docs.scylladb.com/stable/index.html>`_ on the same server as ScyllaDB Manager, your system should also meet the minimal `Monitoring requirements <https://monitoring.docs.scylladb.com/stable/install/monitoring-stack.html#minimal-production-system-recommendations>`_.
+.. note::  If you are running `ScyllaDB Monitoring Stack <https://monitoring.docs.scylladb.com/stable/index.html>`_ on the same server as ScyllaDB Manager, your system should also meet the minimal `Monitoring requirements <https://monitoring.docs.scylladb.com/stable/install/monitoring-stack.html#minimal-production-system-recommendations>`_.
 
 Install package
 ===============
@@ -37,7 +37,7 @@ Best practice is to install ScyllaDB Manager Server on a dedicated machine, not 
                sudo gpg --homedir /tmp --no-default-keyring --keyring /etc/apt/keyrings/scylladb.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys a43e06657bac99e3
 
 
-        #. Add the Scylla Manager APT repository to your system.
+        #. Add the ScyllaDB Manager APT repository to your system.
 
             .. code-block:: console
                :substitutions:
@@ -75,15 +75,15 @@ Best practice is to install ScyllaDB Manager Server on a dedicated machine, not 
 Configure storage
 =================
 
-ScyllaDB Manager uses Scylla to store its data.
-You can either use a local one-node Scylla cluster (recommended) or connect ScyllaDB Manager to a remote cluster.
+ScyllaDB Manager uses ScyllaDB to store its data.
+You can either use a local one-node ScyllaDB cluster (recommended) or connect ScyllaDB Manager to a remote cluster.
 
 Local node
 ----------
 
-On the same node as you are installing ScyllaDB Manager, download and install Scylla Server package.
-You can either use `Scylla Enterprise <https://www.scylladb.com/download/#enterprise>`_ or `Scylla Open Source <https://www.scylladb.com/download/#open-source>`_.
-There is no need to run the Scylla setup, it is taken care of later, by the ``scyllamgr_setup`` script.
+On the same node as you are installing ScyllaDB Manager, download and install ScyllaDB Server package.
+You can either use `ScyllaDB Enterprise <https://www.scylladb.com/download/#enterprise>`_ or `ScyllaDB Open Source <https://www.scylladb.com/download/#open-source>`_.
+There is no need to run the ScyllaDB setup, it is taken care of later, by the ``scyllamgr_setup`` script.
 When it's installed you can jump to `Run the scyllamgr_setup script`_ section.
 
 Remote cluster
@@ -126,7 +126,7 @@ Using an editor open the file and change relevant parameters.
 #. If authentication is needed, uncomment and edit the ``user`` and ``password`` parameters.
 
 #. If it's a single DC cluster, uncomment and edit the ``replication_factor`` parameter to match the required replication factor.
-   This would use NetworkTopologyStrategy to create a ScyllaDB Manager keyspace, refer to `Scylla Architecture - Fault Tolerance <https://docs.scylladb.com/architecture/architecture-fault-tolerance/>`_ for more information on replication.
+   This would use NetworkTopologyStrategy to create a ScyllaDB Manager keyspace, refer to `ScyllaDB Architecture - Fault Tolerance <https://docs.scylladb.com/architecture/architecture-fault-tolerance/>`_ for more information on replication.
 
 #. If it's a multi DC cluster, create a keyspace named ``scylla_manager`` yourself.
    You can use a different keyspace name, just remember to adjust the ``keyspace`` parameter value.

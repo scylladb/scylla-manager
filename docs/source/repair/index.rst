@@ -15,7 +15,7 @@ Repair
    :local:
 
 Repair is important to make sure that data across the nodes is consistent.
-To learn more about repairs please consult `this Scylla University lesson <https://university.scylladb.com/courses/scylla-operations/lessons/scylla-manager-repair-and-tombstones/topic/repairs>`_.
+To learn more about repairs please consult `this ScyllaDB University lesson <https://university.scylladb.com/courses/scylla-operations/lessons/scylla-manager-repair-and-tombstones/topic/repairs>`_.
 
 .. note:: If you are using ScyllaDB Manager deployed by ScyllaDB Operator, see dedicated `ScyllaDB Operator documentation <https://operator.docs.scylladb.com/stable/architecture/manager.html>`_.
 
@@ -57,15 +57,15 @@ Features
 Parallel repairs
 ================
 
-Each node can take part in at most one Scylla repair job at any given moment, but Scylla Manager can repair distinct replica sets in a token ring in parallel.
+Each node can take part in at most one ScyllaDB repair job at any given moment, but ScyllaDB Manager can repair distinct replica sets in a token ring in parallel.
 This is beneficial for big clusters.
 The following diagram presents a benchmark results comparing different parallel flag values.
-In a benchmark we ran 9 Scylla 2020.1 nodes on AWS i3.2xlarge machines under 50% load, for details check `this blog post <https://www.scylladb.com/2020/11/12/scylla-manager-2-2-repair-revisited/>`_
+In a benchmark we ran 9 ScyllaDB 2020.1 nodes on AWS i3.2xlarge machines under 50% load, for details check `this blog post <https://www.scylladb.com/2020/11/12/scylla-manager-2-2-repair-revisited/>`_
 
 .. image:: images/parallel.png
   :width: 80%
 
-By default Scylla Manager runs repairs with full parallelism, you can change that using :ref:`sctool repair --parallel flag <sctool-repair>`.
+By default ScyllaDB Manager runs repairs with full parallelism, you can change that using :ref:`sctool repair --parallel flag <sctool-repair>`.
 
 Maximal effective parallelism
 =============================
@@ -132,7 +132,7 @@ More on the topic of repair speed can be found in :doc:`Repair faster <repair-fa
 Repair order
 ============
 
-Scylla Manager repairs keyspace by keyspace and table by table in order to achieve greater repair stability and performance.
+ScyllaDB Manager repairs keyspace by keyspace and table by table in order to achieve greater repair stability and performance.
 
 Keyspaces and tables are ordered according to the following rules:
 
@@ -140,4 +140,4 @@ Keyspaces and tables are ordered according to the following rules:
 * repair base tables before `Materialized Views <https://docs.scylladb.com/manual/stable/features/materialized-views.html>`_ and `Secondary Indexes <https://docs.scylladb.com/manual/stable/features/secondary-indexes.html>`_
 * repair smaller keyspaces and tables first
 
-.. note:: Ensuring that base tables are repaired before views is possible only when Scylla Manager has `CQL credentials <https://manager.docs.scylladb.com/stable/sctool/cluster.html#cluster-add>`_ to repaired cluster.
+.. note:: Ensuring that base tables are repaired before views is possible only when ScyllaDB Manager has `CQL credentials <https://manager.docs.scylladb.com/stable/sctool/cluster.html#cluster-add>`_ to repaired cluster.

@@ -46,7 +46,7 @@ ScyllaDB Manager Restore command supports the following features:
 * Glob patterns to select keyspaces or tables to restore
 * Control over the :ref:`restore speed and granularity <restore-speed-and-granularity>`
 * :ref:`Dry run <restore-dry-run>` - Test restore before live execution
-* Progress tracking (:ref:`sctool progress <task-progress>`, Prometheus metrics, `Scylla Monitoring <https://monitoring.docs.scylladb.com>`_ Manager dashboard)
+* Progress tracking (:ref:`sctool progress <task-progress>`, Prometheus metrics, `ScyllaDB Monitoring <https://monitoring.docs.scylladb.com>`_ Manager dashboard)
 * :ref:`Pausing <task-stop>` and :ref:`resuming <task-start>` at any point of the process
 
 Restore speed observability

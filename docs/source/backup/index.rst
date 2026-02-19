@@ -83,7 +83,7 @@ Backup location
 ===============
 
 You need to create a backup location for example an S3 bucket.
-We recommend creating it in the same region as Scylla nodes to minimize cross region data transfer costs.
+We recommend creating it in the same region as ScyllaDB nodes to minimize cross region data transfer costs.
 In multi-dc deployments you should create a bucket per datacenter, each located in the datacenter's region.
 
 Details may differ depending on the storage engine, please consult:
@@ -98,10 +98,10 @@ Removing backups
 
 Backups may require a lot of storage space. They are purged according to the retention defined on the backup task.
 
-`Sctool` can be used to remove snapshots of clusters that are no longer managed by Scylla Manager.
-The removal process is performed through the Scylla Manager Agent installed on Scylla nodes.
+`Sctool` can be used to remove snapshots of clusters that are no longer managed by ScyllaDB Manager.
+The removal process is performed through the ScyllaDB Manager Agent installed on ScyllaDB nodes.
 
-However, it's recommended to delete the snapshots from the storage before removing the cluster from Scylla Manager.
+However, it's recommended to delete the snapshots from the storage before removing the cluster from ScyllaDB Manager.
 Otherwise, you will need to add the cluster again, list the snapshots in the given location, and remove them using the new cluster as the coordinator.
 Another option is to purge them manually. If you want to remove the snapshots manually, please refer to the :doc:`backup specification <specification>`
 and remove them accordingly.

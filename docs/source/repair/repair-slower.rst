@@ -3,20 +3,20 @@ Repair slower
 =============
 
 You can make repair run slower by changing the level of parallelism or intensity.
-By default Scylla Manager runs repairs with full parallelism and intensity one.
+By default ScyllaDB Manager runs repairs with full parallelism and intensity one.
 
-Reduce amount of work performed by a single Scylla repair job.
-If ``--intensity`` has been previously increased, try setting it to ``--intensity 1``. That reduces the number of token ranges repaired in a single Scylla repair job.
+Reduce amount of work performed by a single ScyllaDB repair job.
+If ``--intensity`` has been previously increased, try setting it to ``--intensity 1``. That reduces the number of token ranges repaired in a single ScyllaDB repair job.
 Beware that 0 is a special value, it means max intensity.
 
-Try setting ``--parallel 1``, that would cap the number of Scylla repair jobs in the cluster to one, frees nodes that are not being repaired.
-This would have the same result as running Scylla Manager 2.1 or earlier in terms of parallelism.
+Try setting ``--parallel 1``, that would cap the number of ScyllaDB repair jobs in the cluster to one, frees nodes that are not being repaired.
+This would have the same result as running ScyllaDB Manager 2.1 or earlier in terms of parallelism.
 
 Slowdown a running repair
 =========================
 
 If a repair is running on a cluster, you can change intensity and parallelism levels while it is running.
-Run the following command to limit the number of parallel Scylla repair jobs in the cluster to one.
+Run the following command to limit the number of parallel ScyllaDB repair jobs in the cluster to one.
 
 .. code-block:: none
 
@@ -29,7 +29,7 @@ Slowdown the future runs of a repair
 ====================================
 
 If you wish to change intensity and parallelism level of a repair task use :ref:`sctool repair update <repair-update>` command.
-Run the following command to limit the number of parallel Scylla repair jobs in the cluster to one.
+Run the following command to limit the number of parallel ScyllaDB repair jobs in the cluster to one.
 
 .. code-block:: none
 

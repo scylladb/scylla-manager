@@ -6,7 +6,7 @@ Setup S3 compatible storage
    :depth: 2
    :local:
 
-There are multiple S3 API compatible providers that can be used with Scylla Manager.
+There are multiple S3 API compatible providers that can be used with ScyllaDB Manager.
 Due to minor differences between them we require that exact provider is specified in the config file for full compatibility.
 The available providers are Alibaba, AWS, Ceph, DigitalOcean, IBMCOS, Minio, Wasabi, Dreamhost, Netease.
 
@@ -18,8 +18,8 @@ You need to create a bucket in your storage system of choice.
 Grant access
 ============
 
-This procedure is required so that Scylla Manager can access your bucket.
-You need to configure bucket access policy in your storage system and set credentials in the Scylla Manager Agent config file.
+This procedure is required so that ScyllaDB Manager can access your bucket.
+You need to configure bucket access policy in your storage system and set credentials in the ScyllaDB Manager Agent config file.
 
 Policy
 ------
@@ -60,7 +60,7 @@ Given `myminio` is an alias for your MinIO deployment.
 Config file
 -----------
 
-Note that this procedure needs to be repeated for each Scylla node.
+Note that this procedure needs to be repeated for each ScyllaDB node.
 
 **Procedure**
 
@@ -77,7 +77,7 @@ Edit the ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
 
       scylla-manager-agent check-location --location s3:<your S3 bucket name>
 
-#. Restart Scylla Manager Agent service.
+#. Restart ScyllaDB Manager Agent service.
 
    .. code-block:: none
 

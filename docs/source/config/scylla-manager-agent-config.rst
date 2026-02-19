@@ -1,8 +1,8 @@
 ===========================
-Scylla Manager Agent Config
+ScyllaDB Manager Agent Config
 ===========================
 
-Scylla Manager Agent configuration file ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``.
+ScyllaDB Manager Agent configuration file ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``.
 
 .. literalinclude:: scylla-manager-agent.yaml
    :language: yaml

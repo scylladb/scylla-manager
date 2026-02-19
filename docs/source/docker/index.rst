@@ -2,14 +2,14 @@
 Docker
 ======
 
-Scylla Manager docker images can be downloaded from Docker hub:
+ScyllaDB Manager docker images can be downloaded from Docker hub:
 
 * https://hub.docker.com/r/scylladb/scylla-manager
 * https://hub.docker.com/r/scylladb/scylla-manager-agent
 
-The following procedure enables you to play and experiment with Scylla Manager as you read the docs.
+The following procedure enables you to play and experiment with ScyllaDB Manager as you read the docs.
 
-Note that `Scylla Kubernetes Operator <https://github.com/scylladb/scylla-operator>`_ would setup Scylla Manager for you.
+Note that `ScyllaDB Kubernetes Operator <https://github.com/scylladb/scylla-operator>`_ would setup ScyllaDB Manager for you.
 
 **Prerequisites**
 
@@ -28,9 +28,9 @@ Docker command installed.
 
 #. Run containers, this will run:
 
-   * Scylla node with Scylla Manager Agent installed (a toy cluster)
+   * ScyllaDB node with ScyllaDB Manager Agent installed (a toy cluster)
    * MinIO (for backups)
-   * Scylla Manager and its backend Scylla instance
+   * ScyllaDB Manager and its backend ScyllaDB instance
 
    .. code-block:: none
 
@@ -54,7 +54,7 @@ Docker command installed.
 
       docker compose exec scylla-manager bash
 
-#. Add the cluster to Scylla Manager
+#. Add the cluster to ScyllaDB Manager
 
    .. code-block:: none
 
@@ -76,7 +76,7 @@ Docker command installed.
 
 #. Create a Bucket for Backups in MinIO
 
-If you wish to create backups with Scylla Manager using MinIO as a target you
+If you wish to create backups with ScyllaDB Manager using MinIO as a target you
 need to first create a "bucket" directory to use as the backup target.
 
 Making sure you are back on your host shell and not in the scylla-manager
@@ -86,5 +86,5 @@ container, run the following:
 
       docker compose exec minio sh -c "mkdir /data/docker"
 
-Afterwards you can schedule backups in Scylla Manager using "s3:docker" as the
+Afterwards you can schedule backups in ScyllaDB Manager using "s3:docker" as the
 backup location.

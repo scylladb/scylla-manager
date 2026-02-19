@@ -2,7 +2,7 @@
 Repair faster
 =============
 
-By default Scylla Manager runs repairs with full parallelism, the way to make repairs faster is by increasing intensity.
+By default ScyllaDB Manager runs repairs with full parallelism, the way to make repairs faster is by increasing intensity.
 Note that the less the cluster is loaded the more it makes sense to increase intensity.
 If you increase intensity on a loaded cluster it may not give speed benefits since cluster have no resources to process more repairs.
 In our experiments in a 50% loaded cluster increasing intensity from 1 to 2 gives about 10-20% boost and increasing it further have little impact.
@@ -13,7 +13,7 @@ Speedup a running repair
 ========================
 
 If a repair is running on a cluster, you can change the intensity and parallelism level that should be applied while it is running.
-Run the following command to adjust the number of token ranges per Scylla repair job to the maximum supported.
+Run the following command to adjust the number of token ranges per ScyllaDB repair job to the maximum supported.
 
 .. code-block:: none
 
@@ -26,7 +26,7 @@ Speedup the future runs of a repair
 ===================================
 
 If you wish to change intensity or parallelism of a repair task that is scheduled, but not running use :ref:`sctool repair update <repair-update>` command.
-For example, the following command adjusts the number of token ranges per Scylla repair job to the maximum supported.
+For example, the following command adjusts the number of token ranges per ScyllaDB repair job to the maximum supported.
 
 .. code-block:: none
 

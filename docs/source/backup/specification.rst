@@ -9,8 +9,8 @@ Specification
 Directory Layout
 ----------------
 
-The Scylla Manager backup requires a backup location string that specifies the storage provider and name of a bucket (using Amazon S3 naming) ex. ``s3:<your S3 bucket name>``.
-In that bucket Scylla Manager creates a ``backup`` directory where all the backup data and metadata are stored.
+The ScyllaDB Manager backup requires a backup location string that specifies the storage provider and name of a bucket (using Amazon S3 naming) ex. ``s3:<your S3 bucket name>``.
+In that bucket ScyllaDB Manager creates a ``backup`` directory where all the backup data and metadata are stored.
 
 There are three subdirectories:
 
@@ -253,7 +253,7 @@ while ``mc-5-big-Data.db.sm_20210809095541UTC`` will be used when restoring ``sm
 Manifest File
 -------------
 
-Scylla Manager Manifest files are gzipped JSON files.
+ScyllaDB Manager Manifest files are gzipped JSON files.
 Each node has it's own manifest file.
 If a cluster has three nodes a backup would contain three manifest files with the same name but under different directories.
 Please find below the contents of the manifest file of the node shown in the sst section.
@@ -324,7 +324,7 @@ Please find below the contents of the manifest file of the node shown in the sst
 The manifest contains the following information.
 
 * version          - the version of the manifest
-* cluster_name     - name of the cluster as registered in Scylla Manager
+* cluster_name     - name of the cluster as registered in ScyllaDB Manager
 * ip               - public IP address of the node
 * index            - list of tables, each table holds a list of file names
 * size             - total size of files in index

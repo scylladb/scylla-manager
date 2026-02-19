@@ -9,14 +9,14 @@ Setup Amazon S3
 Create a bucket
 ===============
 
-Go to `Amazon S3 <https://aws.amazon.com/s3/>`_ and create a new bucket in a region where Scylla nodes are.
+Go to `Amazon S3 <https://aws.amazon.com/s3/>`_ and create a new bucket in a region where ScyllaDB nodes are.
 If your cluster is deployed in multiple regions create a bucket per region.
 You may decide to backup only a single datacenter to save on costs, in that case create only one bucket in a region you want to backup.
 
 Grant access
 ============
 
-This procedure is required so that Scylla Manager can access your bucket.
+This procedure is required so that ScyllaDB Manager can access your bucket.
 
 Choose how you want to configure access to the bucket.
 You can use an IAM role (recommended) or you can add your credentials to the agent configuration file.
@@ -69,7 +69,7 @@ Sample IAM policy for *scylla-manager-backup* bucket:
 Config file
 -----------
 
-Note that this procedure needs to be repeated for each Scylla node.
+Note that this procedure needs to be repeated for each ScyllaDB node.
 
 **Procedure**
 
@@ -86,7 +86,7 @@ Edit the ``/etc/scylla-manager-agent/scylla-manager-agent.yaml``
 
       scylla-manager-agent check-location --location s3:<your S3 bucket name>
 
-#. Restart Scylla Manager Agent service.
+#. Restart ScyllaDB Manager Agent service.
 
    .. code-block:: none
 
@@ -97,12 +97,12 @@ Additional features
 
 You can enable additional Amazon S3 features such as **server side encryption** or **transfer acceleration**.
 Those need to be enabled on per Agent basis in the configuration file.
-Check out the ``s3`` section in :doc:`Scylla Manager Agent Config file <../config/scylla-manager-agent-config>`.
+Check out the ``s3`` section in :doc:`ScyllaDB Manager Agent Config file <../config/scylla-manager-agent-config>`.
 
 Troubleshoot connectivity
 =========================
 
-To troubleshoot Scylla node to bucket connectivity issues you can run:
+To troubleshoot ScyllaDB node to bucket connectivity issues you can run:
 
 .. code-block:: none
 
