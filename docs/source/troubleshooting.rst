@@ -7,7 +7,7 @@ Troubleshooting
    :local:
 
 Use custom port for ScyllaDB Manager Agent
-========================================
+===========================================
 
 By default ScyllaDB Manager Agent starts API server on port 10001.
 The following procedure changes the default port.

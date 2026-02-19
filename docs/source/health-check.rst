@@ -33,7 +33,7 @@ We can see three healthcheck related tasks:
 .. _scylla-health-check:
 
 ScyllaDB Health Check
--------------------
+---------------------
 
 The ScyllaDB health check task ensures that CQL native port is accessible on all the nodes.
 ScyllaDB Manager reads CQL IP address and port from the node configuration, and can automatically detect TLS/SSL connection.
@@ -117,7 +117,7 @@ Node status check also provides additional columns that show properties of the a
 - Address - IP address of the node
 
 ScyllaDB Monitoring
------------------
+-------------------
 
 If you have enabled the ScyllaDB Monitoring stack, ScyllaDB Manager dashboard includes the same cluster status report.
 In addition, the Prometheus Alert Manager has an alert to report when a ScyllaDB node health check fails.
@@ -147,7 +147,7 @@ Once ScyllaDB Manager has CQL credential to the cluster, when performing a healt
 .. _scylla-alternator-health-check:
 
 ScyllaDB Alternator Health Check
-------------------------------
+---------------------------------
 
 .. versionadded:: 2.2 ScyllaDB Manager
 
@@ -158,7 +158,7 @@ Please check the ScyllaDB Manager :ref:`configuration-file` to adjust timeouts f
 .. _scylla-api:
 
 ScyllaDB REST API Health Check
-----------------------------
+-------------------------------
 
 Checks ScyllaDB REST API connectivity by performing single HTTP request-response cycle between ScyllaDB Manager Server and all ScyllaDB nodes in parallel.
 
