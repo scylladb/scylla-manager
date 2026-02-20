@@ -1,5 +1,3 @@
-version: "3.7"
-
 services:
   scylla-manager:
     image: scylladb/scylla-manager
