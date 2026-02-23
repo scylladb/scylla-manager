@@ -4,12 +4,12 @@
 Install ScyllaDB Manager Agent
 ==============================
 
-Scylla Manager Agent is a daemon, that needs to be **installed and started on each Scylla node**.
-Scylla Manager Server communicates with nodes in the managed Scylla clusters via the Agents.
+ScyllaDB Manager Agent is a daemon, that needs to be **installed and started on each ScyllaDB node**.
+ScyllaDB Manager Server communicates with nodes in the managed ScyllaDB clusters via the Agents.
 The communication is encrypted (HTTPS) and protected by an auth token.
-Agent serves as a reverse proxy to Scylla REST API, and provides additional features specific to Scylla Manager.
+Agent serves as a reverse proxy to ScyllaDB REST API, and provides additional features specific to ScyllaDB Manager.
 
-.. note:: Repeat the procedure for **every** Scylla node in the cluster that you want to be managed by Scylla Manager.
+.. note:: Repeat the procedure for **every** ScyllaDB node in the cluster that you want to be managed by ScyllaDB Manager.
 
 .. contents::
    :depth: 2
@@ -62,12 +62,12 @@ Install package
 Run the scyllamgr_agent_setup script
 ====================================
 
-The Scylla Manager Agent setup script automates configuration of Scylla Manager Agent by asking you some questions.
+The ScyllaDB Manager Agent setup script automates configuration of ScyllaDB Manager Agent by asking you some questions.
 It can be run in non-interactive mode by using flags.
 You will need to run this command as root or with sudo.
 
-.. note:: Make sure you run the Scylla Manager Agent setup script, and enable Scylla helper slice.
-   The helper slice contains a cgroup definition that governs Scylla Manager Agent resources usage.
+.. note:: Make sure you run the ScyllaDB Manager Agent setup script, and enable ScyllaDB helper slice.
+   The helper slice contains a cgroup definition that governs ScyllaDB Manager Agent resources usage.
    Without the slice the node latency during backup upload maybe unpredictable.
 
 .. code-block:: none
@@ -102,7 +102,7 @@ Unauthenticated requests are rejected.
 
 **Procedure**
 
-#. On **one node only** generate an authentication token to be used to authenticate Scylla Manager with the Agent.
+#. On **one node only** generate an authentication token to be used to authenticate ScyllaDB Manager with the Agent.
    Run the token generator script. For example:
 
    .. code-block:: none
@@ -136,13 +136,13 @@ Start ScyllaDB Manager Agent service
 
 **Procedure**
 
-#. Start Scylla Manager Agent service.
+#. Start ScyllaDB Manager Agent service.
 
    .. code-block:: none
 
       sudo systemctl start scylla-manager-agent
 
-#. Verify the Scylla Manager Agent is running.
+#. Verify the ScyllaDB Manager Agent is running.
 
    .. code-block:: none
 

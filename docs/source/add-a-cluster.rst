@@ -4,18 +4,18 @@ Add a Cluster
 
 **Prerequisites**
 
-* Scylla Manager Agent is up and running on all Scylla nodes.
+* ScyllaDB Manager Agent is up and running on all ScyllaDB nodes.
 * All the Agents have the same :ref:`authentication token <configure-auth-token>` configured.
-* Traffic on the following ports is unblocked from the Scylla Manager Server to all the Scylla nodes.
+* Traffic on the following ports is unblocked from the ScyllaDB Manager Server to all the ScyllaDB nodes.
 
-  * ``10001`` - Scylla Manager Agent REST API (HTTPS)
+  * ``10001`` - ScyllaDB Manager Agent REST API (HTTPS)
   * CQL port (typically ``9042``) - required for CQL health check status reports
 
 .. _add-cluster:
 
 **Procedure**
 
-#. From the Scylla Manager Server, provide the IP address of one of the nodes, the generated auth token, and a custom name.
+#. From the ScyllaDB Manager Server, provide the IP address of one of the nodes, the generated auth token, and a custom name.
 
    Example (IPv4):
 
@@ -48,7 +48,7 @@ Add a Cluster
    * ``--host`` is hostname or IP of one of the cluster nodes. You can use an IPv6 or an IPv4 address.
    * ``--name`` is an alias you can give to your cluster.
      Using an alias means you do not need to use the ID of the cluster in all other operations.
-     This name must be used when connecting the managed cluster to Scylla Monitor, but does not have to be the same name you used in scylla.yaml.
+     This name must be used when connecting the managed cluster to ScyllaDB Monitor, but does not have to be the same name you used in scylla.yaml.
    * ``--auth-token`` is the :ref:`authentication token <configure-auth-token>` you generated.
 
    Each cluster has a unique ID (UUID), you will see it printed to stdout in ``sctool cluster add`` output when the cluster is added.
@@ -60,7 +60,7 @@ Add a Cluster
    This can be canceled using ``--without-repair``.
    To use a different repair schedule, see :ref:`Schedule a Repair <schedule-a-repair>`.
 
-   Scylla manager requires CQL credentials to the cluster with ``--username`` and ``--password`` flags.
+   ScyllaDB manager requires CQL credentials to the cluster with ``--username`` and ``--password`` flags.
    This enables :ref:`CQL query based health check <cql-query-health-check>` compared to :ref:`credentials agnostic health check <credentials-agnostic-health-check>` if you do not specify the credentials.
    This also enables CQL schema backup in text format, which isn't performed if credentials aren't provided.  Restore uses the backed up schema as part of the restore process.
    For security reasons the CQL user should NOT have access to read your data.
@@ -88,7 +88,7 @@ Add a Cluster
 
    .. note:: If you want to change the schedule for the repair, use the :ref:`repair update sctool <reschedule-a-repair>` command.
 
-#. Verify Scylla Manager can communicate with all the Agents, and the the cluster status is OK by running the ``sctool status`` command.
+#. Verify ScyllaDB Manager can communicate with all the Agents, and the the cluster status is OK by running the ``sctool status`` command.
 
    .. code-block:: none
 

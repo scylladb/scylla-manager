@@ -18,7 +18,7 @@ This guide covers the general steps for upgrading ScyllaDB Manager between any t
 Upgrade Procedure
 =================
 
-Upgrade procedure for the Scylla Manager includes upgrade of three components server, client, and the agent. Entire cluster shutdown is NOT needed. ScyllaDB will be running while the manager components are upgraded. Overview of the required steps:
+Upgrade procedure for the ScyllaDB Manager includes upgrade of three components server, client, and the agent. Entire cluster shutdown is NOT needed. ScyllaDB will be running while the manager components are upgraded. Overview of the required steps:
 
 - Stop all ScyllaDB Manager tasks (or wait for them to finish)
 - Stop the ScyllaDB Manager Server
@@ -181,7 +181,7 @@ On a CentOS configuration, a conflict looks like:
     # On the ScyllaDB Manager node
     /etc/scylla-manager/scylla-manager.yaml # old file containing custom values
     /etc/scylla-manager/scylla-manager.yaml.rpmnew # new default file from new version
-    # On all Scylla nodes
+    # On all ScyllaDB nodes
     /etc/scylla-manager-agent/scylla-manager-agent.yaml # old file containing custom values
     /etc/scylla-manager-agent/scylla-manager-agent.yaml.rpmnew # new default file from new version
 
@@ -202,7 +202,7 @@ For CentOS:
 
 .. code:: sh
 
-    # On the Scylla Manager node
+    # On the ScyllaDB Manager node
     cd /etc/scylla-manager/
     mv scylla-manager.yaml scylla-manager.yaml.old  #renames the old config file as old
     mv scylla-manager.yaml.rpmnew scylla-manager.yaml

@@ -2,7 +2,7 @@ Cluster
 -------
 
 The cluster commands allow you to add, delete, list, and update clusters.
-A Scylla cluster must be added (:ref:`cluster add <cluster-add>`) before management tasks can be initiated.
+A ScyllaDB cluster must be added (:ref:`cluster add <cluster-add>`) before management tasks can be initiated.
 
 .. _cluster-add:
 

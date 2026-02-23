@@ -2,7 +2,7 @@
 Download files
 ==============
 
-Scylla Manager Agent comes with a download-files subcommand that given a backup location can be used to:
+ScyllaDB Manager Agent comes with a download-files subcommand that given a backup location can be used to:
 
 #. List clusters, datacenters and nodes.
 #. Search for snapshot tags.
@@ -54,7 +54,7 @@ Configuration file path, you can specify the flag multiple times to overwrite co
 ``-d, --data-dir path``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Path to Scylla data directory (typically /var/lib/scylla/data) or other directory to use for downloading the files.
+Path to ScyllaDB data directory (typically /var/lib/scylla/data) or other directory to use for downloading the files.
 
 **Default:** current directory
 
@@ -85,7 +85,7 @@ Validate and print a plan without downloading (or clearing) any files.
 ``--dump-manifest``
 ^^^^^^^^^^^^^^^^^^^
 
-Print Scylla Manager backup manifest as JSON.
+Print ScyllaDB Manager backup manifest as JSON.
 
 ====
 
@@ -181,4 +181,4 @@ Rate limit in megabytes (MiB) per second.
 ``-T, --snapshot-tag tag``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Scylla Manager snapshot tag as read from backup listing e.g. sm_20060102150405UTC, use --list-snapshots to get a list of snapshots of the node.
+ScyllaDB Manager snapshot tag as read from backup listing e.g. sm_20060102150405UTC, use --list-snapshots to get a list of snapshots of the node.
