@@ -23,8 +23,6 @@ Restore and backups are scheduled in the same manner: you can start, stop, resum
 .. warning::
     Restore works only when ScyllaDB version of backed-up cluster is the same or older than ScyllaDB version of restore destination cluster.
 
-    Mixing ScyllaDB Enterprise and ScyllaDB Open Source versions could lead to unexpected results.
-
 Restore types
 =============
 

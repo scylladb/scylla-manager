@@ -82,7 +82,6 @@ Local node
 ----------
 
 On the same node as you are installing ScyllaDB Manager, download and install ScyllaDB Server package.
-You can either use `ScyllaDB Enterprise <https://www.scylladb.com/download/#enterprise>`_ or `ScyllaDB Open Source <https://www.scylladb.com/download/#open-source>`_.
 There is no need to run the ScyllaDB setup, it is taken care of later, by the ``scyllamgr_setup`` script.
 When it's installed you can jump to `Run the scyllamgr_setup script`_ section.
 
