@@ -59,19 +59,6 @@ func (w *worker) hostNativeRestoreSupport(ctx context.Context, host string, ni *
 	return err
 }
 
-// batchNativeRestoreSupport is the regular batch.NativeRestoreSupport with logging on error.
-func (w *worker) batchNativeRestoreSupport(ctx context.Context, host string, b batch) error {
-	err := b.NativeRestoreSupport()
-	if err != nil {
-		w.logger.Info(ctx, "Can't use native restore api",
-			"host", host,
-			"keyspace", b.Keyspace,
-			"table", b.Table,
-			"error", err)
-	}
-	return err
-}
-
 func (w *tablesWorker) nativeBatchRestore(ctx context.Context, host string, nc configcache.NodeConfig, b batch) (err error) {
 	w.logger.Info(ctx, "Use native restore API", "host", host, "keyspace", b.Keyspace, "table", b.Table)
 	w.metrics.SetRestoreState(w.run.ClusterID, b.Location, w.run.SnapshotTag, host, metrics.RestoreStateNativeRestore)
@@ -106,7 +93,7 @@ func (w *tablesWorker) nativeBatchRestore(ctx context.Context, host string, nc c
 		Keyspace:         b.Keyspace,
 		Table:            b.Table,
 		Host:             host,
-		ShardCnt:         int64(w.hostShardCnt[host]),
+		ShardCnt:         int64(w.hostInfo[host].ShardCnt),
 		ScyllaTaskID:     id,
 		SSTableID:        b.IDs(),
 	}

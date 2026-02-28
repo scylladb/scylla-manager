@@ -12,16 +12,23 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 )
 
+type hostBatchInfo struct {
+	host                 string
+	shardCnt             uint
+	nativeRestoreSupport bool
+}
+
 // batchDispatcher is a tool for batching SSTables from
 // Workload across different hosts during restore.
 // It follows a few rules:
 //
 // - all SSTables within a batch have the same batchType
 //
-// - it dispatches batches from the RemoteDirWorkload with the biggest
-// initial size first
+// - it dispatches batches from the RemoteDirWorkload with the most
+// remaining bytes first
 //
 // - it aims to optimize batch size according to batchSize param
+// for rclone restore
 //
 // - it selects the biggest SSTables from RemoteDirWorkload first,
 // so that batch contains SSTables of similar size (improved shard utilization)
@@ -53,18 +60,21 @@ type batchDispatcher struct {
 	// For batchSize 0, batches contain N*node_shard_cnt SSTables
 	// of total size up to 5% of node expected workload
 	// (expectedShardWorkload*node_shard_cnt).
+	// For hosts and batches supporting native restore, regardless of batchSize,
+	// batches contain N*node_shard_cnt SSTables of total
+	// size up to 100% of node expected workload.
 	batchSize int
 	// Equals total_backup_size/($\sum_{node} shard_cnt(node)$)
 	expectedShardWorkload int64
-	// Stores host shard count
-	hostShardCnt map[string]uint
+	hostInfo              map[string]hostBatchInfo
+	method                Method
 }
 
-func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[string]uint, locationInfo []LocationInfo) *batchDispatcher {
+func newBatchDispatcher(workload Workload, batchSize int, hostInfo map[string]hostBatchInfo, locationInfo []LocationInfo, method Method) *batchDispatcher {
 	sortWorkload(workload)
 	var shards uint
-	for _, sh := range hostShardCnt {
-		shards += sh
+	for _, hi := range hostInfo {
+		shards += hi.shardCnt
 	}
 	if shards == 0 {
 		shards = 1
@@ -76,7 +86,8 @@ func newBatchDispatcher(workload Workload, batchSize int, hostShardCnt map[strin
 		workloadProgress:      newWorkloadProgress(workload, locationInfo),
 		batchSize:             batchSize,
 		expectedShardWorkload: workload.TotalSize / int64(shards),
-		hostShardCnt:          hostShardCnt,
+		hostInfo:              hostInfo,
+		method:                method,
 	}
 }
 
@@ -94,6 +105,10 @@ type workloadProgress struct {
 	// It assumes that the whole DC is backed up to a single
 	// backup location.
 	hostDCAccess map[string][]string
+	// Stores the amount of bytes assigned for given host to restore.
+	// It's used when as an additional safety net when batching sstables
+	// eligible for native restore (expected batch size is 100 % of expected node workload).
+	hostAssignedBytes map[string]int64
 	// SSTables grouped by RemoteSSTableDir that are yet to
 	// be batched. They are removed on batch dispatch, but can
 	// be re-added when batch failed to be restored.
@@ -106,6 +121,7 @@ type workloadProgress struct {
 // that are yet to be batched.
 type remoteSSTableDirProgress struct {
 	RemainingSSTables map[batchType][]RemoteSSTable
+	RemainingBytes    int64
 }
 
 func (dp *remoteSSTableDirProgress) RemainingSSTableCnt() int {
@@ -123,12 +139,14 @@ func newWorkloadProgress(workload Workload, locationInfo []LocationInfo) workloa
 		dcSSTable[rdw.DC] += len(rdw.SSTables)
 		p[i] = remoteSSTableDirProgress{
 			RemainingSSTables: groupSSTablesByBatchType(rdw.SSTables),
+			RemainingBytes:    rdw.Size,
 		}
 	}
 	return workloadProgress{
 		dcSSTableToBeRestored: dcSSTable,
 		hostFailedDC:          make(map[string][]string),
 		hostDCAccess:          getHostDCAccess(locationInfo),
+		hostAssignedBytes:     make(map[string]int64),
 		remoteDir:             p,
 	}
 }
@@ -164,6 +182,7 @@ type batch struct {
 	*ManifestInfo
 
 	batchType        batchType
+	method           Method // that should be used for this batch restoration
 	RemoteSSTableDir string
 	Size             int64
 	SSTables         []RemoteSSTable
@@ -286,10 +305,11 @@ func (bd *batchDispatcher) DispatchBatch(ctx context.Context, host string) (batc
 
 func (bd *batchDispatcher) dispatchBatch(host string) (batch, bool) {
 	dirIdx := -1
-	for i := range bd.workloadProgress.remoteDir {
+	maxBytes := int64(-1)
+	for i, rdp := range bd.workloadProgress.remoteDir {
 		rdw := bd.workload.RemoteDir[i]
 		// Skip empty dir
-		if bd.workloadProgress.remoteDir[i].RemainingSSTableCnt() == 0 {
+		if rdp.RemainingSSTableCnt() == 0 {
 			continue
 		}
 		// Skip dir from already failed dc
@@ -300,8 +320,11 @@ func (bd *batchDispatcher) dispatchBatch(host string) (batch, bool) {
 		if !slices.Contains(bd.workloadProgress.hostDCAccess[host], rdw.DC) {
 			continue
 		}
-		dirIdx = i
-		break
+		// Aim at the dir with the most remaining bytes
+		if rdp.RemainingBytes > maxBytes {
+			dirIdx = i
+			maxBytes = rdp.RemainingBytes
+		}
 	}
 	if dirIdx < 0 {
 		return batch{}, false
@@ -312,9 +335,9 @@ func (bd *batchDispatcher) dispatchBatch(host string) (batch, bool) {
 // Returns batch from given RemoteSSTableDir and updates workloadProgress.
 func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 	rdp := &bd.workloadProgress.remoteDir[dirIdx]
-	shardCnt := bd.hostShardCnt[host]
-	if shardCnt == 0 {
-		shardCnt = 1
+	hi := bd.hostInfo[host]
+	if hi.shardCnt == 0 {
+		hi.shardCnt = 1
 	}
 
 	// Choose batch type and candidate sstables
@@ -331,15 +354,36 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 		return batch{}, false
 	}
 
+	// At this point, if method is explicitly set to MethodNative,
+	// we already verified that all hosts and the entire workload
+	// supports native restore, so we can safely fall back to rclone if needed.
+	batchMethod := MethodRclone
+	if slices.Contains([]Method{MethodAuto, MethodNative}, bd.method) &&
+		hi.nativeRestoreSupport &&
+		sstables[0].NativeRestoreSupport() == nil {
+		batchMethod = MethodNative
+	}
+
 	var i int
 	var size int64
-	if bd.batchSize == maxBatchSize {
+	if bd.batchSize == maxBatchSize || batchMethod == MethodNative {
 		// Create batch containing multiple of node shard count sstables
-		// and size up to 5% of expected node workload.
-		expectedNodeWorkload := bd.expectedShardWorkload * int64(shardCnt)
+		// and size up to a percentage of expected node workload.
+		// For rclone restore with --batch-size=0, aim for 5% of expected node workload.
+		// For native restore, aim for 100% of expected node workload.
+		expectedNodeWorkload := bd.expectedShardWorkload * int64(hi.shardCnt)
 		sizeLimit := expectedNodeWorkload / 20
+		if batchMethod == MethodNative {
+			// For 5% rclone batches, we expect imbalance in workload distribution
+			// to be less significant even in the more problematic scenarios.
+			// The risk of noticeable imbalance in 100% native batches is much higher,
+			// so we fall back to 5% batches when node already restored its expected workload.
+			alreadyAssigned := bd.workloadProgress.hostAssignedBytes[host]
+			remainingExpected := max(expectedNodeWorkload-alreadyAssigned, 0)
+			sizeLimit = max(remainingExpected, sizeLimit)
+		}
 		for {
-			for range shardCnt {
+			for range hi.shardCnt {
 				if i >= len(sstables) {
 					break
 				}
@@ -355,7 +399,7 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 		}
 	} else {
 		// Create batch containing node_shard_count*batch_size sstables.
-		i = min(bd.batchSize*int(shardCnt), len(sstables))
+		i = min(bd.batchSize*int(hi.shardCnt), len(sstables))
 		for j := range i {
 			size += sstables[j].Size
 		}
@@ -366,19 +410,22 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 	}
 	// Extend batch if it was to leave less than
 	// 1 sstable per shard for the next one.
-	if len(sstables)-i < int(shardCnt) {
+	if len(sstables)-i < int(hi.shardCnt) {
 		for ; i < len(sstables); i++ {
 			size += sstables[i].Size
 		}
 	}
 
 	rdp.RemainingSSTables[batchT] = sstables[i:]
+	rdp.RemainingBytes -= size
 	rdw := bd.workload.RemoteDir[dirIdx]
+	bd.workloadProgress.hostAssignedBytes[host] += size
 
 	return batch{
 		TableName:        rdw.TableName,
 		ManifestInfo:     rdw.ManifestInfo,
 		batchType:        batchT,
+		method:           batchMethod,
 		RemoteSSTableDir: rdw.RemoteSSTableDir,
 		Size:             size,
 		SSTables:         sstables[:i],
@@ -405,6 +452,7 @@ func (bd *batchDispatcher) ReportFailure(host string, b batch) error {
 
 	// Mark failed DC for host
 	bd.workloadProgress.hostFailedDC[host] = append(bd.workloadProgress.hostFailedDC[host], b.DC)
+	bd.workloadProgress.hostAssignedBytes[host] -= b.Size
 
 	dirIdx := -1
 	for i := range bd.workload.RemoteDir {
@@ -419,6 +467,7 @@ func (bd *batchDispatcher) ReportFailure(host string, b batch) error {
 
 	rdp := &bd.workloadProgress.remoteDir[dirIdx]
 	rdp.RemainingSSTables[b.batchType] = append(rdp.RemainingSSTables[b.batchType], b.SSTables...)
+	rdp.RemainingBytes += b.Size
 
 	bd.wakeUpWaiting()
 	return nil

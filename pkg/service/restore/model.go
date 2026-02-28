@@ -15,6 +15,7 @@ import (
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -357,9 +358,13 @@ func (t TableName) String() string {
 	return t.Keyspace + "." + t.Table
 }
 
-// HostInfo represents host with rclone download config.
+// HostInfo represents host with additional information
+// needed for batching and restoring purposes.
 type HostInfo struct {
-	Host      string
-	Transfers int
-	RateLimit int
+	Host                 string
+	NodeCfg              configcache.NodeConfig
+	ShardCnt             uint
+	NativeRestoreSupport bool
+	Transfers            int
+	RateLimit            int
 }
