@@ -6,14 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"net/netip"
-	"slices"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
@@ -24,8 +21,7 @@ import (
 type tablesWorker struct {
 	worker
 
-	hosts        []string
-	hostShardCnt map[string]uint
+	hostInfo     map[string]HostInfo
 	tableVersion map[TableName]string
 	repairSvc    *repair.Service
 	progress     *TotalRestoreProgress
@@ -94,14 +90,44 @@ func newTablesWorker(ctx context.Context, w worker, repairSvc *repair.Service, t
 	if err != nil {
 		return nil, errors.Wrap(err, "get hosts shard count")
 	}
-	for h, sh := range hostToShard {
-		w.logger.Info(ctx, "Host shard count", "host", h, "shards", sh)
+
+	hostInfo := make(map[string]HostInfo, len(hosts))
+	for _, h := range hosts {
+		dc, err := w.client.HostDatacenter(ctx, h)
+		if err != nil {
+			return nil, errors.Wrapf(err, "get host %s data center", h)
+		}
+		ip, err := netip.ParseAddr(h)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse host %s IP address", h)
+		}
+		nc, ok := w.nodeConfig[ip]
+		if !ok {
+			return nil, errors.Errorf("unknown node IP %s", ip)
+		}
+		hostInfo[h] = HostInfo{
+			Host:                 h,
+			NodeCfg:              nc,
+			ShardCnt:             hostToShard[h],
+			NativeRestoreSupport: w.hostNativeRestoreSupport(ctx, h, nc.NodeInfo, w.target.Location) == nil,
+			Transfers:            hostTransfers(w.target.Transfers, hostToShard[h]),
+			RateLimit:            dcRateLimit(w.target.RateLimit, dc),
+		}
+	}
+
+	for _, hi := range hostInfo {
+		w.logger.Info(ctx, "Host information",
+			"host", hi.Host,
+			"shards", hi.ShardCnt,
+			"native restore support", hi.NativeRestoreSupport,
+			"transfers", hi.Transfers,
+			"rate limit", hi.RateLimit,
+		)
 	}
 
 	return &tablesWorker{
 		worker:       w,
-		hosts:        hosts,
-		hostShardCnt: hostToShard,
+		hostInfo:     hostInfo,
 		tableVersion: versions,
 		repairSvc:    repairSvc,
 		progress:     NewTotalRestoreProgress(totalBytes),
@@ -182,15 +208,19 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		}
 	}
 
+	hosts := make([]string, 0, len(w.hostInfo))
+	for h := range w.hostInfo {
+		hosts = append(hosts, h)
+	}
 	// This defer is outside of target field check for improved safety.
 	// We always want to enable auto compaction outside the restore.
 	defer func() {
-		if err := w.setAutoCompaction(context.Background(), w.hosts, true); err != nil {
+		if err := w.setAutoCompaction(context.Background(), hosts, true); err != nil {
 			w.logger.Error(ctx, "Couldn't enable auto compaction", "error", err)
 		}
 	}()
 	if !w.target.AllowCompaction {
-		if err := w.setAutoCompaction(ctx, w.hosts, false); err != nil {
+		if err := w.setAutoCompaction(ctx, hosts, false); err != nil {
 			return errors.Wrapf(err, "disable auto compaction")
 		}
 	}
@@ -198,42 +228,35 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	// Same as above.
 	// We always want to pin agent to CPUs outside the restore.
 	defer func() {
-		if err := w.pinAgentCPU(context.Background(), w.hosts, true); err != nil {
+		if err := w.pinAgentCPU(context.Background(), hosts, true); err != nil {
 			w.logger.Error(ctx, "Couldn't re-pin agent to CPUs", "error", err)
 		}
 	}()
 	if w.target.UnpinAgentCPU {
-		if err := w.pinAgentCPU(ctx, w.hosts, false); err != nil {
+		if err := w.pinAgentCPU(ctx, hosts, false); err != nil {
 			return errors.Wrapf(err, "unpin agent from CPUs")
 		}
 	}
 
-	bd := newBatchDispatcher(workload, w.target.BatchSize, w.hostShardCnt, w.target.locationInfo)
+	hbi := make(map[string]hostBatchInfo, len(w.hostInfo))
+	for _, hi := range w.hostInfo {
+		hbi[hi.Host] = hostBatchInfo{
+			host:                 hi.Host,
+			shardCnt:             hi.ShardCnt,
+			nativeRestoreSupport: hi.NativeRestoreSupport,
+		}
+	}
+	bd := newBatchDispatcher(workload, w.target.BatchSize, hbi, w.target.locationInfo, w.target.Method)
 
 	f := func(n int) error {
-		host := w.hosts[n]
-		dc, err := w.client.HostDatacenter(ctx, host)
-		if err != nil {
-			return errors.Wrapf(err, "get host %s data center", host)
-		}
-		hi := w.hostInfo(host, dc, w.hostShardCnt[host])
-		w.logger.Info(ctx, "Host info", "host", hi.Host, "transfers", hi.Transfers, "rate limit", hi.RateLimit)
-
-		ip, err := netip.ParseAddr(host)
-		if err != nil {
-			return errors.Wrap(err, "parse host IP address")
-		}
-		nc, ok := w.nodeConfig[ip]
-		if !ok {
-			return errors.Errorf("unknown node IP %s, known node IPs %v", ip, slices.Collect(maps.Keys(w.nodeConfig)))
-		}
-
+		host := hosts[n]
+		hi := w.hostInfo[host]
 		// Ensure that there are not leftovers from previous SM or manual restores in the upload dirs
 		if err := w.cleanHostUploadDirs(ctx, host); err != nil {
 			return errors.Wrapf(err, "clean host %s upload dirs", host)
 		}
 
-		if err := w.hostNativeRestoreSupport(ctx, hi.Host, nc.NodeInfo, w.target.Location); err == nil {
+		if hi.NativeRestoreSupport {
 			reset, err := w.client.ScyllaControlTaskUserTTL(ctx, host)
 			if err != nil {
 				return err
@@ -255,7 +278,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			}
 			w.onBatchDispatch(ctx, b, host)
 
-			if err := w.restoreBatch(ctx, hi, nc, b); err != nil {
+			if err := w.restoreBatch(ctx, hi, b); err != nil {
 				err = multierr.Append(errors.Wrap(err, "restore batch"), bd.ReportFailure(hi.Host, b))
 				w.logger.Error(ctx, "Failed to restore batch",
 					"host", hi.Host,
@@ -270,12 +293,12 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 
 	notify := func(n int, err error) {
 		w.logger.Error(ctx, "Failed to restore files on host",
-			"host", w.hosts[n],
+			"host", hosts[n],
 			"error", err,
 		)
 	}
 
-	err = parallel.Run(len(w.hosts), w.target.Parallel, f, notify)
+	err = parallel.Run(len(hosts), w.target.Parallel, f, notify)
 	if err == nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -285,34 +308,11 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	return err
 }
 
-func (w *tablesWorker) restoreBatch(ctx context.Context, hi HostInfo, nc configcache.NodeConfig, b batch) error {
-	if w.target.Method == MethodRclone {
-		return w.rcloneBatchRestore(ctx, hi, b)
+func (w *tablesWorker) restoreBatch(ctx context.Context, hi HostInfo, b batch) error {
+	if b.method == MethodNative {
+		return w.nativeBatchRestore(ctx, hi.Host, hi.NodeCfg, b)
 	}
-
-	// Handle lack of native restore support on the host level
-	if err := hostNativeRestoreSupport(nc.NodeInfo, w.target.Location, w.target.Method); err != nil {
-		if w.target.Method == MethodNative {
-			return errors.Wrap(err, "ensure native restore support")
-		}
-		return w.rcloneBatchRestore(ctx, hi, b)
-	}
-
-	if w.target.Method == MethodNative {
-		if err := b.NativeRestoreSupport(); err != nil {
-			return errors.Wrap(err, "ensure native restore support")
-		}
-		return w.nativeBatchRestore(ctx, hi.Host, nc, b)
-	}
-
-	if w.target.Method == MethodAuto {
-		if err := w.batchNativeRestoreSupport(ctx, hi.Host, b); err != nil {
-			return w.rcloneBatchRestore(ctx, hi, b)
-		}
-		return w.nativeBatchRestore(ctx, hi.Host, nc, b)
-	}
-
-	return errors.New("unknown method: " + string(w.target.Method))
+	return w.rcloneBatchRestore(ctx, hi, b)
 }
 
 func (w *tablesWorker) stageRepair(ctx context.Context) error {
@@ -379,14 +379,6 @@ func (w *tablesWorker) pinAgentCPU(ctx context.Context, hosts []string, pin bool
 				"error", err)
 		})
 	return errors.Wrapf(err, "set agent CPU pinning")
-}
-
-func (w *tablesWorker) hostInfo(host, dc string, shards uint) HostInfo {
-	return HostInfo{
-		Host:      host,
-		Transfers: hostTransfers(w.target.Transfers, shards),
-		RateLimit: dcRateLimit(w.target.RateLimit, dc),
-	}
 }
 
 func hostTransfers(transfers int, shards uint) int {

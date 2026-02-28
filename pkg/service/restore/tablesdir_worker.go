@@ -111,7 +111,7 @@ func (w *tablesWorker) newRunProgress(ctx context.Context, hi HostInfo, b batch)
 		Keyspace:            b.Keyspace,
 		Table:               b.Table,
 		Host:                hi.Host,
-		ShardCnt:            int64(w.hostShardCnt[hi.Host]),
+		ShardCnt:            int64(hi.ShardCnt),
 		AgentJobID:          jobID,
 		SSTableID:           b.IDs(),
 		VersionedDownloaded: versionedDownloaded,
