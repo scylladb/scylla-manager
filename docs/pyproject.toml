@@ -14,7 +14,7 @@ sphinx-scylladb-theme = "^1.8.10"
 sphinx-sitemap = "^2.6.0"
 sphinx-autobuild = "^2024.4.19"
 Sphinx = "^7.3.7"
-sphinx-multiversion-scylla = "^0.3.4"
+sphinx-multiversion-scylla = "^0.3.7"
 "sphinxcontrib.datatemplates" = "0.9.1"
 
 [build-system]
