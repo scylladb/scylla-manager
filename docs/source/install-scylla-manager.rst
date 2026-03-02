@@ -42,7 +42,7 @@ Best practice is to install ScyllaDB Manager Server on a dedicated machine, not 
             .. code-block:: console
                :substitutions:
 
-               sudo curl -o /etc/apt/sources.list.d/scylla-manager.list -L https://downloads.scylladb.com/deb/debian/|UBUNTU_SCYLLADB_LIST| 
+               sudo curl -o /etc/apt/sources.list.d/scylla-manager.list -L https://downloads.scylladb.com/deb/debian/|UBUNTU_SCYLLADB_LIST|
 
 
         #. Install ScyllaDB Manager packages.
@@ -69,7 +69,7 @@ Best practice is to install ScyllaDB Manager Server on a dedicated machine, not 
 
                sudo yum install scylla-manager-server
                sudo yum install scylla-manager-client
-   
+
 
 
 Configure storage
@@ -114,7 +114,6 @@ ScyllaDB Manager configuration file ``/etc/scylla-manager/scylla-manager.yaml`` 
    #
    # Keyspace for management data, for create statement see /etc/scylla-manager/create_keyspace.cql.tpl.
    #  keyspace: scylla_manager
-   #  replication_factor: 1
 
 Using an editor open the file and change relevant parameters.
 
@@ -124,8 +123,10 @@ Using an editor open the file and change relevant parameters.
 
 #. If authentication is needed, uncomment and edit the ``user`` and ``password`` parameters.
 
-#. If it's a single DC cluster, uncomment and edit the ``replication_factor`` parameter to match the required replication factor.
-   This would use NetworkTopologyStrategy to create a ScyllaDB Manager keyspace, refer to `ScyllaDB Architecture - Fault Tolerance <https://docs.scylladb.com/architecture/architecture-fault-tolerance/>`_ for more information on replication.
+#. If it's a single DC cluster, ScyllaDB Manager keyspace using NetworkTopologyStrategy would be created.
+   Refer to `ScyllaDB Architecture - Fault Tolerance <https://docs.scylladb.com/architecture/architecture-fault-tolerance/>`_ for more information on replication.
+   It would have replication factor equal to the amount of racks in each data center. In case where this setup could lead to reduced availability
+   (total replication factor smaller than 3), replication factor will be increased up to 3 (depending on node count) regardless of the rack count.
 
 #. If it's a multi DC cluster, create a keyspace named ``scylla_manager`` yourself.
    You can use a different keyspace name, just remember to adjust the ``keyspace`` parameter value.
@@ -159,7 +160,6 @@ Sample configuration of ScyllaDB Manager working with a remote cluster with auth
        - 198.100.51.12
      user: user
      password: password
-     replication_factor: 3
 
 Run the scyllamgr_setup script
 ==============================
