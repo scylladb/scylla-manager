@@ -46,10 +46,10 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		w.dth.beforeDeduplicateHost()
 		defer func(sd []snapshotDir) {
 			var skipped, uploaded, size int64
-			for _, v := range sd {
-				skipped += v.SkippedBytesOffset
-				uploaded += v.Progress.Uploaded
-				size += v.Progress.Size
+			for i := range sd {
+				skipped += sd[i].SkippedBytesOffset
+				uploaded += sd[i].Progress.Uploaded
+				size += sd[i].Progress.Size
 			}
 			w.dth.afterDeduplicateHost(skipped, uploaded, size)
 		}(w.hostSnapshotDirs(h))
