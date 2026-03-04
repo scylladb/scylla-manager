@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -41,7 +41,13 @@ type snapshotDir struct {
 	Keyspace string
 	Table    string
 	Version  string
-	Progress *RunProgress
+	// ScyllaManifests created on snapshot.
+	// Currently, we only expect a single "manifest.json" file,
+	// but in the future we might get per tablet manifests.
+	// Those describe the actual scylla manifest names present
+	// in the snapshot dir (not the ones renamed during on upload).
+	ScyllaManifests []string
+	Progress        *RunProgress
 
 	SkippedBytesOffset int64
 	NewFilesSize       int64

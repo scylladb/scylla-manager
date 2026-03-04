@@ -1,16 +1,20 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
+	"path"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
+	"golang.org/x/sync/errgroup"
 )
 
 func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo) (stepError error) {
@@ -49,7 +53,13 @@ func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) er
 	if err != nil {
 		return errors.Wrap(err, "create temp manifest")
 	}
-	return w.uploadHostManifest(ctx, h, m)
+	if err := w.uploadHostManifest(ctx, h, m); err != nil {
+		return errors.Wrap(err, "upload manager manifest")
+	}
+	if err := w.uploadScyllaManifests(ctx, h, m); err != nil {
+		return errors.Wrap(err, "upload scylla manifests")
+	}
+	return nil
 }
 
 func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens []int64) (backupspec.ManifestInfoWithContent, error) {
@@ -67,15 +77,16 @@ func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens
 
 	c := &backupspec.ManifestContentWithIndex{
 		ManifestContent: backupspec.ManifestContent{
-			Version:     "v2",
-			IP:          h.IP,
-			Tokens:      tokens,
-			ClusterName: w.ClusterName,
-			DC:          h.DC,
-			ClusterID:   w.ClusterID,
-			NodeID:      h.ID,
-			TaskID:      w.TaskID,
-			SnapshotTag: w.SnapshotTag,
+			Version:       "v2",
+			ScyllaVersion: h.NodeConfig.ScyllaVersion,
+			IP:            h.IP,
+			Tokens:        tokens,
+			ClusterName:   w.ClusterName,
+			DC:            h.DC,
+			ClusterID:     w.ClusterID,
+			NodeID:        h.ID,
+			TaskID:        w.TaskID,
+			SnapshotTag:   w.SnapshotTag,
 		},
 		Index: make([]backupspec.FilesMeta, len(dirs)),
 	}
@@ -83,17 +94,25 @@ func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens
 		c.Schema = w.SchemaFilePath
 	}
 
-	for i, d := range dirs {
+	rd := scyllaclient.NewRingDescriber(ctx, w.Client)
+	for i := range dirs {
 		idx := &c.Index[i]
-		idx.Keyspace = d.Keyspace
-		idx.Table = d.Table
-		idx.Version = d.Version
-		idx.Files = make([]string, 0, len(d.Progress.files))
-		for _, f := range d.Progress.files {
+		idx.Keyspace = dirs[i].Keyspace
+		idx.Table = dirs[i].Table
+		idx.ReplicationType = string(scyllaclient.ReplicationVnode)
+		if rd.IsTabletKeyspace(dirs[i].Keyspace) {
+			idx.ReplicationType = string(scyllaclient.ReplicationTablet)
+		}
+		idx.Version = dirs[i].Version
+		idx.ScyllaManifests = slices2.Map(dirs[i].ScyllaManifests, func(sm string) string {
+			return renameScyllaManifest(w.SnapshotTag, h.ID, sm)
+		})
+		idx.Files = make([]string, 0, len(dirs[i].Progress.files))
+		for _, f := range dirs[i].Progress.files {
 			idx.Files = append(idx.Files, f.Name)
 			idx.Size += f.Size
 		}
-		c.Size += d.Progress.Size
+		c.Size += dirs[i].Progress.Size
 	}
 
 	rack, err := w.Client.HostRack(ctx, h.IP)
@@ -144,6 +163,31 @@ func (w *worker) uploadHostManifest(ctx context.Context, h hostInfo, m backupspe
 	// Upload compressed manifest
 	dst := h.Location.RemotePath(m.Path())
 	return w.Client.RclonePut(ctx, h.IP, dst, buf)
+}
+
+func (w *worker) uploadScyllaManifests(ctx context.Context, h hostInfo, m backupspec.ManifestInfoWithContent) error {
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(max(1, m.ShardCount))
+
+	dirs := w.hostSnapshotDirs(h)
+	for i := range dirs {
+		for _, sm := range dirs[i].ScyllaManifests {
+			eg.Go(func() error {
+				src := path.Join(dirs[i].Path, sm)
+				dstDir := h.Location.RemotePath(w.remoteSSTableDir(h, dirs[i]))
+				dst := path.Join(dstDir, renameScyllaManifest(w.SnapshotTag, h.ID, sm))
+				if err := w.Client.RcloneMoveFile(egCtx, h.IP, dst, src); err != nil {
+					return err
+				}
+				return nil
+			})
+		}
+	}
+
+	if err := eg.Wait(); err != nil {
+		return errors.Wrap(err, "upload renamed manifests")
+	}
+	return nil
 }
 
 func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error) {
@@ -209,4 +253,11 @@ func (w *worker) rollbackMoveManifest(ctx context.Context, hosts []hostInfo, rol
 			}
 		}
 	}
+}
+
+// renameScyllaManifests prepends scylla manifest file name with "tag_<snapshot_tag>_node_<node_ID>_"
+// prefix to avoid name collisions when storing scylla manifests from different snapshots
+// or different nodes in the same backup directory.
+func renameScyllaManifest(snapshotTag, nodeID, scyllaManifest string) string {
+	return fmt.Sprintf("tag_%s_node_%s_%s", snapshotTag, nodeID, scyllaManifest)
 }
