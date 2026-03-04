@@ -118,7 +118,13 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*backupspec.M
 				"snapshot_tag", m.SnapshotTag,
 				"temporary", m.Temporary,
 			)
-			if err := p.forEachDirInManifest(ctx, m, files.AddFiles); err != nil {
+			err := p.forEachIndexInManifest(ctx, m, func(dir string, fm backupspec.FilesMeta) {
+				files.AddFiles(dir, fm.Files)
+				// Scylla manifests are not deduplicated, so we always want to remove all of them.
+				// Their removal is handled in the same way as sstable removal.
+				files.AddFiles(dir, fm.ScyllaManifests)
+			})
+			if err != nil {
 				return 0, errors.Wrapf(err, "load manifest (snapshot) %s", m.Path())
 			}
 		}
@@ -128,7 +134,10 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*backupspec.M
 	}
 	for _, m := range manifests {
 		if !tags.Has(m.SnapshotTag) {
-			if err := p.forEachDirInManifest(ctx, m, files.RemoveFiles); err != nil {
+			err := p.forEachIndexInManifest(ctx, m, func(dir string, fm backupspec.FilesMeta) {
+				files.RemoveFiles(dir, fm.Files)
+			})
+			if err != nil {
 				return 0, errors.Wrapf(err, "load manifest (no snapshot) %s", m.Path())
 			}
 		}
@@ -223,13 +232,19 @@ func (p purger) Validate(ctx context.Context, manifests []*backupspec.ManifestIn
 	)
 
 	for _, m := range manifests {
-		var f func(dir string, files []string)
+		var f func(dir string, fm backupspec.FilesMeta)
 		if m.Temporary {
-			f = tempManifestFiles.AddFiles
+			f = func(dir string, fm backupspec.FilesMeta) {
+				tempManifestFiles.AddFiles(dir, fm.Files)
+				tempManifestFiles.AddFiles(dir, fm.ScyllaManifests)
+			}
 		} else {
-			f = files.AddFiles
+			f = func(dir string, fm backupspec.FilesMeta) {
+				files.AddFiles(dir, fm.Files)
+				files.AddFiles(dir, fm.ScyllaManifests)
+			}
 		}
-		if err := p.forEachDirInManifest(ctx, m, f); err != nil {
+		if err := p.forEachIndexInManifest(ctx, m, f); err != nil {
 			return result, errors.Wrapf(err, "load manifest (validate) %s", m.Path())
 		}
 	}
@@ -313,8 +328,8 @@ func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*backupspec
 		if m.Temporary {
 			continue
 		}
-		if err := p.forEachDirInManifest(ctx, m, func(dir string, files []string) {
-			if missingFiles.HasAnyFiles(dir, files) {
+		if err := p.forEachIndexInManifest(ctx, m, func(dir string, fm backupspec.FilesMeta) {
+			if missingFiles.HasAnyFiles(dir, fm.Files) || missingFiles.HasAnyFiles(dir, fm.ScyllaManifests) {
 				s.Add(m.SnapshotTag)
 			}
 		}); err != nil {
@@ -331,7 +346,7 @@ func (p purger) findBrokenSnapshots(ctx context.Context, manifests []*backupspec
 	return v, nil
 }
 
-func (p purger) forEachDirInManifest(ctx context.Context, m *backupspec.ManifestInfo, callback func(dir string, files []string)) error {
+func (p purger) forEachIndexInManifest(ctx context.Context, m *backupspec.ManifestInfo, cb func(dir string, fm backupspec.FilesMeta)) error {
 	p.logger.Info(ctx, "Reading manifest",
 		"task", m.TaskID,
 		"snapshot_tag", m.SnapshotTag,
@@ -355,7 +370,10 @@ func (p purger) forEachDirInManifest(ctx context.Context, m *backupspec.Manifest
 		return err
 	}
 
-	return c.ForEachIndexIterFiles(nil, m, callback)
+	return c.ForEachIndexIter(nil, func(fm backupspec.FilesMeta) {
+		dir := backupspec.RemoteSSTableVersionDir(m.ClusterID, m.DC, m.NodeID, fm.Keyspace, fm.Table, fm.Version)
+		cb(dir, fm)
+	})
 }
 
 func (p purger) forEachRemoteFile(ctx context.Context, m *backupspec.ManifestInfo, f func(*scyllaclient.RcloneListDirItem)) error {
