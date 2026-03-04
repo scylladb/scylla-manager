@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -8,6 +8,7 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -87,12 +88,6 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				"dir", d.Path,
 			)
 
-			mp := path.Join(d.Path, backupspec.ScyllaManifest)
-			if err := w.Client.RcloneDeleteFile(ctx, h.IP, mp); err != nil {
-				if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
-					w.Logger.Error(ctx, "Failed to delete local backupspec.file", "error", err)
-				}
-			}
 			sp := path.Join(d.Path, backupspec.ScyllaSchema)
 			if err := w.Client.RcloneDeleteFile(ctx, h.IP, sp); err != nil {
 				if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
@@ -109,8 +104,11 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				ShowModTime: true,
 			}
 			err := w.Client.RcloneListDirIter(ctx, h.IP, d.Path, opts, func(f *scyllaclient.RcloneListDirItem) {
-				// Filter out Scylla manifest and Schema files, they are not needed.
-				if f.Name == backupspec.ScyllaManifest || f.Name == backupspec.ScyllaSchema {
+				if f.Name == backupspec.ScyllaSchema {
+					return
+				}
+				if strings.HasSuffix(f.Name, backupspec.ScyllaManifest) {
+					d.ScyllaManifests = append(d.ScyllaManifests, f.Name)
 					return
 				}
 				files = append(files, fileInfo{

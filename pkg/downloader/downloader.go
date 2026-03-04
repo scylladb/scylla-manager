@@ -136,8 +136,8 @@ func (d *Downloader) download(ctx context.Context, m backupspec.ManifestInfoWith
 
 	// Check if we have enough disk space.
 	var size int64
-	for _, u := range index {
-		size += u.Size
+	for i := range index {
+		size += index[i].Size
 	}
 	usage, err := d.fdst.(fs.Abouter).About(ctx)
 	if err != nil {
@@ -183,28 +183,28 @@ func (d *Downloader) download(ctx context.Context, m backupspec.ManifestInfoWith
 }
 
 func (d *Downloader) filteredIndex(ctx context.Context, m backupspec.ManifestInfoWithContent) ([]backupspec.FilesMeta, error) {
-	var i []backupspec.FilesMeta
+	var fms []backupspec.FilesMeta
 
 	if m.Index != nil {
-		i = m.Index
+		fms = m.Index
 	} else {
 		var err error
-		i, err = m.ReadIndex()
+		fms, err = m.ReadIndex()
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if d.keyspace == nil {
-		return i, nil
+		return fms, nil
 	}
 
 	var index []backupspec.FilesMeta
-	for _, u := range i {
-		if !d.shouldDownload(u.Keyspace, u.Table) {
-			d.logger.Debug(ctx, "Table filtered out", "keyspace", u.Keyspace, "table", u.Table)
+	for i := range fms {
+		if !d.shouldDownload(fms[i].Keyspace, fms[i].Table) {
+			d.logger.Debug(ctx, "Table filtered out", "keyspace", fms[i].Keyspace, "table", fms[i].Table)
 		} else {
-			index = append(index, u)
+			index = append(index, fms[i])
 		}
 	}
 	return index, nil
