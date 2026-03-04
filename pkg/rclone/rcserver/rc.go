@@ -437,7 +437,7 @@ func init() {
 
 func init() {
 	c := rc.Calls.Get("operations/movefile")
-	c.Fn = wrap(c.Fn, sameDir())
+	c.Fn = wrap(c.Fn, or(sameDir(), localToRemote()))
 }
 
 // VersionedFileRegex is a rclone formatted regex that can be used to distinguish versioned files.
