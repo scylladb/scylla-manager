@@ -1,4 +1,4 @@
-// Copyright (C) 2024 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -66,6 +67,10 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 			Recurse:   true,
 		}
 		if err := w.Client.RcloneListDirIter(ctx, h.IP, dataDst, listOpts, func(f *scyllaclient.RcloneListDirItem) {
+			// Skip scylla manifests
+			if strings.HasSuffix(f.Name, backupspec.ScyllaManifest) {
+				return
+			}
 			if err := remoteSSTableBundles.add(f.Name, f.Size); err != nil {
 				w.Logger.Error(ctx, "Couldn't create remote sstable bundle info", "file", f.Name, "error", err)
 			}
