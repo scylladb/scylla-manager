@@ -86,6 +86,10 @@ func ListVersionedFiles(ctx context.Context, client *scyllaclient.Client, snapsh
 	opts := &scyllaclient.RcloneListDirOpts{FilesOnly: true}
 	f := func(item *scyllaclient.RcloneListDirItem) {
 		name, version := SplitNameAndVersion(item.Name)
+		// Skip scylla manifests
+		if strings.HasSuffix(name, backupspec.ScyllaManifest) {
+			return
+		}
 		allVersions[name] = append(allVersions[name], VersionedSSTable{
 			Name:    name,
 			Version: version,
