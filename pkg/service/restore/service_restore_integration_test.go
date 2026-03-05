@@ -1085,6 +1085,10 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	)
 
 	err = srcH.Client.RcloneListDirIter(ctx, host.Addr, remoteDir, opts, func(item *scyllaclient.RcloneListDirItem) {
+		// Skip scylla manifests
+		if strings.HasSuffix(item.Name, backupspec.ScyllaManifest) {
+			return
+		}
 		if _, err = backup.VersionedFileCreationTime(item.Name); err == nil {
 			t.Fatalf("Versioned file %s present after first backup", path.Join(remoteDir, item.Path))
 		}
