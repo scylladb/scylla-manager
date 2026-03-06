@@ -1,14 +1,15 @@
 all: help
 
-COMPOSE      := docker compose
-CQLSH        := $(COMPOSE) exec scylla-manager-db cqlsh
-CQLSH_NODE   := $(COMPOSE) exec -T dc1_node_1 cqlsh
-NODETOOL     := $(COMPOSE) exec -T dc1_node_1 nodetool
-SECOND_NODETOOL := $(COMPOSE) exec -T second_cluster_dc1_node_1 nodetool
-SM_NODETOOL  := $(COMPOSE) exec -T scylla-manager-db nodetool
-YQ           := ../bin/yq
-CURRENT_UID  := $(shell id -u)
-CURRENT_GID  := $(shell id -g)
+COMPOSE           := docker compose
+CQLSH             := $(COMPOSE) exec scylla-manager-db cqlsh
+CQLSH_NODE        := $(COMPOSE) exec -T dc1_node_1 cqlsh
+SECOND_CQLSH_NODE := $(COMPOSE) exec -T second_cluster_dc1_node_1 cqlsh
+NODETOOL          := $(COMPOSE) exec -T dc1_node_1 nodetool
+SECOND_NODETOOL   := $(COMPOSE) exec -T second_cluster_dc1_node_1 nodetool
+SM_NODETOOL       := $(COMPOSE) exec -T scylla-manager-db nodetool
+YQ                := ../bin/yq
+CURRENT_UID       := $(shell id -u)
+CURRENT_GID       := $(shell id -g)
 
 SCYLLA_VERSION?=scylla:latest
 IP_FAMILY?=IPV4
@@ -122,7 +123,9 @@ endif
 		$(COMPOSE) exec -T --privileged $$node su root -c '/usr/sbin/sshd'; done
 
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d
-	@echo "==> Waiting for the rest of containers"
+	@echo "==> Waiting for second cluster"
+	@until [ 2 -le $$($(SECOND_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
+	@echo "==> Waiting for SM DB"
 	@until [ 1 -le $$($(SM_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
 
 	@./nodes_exec "rm /root/.cqlshrc || true"
@@ -131,8 +134,15 @@ endif
 
 	@echo "==> Adding Minio user"
 	./minio/add_user.sh || true
-	@echo "==> Initialising cluster"
+	@echo "==> Adding cassandra superuser"
+	# Starting from scylla 2026.2, cassandra superuser is no longer created by default on cluster startup.
+	# It is recommended to configure it manually via the maintenance socket.
+	# We need to override the default cqlshrc file for TLS deployments, as maintenance socket does not support TLS connections and does not require any form of authentication.
+	@$(CQLSH_NODE) /var/lib/scylla/cql.m --cqlshrc=/dev/null -e "CREATE ROLE cassandra WITH PASSWORD = 'cassandra' AND LOGIN = true AND SUPERUSER = true" || true
+	@$(SECOND_CQLSH_NODE) /var/lib/scylla/cql.m --cqlshrc=/dev/null -e "CREATE ROLE cassandra WITH PASSWORD = 'cassandra' AND LOGIN = true AND SUPERUSER = true" || true
+	@echo "==> Upgrade auth ks replication"
 	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}" || true
+	@echo "==> Upgrade audit ks replication"
 	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE audit WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}" || true
 
 .PHONY: down
