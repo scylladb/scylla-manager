@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package scyllaclient
 
@@ -1410,6 +1410,41 @@ func (c *Client) ScyllaRestore(ctx context.Context, host, endpoint, bucket, pref
 		Sstables:           tocComponents,
 		Scope:              &scope,
 		PrimaryReplicaOnly: &primaryReplicaOnly,
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.GetPayload(), nil
+}
+
+// TabletRestoreLocation describes a single backup location for tablet-aware restore.
+type TabletRestoreLocation struct {
+	Endpoint   string // name from object_storage_endpoints in scylla.yaml
+	Bucket     string
+	Datacenter string // where the data will be restored
+	// Manifests are a list of scylla manifests describing data that should be restored.
+	// Note that scylla manifests must have a relative path (without leading slash) to the bucket root.
+	Manifests []string
+}
+
+// TabletRestore schedules tablet restore task and returns its ID.
+// Host is required for tracking progress, as it is available only on the node where the tablet restore was scheduled.
+func (c *Client) TabletRestore(ctx context.Context, host, keyspace, table, snapshotTag string, locations []TabletRestoreLocation) (string, error) {
+	bl := slices2.Map(locations, func(l TabletRestoreLocation) *models.TabletRestoreBackupLocation {
+		return &models.TabletRestoreBackupLocation{
+			Endpoint:   l.Endpoint,
+			Bucket:     l.Bucket,
+			Datacenter: l.Datacenter,
+			Manifests:  l.Manifests,
+		}
+	})
+
+	resp, err := c.scyllaOps.StorageServiceTabletsRestorePost(&operations.StorageServiceTabletsRestorePostParams{
+		Context:        forceHost(ctx, host),
+		Keyspace:       keyspace,
+		Table:          table,
+		Snapshot:       snapshotTag,
+		BackupLocation: bl,
 	})
 	if err != nil {
 		return "", err

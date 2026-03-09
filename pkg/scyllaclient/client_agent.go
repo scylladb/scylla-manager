@@ -276,6 +276,12 @@ func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2026.1")
 }
 
+// SupportsTabletRestoreAPI returns whether node exposes /storage_service/tablets/restore API.
+func (ni *NodeInfo) SupportsTabletRestoreAPI() (bool, error) {
+	// Check ENT
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2026.2")
+}
+
 // ScyllaObjectStorageEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
 // It also validates that agent's and Scylla's configurations match.
 func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (string, error) {
