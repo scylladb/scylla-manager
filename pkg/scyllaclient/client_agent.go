@@ -201,6 +201,12 @@ func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2026.1")
 }
 
+// SupportsTabletRestoreAPI returns whether node exposes /storage_service/tablets/restore API.
+func (ni *NodeInfo) SupportsTabletRestoreAPI() (bool, error) {
+	// Check ENT
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2026.2")
+}
+
 // DescribeSchemaContainsLogicalIndexName returns whether node output of DESCRIBE SCHEMA
 // query contains logical index name (X) or the backing materialized view name (X_index).
 func (ni *NodeInfo) DescribeSchemaContainsLogicalIndexName() (bool, error) {
