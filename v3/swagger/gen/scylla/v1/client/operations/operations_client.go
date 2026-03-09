@@ -785,6 +785,8 @@ type ClientService interface {
 
 	StorageServiceTabletsRepairPost(params *StorageServiceTabletsRepairPostParams) (*StorageServiceTabletsRepairPostOK, error)
 
+	StorageServiceTabletsRestorePost(params *StorageServiceTabletsRestorePostParams) (*StorageServiceTabletsRestorePostOK, error)
+
 	StorageServiceTokensByEndpointGet(params *StorageServiceTokensByEndpointGetParams) (*StorageServiceTokensByEndpointGetOK, error)
 
 	StorageServiceTokensEndpointGet(params *StorageServiceTokensEndpointGetParams) (*StorageServiceTokensEndpointGetOK, error)
@@ -14143,6 +14145,41 @@ func (a *Client) StorageServiceTabletsRepairPost(params *StorageServiceTabletsRe
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*StorageServiceTabletsRepairPostDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+StorageServiceTabletsRestorePost tablets restore
+
+Starts copying SSTables from a designated bucket in object storage to a specified keyspace
+*/
+func (a *Client) StorageServiceTabletsRestorePost(params *StorageServiceTabletsRestorePostParams) (*StorageServiceTabletsRestorePostOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceTabletsRestorePostParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceTabletsRestorePost",
+		Method:             "POST",
+		PathPattern:        "/storage_service/tablets/restore",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceTabletsRestorePostReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*StorageServiceTabletsRestorePostOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*StorageServiceTabletsRestorePostDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
