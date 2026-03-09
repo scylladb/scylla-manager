@@ -12801,6 +12801,81 @@
         "security": []
       }
     },
+    "/storage_service/tablets/restore": {
+      "post": {
+        "description": "Starts copying SSTables from a designated bucket in object storage to a specified keyspace",
+        "summary": "tablet_restore",
+        "operationId": "StorageServiceTabletsRestorePost",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "endpoint",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "ID of the configured object storage endpoint to copy SSTables from"
+          },
+          {
+            "name": "bucket",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of the bucket to read SSTables from"
+          },
+          {
+            "name": "keyspace",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "WIP - Name of a keyspace to copy SSTables to"
+          },
+          {
+            "name": "table",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "WIP - Name of a table to copy SSTables to"
+          },
+          {
+            "name": "snapshot",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of the snapshot to restore from"
+          },
+          {
+            "name": "manifest",
+            "in": "query",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "Name of a manifest file to read data from"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task ID",
+            "schema": {
+              "type": "string"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/task_manager/list_modules": {
       "get": {
         "description": "Get all modules names",
