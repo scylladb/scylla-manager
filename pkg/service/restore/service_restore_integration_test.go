@@ -483,10 +483,18 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				cmpopts.SortSlices(func(a, b Table) bool { return a.Table < b.Table }),
 				cmpopts.IgnoreFields(Unit{}, "Size"),
 				cmpopts.IgnoreFields(Table{}, "Size"),
+				cmpopts.IgnoreFields(Table{}, "TombstoneGC"),
 				cmpopts.IgnoreSliceElements(func(v Unit) bool { return slices.Contains(ignoreUnits, v.Keyspace) }),
 				cmpopts.IgnoreSliceElements(func(v Table) bool { return slices.Contains(ignoreUnits, v.Table) }),
 			); diff != "" {
 				t.Fatal(tc.units, diff)
+			}
+			for _, u := range units {
+				for _, tab := range u.Tables {
+					if tab.TombstoneGC == "" {
+						t.Fatalf("Expected tombstone gc mode of %s.%s to be set", u.Keyspace, tab.Table)
+					}
+				}
 			}
 
 			if goldenViews == nil {

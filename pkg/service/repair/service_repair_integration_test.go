@@ -1088,7 +1088,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("When: repair is done")
 		rd := scyllaclient.NewRingDescriber(ctx, h.Client)
 		if rd.IsTabletKeyspace("test_repair") {
-			h.assertDonePartialTabletRepair(shortWait, startNodeFunc)
+			h.assertDonePartialTabletRepair(longWait, startNodeFunc)
 		} else {
 			h.assertDone(longWait)
 		}

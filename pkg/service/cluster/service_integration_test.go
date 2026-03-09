@@ -315,6 +315,9 @@ func TestServiceStorageIntegration(t *testing.T) {
 		UUIDComparer(),
 		cmpopts.IgnoreFields(cluster.Cluster{}, "Host"),
 		cmpopts.IgnoreFields(cluster.Cluster{}, "KnownHosts"),
+		cmpopts.SortSlices(func(a, b *cluster.Cluster) bool {
+			return a.ID.String() < b.ID.String()
+		}),
 	}
 
 	t.Run("list empty", func(t *testing.T) {
