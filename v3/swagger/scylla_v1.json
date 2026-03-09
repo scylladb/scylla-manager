@@ -12801,6 +12801,68 @@
         "security": []
       }
     },
+    "/storage_service/tablets/restore": {
+      "post": {
+        "description": "Starts copying SSTables from a designated bucket in object storage to a specified keyspace",
+        "summary": "tablet_restore",
+        "operationId": "StorageServiceTabletsRestorePost",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "keyspace",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of a keyspace to copy SSTables to"
+          },
+          {
+            "name": "table",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of a table to copy SSTables to"
+          },
+          {
+            "name": "snapshot",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Name of the snapshot to restore from"
+          },
+          {
+            "name": "backup_location",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/tablet_restore_backup_location"
+              }
+            },
+            "description": "Array of backup location objects"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task ID",
+            "schema": {
+              "type": "string"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/task_manager/list_modules": {
       "get": {
         "description": "Get all modules names",
@@ -13536,6 +13598,32 @@
     }
   },
   "definitions": {
+    "tablet_restore_backup_location": {
+      "title": "tablet_restore_backup_location",
+      "description": "A backup location entry describing where to find SSTables",
+      "type": "object",
+      "properties":{
+        "datacenter":{
+          "description":"The datacenter name",
+          "type":"string"
+        },
+        "endpoint":{
+          "description":"The object store endpoint URL",
+          "type":"string"
+        },
+        "bucket":{
+          "description":"The object store bucket name",
+          "type":"string"
+        },
+        "manifests":{
+          "description":"List of manifest file paths",
+          "type":"array",
+          "items":{
+            "type":"string"
+          }
+        }
+      }
+    },
     "type_instance_id": {
       "title": "type_instance_id",
       "description": "A type instance ID",
