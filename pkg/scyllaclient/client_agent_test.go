@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package scyllaclient_test
 
@@ -543,7 +543,7 @@ func TestScyllaObjectStorageEndpoint(t *testing.T) {
 					AwsRegion:  "mock",
 					IamRoleArn: "mock",
 					Name:       "192.168.200.99",
-					Port:       9000,
+					Port:       443,
 					UseHTTPS:   true,
 				},
 			},
@@ -759,6 +759,81 @@ func TestScyllaObjectStorageEndpoint(t *testing.T) {
 				},
 			},
 			endpoint: "https://127.0.0.1:4443",
+		},
+		{
+			name:     "name with scheme and port",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://s3.us-east-1.amazonaws.com:443",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Name: "https://s3.us-east-1.amazonaws.com:443",
+				},
+			},
+			endpoint: "https://s3.us-east-1.amazonaws.com:443",
+		},
+		{
+			name:     "name with scheme and default port",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://s3.us-east-1.amazonaws.com",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Name: "https://s3.us-east-1.amazonaws.com:443",
+				},
+			},
+			endpoint: "https://s3.us-east-1.amazonaws.com:443",
+		},
+		{
+			name:     "scheme mismatch in name",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.99:9000",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Name: "http://192.168.200.99:9000",
+				},
+			},
+			endpoint: "",
+		},
+		{
+			name:     "name with scheme and different port",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.99:9000",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Name: "https://192.168.200.99:9001",
+				},
+			},
+			endpoint: "",
+		},
+		{
+			name:     "name with scheme and port ipv6",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://[2001:0DB9:200::99]:9000",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Name: "https://[2001:0DB9:200::99]:9000",
+				},
+			},
+			endpoint: "https://[2001:0DB9:200::99]:9000",
 		},
 	}
 
