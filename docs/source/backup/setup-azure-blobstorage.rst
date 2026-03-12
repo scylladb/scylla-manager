@@ -22,8 +22,10 @@ Grant access
 This procedure is required so that ScyllaDB Manager can access your containers.
 
 Choose how you want to configure access to the container.
-You can use an `IAM role`_ (recommended) or you can add storage account credentials (account/key) to the ScyllaDB Manager Agent configuration file.
+You can use an :ref:`IAM role <azure-iam-role>` (recommended) or you can add storage account credentials (account/key) to the ScyllaDB Manager Agent configuration file.
 The latter method is not recommended because you are placing the security information directly on each node, which is much less secure than the IAM role method. In addition, if you need to change the key, you will have to replace it on every node.
+
+.. _azure-iam-role:
 
 IAM role
 --------
