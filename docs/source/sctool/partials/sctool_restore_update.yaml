@@ -99,16 +99,14 @@ options:
     - name: method
       default_value: rclone
       usage: |
-        Specify the API used for restoring files:
-        - 'auto': Use the native API when possible, otherwise use the Rclone API.
-        - 'native': Scylla server streams directly from backup location (supports only S3 provider).
-        - 'rclone': Scylla Manager Agent downloads from backup location and calls Scylla server for streaming afterwards.
+        Control native restore method (See https://manager.docs.scylladb.com/stable/restore/native-restore):
 
-        Both methods require configuring the Scylla Manager Agent in 'scylla-manager-agent.yaml'.
-        The native API also requires 'object_storage_endpoints' to be configured in 'scylla.yaml' (See https://docs.scylladb.com/manual/stable/operating-scylla/admin.html#object-storage-configuration).
+        * 'auto': Use the supported native restore functionalities, otherwise use rclone restore.
+        * 'native': Use the native restore functionalities only.
+        * 'rclone': Use the rclone restore functionalities only.
 
-        '--rate-limit', '--transfers', '--unpin-agent-cpu' flags do not take effect when using '--method=native',
-        as the streaming performance is controlled by the Scylla server.
+        Using native restore functionalities requires additional configuration and has its own limitations,
+        which are described in detail in https://manager.docs.scylladb.com/stable/restore/native-restore.
     - name: name
       usage: |
         Task name that can be used instead of ID.
