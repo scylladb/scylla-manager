@@ -1439,8 +1439,11 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Note that this is just a test check - it does not reflect ni.SupportsNativeRestoreAPI().
-	nativeRestoreSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
+	nativeRestoreAPIExposed, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	nativeRestoreAPISupported, err := ni.SupportsNativeRestoreAPI()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1456,31 +1459,22 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 		"scope":                "all",
 		"primary_replica_only": "true",
 	}
-	var testCases []testCase
-	// As currently scylla can't handle ipv6 object storage endpoints,
-	// we don't configure them for ipv6 test env and don't expect them to work.
-	switch {
-	case nativeRestoreSupport && !IsIPV6Network():
-		testCases = []testCase{
-			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: restore.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, ensuredQueryParams: nativeRestoreQueryParams, getTargetSuccess: true},
-			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-		}
-	case nativeRestoreSupport && IsIPV6Network():
-		testCases = []testCase{
-			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: restore.MethodNative, getTargetSuccess: false},
-			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-		}
-	default:
-		testCases = []testCase{
-			{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: restore.MethodNative, getTargetSuccess: false},
-			{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-		}
+	// Method rclone and default method test cases common for all setups
+	testCases := []testCase{
+		{method: restore.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+	}
+	// Method auto test cases (uses native restore only for supported versions)
+	if nativeRestoreAPISupported && !IsIPV6Network() {
+		testCases = append(testCases, testCase{method: restore.MethodAuto, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, ensuredQueryParams: nativeRestoreQueryParams, getTargetSuccess: true})
+	} else {
+		testCases = append(testCases, testCase{method: restore.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true})
+	}
+	// Method native test cases (native restore succeeds only for versions with exposed API)
+	if nativeRestoreAPIExposed && !IsIPV6Network() {
+		testCases = append(testCases, testCase{method: restore.MethodNative, ensuredPath: nativeAPIPath, ensuredQueryParams: nativeRestoreQueryParams, blockedPath: rcloneAPIPath, getTargetSuccess: true})
+	} else {
+		testCases = append(testCases, testCase{method: restore.MethodNative, getTargetSuccess: false})
 	}
 
 	for _, tc := range testCases {
