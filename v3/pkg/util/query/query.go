@@ -56,11 +56,24 @@ type DescribedSchema []DescribedSchemaRow
 
 // DescribedSchemaRow describes a single row returned by DESCRIBE SCHEMA WITH INTERNALS.
 type DescribedSchemaRow struct {
-	Keyspace string `json:"keyspace"`
-	Type     string `json:"type"`
-	Name     string `json:"name"`
-	CQLStmt  string `json:"cql_stmt"`
+	Keyspace string                `json:"keyspace"`
+	Type     DescribeSchemaRowType `json:"type"`
+	Name     string                `json:"name"`
+	CQLStmt  string                `json:"cql_stmt"`
 }
+
+// DescribeSchemaRowType represents a subset of possible values of DescribedSchemaRow.Type.
+type DescribeSchemaRowType = string
+
+// DescribeSchemaRowType enum.
+const (
+	RowTypeKeyspace DescribeSchemaRowType = "keyspace"
+	RowTypeTable    DescribeSchemaRowType = "table"
+	// RowTypeView describes Materialized Views, but also Alternator GSIs and LSIs.
+	RowTypeView DescribeSchemaRowType = "view"
+	// RowTypeIndex describes regular Secondary Indexes, but also custom ones, like Vector Store.
+	RowTypeIndex DescribeSchemaRowType = "index"
+)
 
 // DescribeSchemaWithInternals returns the output of DESCRIBE SCHEMA WITH INTERNALS query parsed into DescribedSchema.
 func DescribeSchemaWithInternals(session gocqlx.Session) (DescribedSchema, error) {
