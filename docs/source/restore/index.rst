@@ -7,6 +7,7 @@ Restore
    :maxdepth: 2
 
    restore-tables
+   native-restore
    restore-schema
    old-restore-schema
    examples
