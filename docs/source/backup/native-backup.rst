@@ -26,22 +26,25 @@ All other stages are still performed by the rclone server (e.g., deduplication o
 The ``ScyllaDB Version`` column describes the ScyllaDB version from which the functionality is considered production ready, even though the functionality might be available in earlier versions as well.
 
 .. list-table::
-   :widths: 15 15 50 25
+   :widths: 20 15 50 25
    :header-rows: 1
 
    * - Functionality
-     - Since ScyllaDB Version
+     - ScyllaDB Version
      - Description
      - Limitations
-   * - SSTable upload
+   * - SSTable upload to :doc:`s3 <setup-s3-compatible-storage>`
      - 2025.2
      - As this is the most time- and resource-consuming part of the backup procedure, moving it to ScyllaDB brings the most benefits.
        It also leverages knowledge of ScyllaDB internals to prioritize the upload of already compacted SSTables, which can then be fully deleted after upload,
        which reduces disk storage utilization caused by the snapshot. To ensure that native SSTable upload
        does not interfere with ScyllaDB performance, it should be throttled by configuring
        `stream_io_throughput_mb_per_sec <https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html#confval-stream_io_throughput_mb_per_sec>`_ in `scylla.yaml`.
-     - Works with S3 provider only.
-       Does not support creation of :ref:`versioned SSTables <backup-versioned-sstables>`.
+     - Does not support creation of :ref:`versioned SSTables <backup-versioned-sstables>`.
+   * - SSTable upload to :doc:`gcs <setup-gcs>`
+     - 2026.1
+     - Same as above.
+     - Same as above.
 
 .. _configure-native-backup-in-scylla:
 
@@ -52,7 +55,7 @@ To configure native backup, perform the following steps for each ScyllaDB node:
 
 #. Make sure that ScyllaDB Manager Agent is :ref:`configured <install-agent>` as usual.
 
-#. Configure `object_storage_endpoints <https://docs.scylladb.com/manual/stable/operating-scylla/admin.html#configuring-object-storage-experimental>`_ in `scylla.yaml`.
+#. Configure `object_storage_endpoints <https://docs.scylladb.com/manual/stable/operating-scylla/admin.html#configuring-object-storage>`_ in `scylla.yaml`.
 
     This configures the backup location access for the ScyllaDB node itself. The backup location access for ScyllaDB Manager Agent needs to be configured separately,
     in the same way as it is done for the regular backup purposes (see :doc:`setup-amazon-s3`). The configurations in `scylla.yaml` and `scylla-manager-agent.yaml` should match.
@@ -72,9 +75,7 @@ To configure native backup, perform the following steps for each ScyllaDB node:
     .. code-block:: yaml
 
        object_storage_endpoints:
-         - name: s3.us-east-1.amazonaws.com
-           port: 443
-           https: true
+         - name: https://s3.us-east-1.amazonaws.com:443
            aws_region: us-east-1
 
 #. Throttle `stream_io_throughput_mb_per_sec <https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html#confval-stream_io_throughput_mb_per_sec>`_ in `scylla.yaml`.
@@ -93,7 +94,7 @@ It supports three values: ``rclone`` (default), ``native``, and ``auto``:
     Note that this will fail when:
 
     * ScyllaDB is not configured properly (see ``object_storage_endpoints`` in `Configuration`_)
-    * Provider other than S3 is used (see limitations in `Status`_)
+    * Provider not supported by used ScyllaDB version is used (see limitations in `Status`_)
     * The upload of snapshot directories would result in creation of versioned SSTables (see limitations in `Status`_)
 
   * ``auto``: Uses native backup functionalities when possible, otherwise falls back to rclone backup.
