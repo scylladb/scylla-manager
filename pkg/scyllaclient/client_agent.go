@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package scyllaclient
 
@@ -7,8 +7,8 @@ import (
 	stdErr "errors"
 	"fmt"
 	"net"
-	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -376,33 +376,17 @@ func equalS3ObjectStorageEndpoints(rclone models.NodeInfoRcloneBackendConfigS3, 
 		rcloneName = fmt.Sprintf("s3.%s.amazonaws.com", rclone.Region)
 	}
 
-	// Clean rclone and scylla names
-	scheme := "http"
-	if scylla.UseHTTPS {
-		scheme = "https"
-	}
-	// Remove scheme
-	rcloneName = strings.TrimPrefix(rcloneName, scheme+"://")
-	// Remove port
-	rcloneName = strings.TrimSuffix(rcloneName, fmt.Sprintf(":%d", scylla.Port))
-	// Remove brackets
-	rcloneName = trimBrackets(rcloneName)
-	scyllaName := trimBrackets(scylla.Name)
-
-	if rcloneName == scyllaName {
-		return true
+	scyllaName := scylla.Name
+	// Handle legacy object storage endpoint syntax
+	if scylla.Port != 0 {
+		scheme := "http://"
+		if scylla.UseHTTPS {
+			scheme = "https://"
+		}
+		scyllaName = scheme + net.JoinHostPort(trimBrackets(scylla.Name), strconv.FormatInt(scylla.Port, 10))
 	}
 
-	// Handle different ipv6 string representations
-	scyllaIP, err := netip.ParseAddr(scyllaName)
-	if err != nil {
-		return false
-	}
-	rcloneIP, err := netip.ParseAddr(rcloneName)
-	if err != nil {
-		return false
-	}
-	return scyllaIP == rcloneIP
+	return fillDefaultSchemeAndPort(rcloneName) == fillDefaultSchemeAndPort(scyllaName)
 }
 
 func isGSObjectStorageEndpoint(ose models.ObjectStorageEndpoint) bool {
@@ -418,17 +402,33 @@ func equalGSObjectStorageEndpoints(rclone models.NodeInfoRcloneBackendConfigGcs,
 		defaultGSEndpoint           = "https://storage.googleapis.com"
 	)
 
-	scyllaEndpoint := scylla.Name
-	if strings.EqualFold(scyllaEndpoint, defaultScyllaGSEndpointName) || scyllaEndpoint == "" {
-		scyllaEndpoint = defaultGSEndpoint
+	scyllaName := scylla.Name
+	if strings.EqualFold(scyllaName, defaultScyllaGSEndpointName) || scyllaName == "" {
+		scyllaName = defaultGSEndpoint
 	}
 
-	rcloneEndpoint := rclone.Endpoint
-	if rcloneEndpoint == "" {
-		rcloneEndpoint = defaultGSEndpoint
+	rcloneName := rclone.Endpoint
+	if rcloneName == "" {
+		rcloneName = defaultGSEndpoint
 	}
 
-	return scyllaEndpoint == rcloneEndpoint
+	return fillDefaultSchemeAndPort(rcloneName) == fillDefaultSchemeAndPort(scyllaName)
+}
+
+func fillDefaultSchemeAndPort(endpoint string) string {
+	// Handle explicitly set http scheme
+	if hostport, httpScheme := strings.CutPrefix(endpoint, "http://"); httpScheme {
+		if _, _, err := net.SplitHostPort(hostport); err == nil {
+			return "http://" + hostport
+		}
+		return "http://" + net.JoinHostPort(trimBrackets(hostport), "80")
+	}
+	// Otherwise assume https scheme
+	hostport := strings.TrimPrefix(endpoint, "https://")
+	if _, _, err := net.SplitHostPort(hostport); err == nil {
+		return "https://" + hostport
+	}
+	return "https://" + net.JoinHostPort(trimBrackets(hostport), "443")
 }
 
 func trimBrackets(e string) string {
