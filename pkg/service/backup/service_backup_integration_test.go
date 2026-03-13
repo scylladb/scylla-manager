@@ -2765,6 +2765,8 @@ func TestBackupMethodIntegration(t *testing.T) {
 	}
 
 	type testCase struct {
+		name             string
+		description      string
 		method           backup.Method
 		blockedPath      string
 		ensuredPath      string
@@ -2776,29 +2778,108 @@ func TestBackupMethodIntegration(t *testing.T) {
 	switch {
 	case support && !IsIPV6Network():
 		testCases = []testCase{
-			{method: backup.MethodAuto, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{method: backup.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{
+				name:             "method=auto uses native API when supported",
+				description:      "Verifies that auto mode selects the native backup API when the cluster supports it in a non-IPv6 environment.",
+				method:           backup.MethodAuto,
+				ensuredPath:      nativeAPIPath,
+				blockedPath:      rcloneAPIPath,
+				getTargetSuccess: true,
+			},
+			{
+				name:             "method=native uses native API",
+				description:      "Verifies that explicit native method uses the native backup API when supported.",
+				method:           backup.MethodNative,
+				ensuredPath:      nativeAPIPath,
+				blockedPath:      rcloneAPIPath,
+				getTargetSuccess: true,
+			},
+			{
+				name:             "method=rclone uses rclone API",
+				description:      "Verifies that explicit rclone method uses the rclone upload API and does not touch the native endpoint.",
+				method:           backup.MethodRclone,
+				ensuredPath:      rcloneAPIPath,
+				blockedPath:      nativeAPIPath,
+				getTargetSuccess: true,
+			},
+			{
+				name:             "method=default uses rclone API",
+				description:      "Verifies that omitting the method defaults to the rclone upload API.",
+				ensuredPath:      rcloneAPIPath,
+				blockedPath:      nativeAPIPath,
+				getTargetSuccess: true,
+			},
 		}
 	case support && IsIPV6Network():
 		testCases = []testCase{
-			{method: backup.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: backup.MethodNative, getTargetSuccess: false},
-			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{
+				name:             "method=auto falls back to rclone API on IPv6",
+				description:      "Verifies that auto mode falls back to rclone on IPv6 environments because Scylla cannot handle IPv6 object storage endpoints.",
+				method:           backup.MethodAuto,
+				ensuredPath:      rcloneAPIPath,
+				blockedPath:      nativeAPIPath,
+				getTargetSuccess: true,
+			},
+			{
+				name:             "method=native target validation fails on IPv6",
+				description:      "Verifies that explicit native method is rejected during target validation when the environment is IPv6.",
+				method:           backup.MethodNative,
+				getTargetSuccess: false,
+			},
+			{
+				name:             "method=rclone uses rclone API on IPv6",
+				description:      "Verifies that explicit rclone method uses the rclone upload API on IPv6 environments.",
+				method:           backup.MethodRclone,
+				ensuredPath:      rcloneAPIPath,
+				blockedPath:      nativeAPIPath,
+				getTargetSuccess: true,
+			},
+			{
+				name:             "method=default uses rclone API on IPv6",
+				description:      "Verifies that omitting the method defaults to rclone API on IPv6.",
+				ensuredPath:      rcloneAPIPath,
+				blockedPath:      nativeAPIPath,
+				getTargetSuccess: true,
+			},
 		}
 	default:
 		testCases = []testCase{
-			{method: backup.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: backup.MethodNative, getTargetSuccess: false},
-			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{
+				name:             "method=auto falls back to rclone API when unsupported",
+				description:      "Verifies that auto mode falls back to rclone when the cluster does not support the native backup API.",
+				method:           backup.MethodAuto,
+				ensuredPath:      rcloneAPIPath,
+				blockedPath:      nativeAPIPath,
+				getTargetSuccess: true,
+			},
+			{
+				name:             "method=native target validation fails when unsupported",
+				description:      "Verifies that explicit native method is rejected during target validation when the cluster does not support the native backup API.",
+				method:           backup.MethodNative,
+				getTargetSuccess: false,
+			},
+			{
+				name:             "method=rclone uses rclone API",
+				description:      "Verifies that explicit rclone method uses the rclone upload API when native backup is not available.",
+				method:           backup.MethodRclone,
+				ensuredPath:      rcloneAPIPath,
+				blockedPath:      nativeAPIPath,
+				getTargetSuccess: true,
+			},
+			{
+				name:             "method=default uses rclone API",
+				description:      "Verifies that omitting the method defaults to rclone API when native backup is not available.",
+				ensuredPath:      rcloneAPIPath,
+				blockedPath:      nativeAPIPath,
+				getTargetSuccess: true,
+			},
 		}
 	}
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Test case: %s", tc.method), func(t *testing.T) {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Log(tc.description)
 			encounteredEnsured := atomic.NewBool(false)
 			encounteredBlocked := atomic.NewBool(false)
 			if tc.getTargetSuccess {
