@@ -31,6 +31,13 @@ applyTo: "**/*_integration_test.go"
 - If the readability gain is only incremental, say so directly.
 - Keep end-to-end validation in place when the test verifies orchestration or API-selection behavior.
 
+## PR Review Scope
+
+- For pull request reviews, validate only integration test files and lines changed in the current PR diff.
+- Do not raise findings for unchanged files.
+- If similar issues are observed in unchanged files, list them only as optional follow-ups and mark them explicitly as out-of-scope for this PR.
+- Do not block or fail a PR based on issues outside the changed diff unless explicitly asked for a broader audit.
+
 ## Chat Output
 
 - When describing or reviewing a test, explain first what it validates.
