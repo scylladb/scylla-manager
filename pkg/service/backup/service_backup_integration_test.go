@@ -34,6 +34,7 @@ import (
 	scyllatable "github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
@@ -48,7 +49,6 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -237,7 +237,7 @@ func (h *backupTestHelper) setInterceptorWaitPath(hosts []string, paths ...strin
 	return wait
 }
 
-func (h *backupTestHelper) listS3Files() (manifests, schemas, files []string) {
+func (h *backupTestHelper) listS3Files() (manifests, schemas, files, scyllaManifests []string) {
 	h.T.Helper()
 	opts := &scyllaclient.RcloneListDirOpts{
 		Recurse:   true,
@@ -248,14 +248,21 @@ func (h *backupTestHelper) listS3Files() (manifests, schemas, files []string) {
 		h.T.Fatal(err)
 	}
 	for _, f := range allFiles {
-		if strings.HasPrefix(f.Path, "backup/meta") && strings.Contains(f.Path, "manifest") {
+		switch {
+		case strings.HasPrefix(f.Path, "backup/meta"):
 			manifests = append(manifests, f.Path)
-		} else if strings.HasPrefix(f.Path, "backup/schema") {
+		case strings.HasPrefix(f.Path, "backup/schema"):
 			schemas = append(schemas, f.Path)
-		} else {
+		case strings.HasPrefix(f.Path, "backup/sst") && strings.HasSuffix(f.Path, backupspec.ScyllaManifest):
+			scyllaManifests = append(scyllaManifests, f.Path)
+		case strings.HasPrefix(f.Path, "backup/sst"):
 			files = append(files, f.Path)
+		default:
+			h.T.Fatalf("Unexpected file type in backup dir: %s", f.Path)
 		}
 	}
+	// Additional scylla manifest file name syntax validation
+	validateScyllaManifestFileName(h.T, scyllaManifests...)
 	return
 }
 
@@ -307,7 +314,7 @@ func (h *backupTestHelper) waitTransfersStarted() {
 func (h *backupTestHelper) waitManifestUploaded() {
 	h.waitCond(func() bool {
 		h.T.Helper()
-		m, _, _ := h.listS3Files()
+		m, _, _, _ := h.listS3Files()
 		return len(m) > 0
 	})
 }
@@ -768,7 +775,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	}
 
 	Print("And: files")
-	manifests, schemas, _ := h.listS3Files()
+	manifests, schemas, _, scyllaManifests := h.listS3Files()
 	// Manifest meta per host per snapshot
 	expectedNumberOfManifests := 3 * 2
 	if len(manifests) != expectedNumberOfManifests {
@@ -794,6 +801,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	if len(filesInfo) != 6 {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", len(filesInfo), len(manifests))
 	}
+
+	Print("And: sstables are uploaded")
 	for _, fi := range filesInfo {
 		for _, fs := range fi.Files {
 			remoteFiles, err := h.Client.RcloneListDir(ctx, h.GetAllHosts()[0], h.location.RemotePath(fs.Path), nil)
@@ -803,13 +812,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 
 			var remoteFileNames []string
 			for _, f := range remoteFiles {
-				remoteFileNames = append(remoteFileNames, f.Name)
-			}
-
-			Print("And: Scylla manifests are not uploaded")
-			for _, rfn := range remoteFileNames {
-				if strings.Contains(rfn, backupspec.ScyllaManifest) {
-					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(fs.Path))
+				if !strings.HasSuffix(f.Name, backupspec.ScyllaManifest) {
+					remoteFileNames = append(remoteFileNames, f.Name)
 				}
 			}
 
@@ -823,6 +827,24 @@ func TestBackupSmokeIntegration(t *testing.T) {
 				t.Fatalf("List of files from manifest doesn't match files on remote, diff: %s", cmp.Diff(fs.Files, remoteFileNames, opts...))
 			}
 		}
+	}
+
+	Print("And: scylla manifests are uploaded")
+	if len(scyllaManifests) == 0 {
+		t.Errorf("Expected to list scylla manifests, got none")
+	}
+	listedScyllaManifests := maps.SetFromSlice(scyllaManifests)
+	scyllaManifestsFromManifest := map[string]struct{}{}
+	for _, fi := range filesInfo {
+		for _, fs := range fi.Files {
+			for _, sm := range fs.ScyllaManifests {
+				validateScyllaManifestFileName(t, sm)
+				scyllaManifestsFromManifest[path.Join(fs.Path, sm)] = struct{}{}
+			}
+		}
+	}
+	if diff := cmp.Diff(scyllaManifestsFromManifest, listedScyllaManifests); diff != "" {
+		t.Errorf("Mismatch between scylla manifests from manager manifest and listed files: %s", diff)
 	}
 
 	Print("And: manifests are in metadata directory")
@@ -910,6 +932,14 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 	}
 	r.Close()
 
+	ni, err := h.Client.AnyNodeInfo(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if mc.ScyllaVersion != ni.ScyllaVersion {
+		t.Errorf("ScyllaVersion=%s, expected %s", mc.ScyllaVersion, ni.ScyllaVersion)
+	}
 	if mc.ClusterName != "test_cluster" {
 		t.Errorf("ClusterName=%s, expected test_cluster", mc.ClusterName)
 	}
@@ -979,6 +1009,25 @@ func assertManifestHasCorrectFormat(t *testing.T, ctx context.Context, h *backup
 	if mc.InstanceDetails.CloudProvider != "test_provider" {
 		t.Errorf("InstanceDetails.CloudProvider=%s, expected aws", mc.InstanceDetails.CloudProvider)
 	}
+
+	rd := scyllaclient.NewRingDescriber(ctx, h.Client)
+	err = mc.ForEachIndexIter(nil, func(fm backupspec.FilesMeta) {
+		expected := scyllaclient.ReplicationVnode
+		if rd.IsTabletKeyspace(fm.Keyspace) {
+			expected = scyllaclient.ReplicationTablet
+		}
+		if fm.ReplicationType != string(expected) {
+			t.Errorf("ReplicationType=%s, expected %s", fm.ReplicationType, expected)
+		}
+
+		if len(fm.ScyllaManifests) == 0 {
+			t.Fatal("Expected at least one scylla manifest, got none")
+		}
+		validateScyllaManifestFileName(h.T, fm.ScyllaManifests...)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestBackupWithNodesDownIntegration(t *testing.T) {
@@ -1025,7 +1074,7 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 	}
 
 	Print("Then: there are is no manifest for the downed node")
-	manifests, _, _ := h.listS3Files()
+	manifests, _, _, _ := h.listS3Files()
 	// Manifest meta per host per snapshot
 	expectedNumberOfManifests := 2
 	if len(manifests) != expectedNumberOfManifests {
@@ -1082,19 +1131,22 @@ func TestBackupResumeIntegration(t *testing.T) {
 	assertDataUploaded := func(t *testing.T, h *backupTestHelper) {
 		t.Helper()
 
-		manifests, _, files := h.listS3Files()
+		manifests, _, files, scyllaManifests := h.listS3Files()
 		if len(manifests) != 3 {
 			t.Fatalf("Expected 3 manifests got %s", manifests)
 		}
 		if len(files) == 0 {
 			t.Fatal("Expected data to be uploaded")
 		}
+		if len(scyllaManifests) == 0 {
+			t.Fatal("Expected scylla manifests to be uploaded")
+		}
 	}
 
 	assertDataUploadedAfterTag := func(t *testing.T, h *backupTestHelper, tag string) {
 		t.Helper()
 
-		manifests, _, files := h.listS3Files()
+		manifests, _, files, scyllaManifests := h.listS3Files()
 		c := 0
 		for _, m := range manifests {
 			if backup.SnapshotTagFromManifestPath(t, m) > tag {
@@ -1106,6 +1158,9 @@ func TestBackupResumeIntegration(t *testing.T) {
 		}
 		if len(files) == 0 {
 			t.Fatal("Expected data to be uploaded")
+		}
+		if len(scyllaManifests) == 0 {
+			t.Fatal("Expected scylla manifests to be uploaded")
 		}
 	}
 
@@ -1383,19 +1438,23 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	}
 
 	Print("And: add a fake temporary manifest")
-	manifests, _, _ := h.listS3Files()
+	manifests, _, _, _ := h.listS3Files()
 
+	dummyFile := "xxx"
+	dummyScyllaManifest := "tag_sm9999999999_node_" + uuid.MustRandom().String() + "_" + backupspec.ScyllaManifest
 	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		// Mark manifest as temporary, change snapshot tag
 		m.Temporary = true
 		m.SnapshotTag = backup.NewSnapshotTag()
-		// Add "xxx" file to a table
+		// Add dummy file to a table
 		fi := &m.Index[0]
-		fi.Files = append(fi.Files, "xxx")
-
-		// Create the "xxx" file
-		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xxx", "xxx")
-
+		fi.Files = append(fi.Files, dummyFile)
+		// Create the dummy file
+		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), dummyFile, dummyFile)
+		// Add dummy scylla manifest to a table
+		fi.ScyllaManifests = append(fi.ScyllaManifests, dummyScyllaManifest)
+		// Create the dummy scylla manifest
+		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), dummyScyllaManifest, dummyScyllaManifest)
 		return true
 	})
 
@@ -1414,16 +1473,22 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	manifests, _, files := h.listS3Files()
+	manifests, _, files, scyllaManifests := h.listS3Files()
 
 	Print("Then: temporary manifest is removed")
 	if len(manifests) != 3 {
 		t.Fatalf("Expected 3 manifest got %d", len(manifests))
 	}
 
-	Print("And: xxx file is removed")
+	Print("And: dummy file is removed")
 	for _, f := range files {
-		if path.Base(f) == "xxx" {
+		if path.Base(f) == dummyFile {
+			t.Fatalf("Found %s that should have been removed", f)
+		}
+	}
+	Print("And: dummy scylla manifest is removed")
+	for _, f := range scyllaManifests {
+		if path.Base(f) == dummyScyllaManifest {
 			t.Fatalf("Found %s that should have been removed", f)
 		}
 	}
@@ -1477,9 +1542,9 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 
 	Print("And: manifest move is rolled back")
 	var (
-		manifests, _, _   = h.listS3Files()
-		manifestCount     int
-		tempManifestCount int
+		manifests, _, _, _ = h.listS3Files()
+		manifestCount      int
+		tempManifestCount  int
 	)
 	for _, m := range manifests {
 		if strings.HasSuffix(m, backupspec.TempFileExt) {
@@ -1578,7 +1643,7 @@ func TestPurgeIntegration(t *testing.T) {
 	}
 
 	// Get manifest prototype
-	manifests, _, _ := h.listS3Files()
+	manifests, _, _, _ := h.listS3Files()
 	if len(manifests) != 3 {
 		t.Fatalf("Expected manifest per node, got %d", len(manifests))
 	}
@@ -1640,13 +1705,14 @@ func TestPurgeIntegration(t *testing.T) {
 	}
 
 	Print("Then: there should be 3 + 4 manifests")
-	manifests, _, files := h.listS3Files()
+	manifests, _, files, scyllaManifests := h.listS3Files()
 	if len(manifests) != 7 {
 		t.Fatalf("Expected 7 manifests (1 per each node) plus 4 generated, got %d %s", len(manifests), strings.Join(manifests, "\n"))
 	}
 
-	Print("And: old sstable files are removed")
-	var sstPfx []string
+	Print("And: old files (sstables and scylla manifests) are removed")
+	filesFromManifest := strset.New()
+	scyllaManifestsFromManifest := strset.New()
 	for _, m := range manifests {
 		r, err := h.Client.RcloneOpen(ctx, ManagedClusterHost(), location.RemotePath(m))
 		if err != nil {
@@ -1663,22 +1729,19 @@ func TestPurgeIntegration(t *testing.T) {
 		r.Close()
 
 		for _, fi := range c.Index {
-			for _, f := range fi.Files {
-				sstPfx = append(sstPfx, strings.TrimSuffix(f, "-Data.db"))
-			}
+			filesFromManifest.Add(fi.Files...)
+			scyllaManifestsFromManifest.Add(fi.ScyllaManifests...)
 		}
 	}
 
 	for _, f := range files {
-		ok := false
-		for _, pfx := range sstPfx {
-			if strings.HasPrefix(path.Base(f), pfx) || strings.HasSuffix(f, backupspec.MetadataVersion) {
-				ok = true
-				break
-			}
+		if base := path.Base(f); !filesFromManifest.Has(base) {
+			t.Errorf("Unexpected file %s", base)
 		}
-		if !ok {
-			t.Errorf("Unexpected file %s", f)
+	}
+	for _, f := range scyllaManifests {
+		if base := path.Base(f); !scyllaManifestsFromManifest.Has(base) {
+			t.Errorf("Unexpected scylla manifest %s", base)
 		}
 	}
 }
@@ -1713,7 +1776,7 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	}
 
 	Print("And: add temporary manifest")
-	manifests, _, _ := h.listS3Files()
+	manifests, _, _, _ := h.listS3Files()
 	if len(manifests) != 3 {
 		t.Fatalf("Expected manifest per node, got %d", len(manifests))
 	}
@@ -1729,7 +1792,7 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 	}
 
 	Print("Then: there should be 3 manifests")
-	manifests, _, _ = h.listS3Files()
+	manifests, _, _, _ = h.listS3Files()
 	if len(manifests) != 3 {
 		t.Fatalf("Expected 3 manifests (1 per each node), got %d %s", len(manifests), strings.Join(manifests, "\n"))
 	}
@@ -1777,9 +1840,8 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	}
 
 	Print("Then: both tasks references same data")
-
-	firstTaskFilePaths := taskFiles(t, ctx, h, h.TaskID)
-	secondTaskFilePaths := taskFiles(t, ctx, h, task2ID)
+	firstTaskFilePaths, firstTaskScyllaManifestPaths := taskFiles(t, ctx, h, h.TaskID)
+	secondTaskFilePaths, secondTaskScyllaManifestPaths := taskFiles(t, ctx, h, task2ID)
 
 	filesSymmetricDifference := strset.New(firstTaskFilePaths...)
 	filesSymmetricDifference.Separate(strset.New(secondTaskFilePaths...))
@@ -1787,8 +1849,16 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		t.Fatal("Expected to have same SST files in both tasks")
 	}
 
-	Print("When: first task snapshot is deleted")
+	Print("Then: both tasks have different scylla manifests")
+	scyllaManifestIntersection := strset.Intersection(
+		strset.New(firstTaskScyllaManifestPaths...),
+		strset.New(secondTaskScyllaManifestPaths...),
+	)
+	if !scyllaManifestIntersection.IsEmpty() {
+		t.Fatal("Expected to have different scylla manifest files in both tasks")
+	}
 
+	Print("When: first task snapshot is deleted")
 	firstTaskTags := taskTags(t, ctx, h, h.TaskID)
 	if firstTaskTags.Size() != 1 {
 		t.Fatalf("Expected to have single snapshot in the first task, got %d", firstTaskTags.Size())
@@ -1798,16 +1868,20 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	Print("Then: no files are removed")
-	_, _, files := h.listS3Files()
+	Print("Then: no sstables are removed")
+	_, _, files, scyllaManifests := h.listS3Files()
 	if len(files) == 0 {
 		t.Fatal("Expected to have second task files in storage")
 	}
 	filesSymmetricDifference = strset.New(filterOutVersionFiles(files)...)
 	filesSymmetricDifference.Separate(strset.New(secondTaskFilePaths...))
-
 	if !filesSymmetricDifference.IsEmpty() {
 		t.Fatal("Second task files were removed during first task snapshot delete")
+	}
+
+	Print("And: scylla manifests from first task are removed")
+	if !strset.New(secondTaskScyllaManifestPaths...).IsEqual(strset.New(scyllaManifests...)) {
+		t.Fatal("First task scylla manifests were not removed during first task snapshot delete")
 	}
 
 	Print("When: last snapshot is removed")
@@ -1821,10 +1895,10 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	}
 
 	Print("Then: bucket is empty")
-	manifests, schemas, files := h.listS3Files()
+	manifests, schemas, files, scyllaManifests := h.listS3Files()
 	sstFiles := filterOutVersionFiles(files)
-	if len(manifests) != 0 || len(schemas) != 0 || len(sstFiles) != 0 {
-		t.Errorf("Not all files were removed.\nmanifests: %s\nschemas: %s\nsstfiles: %s", manifests, schemas, sstFiles)
+	if len(manifests) != 0 || len(schemas) != 0 || len(sstFiles) != 0 || len(scyllaManifests) != 0 {
+		t.Errorf("Not all files were removed.\nmanifests: %s\nschemas: %s\nsstfiles: %s\nscylla manifests: %s", manifests, schemas, sstFiles, scyllaManifests)
 	}
 }
 
@@ -1845,7 +1919,7 @@ func taskTags(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uui
 	return taskTags
 }
 
-func taskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) []string {
+func taskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uuid.UUID) (files, scyllaManifests []string) {
 	t.Helper()
 
 	filesFilter := backup.ListFilter{ClusterID: h.ClusterID, TaskID: taskID}
@@ -1853,15 +1927,17 @@ func taskFiles(t *testing.T, ctx context.Context, h *backupTestHelper, taskID uu
 	if err != nil {
 		t.Fatal(err)
 	}
-	var taskFilesPaths []string
 	for _, tf := range taskFiles {
 		for _, fi := range tf.Files {
 			for _, f := range fi.Files {
-				taskFilesPaths = append(taskFilesPaths, path.Join(fi.Path, f))
+				files = append(files, path.Join(fi.Path, f))
+			}
+			for _, sm := range fi.ScyllaManifests {
+				scyllaManifests = append(scyllaManifests, path.Join(fi.Path, sm))
 			}
 		}
 	}
-	return taskFilesPaths
+	return files, scyllaManifests
 }
 
 func filterOutVersionFiles(files []string) []string {
@@ -1971,22 +2047,31 @@ func TestValidateIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	manifests, _, files := h.listS3Files()
+	manifests, _, files, scyllaManifests := h.listS3Files()
 
 	genTag := func() string {
 		return backupspec.SnapshotTagAt(time.Unix(int64(rand.Uint32()), 0))
 	}
+	genScyllaManifest := func() string {
+		return "tag_" + backup.NewSnapshotTag() + "_node_" + uuid.MustRandom().String() + "_" + backupspec.ScyllaManifest
+	}
 
 	var (
-		orphanedSnapshotTag = genTag()
-		alienSnapshotTag    = genTag()
-		tamperedSnapshotTag = genTag()
+		orphanedSnapshotTag     = genTag()
+		alienSnapshotTag        = genTag()
+		tamperedSnapshotTag     = genTag()
+		orphanedScyllaManifest  = genScyllaManifest()
+		tmpScyllaManifest2      = genScyllaManifest()
+		tamperedScyllaManifest3 = genScyllaManifest()
 	)
 
-	Print("And: add orphaned file - should be reported and deleted")
+	Print("And: add orphaned sstable and scylla manifest - should be reported and deleted")
+	var orphanedHost string
 	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
+		orphanedHost = m.IP
 		m.SnapshotTag = orphanedSnapshotTag
 		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, "foo", "bar", "f0e76f40662e11ebbe97000000000001")), "xx0", "xxx")
+		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, "foo", "bar", "f0e76f40662e11ebbe97000000000001")), orphanedScyllaManifest, "xxx")
 		return false
 	})
 
@@ -1998,13 +2083,15 @@ func TestValidateIntegration(t *testing.T) {
 		return true
 	})
 
-	Print("And: add file referenced by temporary manifest - should NOT be reported nor deleted")
+	Print("And: add sstable and scylla manifest referenced by temporary manifest - should NOT be reported nor deleted")
 	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.SnapshotTag = genTag()
 		m.Temporary = true
 		fi := &m.Index[0]
 		fi.Files = append(fi.Files, "xx1")
 		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), "xx1", "xxx")
+		fi.ScyllaManifests = append(fi.ScyllaManifests, tmpScyllaManifest2)
+		h.touchFile(ctx, path.Join(backupspec.RemoteSSTableVersionDir(h.ClusterID, m.DC, m.NodeID, fi.Keyspace, fi.Table, fi.Version)), tmpScyllaManifest2, "xxx")
 		return true
 	})
 
@@ -2013,6 +2100,7 @@ func TestValidateIntegration(t *testing.T) {
 		m.SnapshotTag = tamperedSnapshotTag
 		fi := &m.Index[0]
 		fi.Files = append(fi.Files, "xx2")
+		fi.ScyllaManifests = append(fi.ScyllaManifests, tamperedScyllaManifest3)
 		return true
 	})
 
@@ -2044,13 +2132,18 @@ func TestValidateIntegration(t *testing.T) {
 
 	Print("And: progress is accurate")
 	var deleted = 0
+	foundOrphanedHost := false
 	for _, r := range progress {
 		deleted += r.DeletedFiles
-		if r.OrphanedFiles == 1 {
-			if r.OrphanedFiles != 1 || r.OrphanedBytes != 3 || r.DeletedFiles != 0 {
+		if r.Host == orphanedHost {
+			foundOrphanedHost = true
+			if r.OrphanedFiles != 2 || r.OrphanedBytes != 6 || r.DeletedFiles != 0 {
 				t.Fatal("Wrong result", r.ValidationResult)
 			}
 		}
+	}
+	if !foundOrphanedHost {
+		t.Fatalf("Couldn't find orphaned host progress: %+v", progress)
 	}
 	if deleted != 0 {
 		t.Fatalf("Wrong nr. of deleted files %d, expected 0", deleted)
@@ -2061,7 +2154,7 @@ func TestValidateIntegration(t *testing.T) {
 		t.Error("Wrong result")
 	}
 	r = findRowBySnapshotTag(tamperedSnapshotTag)
-	if r.MissingFiles != 1 {
+	if r.MissingFiles != 2 {
 		t.Error("Wrong result")
 	}
 
@@ -2081,25 +2174,36 @@ func TestValidateIntegration(t *testing.T) {
 
 	Print("And: progress is accurate")
 	deleted = 0
+	foundOrphanedHost = false
 	for _, r := range progress {
 		deleted += r.DeletedFiles
-		if r.OrphanedFiles == 1 {
-			if r.OrphanedFiles != 1 || r.OrphanedBytes != 3 || r.DeletedFiles != 1 {
+		if r.Host == orphanedHost {
+			foundOrphanedHost = true
+			if r.OrphanedFiles != 2 || r.OrphanedBytes != 6 || r.DeletedFiles != 2 {
 				t.Fatal("Wrong result", r.ValidationResult)
 			}
 		}
 	}
-	if deleted != 1 {
+	if !foundOrphanedHost {
+		t.Fatalf("Couldn't find orphaned host progress: %+v", progress)
+	}
+	if deleted != 2 {
 		t.Fatalf("Wrong nr. of deleted files %d, expected 1", deleted)
 	}
 
 	Print("And: only orphaned files are deleted")
-	_, _, postDeleteFiles := h.listS3Files()
+	_, _, postDeleteFiles, postDeleteScyllaManifests := h.listS3Files()
 	if !strset.New(postDeleteFiles...).Has(files...) {
-		t.Fatalf("Missing files")
+		t.Fatalf("Missing sstables")
+	}
+	if !strset.New(postDeleteScyllaManifests...).Has(scyllaManifests...) {
+		t.Fatalf("Missing scylla manifests")
 	}
 	if len(postDeleteFiles) != len(files)+1 {
-		t.Fatalf("Delete error")
+		t.Fatalf("Delete sstable error")
+	}
+	if len(postDeleteScyllaManifests) != len(scyllaManifests)+1 {
+		t.Fatalf("Delete scylla manifest error")
 	}
 }
 
@@ -2307,7 +2411,7 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 	}
 
 	Print("And: validate manifest creation")
-	manifests, _, _ := h.listS3Files()
+	manifests, _, _, _ := h.listS3Files()
 	if len(manifests) != len(ManagedClusterHosts()) {
 		t.Fatalf("expected manifest for each node, got %d", len(manifests))
 	}
@@ -2341,16 +2445,9 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 				remoteFileNames = append(remoteFileNames, f.Name)
 			}
 
-			for _, rfn := range remoteFileNames {
-				if strings.Contains(rfn, backupspec.ScyllaManifest) {
-					t.Errorf("Unexpected Scylla manifest file at path: %s", h.location.RemotePath(fs.Path))
-				}
-			}
-
-			tableFileNames := make([]string, 0, len(fs.Files))
-			for _, f := range fs.Files {
-				tableFileNames = append(tableFileNames, f)
-			}
+			tableFileNames := make([]string, 0, len(fs.Files)+len(fs.ScyllaManifests))
+			tableFileNames = append(tableFileNames, fs.Files...)
+			tableFileNames = append(tableFileNames, fs.ScyllaManifests...)
 
 			opts := []cmp.Option{cmpopts.SortSlices(func(a, b string) bool { return a < b })}
 			if !cmp.Equal(tableFileNames, remoteFileNames, opts...) {
@@ -2650,7 +2747,7 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 		t.Fatalf("Expected backup to succeede, got error: %s", err)
 	}
 
-	_, schemas, files := h.listS3Files()
+	_, schemas, files, scyllaManifests := h.listS3Files()
 	Print("And: CQL schema file wasn't backed up")
 	if len(schemas) > 0 {
 		t.Fatalf("Expected no CQL schema files to be backed up, got: %v", schemas)
@@ -2658,6 +2755,10 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 	Print("And: non schema sstables were backed up")
 	if len(files) == 0 {
 		t.Fatal("Expected non schema sstables to be backed up")
+	}
+	Print("And: scylla manifests were backed up")
+	if len(scyllaManifests) == 0 {
+		t.Fatal("Expected scylla manifests to be backed up")
 	}
 	Print("And: schema sstables weren't backed up")
 	for _, f := range files {
@@ -3102,5 +3203,26 @@ func TestBackupDeleteLocalSnapshotsIntegration(t *testing.T) {
 
 	if anySnapshotOnDisk() {
 		t.Fatal("Expected no snapshots on disk after cleanup")
+	}
+}
+
+func validateScyllaManifestFileName(t *testing.T, sms ...string) {
+	for _, sm := range sms {
+		parts := strings.Split(path.Base(sm), "_")
+		if len(parts) != 6 {
+			t.Errorf("Unexpected scylla manifest format: %s", sm)
+		}
+		tag := parts[1] + "_" + parts[2]
+		nodeID := parts[4]
+		suffix := parts[5]
+		if !backupspec.IsSnapshotTag(tag) {
+			t.Errorf("Expected snapshot tag as the first part of scylla manifest file name, got: %s", tag)
+		}
+		if _, err := uuid.Parse(nodeID); err != nil {
+			t.Errorf("Expected node ID as the second part of scylla manifest file name, got: %s", nodeID)
+		}
+		if suffix != backupspec.ScyllaManifest {
+			t.Errorf("Expected node ID as the second part of scylla manifest file name, got: %s", suffix)
+		}
 	}
 }

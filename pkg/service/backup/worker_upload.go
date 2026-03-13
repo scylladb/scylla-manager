@@ -66,20 +66,20 @@ func (w *worker) hostSnapshotDirsByMethod(ctx context.Context, h hostInfo) (rclo
 	}
 
 	if w.Method == MethodNative {
-		for _, d := range dirs {
-			if err := w.snapshotDirNativeBackupSupport(ctx, h.IP, d); err != nil {
-				return nil, nil, errors.Wrapf(err, "%s.%s: ensure native backup support", d.Keyspace, d.Table)
+		for i := range dirs {
+			if err := w.snapshotDirNativeBackupSupport(ctx, h.IP, dirs[i]); err != nil {
+				return nil, nil, errors.Wrapf(err, "%s.%s: ensure native backup support", dirs[i].Keyspace, dirs[i].Table)
 			}
 		}
 		return nil, dirs, nil
 	}
 
 	if w.Method == MethodAuto {
-		for _, d := range dirs {
-			if err := w.snapshotDirNativeBackupSupport(ctx, h.IP, d); err != nil {
-				rclone = append(rclone, d)
+		for i := range dirs {
+			if err := w.snapshotDirNativeBackupSupport(ctx, h.IP, dirs[i]); err != nil {
+				rclone = append(rclone, dirs[i])
 			} else {
-				native = append(native, d)
+				native = append(native, dirs[i])
 			}
 		}
 		return rclone, native, nil
