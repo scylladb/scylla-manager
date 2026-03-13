@@ -10,9 +10,9 @@ sys.path.insert(0, os.path.abspath('./_ext'))
 
 # Build documentation for the following tags and branches
 TAGS = []
-BRANCHES = ['master', 'branch-3.6', 'branch-3.7', 'branch-3.8']
+BRANCHES = ['master', 'branch-3.7', 'branch-3.8', 'branch-3.9']
 # Set the latest version.
-LATEST_VERSION = 'branch-3.8'
+LATEST_VERSION = 'branch-3.9'
 # Set which versions are not released yet.
 UNSTABLE_VERSIONS = ['master']
 # Set which versions are deprecated
