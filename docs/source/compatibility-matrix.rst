@@ -11,6 +11,8 @@ The following table shows which version of ScyllaDB Manager supports which versi
 
    * - ScyllaDB Manager Version
      - ScyllaDB Version
+   * - 3.9
+     - 2024.1, 2025.1, 2025.3, 2025.4, 2026.1
    * - 3.8
      - 2024.1, 2025.1, 2025.2, 2025.3, 2025.4
    * - 3.7
