@@ -24,18 +24,18 @@ Scylla Manager consists of tree components:
 | **2026.1.0-rc2** | ![integration-tests-2026.1.0-rc2-IPV4-tablets-native-native]<br/>![integration-tests-2026.1.0-rc2-IPV6-nossl-rclone-rclone] | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
 | **latest**       | ![integration-tests-latest-IPV4-native-native]<br/>![integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]             | Restoration of **Authentication** and **Service Levels** is not supported<br/>Restoration of schema containing **Alternator** tables is not supported |
 
-[integration-tests-2024.1.21-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.21-IPV4.yaml/badge.svg?branch=master
-[integration-tests-2024.1.21-IPV6-raftschema-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.21-IPV6-raftschema-nossl.yaml/badge.svg?branch=master
-[integration-tests-2025.1.11-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.11-IPV4.yaml/badge.svg?branch=master
-[integration-tests-2025.1.11-IPV6-tablets-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.11-IPV6-tablets-nossl.yaml/badge.svg?branch=master
-[integration-tests-2025.3.7-IPV4-tablets-rclone-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.3.7-IPV4-tablets-rclone-native.yaml/badge.svg?branch=master
-[integration-tests-2025.3.7-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.3.7-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=master
-[integration-tests-2025.4.3-IPV4-native-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.3-IPV4-native-rclone.yaml/badge.svg?branch=master
-[integration-tests-2025.4.3-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.3-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=master
-[integration-tests-2026.1.0-rc2-IPV4-tablets-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.0-rc2-IPV4-tablets-native-native.yaml/badge.svg?branch=master
-[integration-tests-2026.1.0-rc2-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.0-rc2-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=master
-[integration-tests-latest-IPV4-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV4-native-native.yaml/badge.svg?branch=master
-[integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=master
+[integration-tests-2024.1.21-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.21-IPV4.yaml/badge.svg?branch=branch-3.9
+[integration-tests-2024.1.21-IPV6-raftschema-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2024.1.21-IPV6-raftschema-nossl.yaml/badge.svg?branch=branch-3.9
+[integration-tests-2025.1.11-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.11-IPV4.yaml/badge.svg?branch=branch-3.9
+[integration-tests-2025.1.11-IPV6-tablets-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.11-IPV6-tablets-nossl.yaml/badge.svg?branch=branch-3.9
+[integration-tests-2025.3.7-IPV4-tablets-rclone-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.3.7-IPV4-tablets-rclone-native.yaml/badge.svg?branch=branch-3.9
+[integration-tests-2025.3.7-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.3.7-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=branch-3.9
+[integration-tests-2025.4.3-IPV4-native-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.3-IPV4-native-rclone.yaml/badge.svg?branch=branch-3.9
+[integration-tests-2025.4.3-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.3-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=branch-3.9
+[integration-tests-2026.1.0-rc2-IPV4-tablets-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.0-rc2-IPV4-tablets-native-native.yaml/badge.svg?branch=branch-3.9
+[integration-tests-2026.1.0-rc2-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.0-rc2-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=branch-3.9
+[integration-tests-latest-IPV4-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV4-native-native.yaml/badge.svg?branch=branch-3.9
+[integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=branch-3.9
 
 ## Installing and updating Go
 
