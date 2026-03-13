@@ -114,6 +114,7 @@ func (m *ManifestInfo) fileNameParser(v string) error {
 // ManifestContent is structure containing information about the backup.
 type ManifestContent struct {
 	Version         string          `json:"version"`
+	ScyllaVersion   string          `json:"scylla_version"`
 	ClusterName     string          `json:"cluster_name"`
 	IP              string          `json:"ip"`
 	Size            int64           `json:"size"`
@@ -282,6 +283,7 @@ func (m *ManifestContentWithIndex) ForEachIndexIter(keyspace []string, cb func(f
 }
 
 // ForEachIndexIterFiles performs an action for each filtered file in the index.
+// It targets just the FilesMeta.Files describing sstable components, but not FilesMeta.ScyllaManifests.
 func (m *ManifestContentWithIndex) ForEachIndexIterFiles(keyspace []string, mi *ManifestInfo, cb func(dir string, files []string)) error {
 	return m.ForEachIndexIter(keyspace, func(fm FilesMeta) {
 		dir := RemoteSSTableVersionDir(mi.ClusterID, mi.DC, mi.NodeID, fm.Keyspace, fm.Table, fm.Version)
@@ -314,11 +316,19 @@ type FilesInfo struct {
 
 // FilesMeta contains information about SST files of particular keyspace/table.
 type FilesMeta struct {
-	Keyspace string   `json:"keyspace"`
-	Table    string   `json:"table"`
-	Version  string   `json:"version"`
-	Files    []string `json:"files"`
-	Size     int64    `json:"size"`
+	Keyspace string `json:"keyspace"`
+	Table    string `json:"table"`
+	// ReplicationType of keyspace.
+	// Either "vnodes" or "tablets".
+	ReplicationType string   `json:"replication_type"`
+	Version         string   `json:"version"`
+	Files           []string `json:"files"`
+	Size            int64    `json:"size"`
+	// ScyllaManifests created by scylla on snapshot.
+	// They are stored alongside the snapshot-ed sstables.
+	// To avoid name collisions, their file names are prepended
+	// with "tag_<snapshot_tag>_node_<node_ID>_" prefix.
+	ScyllaManifests []string `json:"scylla_manifests"`
 
 	Path string `json:"path,omitempty"`
 }
