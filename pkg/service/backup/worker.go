@@ -1,4 +1,4 @@
-// Copyright (C) 2026 ScyllaDB
+// Copyright (C) 2017 ScyllaDB
 
 package backup
 

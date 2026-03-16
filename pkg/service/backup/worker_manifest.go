@@ -1,4 +1,4 @@
-// Copyright (C) 2026 ScyllaDB
+// Copyright (C) 2017 ScyllaDB
 
 package backup
 
@@ -255,7 +255,7 @@ func (w *worker) rollbackMoveManifest(ctx context.Context, hosts []hostInfo, rol
 	}
 }
 
-// renameScyllaManifests prepends scylla manifest file name with "tag_<snapshot_tag>_node_<node_ID>_"
+// renameScyllaManifest prepends scylla manifest file name with "tag_<snapshot_tag>_node_<node_ID>_"
 // prefix to avoid name collisions when storing scylla manifests from different snapshots
 // or different nodes in the same backup directory.
 func renameScyllaManifest(snapshotTag, nodeID, scyllaManifest string) string {

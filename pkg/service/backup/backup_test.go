@@ -150,3 +150,38 @@ func TestFilterDCLimit(t *testing.T) {
 //		}
 //	}
 //}
+
+func TestRenameScyllaManifest(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		SnapshotTag    string
+		NodeID         string
+		ScyllaManifest string
+		Expected       string
+	}{
+		{
+			SnapshotTag:    "sm_20230101120000UTC",
+			NodeID:         "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+			ScyllaManifest: backupspec.ScyllaManifest,
+			Expected:       "tag_sm_20230101120000UTC_node_f47ac10b-58cc-4372-a567-0e02b2c3d479_" + backupspec.ScyllaManifest,
+		},
+		{
+			SnapshotTag:    "sm_20260101000000UTC",
+			NodeID:         "00000000-0000-0000-0000-000000000000",
+			ScyllaManifest: backupspec.ScyllaManifest,
+			Expected:       "tag_sm_20260101000000UTC_node_00000000-0000-0000-0000-000000000000_" + backupspec.ScyllaManifest,
+		},
+	}
+
+	for _, tc := range table {
+		t.Run(tc.Expected, func(t *testing.T) {
+			t.Parallel()
+			got := renameScyllaManifest(tc.SnapshotTag, tc.NodeID, tc.ScyllaManifest)
+			if got != tc.Expected {
+				t.Errorf("renameScyllaManifest(%q, %q, %q) = %q, expected %q",
+					tc.SnapshotTag, tc.NodeID, tc.ScyllaManifest, got, tc.Expected)
+			}
+		})
+	}
+}

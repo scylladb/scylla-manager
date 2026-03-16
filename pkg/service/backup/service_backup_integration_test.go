@@ -3222,7 +3222,7 @@ func validateScyllaManifestFileName(t *testing.T, sms ...string) {
 			t.Errorf("Expected node ID as the second part of scylla manifest file name, got: %s", nodeID)
 		}
 		if suffix != backupspec.ScyllaManifest {
-			t.Errorf("Expected node ID as the second part of scylla manifest file name, got: %s", suffix)
+			t.Errorf("Expected %q as scylla manifest file name suffix, got: %s", backupspec.ScyllaManifest, suffix)
 		}
 	}
 }
