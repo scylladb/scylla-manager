@@ -15,6 +15,7 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - shared_data:/shared
     networks:
       public:
       second:
@@ -35,6 +36,7 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - shared_data:/shared
     networks:
       public:
       second:
@@ -55,6 +57,7 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs/
+      - shared_data:/shared
     networks:
       public:
       second:
@@ -75,6 +78,7 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - shared_data:/shared
     networks:
       public:
       second:
@@ -95,6 +99,7 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - shared_data:/shared
     networks:
       public:
       second:
@@ -115,6 +120,7 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - shared_data:/shared
     networks:
       public:
       second:
@@ -135,6 +141,7 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - shared_data:/shared
     networks:
       public:
       second:
@@ -155,6 +162,7 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - shared_data:/shared
     networks:
       public:
       second:
@@ -212,3 +220,6 @@ networks:
     driver: bridge
     ipam:
       driver: default
+
+volumes:
+  shared_data:
