@@ -4,9 +4,10 @@ package testutils
 
 import (
 	"flag"
-	"os"
-	"path/filepath"
+	"path"
 	"testing"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 )
 
 var (
@@ -21,19 +22,13 @@ var (
 func S3InitBucket(t *testing.T, bucket string) {
 	t.Helper()
 
-	if !flag.Parsed() {
-		flag.Parse()
-	}
-	if *flagS3DataDir == "" {
-		t.Logf("No local data dir specified clearing bucket %s skipped", bucket)
-		return
-	}
-
-	p := filepath.Join(*flagS3DataDir, bucket)
-	if err := os.RemoveAll(p); err != nil {
+	p := path.Join("/shared", bucket)
+	_, _, err := ExecOnHost(testconfig.ManagedClusterHost(), "rm -rf "+p)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Mkdir(p, 0o700); err != nil {
+	_, _, err = ExecOnHost(testconfig.ManagedClusterHost(), "mkdir -p -m 777 "+p)
+	if err != nil {
 		t.Fatal(err)
 	}
 }
