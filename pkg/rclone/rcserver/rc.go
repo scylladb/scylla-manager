@@ -705,7 +705,7 @@ func init() {
 	rc.Add(rc.Call{
 		Path:         "sync/movedir",
 		AuthRequired: true,
-		Fn:           wrap(rcMoveOrCopyDir(true), localToRemote()),
+		Fn:           rcMoveOrCopyDir(true),
 		Title:        "Move contents of source directory to destination",
 		Help: `This takes the following parameters:
 
@@ -731,7 +731,7 @@ func init() {
 	rc.Add(rc.Call{
 		Path:         "sync/copypaths",
 		AuthRequired: true,
-		Fn:           wrap(rcCopyPaths(), remoteToLocal()),
+		Fn:           rcCopyPaths(),
 		Title:        "Copy paths from source directory to destination",
 		Help: `This takes the following parameters:
 
