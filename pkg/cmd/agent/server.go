@@ -106,7 +106,7 @@ func (s *server) init(ctx context.Context) error {
 		rclone.RegisterLocalDirProvider("data", "Jailed Scylla data", s.config.Scylla.DataDirectory),
 		rclone.RegisterS3Provider(s.config.S3),
 		rclone.RegisterGCSProvider(s.config.GCS),
-		rclone.RegisterAzureProvider(s.config.Azure),
+		rclone.RegisterLocalDirProvider("azure", "Local backup location disguised as s3", "/shared"),
 	)
 }
 
