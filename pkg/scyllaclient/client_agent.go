@@ -184,24 +184,6 @@ func (ni NodeInfo) AlternatorTLSEnabled() (tlsEnabled, certAuth bool) {
 	return ni.AlternatorEncryptionEnabled(), certAuth
 }
 
-// SupportsRepairSmallTableOptimization returns true if /storage_service/repair_async/{keyspace} supports small_table_optimization param.
-func (ni *NodeInfo) SupportsRepairSmallTableOptimization() (bool, error) {
-	// Check OSS
-	supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 6.0, < 2000")
-	if err != nil {
-		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-	}
-	if supports {
-		return true, nil
-	}
-	// Check ENT
-	supports, err = scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2024.1.5")
-	if err != nil {
-		return false, errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-	}
-	return supports, nil
-}
-
 // SupportsTabletRepair returns true if /storage_service/tablets/repair API is exposed.
 func (ni *NodeInfo) SupportsTabletRepair() (bool, error) {
 	// Check ENT
