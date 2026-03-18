@@ -9,7 +9,6 @@ Restore tables
 .. warning::
     In case of Alternator clusters, when restore task is completed, restored LSIs are available, yet they are still in the process of applying view updates.
     This means that querying LSIs right after restore might return partial results. When all updates are applied, LSIs will return full results.
-    The same applies to GSIs for ScyllaDB versions older than 2025.1.
 
 | To restore the content of the tables (rows), use the :ref:`sctool restore <sctool-restore>` command with the ``--restore-tables`` flag.
 | The restore tables procedure works with any cluster topologies, so the backed-up cluster can have a different number of nodes or data centers than the restore destination cluster.
