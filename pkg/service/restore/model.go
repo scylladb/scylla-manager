@@ -283,11 +283,6 @@ type RunProgress struct {
 	ShardCnt            int64 // Host shard count used for bandwidth per shard calculation.
 }
 
-func (pr *RunProgress) setRestoreStartedAt() {
-	t := timeutc.Now()
-	pr.RestoreStartedAt = &t
-}
-
 func (pr *RunProgress) setRestoreCompletedAt() {
 	t := timeutc.Now()
 	pr.RestoreCompletedAt = &t
