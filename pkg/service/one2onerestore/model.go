@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package one2onerestore
 
@@ -45,7 +45,6 @@ type Host struct {
 	DC                        string
 	Addr                      string
 	ShardCount                int
-	SafeDescribeMethod        scyllaclient.SafeDescribeMethod
 	SkipCleanupAndSkipReshape bool
 }
 
