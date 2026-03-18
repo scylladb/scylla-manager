@@ -4,7 +4,6 @@ concurrency:
 env:
     scylla-version: scylla:2025.4.3
     ip-family: IPV4
-    raft-schema: none
     tablets: disabled
     ssl-enabled: "true"
     backup-method: native
@@ -20,7 +19,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
@@ -36,7 +34,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
@@ -54,7 +51,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
@@ -70,7 +66,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
@@ -90,7 +85,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
