@@ -74,8 +74,7 @@ The backup procedure consists of multiple steps executed sequentially.
    this requires that you added the cluster with CQL username and password.
    If you didn't you can :ref:`update the cluster using sctool <cluster-update>` at any point in time.
 
-   Starting from ScyllaDB 6.0 and 2024.2 (and compatible ScyllaDB Manager 3.3),
-   these CQL files are necessary for schema restoration (:ref:`sctool restore --restore-schema <sctool-restore>`).
+   These CQL files are necessary for schema restoration (:ref:`sctool restore --restore-schema <sctool-restore>`).
 #. **Upload** - Upload the snapshot to the backup storage destination.
 #. **Manifest** - Upload the manifest file containing metadata about the backup.
 #. **Purge** - If the retention threshold has been reached, remove the oldest backup from the storage location.
