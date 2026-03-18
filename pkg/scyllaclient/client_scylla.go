@@ -1232,6 +1232,7 @@ func (c *Client) loadSSTables(ctx context.Context, host, keyspace, table string,
 	}
 	if loadAndStream {
 		params.LoadAndStream = &loadAndStream
+		params.Scope = pointer.StringPtr(ScyllaScopeDC)
 	}
 	if primaryReplicaOnly {
 		params.PrimaryReplicaOnly = &primaryReplicaOnly
