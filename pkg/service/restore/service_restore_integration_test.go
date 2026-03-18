@@ -361,25 +361,15 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 	WriteData(h.T, clusterSession, testKs1, testBackupSize, testTable1, testTable2)
 	WriteData(h.T, clusterSession, testKs2, testBackupSize, testTable1, testTable2)
 
-	var ignoreTarget []string
-	var ignoreUnits []string
-	var ignoredViews []string
-	// Those tables have been migrated to system keyspace
-	if CheckAnyConstraint(t, h.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-		ignoreTarget = []string{
-			"!system_auth.*",
-			"!system_distributed.service_levels",
-		}
-		ignoreUnits = append(ignoreUnits,
-			"system_auth",
-			"service_levels",
-		)
-	}
-	// Not available in Scylla opensource
-	if CheckAnyConstraint(t, h.Client, "< 1000") {
-		ignoreUnits = append(ignoreUnits, "system_replicated_keys")
+	// Those tables have been migrated to system keyspace, but we still
+	// blacklist them via --keyspace flag as they are kept after upgrade
+	// to the newer scylla version.
+	ignoreTarget := []string{
+		"!system_auth.*",
+		"!system_distributed.service_levels",
 	}
 	// It's not possible to create views on tablet keyspaces
+	var ignoredViews []string
 	rd := scyllaclient.NewRingDescriber(context.Background(), h.Client)
 	if !rd.IsTabletKeyspace(testKs1) {
 		CreateMaterializedView(h.T, clusterSession, testKs1, testTable1, testMV)
@@ -481,8 +471,6 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				cmpopts.IgnoreFields(Unit{}, "Size"),
 				cmpopts.IgnoreFields(Table{}, "Size"),
 				cmpopts.IgnoreFields(Table{}, "TombstoneGC"),
-				cmpopts.IgnoreSliceElements(func(v Unit) bool { return slices.Contains(ignoreUnits, v.Keyspace) }),
-				cmpopts.IgnoreSliceElements(func(v Table) bool { return slices.Contains(ignoreUnits, v.Table) }),
 			); diff != "" {
 				t.Fatal(tc.units, diff)
 			}
@@ -1416,15 +1404,6 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 			table{ks: keyspace, tab: BigTableName},
 			table{ks: keyspace, tab: mvName},
 			table{ks: keyspace, tab: siTableName},
-		)
-	}
-	if !CheckAnyConstraint(t, dstH.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-		toValidate = append(toValidate,
-			table{ks: "system_auth", tab: "role_attributes"},
-			table{ks: "system_auth", tab: "role_members"},
-			table{ks: "system_auth", tab: "role_permissions"},
-			table{ks: "system_auth", tab: "roles"},
-			table{ks: "system_distributed", tab: "service_levels"},
 		)
 	}
 

@@ -70,11 +70,6 @@
         "table": "view_build_status",
         "tombstone_gc": "timeout",
         "size": 185891
-      },
-      {
-        "table": "service_levels",
-        "tombstone_gc": "timeout",
-        "size": 0
       }
     ]
   },
@@ -84,32 +79,6 @@
     "tables": [
       {
         "table": "encrypted_keys",
-        "tombstone_gc": "timeout",
-        "size": 0
-      }
-    ]
-  },
-  {
-    "keyspace": "system_auth",
-    "size": 0,
-    "tables": [
-      {
-        "table": "role_attributes",
-        "tombstone_gc": "timeout",
-        "size": 0
-      },
-      {
-        "table": "roles",
-        "tombstone_gc": "timeout",
-        "size": 0
-      },
-      {
-        "table": "role_permissions",
-        "tombstone_gc": "timeout",
-        "size": 0
-      },
-      {
-        "table": "role_members",
         "tombstone_gc": "timeout",
         "size": 0
       }
