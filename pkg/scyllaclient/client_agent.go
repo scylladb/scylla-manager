@@ -213,42 +213,6 @@ func (ni *NodeInfo) SupportsIncrementalRepair() (bool, error) {
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.4")
 }
 
-// SafeDescribeMethod describes supported methods to ensure that scylla schema is consistent.
-type SafeDescribeMethod string
-
-var (
-	// SafeDescribeMethodReadBarrierAPI shows when scylla read barrier api can be used.
-	SafeDescribeMethodReadBarrierAPI SafeDescribeMethod = "read_barrier_api"
-	// SafeDescribeMethodReadBarrierCQL shows when scylla csq read barrier can be used.
-	SafeDescribeMethodReadBarrierCQL SafeDescribeMethod = "read_barrier_cql"
-)
-
-// SupportsSafeDescribeSchemaWithInternals returns not empty SafeDescribeMethod if the output of DESCRIBE SCHEMA WITH INTERNALS
-// is safe to use with backup/restore procedure and which method should be used to make sure that schema is consistent.
-func (ni *NodeInfo) SupportsSafeDescribeSchemaWithInternals() (SafeDescribeMethod, error) {
-	type featureByVersion struct {
-		Constraint string
-		Method     SafeDescribeMethod
-	}
-
-	for _, fv := range []featureByVersion{
-		{Constraint: ">= 2025.1", Method: SafeDescribeMethodReadBarrierAPI},
-		{Constraint: ">= 6.1, < 2000", Method: SafeDescribeMethodReadBarrierAPI},
-		{Constraint: ">= 2024.2, > 1000", Method: SafeDescribeMethodReadBarrierCQL},
-		{Constraint: ">= 6.0, < 2000", Method: SafeDescribeMethodReadBarrierCQL},
-	} {
-		supports, err := scyllaversion.CheckConstraint(ni.ScyllaVersion, fv.Constraint)
-		if err != nil {
-			return "", errors.Errorf("Unsupported Scylla version: %s", ni.ScyllaVersion)
-		}
-		if supports {
-			return fv.Method, nil
-		}
-	}
-
-	return "", nil
-}
-
 // SupportsAlternatorCreateGSIOnExistingTable returns true if it's possible to
 // create alternator GSI on existing table with alternator API.
 func (ni *NodeInfo) SupportsAlternatorCreateGSIOnExistingTable() (bool, error) {

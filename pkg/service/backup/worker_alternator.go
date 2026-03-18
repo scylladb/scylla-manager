@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -22,15 +22,6 @@ func (w *worker) DumpAlternatorSchema(ctx context.Context, his []hostInfo, alter
 	}
 	w.Logger.Info(ctx, "Chose node for alternator schema dump", "node", hi.IP)
 
-	if ok, err := hi.NodeConfig.SupportsAlternatorSchemaBackupFromAPI(); err != nil {
-		return errors.Wrap(err, "check alternator schema backup support")
-	} else if !ok {
-		// Nothing to do if alternator schema should be restored from sstables
-		return nil
-	}
-
-	// All supported versions which support alternator schema
-	// backup from API also support raft read barrier API.
 	if err := w.Client.RaftReadBarrier(ctx, hi.IP, ""); err != nil {
 		return errors.Wrap(err, "make raft read barrier")
 	}
