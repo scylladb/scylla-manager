@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package one2onerestore
 
@@ -213,11 +213,6 @@ func (w *worker) prepareHostWorkload(ctx context.Context, manifests []*backupspe
 		if err != nil {
 			return errors.Wrapf(err, "get node %s info", h.Addr)
 		}
-		method, err := nodeInfo.SupportsSafeDescribeSchemaWithInternals()
-		if err != nil {
-			return errors.Wrapf(err, "node %s safe describe method", h.Addr)
-		}
-		hw.host.SafeDescribeMethod = method
 		supports, err := nodeInfo.SupportsSkipCleanupAndSkipReshape()
 		if err != nil {
 			return errors.Wrapf(err, "node %s supports skip_cleanup and skip_reshape", h.Addr)
@@ -267,16 +262,6 @@ func (w *worker) singleHostCQLSession(ctx context.Context, clusterID uuid.UUID, 
 		return gocqlx.Session{}, errors.Wrap(err, "create cql session")
 	}
 	return session, nil
-}
-
-func (w *worker) raftReadBarrier(ctx context.Context, session gocqlx.Session, host Host) error {
-	switch host.SafeDescribeMethod {
-	case scyllaclient.SafeDescribeMethodReadBarrierAPI:
-		return w.client.RaftReadBarrier(ctx, host.Addr, "")
-	case scyllaclient.SafeDescribeMethodReadBarrierCQL:
-		return query.RaftReadBarrier(session)
-	}
-	return errors.Errorf("unsupported method: %s", host.SafeDescribeMethod)
 }
 
 // alterSchemaRetryWrapper is useful when executing many statements altering schema,
