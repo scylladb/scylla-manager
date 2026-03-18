@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package tablet
 
@@ -28,16 +28,6 @@ func (s *Service) newTargetWorker(ctx context.Context, clusterID uuid.UUID) (*ta
 }
 
 func (w *targetWorker) getTarget(ctx context.Context) (Target, error) {
-	ni, err := w.client.AnyNodeInfo(ctx)
-	if err != nil {
-		return Target{}, errors.Wrap(err, "get any node info")
-	}
-	if ok, err := ni.SupportsTabletRepair(); err != nil {
-		return Target{}, errors.Wrap(err, "check tablet repair support")
-	} else if !ok {
-		return Target{}, errors.Errorf("tablet repair is not supported for ScyllaDB version %s", ni.ScyllaVersion)
-	}
-
 	kss, err := w.client.FilteredKeyspaces(ctx, scyllaclient.KeyspaceTypeNonLocal, scyllaclient.ReplicationTablet)
 	if err != nil {
 		return Target{}, errors.Wrap(err, "get non local tablet keyspaces")

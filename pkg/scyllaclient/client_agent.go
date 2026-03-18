@@ -184,12 +184,6 @@ func (ni NodeInfo) AlternatorTLSEnabled() (tlsEnabled, certAuth bool) {
 	return ni.AlternatorEncryptionEnabled(), certAuth
 }
 
-// SupportsTabletRepair returns true if /storage_service/tablets/repair API is exposed.
-func (ni *NodeInfo) SupportsTabletRepair() (bool, error) {
-	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2025.1")
-}
-
 // SupportsIncrementalRepair returns true if /storage_service/tablets/repair supports incremental_mode param.
 func (ni *NodeInfo) SupportsIncrementalRepair() (bool, error) {
 	// Check ENT
