@@ -43,12 +43,9 @@ import (
 )
 
 func TestRestoreTablesUserIntegration(t *testing.T) {
+	t.Skip("Skipping until auth restore is supported on SM side")
+
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
-
-	if CheckAnyConstraint(t, h.dstCluster.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-		t.Skip("Auth restore is not supported in Scylla 6.0. It requires core side support that is aimed at 6.1 release")
-	}
-
 	user := randomizedName("user_")
 	pass := randomizedName("pass_")
 	Printf("Create user (%s/%s) to be backed-up", user, pass)

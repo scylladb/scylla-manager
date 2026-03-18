@@ -32,7 +32,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 )
 
 // worker consists of utils common for both schemaWorker and tablesWorker.
@@ -333,18 +332,9 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 		}
 	}
 
-	// Skip outdated tables.
-	// Note that even though system_auth is not used in Scylla 6.0,
-	// it might still be present there (leftover after upgrade).
-	// That's why SM should always skip known outdated tables so that backups
-	// from older Scylla versions don't cause unexpected problems.
-	if err := IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx, client); err != nil {
-		if errors.Is(err, ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion) {
-			skip = append(skip, "system_auth", "system_distributed.service_levels")
-		} else {
-			return nil, errors.Wrap(err, "check auth and service levels restore support")
-		}
-	}
+	// Skip leftover system_auth and service_levels tables.
+	// They are no longer used, but might be still present after upgrade.
+	skip = append(skip, "system_auth", "system_distributed.service_levels")
 
 	// Skip system cdc tables
 	systemCDCTableRegex := regexp.MustCompile(`(^|_)cdc(_|$)`)
@@ -380,45 +370,6 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 		out = append(out, "!"+p)
 	}
 	return out, nil
-}
-
-// ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion means that restore auth and service levels procedure is not safe for used Scylla configuration.
-var ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion = errors.Errorf("restoring authentication and service levels is not supported for given ScyllaDB version")
-
-// IsRestoreAuthAndServiceLevelsFromSStablesSupported checks if restore auth and service levels procedure is supported for used Scylla configuration.
-// Because of #3869 and #3875, there is no way fo SM to safely restore auth and service levels into cluster with
-// version higher or equal to OSS 6.0 or ENT 2024.2.
-func IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx context.Context, client *scyllaclient.Client) error {
-	const (
-		ossConstraint = ">= 6.0, < 2000"
-		entConstraint = ">= 2024.2, > 1000"
-	)
-
-	status, err := client.Status(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get status")
-	}
-	for _, n := range status {
-		ni, err := client.NodeInfo(ctx, n.Addr)
-		if err != nil {
-			return errors.Wrapf(err, "get node %s info", n.Addr)
-		}
-
-		ossNotSupported, err := version.CheckConstraint(ni.ScyllaVersion, ossConstraint)
-		if err != nil {
-			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
-		}
-		entNotSupported, err := version.CheckConstraint(ni.ScyllaVersion, entConstraint)
-		if err != nil {
-			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
-		}
-
-		if ossNotSupported || entNotSupported {
-			return ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion
-		}
-	}
-
-	return nil
 }
 
 // initUnits should be called with already initialized target.
