@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package repair
 
@@ -221,7 +221,7 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 	switch {
 	case tabletKs && g.plan.apiSupport.tabletRepair:
 		jt = tabletJobType
-	case g.plan.apiSupport.smallTableRepair && tp.Small && !tabletKs:
+	case tp.Small && !tabletKs:
 		jt = smallTableJobType
 	case len(ring.ReplicaTokens) == 1 && tp.Small:
 		jt = mergeRangesJobType
