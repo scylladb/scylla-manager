@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package one2onerestore
 
@@ -202,23 +202,13 @@ func (w *worker) viewsFromSchema(ctx context.Context, workload []hostWorkload) (
 	// In order to ensure schema consistency, we need to call raft read barrier on a host
 	// from which we are going to read the schema.
 	host := workload[0].host
-	if host.SafeDescribeMethod != scyllaclient.SafeDescribeMethodReadBarrierAPI {
-		// Let's try to find the host that supports raft read barrier api.
-		for _, w := range workload {
-			if w.host.SafeDescribeMethod == scyllaclient.SafeDescribeMethodReadBarrierAPI {
-				host = w.host
-				break
-			}
-		}
-	}
-
 	hostSession, err := w.singleHostCQLSession(ctx, w.runInfo.ClusterID, host.Addr)
 	if err != nil {
 		return nil, errors.Wrap(err, "single host cql session")
 	}
 	defer hostSession.Close()
 
-	if err := w.raftReadBarrier(ctx, hostSession, host); err != nil {
+	if err := w.client.RaftReadBarrier(ctx, host.Addr, ""); err != nil {
 		return nil, errors.Wrap(err, "raft read barrier")
 	}
 
