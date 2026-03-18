@@ -1458,9 +1458,6 @@ func TestRestoreFullLWTIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if CheckConstraint(t, ni.ScyllaVersion, "< 2025.1") {
-		t.Skip("Test expects that it's possible to create table with tablets")
-	}
 
 	Print("Given: CQl vnode table with LWT")
 	const (
