@@ -1,4 +1,4 @@
-// Copyright (C) 2023 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package restore
 
@@ -281,11 +281,6 @@ type RunProgress struct {
 	Failed              int64
 	Error               string
 	ShardCnt            int64 // Host shard count used for bandwidth per shard calculation.
-}
-
-func (pr *RunProgress) setRestoreStartedAt() {
-	t := timeutc.Now()
-	pr.RestoreStartedAt = &t
 }
 
 func (pr *RunProgress) setRestoreCompletedAt() {
