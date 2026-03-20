@@ -187,7 +187,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 
 func s3Location(bucket string) backupspec.Location {
 	return backupspec.Location{
-		Provider: backupspec.S3,
+		Provider: backupspec.Azure,
 		Path:     bucket,
 	}
 }
@@ -195,7 +195,7 @@ func s3Location(bucket string) backupspec.Location {
 func testLocation(bucket, dc string) backupspec.Location {
 	return backupspec.Location{
 		DC:       dc,
-		Provider: backupspec.S3,
+		Provider: backupspec.Azure,
 		Path:     "restoretest-" + bucket,
 	}
 }
@@ -638,7 +638,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		ctx            = context.Background()
 		cfg            = defaultTestConfig()
 		mgrSession     = CreateScyllaManagerDBSession(t)
-		loc            = backupspec.Location{Provider: "s3", Path: testBucket}
+		loc            = backupspec.Location{Provider: backupspec.Azure, Path: testBucket}
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
@@ -649,7 +649,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		Location: []backupspec.Location{
 			{
 				DC:       "dc1",
-				Provider: backupspec.S3,
+				Provider: backupspec.Azure,
 				Path:     testBucket,
 			},
 		},

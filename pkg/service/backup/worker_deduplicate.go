@@ -5,6 +5,7 @@ package backup
 import (
 	"bytes"
 	"context"
+	"net/http"
 	"path"
 	"slices"
 	"strconv"
@@ -65,11 +66,12 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 			FilesOnly: true,
 			Recurse:   true,
 		}
-		if err := w.Client.RcloneListDirIter(ctx, h.IP, dataDst, listOpts, func(f *scyllaclient.RcloneListDirItem) {
+		err = w.Client.RcloneListDirIter(ctx, h.IP, dataDst, listOpts, func(f *scyllaclient.RcloneListDirItem) {
 			if err := remoteSSTableBundles.add(f.Name, f.Size); err != nil {
 				w.Logger.Error(ctx, "Couldn't create remote sstable bundle info", "file", f.Name, "error", err)
 			}
-		}); err != nil {
+		})
+		if err != nil && scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 			return errors.Wrapf(err, "host %s: listing all files from %s", h.IP, dataDst)
 		}
 

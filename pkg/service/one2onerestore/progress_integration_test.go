@@ -21,7 +21,7 @@ func TestGetProgressIntegration(t *testing.T) {
 		t.Skip("1-1-restore is available only for v-nodes")
 	}
 	loc := backupspec.Location{
-		Provider: backupspec.S3,
+		Provider: backupspec.Azure,
 		Path:     "my-1-1-restore-test",
 	}
 	testutils.S3InitBucket(t, loc.Path)

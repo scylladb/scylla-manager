@@ -112,7 +112,7 @@ func (h *testHelper) runRestore(t *testing.T, props map[string]any) {
 func testLocation(bucket, dc string) backupspec.Location {
 	return backupspec.Location{
 		DC:       dc,
-		Provider: backupspec.S3,
+		Provider: backupspec.Azure,
 		Path:     "restoretest-" + bucket,
 	}
 }

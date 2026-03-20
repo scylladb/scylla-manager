@@ -375,7 +375,7 @@ func (h *backupTestHelper) touchFile(ctx context.Context, dir, file, content str
 
 func s3Location(bucket string) backupspec.Location {
 	return backupspec.Location{
-		Provider: backupspec.S3,
+		Provider: backupspec.Azure,
 		Path:     bucket,
 	}
 }
