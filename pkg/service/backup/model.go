@@ -408,6 +408,7 @@ func defaultTaskProperties() taskProperties {
 		Transfers: scyllaclient.TransfersFromConfig,
 		Method:    MethodRclone,
 		Continue:  true,
+		Keyspace:  []string{"*", "!tmp*"},
 	}
 }
 
