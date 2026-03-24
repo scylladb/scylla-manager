@@ -3104,3 +3104,79 @@ func TestBackupDeleteLocalSnapshotsIntegration(t *testing.T) {
 		t.Fatal("Expected no snapshots on disk after cleanup")
 	}
 }
+
+func TestTmpKsIntegration(t *testing.T) {
+	const (
+		testBucket          = "backuptest-tmpks"
+		testKeyspaceRegular = "ks"
+		testKeyspaceTmp     = "tmpks"
+	)
+
+	location := s3Location(testBucket)
+	config := defaultConfig()
+
+	var (
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		ctx            = context.Background()
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	WriteData(t, clusterSession, testKeyspaceRegular, 1)
+	WriteData(t, clusterSession, testKeyspaceTmp, 1)
+
+	props := defaultTestProperties(location, "")
+	props["keyspace"] = []string{testKeyspaceRegular, testKeyspaceTmp}
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	containsTmpKs := func(u backup.Unit) bool {
+		return u.Keyspace == testKeyspaceTmp
+	}
+	if slices.ContainsFunc(target.Units, containsTmpKs) {
+		t.Fatal("Expected no tmp ks")
+	}
+	if len(target.Units) != 2 {
+		t.Fatal("Expected 2 units")
+	}
+
+	props["keyspace"] = []string{testKeyspaceRegular}
+	rawProps, err = json.Marshal(props)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	target, err = h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.ContainsFunc(target.Units, containsTmpKs) {
+		t.Fatal("Expected no tmp ks")
+	}
+	if len(target.Units) != 2 {
+		t.Fatal("Expected 2 units")
+	}
+
+	props["keyspace"] = []string{testKeyspaceTmp}
+	rawProps, err = json.Marshal(props)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	target, err = h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.ContainsFunc(target.Units, containsTmpKs) {
+		t.Fatal("Expected no tmp ks")
+	}
+	if len(target.Units) != 1 {
+		t.Fatal("Expected 2 units")
+	}
+}
