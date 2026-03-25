@@ -78,7 +78,7 @@ func newCluster(t *testing.T, hosts []string) clusterHelper {
 	altClient := CreateAlternatorClient(t, client, client.Config().Hosts[0], accessKeyID, secretAccessKey)
 
 	for _, h := range hosts {
-		if err := client.RcloneResetStats(context.Background(), h); err != nil {
+		if err := client.RcloneResetStats(t.Context(), h); err != nil {
 			t.Fatal("Reset rclone stats", h, err)
 		}
 	}
@@ -256,7 +256,7 @@ func defaultTestBackupProperties(loc backupspec.Location, ks string) map[string]
 
 func (h *testHelper) runBackup(t *testing.T, props map[string]any) string {
 	Printf("Run backup with properties: %v", props)
-	ctx := context.Background()
+	ctx := t.Context()
 	h.srcCluster.RunID = uuid.NewTime()
 
 	rawProps, err := json.Marshal(props)
@@ -284,7 +284,7 @@ func (h *testHelper) runBackup(t *testing.T, props map[string]any) string {
 
 func (h *testHelper) runRestore(t *testing.T, props map[string]any) {
 	Printf("Run restore with properties: %v", props)
-	ctx := context.Background()
+	ctx := t.Context()
 	h.dstCluster.RunID = uuid.NewTime()
 
 	rawProps, err := json.Marshal(props)
@@ -299,7 +299,7 @@ func (h *testHelper) runRestore(t *testing.T, props map[string]any) {
 }
 
 func (h *testHelper) getRestoreProgress(t *testing.T) Progress {
-	pr, err := h.dstRestoreSvc.GetProgress(context.Background(), h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID)
+	pr, err := h.dstRestoreSvc.GetProgress(t.Context(), h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "get progress"))
 	}
@@ -571,7 +571,7 @@ func runPausedRestore(t *testing.T, restore func(ctx context.Context) error, int
 		return i
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	res := make(chan error)
 	ticker := time.NewTicker(getInterval())
 	go func() {
@@ -590,7 +590,7 @@ func runPausedRestore(t *testing.T, restore func(ctx context.Context) error, int
 				return err
 			}
 
-			ctx, cancel = context.WithCancel(context.Background())
+			ctx, cancel = context.WithCancel(t.Context())
 			ticker.Reset(getInterval())
 			go func() {
 				res <- restore(ctx)
