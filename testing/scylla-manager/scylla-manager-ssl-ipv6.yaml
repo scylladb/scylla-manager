@@ -14,7 +14,7 @@ database:
 
 ssl:
   cert_file: /etc/scylla-manager/certs/ca.crt
-  validate: false
+  validate: true
   user_cert_file: /etc/scylla-manager/certs/cl.crt
   user_key_file: /etc/scylla-manager/certs/cl.key
 
