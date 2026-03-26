@@ -68,6 +68,7 @@ up:
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
+	@cp scylla/config/scylla-sm.yaml scylla/scylla-sm.yaml
 	@$(YQ) write -i scylla/scylla.yaml 'object_storage_endpoints[0].(name)' $(MINIO_HOST)
 
 ifeq ($(SSL_ENABLED),true)
@@ -77,6 +78,10 @@ ifeq ($(SSL_ENABLED),true)
 	# merge into scylla.yaml values from config/scylla-ssl.yaml with overwrite option (-x)
 	@$(YQ) merge -i -x scylla/scylla.yaml scylla/config/scylla-ssl.yaml
 	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
+	# The same for SM DB
+	@$(YQ) delete -i scylla/scylla-sm.yaml 'native_transport_port'
+	@$(YQ) delete -i scylla/scylla-sm.yaml 'alternator_port'
+	@$(YQ) merge -i -x scylla/scylla-sm.yaml scylla/config/scylla-ssl.yaml
 else 
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
@@ -131,6 +136,10 @@ endif
 	@./nodes_exec "rm /root/.cqlshrc || true"
 	@./nodes_exec "mkdir -p /root/.cassandra" 
 	@./nodes_cp "scylla/cqlshrc" "/root/.cassandra/cqlshrc"
+	# Also handle cqlshrc for SM DB - even though it doesn't use password authentication, it's needed for SSL_ENABLED setup
+	@$(COMPOSE) exec -T scylla-manager-db bash -c "rm /root/.cqlshrc || true"
+	@$(COMPOSE) exec -T scylla-manager-db bash -c "mkdir -p /root/.cassandra"
+	@docker cp scylla/cqlshrc $$(docker ps -qf name=scylla-manager-db):/root/.cassandra/cqlshrc
 
 	@echo "==> Adding Minio user"
 	./minio/add_user.sh || true
