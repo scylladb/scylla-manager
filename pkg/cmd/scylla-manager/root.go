@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -100,7 +101,7 @@ var rootCmd = &cobra.Command{
 		netwait.DefaultWaiter.Logger = logger.Named("wait")
 		// Wait for database
 		logger.Info(ctx, "Checking database connectivity...")
-		initHost, err := netwait.AnyHostPort(ctx, c.Database.Hosts, "9042")
+		initHost, err := netwait.AnyHostPort(ctx, c.Database.Hosts, strconv.Itoa(c.Database.Port))
 		if err != nil {
 			return errors.Wrapf(
 				err,
@@ -108,7 +109,7 @@ var rootCmd = &cobra.Command{
 				strings.Join(rootArgs.configFiles, ", "),
 			)
 		}
-		c.Database.InitAddr = net.JoinHostPort(initHost, "9042")
+		c.Database.InitAddr = net.JoinHostPort(initHost, strconv.Itoa(c.Database.Port))
 
 		// Create keyspace if needed
 		ok, err := keyspaceExists(ctx, c, logger)
