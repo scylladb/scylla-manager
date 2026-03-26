@@ -229,6 +229,7 @@ clean-server: ## Remove development server container
 
 .PHONY: run-server
 run-server: build-server ## Build and run development server
+	@$(MAKE) clean-server
 	@docker run --name "scylla_manager_server" \
 		--network scylla_manager_second \
 		-p "5080:5080" \
@@ -241,6 +242,12 @@ run-server: build-server ## Build and run development server
 		-v "/tmp:/tmp" \
 		-d --read-only --rm scylladb/scylla-manager-dev scylla-manager
 	@docker network connect scylla_manager_public scylla_manager_server
+	@echo "==> Waiting for SM server to start"
+	@for i in $$(seq 15 -1 0); do \
+		[ $$i -eq 0 ] && echo -e "\nERROR: SM server failed to start" && exit 1; \
+		docker exec scylla_manager_server sctool status &> /dev/null && break; \
+		echo -n "." && sleep 1; \
+	done; echo ""
 
 .PHONY: build
 build: build-cli build-agent build-server ## Build all project binaries
