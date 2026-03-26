@@ -11,7 +11,7 @@ openssl genrsa -out db.key 4096 &> /dev/null
 openssl genrsa -out cl.key 4096 &> /dev/null
 
 # Generate certificate for Certificate Authority (ca)
-openssl req -x509 -new -nodes -key ca.key -days 3650 -config ca.cfg -out ca.crt
+openssl req -x509 -new -nodes -key ca.key -days 3650 -config ca.cfg -extensions v3_ca -out ca.crt
 # Generate certificate for Database node (db)
 openssl req -new -key db.key -out db.csr -config db.cfg
 openssl x509 -req -in db.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out db.crt -days 365 -extfile db.cfg -extensions v3_req
