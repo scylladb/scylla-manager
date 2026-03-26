@@ -1,5 +1,5 @@
-http: [::]:5080
-https: [::]:5443
+http: "[::]:5080"
+https: "[::]:5443"
 
 logger:
   level: info
@@ -7,5 +7,5 @@ logger:
 
 database:
   hosts:
-    - [2001:0DB9:200::100]
+    - "2001:0DB9:200::100"
   timeout: 1s

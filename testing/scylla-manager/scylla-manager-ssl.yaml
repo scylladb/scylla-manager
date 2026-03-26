@@ -1,0 +1,20 @@
+http: "0.0.0.0:5080"
+https: "0.0.0.0:5443"
+
+logger:
+  level: info
+  development: true
+
+database:
+  hosts:
+    - "192.168.200.100"
+  ssl: true
+  port: 9142
+  timeout: 1s
+
+ssl:
+  cert_file: /etc/scylla-manager/certs/ca.crt
+  validate: false
+  user_cert_file: /etc/scylla-manager/certs/cl.crt
+  user_key_file: /etc/scylla-manager/certs/cl.key
+
