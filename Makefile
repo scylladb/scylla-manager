@@ -34,6 +34,13 @@ ifeq ($(IP_FAMILY), IPV6)
 	MINIO_ENDPOINT := https://[2001:0DB9:200::99]:9000
 endif
 
+ifeq ($(SSL_ENABLED),true)
+	MANAGER_CONFIG := testing/scylla-manager/scylla-manager-ssl.yaml
+ifeq ($(IP_FAMILY), IPV6)
+	MANAGER_CONFIG := testing/scylla-manager/scylla-manager-ssl-ipv6.yaml
+endif
+endif
+
 .PHONY: fmt
 fmt: ## Format source code
 	@$(GOBIN)/golangci-lint run -c .golangci-fmt.yml --fix $(PKG)
@@ -230,6 +237,7 @@ run-server: build-server ## Build and run development server
 		-v "$(PWD)/scylla-manager.dev:/usr/bin/scylla-manager:ro" \
 		-v "$(PWD)/sctool.dev:/usr/bin/sctool:ro" \
 		-v "$(PWD)/$(MANAGER_CONFIG):/etc/scylla-manager/scylla-manager.yaml:ro" \
+		-v "$(PWD)/testing/scylla/certs:/etc/scylla-manager/certs:ro" \
 		-v "/tmp:/tmp" \
 		-d --read-only --rm scylladb/scylla-manager-dev scylla-manager
 	@docker network connect scylla_manager_public scylla_manager_server
