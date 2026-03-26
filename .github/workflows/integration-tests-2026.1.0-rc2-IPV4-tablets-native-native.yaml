@@ -112,6 +112,8 @@ jobs:
               run: make pkg-integration-test PKG=./pkg/schema/migrate
             - name: Run 1-1-restore tests
               run: make pkg-integration-test TABLETS=${{ env.tablets }} PKG=./pkg/service/one2onerestore
+            - name: Verify SM server startup
+              run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
 name: integration-tests-2026.1.0-rc2-IPV4-tablets-native-native
 "on":
     pull_request:
