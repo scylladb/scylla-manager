@@ -3,8 +3,6 @@ Compatibility Matrix
 
 The following table shows which version of ScyllaDB Manager supports which versions of ScyllaDB.
 
-.. include:: common/restore-raft-schema-warn.rst
-
 .. list-table::
    :widths: 25 25
    :header-rows: 1

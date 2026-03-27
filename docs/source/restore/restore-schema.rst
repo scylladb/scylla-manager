@@ -1,6 +1,6 @@
-===============================================
-Restore schema for ScyllaDB 6.0/2024.2 or newer
-===============================================
+==============
+Restore schema
+==============
 
 .. note:: Currently, ScyllaDB Manager supports only entire schema restoration, so ``--keyspace`` flag is not allowed.
 

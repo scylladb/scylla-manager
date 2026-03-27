@@ -12,7 +12,6 @@ import (
 type integrationTestCfg struct {
 	ScyllaVersion string `yaml:"scylla-version"`
 	IPFamily      string `yaml:"ip-family"`
-	RaftSchema    string `yaml:"raft-schema"`
 	Tablets       string `yaml:"tablets"`
 	SSLEnabled    string `yaml:"ssl-enabled,omitempty"`
 	BackupMethod  string `yaml:"backup-method,omitempty"`
@@ -25,9 +24,6 @@ func (cfg integrationTestCfg) name() string {
 		"tests",
 		cfg.scyllaVersion(),
 		cfg.IPFamily,
-	}
-	if cfg.RaftSchema == "enabled" {
-		parts = append(parts, "raftschema")
 	}
 	if cfg.Tablets == "enabled" {
 		parts = append(parts, "tablets")

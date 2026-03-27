@@ -396,7 +396,6 @@ const (
 	AlternatorProblematicTableChars = "-.-.-."
 	// AlternatorLSIPrefix is the prefix for LSIs created with CreateAlternatorTable
 	// (first LSI is named '<AlternatorLSIPrefix>0', second '<AlternatorLSIPrefix>1', and so on).
-	// The same goes for GSIs created with CreateAlternatorTable for scylla 2024.1.
 	AlternatorLSIPrefix = "LSI_" + AlternatorProblematicTableChars + "_"
 	AlternatorGSIPrefix = "GSI_" + AlternatorProblematicTableChars + "_"
 	// AlternatorProblematicAttrChars are chars which are allowed in alternator attributes names, but not in cql.
@@ -410,7 +409,6 @@ const (
 
 // CreateAlternatorTable creates alternator tables with provided LSI count.
 // LSIs need to be created at table creation, so we can't move it to a separate function.
-// GSIs need to be created at table creation for scylla 2024.1, and can be added separately starting from 2025.1.
 // Starting from 2025.4, it is also possible to set alternator tablet tag controlling tablet usage.
 // Alternator tablet tag documentation: https://docs.scylladb.com/manual/stable/alternator/new-apis.html#tablets.
 func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, ni *scyllaclient.NodeInfo, tabletTag string, lsiCnt, gsiCnt int, tables ...string) {

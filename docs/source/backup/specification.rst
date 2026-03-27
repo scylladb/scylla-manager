@@ -73,7 +73,6 @@ It always contains CQL schema, and for Alternator clusters it also contains Alte
 CQL
 +++
 
-Starting from ScyllaDB 6.0 and 2024.2 (and compatible ScyllaDB Manager 3.3), they are required for the schema restoration.
 They have ``schema_with_internals.json.gz`` suffix and represent the output of ``DESCRIBE SCHEMA WITH INTERNALS`` CQL query,
 which returns rows in the format ``keyspace|type|name|CQL create statement`` in the correct order.
 

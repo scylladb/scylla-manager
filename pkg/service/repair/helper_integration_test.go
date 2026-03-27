@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 //go:build all || integration
 
@@ -38,16 +38,6 @@ import (
 // Read only, should be used for checking testing environment
 // like Scylla version or tablets.
 var globalNodeInfo *scyllaclient.NodeInfo
-
-func tabletRepairSupport(t *testing.T) bool {
-	t.Helper()
-
-	ok, err := globalNodeInfo.SupportsTabletRepair()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return ok
-}
 
 // Used to fill globalNodeInfo before running the tests.
 func TestMain(m *testing.M) {

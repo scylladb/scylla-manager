@@ -1,10 +1,9 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package repair
 
 import (
 	"context"
-	stdErrors "errors"
 	"net/netip"
 	"sync/atomic"
 
@@ -137,16 +136,7 @@ func (g *generator) Run(ctx context.Context) (err error) {
 	g.logger.Info(ctx, "Start generator")
 	var genErr error
 
-	defer func() {
-		balancingErr := g.handleTabletLoadBalancing(context.Background(), "")
-		err = stdErrors.Join(err, errors.Wrap(balancingErr, "control post repair tablet load balancing"))
-	}()
-
 	for _, ksp := range g.plan.Keyspaces {
-		if err := g.handleTabletLoadBalancing(ctx, ksp.Keyspace); err != nil {
-			return errors.Wrapf(err, "control tablet load balancing")
-		}
-
 		for _, tp := range ksp.Tables {
 			if !g.shouldGenerate() {
 				break
@@ -171,34 +161,6 @@ func (g *generator) Run(ctx context.Context) (err error) {
 	return errors.Wrap(genErr, "see more errors in logs")
 }
 
-// handleTabletLoadBalancing, if needed, controls tablet load
-// balancing, so that the provided keyspace can be safely repaired.
-// It must be called before repairing any keyspace.
-// It must also be called after finishing all repairs,
-// but this time with an empty keyspace argument.
-func (g *generator) handleTabletLoadBalancing(ctx context.Context, keyspace string) error {
-	// No need to disable tablet load balancing since
-	// tablet repair API handles it correctly.
-	if g.plan.apiSupport.tabletRepair {
-		return nil
-	}
-	// Re-enable tablet load balancing after the repair if finished.
-	if keyspace == "" {
-		return g.ringDescriber.ControlTabletLoadBalancing(ctx, true)
-	}
-	// Need to disable tablet load balancing when repairing tablet
-	// keyspace with old repair API since it does not respect tablet migrations.
-	// Not disabling tablet migration would result in skipping repair of tablets
-	// which migrated from not yet repaired token range to already repaired one.
-	// It wouldn't result in data resurrection, as tablets have tombstone_gc
-	// mode set to 'repair'.
-	if g.ringDescriber.IsTabletKeyspace(keyspace) {
-		return g.ringDescriber.ControlTabletLoadBalancing(ctx, false)
-	}
-	// No need to disable tablet load balancing for vnode keyspace.
-	return g.ringDescriber.ControlTabletLoadBalancing(ctx, true)
-}
-
 func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scyllaclient.Ring) *tableGenerator {
 	todoRanges := make(map[scyllaclient.TokenRange]struct{})
 	for _, rt := range ring.ReplicaTokens {
@@ -219,9 +181,9 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 
 	var jt jobType
 	switch {
-	case tabletKs && g.plan.apiSupport.tabletRepair:
+	case tabletKs:
 		jt = tabletJobType
-	case g.plan.apiSupport.smallTableRepair && tp.Small && !tabletKs:
+	case tp.Small:
 		jt = smallTableJobType
 	case len(ring.ReplicaTokens) == 1 && tp.Small:
 		jt = mergeRangesJobType

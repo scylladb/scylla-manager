@@ -1,4 +1,4 @@
-// Copyright (C) 2023 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package restore
 
@@ -32,7 +32,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 )
 
 // worker consists of utils common for both schemaWorker and tablesWorker.
@@ -130,13 +129,6 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 	}
 
 	return result, nil
-}
-
-func (w *worker) anyNodeConfig() (configcache.NodeConfig, bool) {
-	for _, nc := range w.nodeConfig {
-		return nc, true
-	}
-	return configcache.NodeConfig{}, false
 }
 
 // From map[k]v to map[v]k.
@@ -257,23 +249,17 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 	if t.RestoreSchema {
 		w.logger.Info(ctx, "Look for schema file")
 		cqlSchema, alternatorSchema, err := backup.GetSchema(ctx, w.client, t.SnapshotTag, t.Location[0], backup.SchemaFilter{}, w.logger)
-		switch {
-		case errors.Is(err, backup.ErrSchemaFileNotFound):
-			w.logger.Info(ctx, "Couldn't find schema file. Proceeding with schema restoration using sstables")
-			if err := IsRestoreSchemaFromSSTablesSupported(ctx, w.client); err != nil {
-				return errors.Wrap(err, "check safety of restoring schema from sstables")
-			}
-		case err != nil:
+		if err != nil {
 			return errors.Wrap(err, "look for schema file")
-		default:
-			w.cqlSchema = &cqlSchema
-			w.logger.Info(ctx, "Found CQL schema file")
-			w.alternatorSchema = alternatorSchema
-			if len(alternatorSchema.Tables) != 0 {
-				w.logger.Info(ctx, "Found alternator schema file")
-				if w.alternatorClient == nil {
-					return errors.Errorf("backup contains alternator schema, but alternator is not enabled in the cluster")
-				}
+		}
+
+		w.cqlSchema = &cqlSchema
+		w.logger.Info(ctx, "Found CQL schema file")
+		w.alternatorSchema = alternatorSchema
+		if len(alternatorSchema.Tables) != 0 {
+			w.logger.Info(ctx, "Found alternator schema file")
+			if w.alternatorClient == nil {
+				return errors.Errorf("backup contains alternator schema, but alternator is not enabled in the cluster")
 			}
 		}
 		return nil
@@ -339,18 +325,9 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 		}
 	}
 
-	// Skip outdated tables.
-	// Note that even though system_auth is not used in Scylla 6.0,
-	// it might still be present there (leftover after upgrade).
-	// That's why SM should always skip known outdated tables so that backups
-	// from older Scylla versions don't cause unexpected problems.
-	if err := IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx, client); err != nil {
-		if errors.Is(err, ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion) {
-			skip = append(skip, "system_auth", "system_distributed.service_levels")
-		} else {
-			return nil, errors.Wrap(err, "check auth and service levels restore support")
-		}
-	}
+	// Skip leftover system_auth and service_levels tables.
+	// They are no longer used, but might be still present after upgrade.
+	skip = append(skip, "system_auth", "system_distributed.service_levels")
 
 	// Skip system cdc tables
 	systemCDCTableRegex := regexp.MustCompile(`(^|_)cdc(_|$)`)
@@ -386,110 +363,6 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 		out = append(out, "!"+p)
 	}
 	return out, nil
-}
-
-// ErrRestoreSchemaUnsupportedScyllaVersion means that restore schema procedure
-// is not safe for used Scylla configuration.
-var ErrRestoreSchemaUnsupportedScyllaVersion = errors.Errorf(
-	"restore into cluster with given ScyllaDB version and consistent_cluster_management is not supported. " +
-		"See https://manager.docs.scylladb.com/stable/restore/restore-schema.html for a workaround.")
-
-// IsRestoreSchemaFromSSTablesSupported if schema can be restored from SSTables
-// for given cluster configuration. Because of #3662, there is no way for SM to
-// restore schema from SSTables into a cluster with consistent_cluster_management
-// starting from Scylla 5.4 or 2024.1. Note that consistent_cluster_management
-// is always enabled starting from Scylla 6.0 or 2024.1.
-// There is a documented workaround in SM docs.
-func IsRestoreSchemaFromSSTablesSupported(ctx context.Context, client *scyllaclient.Client) error {
-	const (
-		DangerousConstraintOSS = ">= 6.0, < 2000"
-		DangerousConstraintENT = ">= 2024.2, > 1000"
-		SafeConstraintOSS      = "< 5.4, < 2000"
-		SafeConstraintENT      = "< 2024, > 1000"
-	)
-
-	raftSchema := false
-	raftIsSafe := true
-
-	status, err := client.Status(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get status")
-	}
-	for _, n := range status {
-		ni, err := client.NodeInfo(ctx, n.Addr)
-		if err != nil {
-			return errors.Wrapf(err, "get node %s info", n.Addr)
-		}
-
-		dangerousOSS, err := version.CheckConstraint(ni.ScyllaVersion, DangerousConstraintOSS)
-		if err != nil {
-			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
-		}
-		dangerousENT, err := version.CheckConstraint(ni.ScyllaVersion, DangerousConstraintENT)
-		if err != nil {
-			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
-		}
-		safeOSS, err := version.CheckConstraint(ni.ScyllaVersion, SafeConstraintOSS)
-		if err != nil {
-			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
-		}
-		safeENT, err := version.CheckConstraint(ni.ScyllaVersion, SafeConstraintENT)
-		if err != nil {
-			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
-		}
-
-		if dangerousOSS || dangerousENT {
-			raftSchema = true
-			raftIsSafe = false
-		} else if !safeOSS && !safeENT {
-			raftSchema = raftSchema || ni.ConsistentClusterManagement
-			raftIsSafe = false
-		}
-	}
-
-	if raftSchema && !raftIsSafe {
-		return ErrRestoreSchemaUnsupportedScyllaVersion
-	}
-	return nil
-}
-
-// ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion means that restore auth and service levels procedure is not safe for used Scylla configuration.
-var ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion = errors.Errorf("restoring authentication and service levels is not supported for given ScyllaDB version")
-
-// IsRestoreAuthAndServiceLevelsFromSStablesSupported checks if restore auth and service levels procedure is supported for used Scylla configuration.
-// Because of #3869 and #3875, there is no way fo SM to safely restore auth and service levels into cluster with
-// version higher or equal to OSS 6.0 or ENT 2024.2.
-func IsRestoreAuthAndServiceLevelsFromSStablesSupported(ctx context.Context, client *scyllaclient.Client) error {
-	const (
-		ossConstraint = ">= 6.0, < 2000"
-		entConstraint = ">= 2024.2, > 1000"
-	)
-
-	status, err := client.Status(ctx)
-	if err != nil {
-		return errors.Wrap(err, "get status")
-	}
-	for _, n := range status {
-		ni, err := client.NodeInfo(ctx, n.Addr)
-		if err != nil {
-			return errors.Wrapf(err, "get node %s info", n.Addr)
-		}
-
-		ossNotSupported, err := version.CheckConstraint(ni.ScyllaVersion, ossConstraint)
-		if err != nil {
-			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
-		}
-		entNotSupported, err := version.CheckConstraint(ni.ScyllaVersion, entConstraint)
-		if err != nil {
-			return errors.Wrapf(err, "check version constraint for %s", n.Addr)
-		}
-
-		if ossNotSupported || entNotSupported {
-			return ErrRestoreAuthAndServiceLevelsUnsupportedScyllaVersion
-		}
-	}
-
-	return nil
 }
 
 // initUnits should be called with already initialized target.

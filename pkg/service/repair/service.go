@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package repair
 
@@ -246,10 +246,7 @@ func validateHost(t Target, p *plan, dcMap map[string][]string) error {
 	} else if !ok {
 		return util.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
 	}
-	// Ensure Host is not used with tablet repair API
-	if !p.apiSupport.tabletRepair {
-		return nil
-	}
+
 	var tabletKs []string
 	for _, ks := range p.Keyspaces {
 		if ks.Tablet {
@@ -434,7 +431,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 // keyspaces at the same time. To check that, SM uses newer scylla API providing
 // information about listed repair tasks keyspace scope.
 func (s *Service) ensureNoActiveRepairs(ctx context.Context, client *scyllaclient.Client, p *plan, ksRep scyllaclient.KeyspaceReplication) error {
-	if !p.apiSupport.tabletRepair || ksRep != scyllaclient.ReplicationVnode {
+	if ksRep != scyllaclient.ReplicationVnode {
 		if active, err := client.ActiveRepairs(ctx, p.Hosts); err != nil {
 			s.logger.Error(ctx, "Active repair check failed", "error", err)
 		} else if len(active) > 0 {

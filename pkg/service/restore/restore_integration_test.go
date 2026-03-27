@@ -43,12 +43,9 @@ import (
 )
 
 func TestRestoreTablesUserIntegration(t *testing.T) {
+	t.Skip("Skipping until auth restore is supported on SM side")
+
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
-
-	if CheckAnyConstraint(t, h.dstCluster.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-		t.Skip("Auth restore is not supported in Scylla 6.0. It requires core side support that is aimed at 6.1 release")
-	}
-
 	user := randomizedName("user_")
 	pass := randomizedName("pass_")
 	Printf("Create user (%s/%s) to be backed-up", user, pass)
@@ -87,22 +84,13 @@ func TestRestoreFullAuditIntegration(t *testing.T) {
 	Print("When: restore schema")
 	// In general, we don't need to restore audit ks schema, but we still
 	// want to test that it's not broken by the audit ks existence.
-	// Schema restoration is skipped only when it's not supported at all.
-	sstableSchemaSupport := restore.IsRestoreSchemaFromSSTablesSupported(t.Context(), h.dstCluster.Client)
-	cqlSchemaSupport := CheckAnyConstraint(t, h.dstCluster.Client, ">= 2024.2")
-	if sstableSchemaSupport == nil || cqlSchemaSupport {
-		grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
-		props := defaultTestProperties(loc, tag, false)
-		h.runRestore(t, props)
-		// Restoring schema from sstables requires cluster restart
-		if !cqlSchemaSupport {
-			h.dstCluster.RestartScylla()
-		}
-	}
+	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	props := defaultTestProperties(loc, tag, false)
+	h.runRestore(t, props)
 
 	Print("And: restore tables")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
-	props := defaultTestProperties(loc, tag, true)
+	props = defaultTestProperties(loc, tag, true)
 	props["keyspace"] = []string{scyllatable.AuditKeyspace + ".*"}
 	h.runRestore(t, props)
 
@@ -182,10 +170,6 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	// - validates that schema was correct at all stages
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 	hRev := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
-
-	if !CheckAnyConstraint(t, h.dstCluster.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-		t.Skip("This test assumes that schema is backed up and restored via DESCRIBE SCHEMA WITH INTERNALS")
-	}
 
 	ni, err := h.srcCluster.Client.AnyNodeInfo(t.Context())
 	if err != nil {
@@ -392,10 +376,6 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 
 func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
-
-	if !CheckAnyConstraint(t, h.dstCluster.Client, ">= 6.0, < 2000", ">= 2024.2, > 1000") {
-		t.Skip("This test is the reason why SM needs to restore schema by DESCRIBE SCHEMA WITH INTERNALS")
-	}
 
 	ks := randomizedName("drop_add_")
 	tab := randomizedName("tab_")
@@ -1439,28 +1419,9 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	tag := h.runBackup(t, backupProps)
 
 	Print("Restore schema")
-	schemaFromCQL, err := ni.SupportsSafeDescribeSchemaWithInternals()
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Schema needs to be restored manually for scylla 2024.1 with raft schema
-	if schemaFromCQL == "" && ni.ConsistentClusterManagement {
-		CreateAlternatorTable(t, h.dstCluster.altClient, ni, "", 2, 2, altTab1, altTab2)
-		ExecStmt(t, h.dstCluster.rootSession, ksStmt)
-		createTable(t, h.dstCluster.rootSession, "cql_ks", "cql_tab")
-		CreateMaterializedView(t, h.dstCluster.rootSession, "cql_ks", "cql_tab", "cql_mv_1")
-		CreateMaterializedView(t, h.dstCluster.rootSession, "cql_ks", "cql_tab", "cql_mv_2")
-		CreateSecondaryIndex(t, h.dstCluster.rootSession, "cql_ks", "cql_tab", "cql_si_1")
-	} else {
-		grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
-		props := defaultTestProperties(loc, tag, false)
-		h.runRestore(t, props)
-		// Cluster needs to be restarted after restoring schema from sstables
-		if schemaFromCQL == "" {
-			Print("Restart cluster")
-			h.dstCluster.RestartScylla()
-		}
-	}
+	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	props := defaultTestProperties(loc, tag, false)
+	h.runRestore(t, props)
 
 	Print("Reset user permissions")
 	dropNonSuperUsers(t, h.dstCluster.rootSession)
@@ -1468,13 +1429,10 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 
 	Print("Restore data")
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
-	props := defaultTestProperties(loc, tag, true)
+	props = defaultTestProperties(loc, tag, true)
 	h.runRestore(t, props)
 
 	Print("Validate restored alternator data")
-	// Reset alternator client in order to handle cluster restart
-	accessKeyID, secretAccessKey := GetAlternatorCreds(t, h.dstCluster.rootSession, "")
-	h.dstCluster.altClient = CreateAlternatorClient(t, h.dstCluster.Client, h.dstCluster.Client.Config().Hosts[0], accessKeyID, secretAccessKey)
 	ValidateAlternatorTableData(t, h.dstCluster.altClient, rowCnt, 2, 2, altTab1, altTab2)
 
 	Print("Validate restored simple cql data")
@@ -1499,9 +1457,6 @@ func TestRestoreFullLWTIntegration(t *testing.T) {
 	ni, err := h.srcCluster.Client.AnyNodeInfo(t.Context())
 	if err != nil {
 		t.Fatal(err)
-	}
-	if CheckConstraint(t, ni.ScyllaVersion, "< 2025.1") {
-		t.Skip("Test expects that it's possible to create table with tablets")
 	}
 
 	Print("Given: CQl vnode table with LWT")
