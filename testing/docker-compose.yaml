@@ -160,9 +160,11 @@ services:
       second:
 
   scylla-manager-db:
-    image: scylladb/${SCYLLA_VERSION}
+    image: scylladb/agent-${SCYLLA_VERSION}
+    privileged: true
     ports:
       - "9042:9042"
+      - "9142:9142"
       - "10000:10000"
     volumes:
       - type: bind
@@ -171,6 +173,9 @@ services:
       - type: bind
         source: ./scylla/scylla-sm.yaml
         target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs
     networks:
       second:
 

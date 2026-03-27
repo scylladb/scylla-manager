@@ -8,7 +8,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -104,10 +103,6 @@ func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient
 		Username: user,
 		Password: pass,
 	}
-	if os.Getenv("SSL_ENABLED") == "true" {
-		cluster.SslOpts = testconfig.CQLSSLOptions()
-		cluster.Port = testconfig.CQLPort()
-	}
 
 	session, err := gocqlx.WrapSession(cluster.CreateSession())
 	if err != nil {
@@ -124,6 +119,13 @@ func createCluster(hosts ...string) *gocql.ClusterConfig {
 	cluster.Timeout = 30 * time.Second
 	cluster.Consistency = gocql.Quorum
 	cluster.MaxWaitSchemaAgreement = 2 * time.Minute // travis might be slow
+	// SSL_ENABLED env var configures TLS setup for
+	// both managed clusters and SM DB cluster with
+	// the same TLS certs.
+	if testconfig.IsSSLEnabled() {
+		cluster.SslOpts = testconfig.CQLSSLOptions()
+		cluster.Port = testconfig.CQLPort()
+	}
 	return cluster
 }
 
