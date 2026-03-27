@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -16,6 +17,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 )
 
 //go:generate mockgen -destination mock_backupservice_test.go -mock_names BackupService=MockBackupService -package restapi github.com/scylladb/scylla-manager/v3/pkg/restapi BackupService
@@ -28,14 +30,16 @@ func listBackupFilesRequest(clusterID uuid.UUID) *http.Request {
 	return httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/cluster/%s/backups/files", clusterID.String()), nil)
 }
 
+func deleteSnapshotRequest(clusterID uuid.UUID) *http.Request {
+	return httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/cluster/%s/backups", clusterID.String()), nil)
+}
+
 func withForm(r *http.Request, locations []backupspec.Location, filter backup.ListFilter, query string) *http.Request {
 	r.Form = url.Values{}
-	for _, l := range locations {
-		r.Form.Add("locations", l.String())
-	}
+	r.Form.Set("locations", strings.Join(slices2.MapToString(locations), ","))
 	r.Form.Add("cluster_id", filter.ClusterID.String())
 	r.Form.Add("query_cluster_id", query)
-	r.Form["keyspace"] = filter.Keyspace
+	r.Form.Set("keyspace", strings.Join(filter.Keyspace, ","))
 	r.Form.Add("snapshot_tag", filter.SnapshotTag)
 	a, _ := filter.MinDate.MarshalText()
 	r.Form.Add("min_date", string(a))
@@ -195,4 +199,49 @@ func TestBackupListFiles(t *testing.T) {
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	assertJsonBody(t, w, golden)
+}
+
+func TestBackupDeleteSnapshot(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	cm := restapi.NewMockClusterService(ctrl)
+	bm := restapi.NewMockBackupService(ctrl)
+
+	services := restapi.Services{
+		Cluster: cm,
+		Backup:  bm,
+	}
+
+	h := restapi.New(services, log.Logger{})
+
+	const (
+		tag1 = "sm_20240101120000UTC"
+		tag2 = "sm_20240102120000UTC"
+	)
+
+	var (
+		cluster = givenCluster()
+
+		locations = []backupspec.Location{
+			{Provider: backupspec.S3, Path: "foo"},
+			{Provider: backupspec.S3, Path: "bar"},
+		}
+		snapshotTags = []string{tag1, tag2}
+	)
+
+	cm.EXPECT().GetCluster(gomock.Any(), cluster.ID.String()).Return(cluster, nil)
+	bm.EXPECT().DeleteSnapshot(gomock.Any(), cluster.ID, locations, snapshotTags).Return(nil)
+
+	r := deleteSnapshotRequest(cluster.ID)
+	r.Form = url.Values{}
+	r.Form.Set("locations", strings.Join(slices2.MapToString(locations), ","))
+	r.Form.Set("snapshot_tags", strings.Join(snapshotTags, ","))
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
 }

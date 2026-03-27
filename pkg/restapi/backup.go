@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -56,7 +57,7 @@ func (h backupHandler) locationsCtx(next http.Handler) http.Handler {
 
 		// Read locations from the request
 		if v := r.FormValue("locations"); v != "" {
-			for _, v := range r.Form["locations"] {
+			for v := range strings.SplitSeq(v, ",") {
 				var l backupspec.Location
 				if err := l.UnmarshalText([]byte(v)); err != nil {
 					respondBadRequest(w, r, err)
@@ -112,8 +113,10 @@ func (h backupHandler) mustLocationsFromCtx(r *http.Request) []backupspec.Locati
 func (h backupHandler) listFilterCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filter := backup.ListFilter{
-			Keyspace:    r.Form["keyspace"],
 			SnapshotTag: r.FormValue("snapshot_tag"),
+		}
+		if v := r.FormValue("keyspace"); v != "" {
+			filter.Keyspace = strings.Split(r.FormValue("keyspace"), ",")
 		}
 
 		c := mustClusterFromCtx(r)
@@ -184,8 +187,10 @@ func (h backupHandler) listFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h backupHandler) deleteSnapshot(w http.ResponseWriter, r *http.Request) {
-	snapshotTags := r.Form["snapshot_tags"]
-	if len(snapshotTags) == 0 {
+	var snapshotTags []string
+	if v := r.FormValue("snapshot_tags"); v != "" {
+		snapshotTags = strings.Split(v, ",")
+	} else {
 		respondBadRequest(w, r, errors.New("missing snapshot tags"))
 		return
 	}
