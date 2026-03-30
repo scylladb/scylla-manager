@@ -91,7 +91,7 @@ http: 127.0.0.1:5080
 
 # Optional custom client/server encryption options.
 #ssl:
-# CA certificate used to validate server cert. If not set will use he host's root CA set.
+# CA certificate used to validate server cert. If not set will use host's root CA set.
 #  cert_file:
 #
 # Verify the hostname and server cert.
