@@ -139,7 +139,7 @@ Using an editor open the file and change relevant parameters.
 
    # Optional custom client/server encryption options.
    #ssl:
-   # CA certificate used to validate server cert. If not set will use he host's root CA set.
+   # CA certificate used to validate server cert. If not set will use host's root CA set.
    #  cert_file:
    #
    # Verify the hostname and server cert.
@@ -160,6 +160,37 @@ Sample configuration of ScyllaDB Manager working with a remote cluster with auth
        - 198.100.51.12
      user: user
      password: password
+
+Sample mTLS configuration on the ScyllaDB Manager side (``scylla-manager.yaml``):
+
+.. code-block:: yaml
+
+   database:
+     hosts:
+       - 198.100.51.11
+     port: 9142
+     ssl: true
+
+   ssl:
+     validate: true
+     cert_file: /etc/scylla-manager/certs/ca.crt
+     user_cert_file: /etc/scylla-manager/certs/cl.crt
+     user_key_file: /etc/scylla-manager/certs/cl.key
+
+Sample mTLS `configuration <https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html>`_ on the ScyllaDB side (``scylla.yaml``):
+
+.. code-block:: yaml
+
+   native_transport_port_ssl: 9142
+
+   client_encryption_options:
+     enabled: true
+     require_client_auth: true
+     certificate: /etc/scylla/certs/db.crt
+     keyfile: /etc/scylla/certs/db.key
+     truststore: /etc/scylla/certs/ca.crt
+
+Other TLS variants can be configured by disabling options like ``ssl.validate`` in ``scylla-manager.yaml`` or ``client_encryption_options.require_client_auth`` in ``scylla.yaml``.
 
 Run the scyllamgr_setup script
 ==============================
