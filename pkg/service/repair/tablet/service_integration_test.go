@@ -355,7 +355,7 @@ func TestTabletRepairIntegration(t *testing.T) {
 		h.Hrt.SetInterceptor(nil)
 		// Start lots of scylla tablet repair tasks
 		for ft := range allTables {
-			_, _ = h.Client.TabletRepair(testCtx, ft.ks, ft.tab, "", nil, nil, scyllaclient.IncrementalModeDisabled)
+			_ = h.Client.TabletRepair(testCtx, ft.ks, ft.tab, scyllaclient.TabletRepairParams{})
 		}
 		// Make sure that they are visible on all nodes
 		for _, host := range ManagedClusterHosts() {

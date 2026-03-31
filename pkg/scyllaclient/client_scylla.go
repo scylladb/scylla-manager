@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
@@ -634,40 +635,135 @@ const (
 	IncrementalModeDisabled IncrementalMode = "disabled"
 )
 
-// TabletRepair schedules Scylla repair tablet table task and returns its ID.
-// All tablets will be repaired with just a single task. It repairs all hosts
-// by default, but it's possible to filter them by DC or host ID.
-// Master is optional, as we can query any node for table repair task status.
-func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master string, dcs, hostIDs []string, incrementalMode IncrementalMode) (string, error) {
-	const allTablets = "all"
-	dontAwaitCompletion := "false"
+// TabletRepairParams specifies optional parameters of tablet repair task.
+type TabletRepairParams struct {
+	DCs         []string
+	HostIDs     []string
+	Incremental IncrementalMode
+	// LongPollingSeconds specifies intervals in which Callback is
+	// called with current task progress. Zero results in calling
+	// Callback only after task is finished.
+	LongPollingSeconds int64
+	// Callback allowing to track task progress while it is running.
+	// When detailed progress is not available, Callback might
+	// be called with current and total set to 0.
+	Callback func(status ScyllaTaskState, current, total int64)
+}
+
+// TabletRepair schedules tablet repair task and waits for it to finish.
+// See TabletRepairParams for optional parameters.
+func (c *Client) TabletRepair(ctx context.Context, ks, tab string, params TabletRepairParams) error {
+	const repairEntireTable = "all"
 	ctx = withShouldRetryHandler(ctx, tabletRepairShouldRetryHandler)
-	if master != "" {
-		ctx = forceHost(ctx, master)
-	}
 	p := operations.StorageServiceTabletsRepairPostParams{
-		Context:         ctx,
-		Ks:              keyspace,
-		Table:           table,
-		Tokens:          allTablets,
-		AwaitCompletion: &dontAwaitCompletion,
+		Context: ctx,
+		Ks:      ks,
+		Table:   tab,
+		Tokens:  repairEntireTable,
 	}
-	if len(dcs) > 0 {
-		merged := strings.Join(dcs, ",")
+	if len(params.DCs) > 0 {
+		merged := strings.Join(params.DCs, ",")
 		p.SetDcsFilter(&merged)
 	}
-	if len(hostIDs) > 0 {
-		merged := strings.Join(hostIDs, ",")
+	if len(params.HostIDs) > 0 {
+		merged := strings.Join(params.HostIDs, ",")
 		p.SetHostsFilter(&merged)
 	}
-	if incrementalMode != "" {
-		p.SetIncrementalMode(&incrementalMode)
+	if params.Incremental != "" {
+		p.SetIncrementalMode(&params.Incremental)
 	}
+
+	// Start by scheduling async tablet repair task
+	// and getting its ID.
+	p.AwaitCompletion = pointer.StringPtr("false")
 	resp, err := c.scyllaOps.StorageServiceTabletsRepairPost(&p)
 	if err != nil {
-		return "", err
+		return errors.Wrap(err, "schedule async tablet repair")
 	}
-	return resp.GetPayload().TabletTaskID, nil
+	taskID := resp.GetPayload().TabletTaskID
+
+	// Spawn goroutine responsible for calling callback
+	// with current task progress. It's not needed when
+	// either long polling or callback are not set.
+	// It's also not needed to record errors from such
+	// goroutine, as the final error will come from
+	// the synchronous wait below. Goroutine exists
+	// on error, task finish, or context cancellation.
+	progressCtx, progressCtxCancel := context.WithCancel(ctx)
+	wg := sync.WaitGroup{}
+	if params.LongPollingSeconds > 0 && params.Callback != nil {
+		wg.Go(func() {
+			for {
+				taskStatus, err := c.ScyllaWaitTask(progressCtx, "", taskID, params.LongPollingSeconds)
+				if err != nil {
+					return
+				}
+				// It's safe to cast progress to int64,
+				// as it is representing tablet count.
+				params.Callback(
+					ScyllaTaskState(taskStatus.State),
+					int64(taskStatus.ProgressCompleted),
+					int64(taskStatus.ProgressTotal),
+				)
+				if ScyllaTaskState(taskStatus.State) == ScyllaTaskStateDone ||
+					ScyllaTaskState(taskStatus.State) == ScyllaTaskStateFailed {
+					return
+				}
+			}
+		})
+	}
+
+	// Synchronously wait for task to finish.
+	// Information about tablet repair task progress is not kept on
+	// scylla side after task if finished. That's why we need synchronous
+	// waiting alongside long polling, so that we avoid scenario where
+	// tablet repair task finished in between long polling calls and
+	// the next one returns HTTP 404 error claiming that tablet repair
+	// task with given ID does not exist. Status returned from such call
+	// is also the final status on which callback is called.
+	taskStatus, err := c.ScyllaWaitTask(ctx, "", taskID, 0)
+	// Make sure that progress goroutine returns before proceeding
+	progressCtxCancel()
+	wg.Wait()
+
+	if err != nil {
+		// Even with synchronous waiting, it's still possible for the same
+		// problem to occur, if tablet repair task finishes before we start
+		// waiting synchronously for it. In such case, we can retry tablet
+		// repair by synchronously waiting on the call for scheduling tablet
+		// repair task. We prefer not to do it, as in this case, we don't
+		// get tablet task ID and can't track its progress while it's running,
+		// but it's better than failing the whole repair. Also, this problem
+		// usually occurs for empty/small tables, so this retry shouldn't take
+		// much time.
+		if httpStatus, _ := StatusCodeAndMessageOf(err); httpStatus != http.StatusNotFound {
+			return errors.Wrap(err, "sync wait for tablet repair task")
+		}
+		p.AwaitCompletion = pointer.StringPtr("true")
+		_, err = c.scyllaOps.StorageServiceTabletsRepairPost(&p)
+		if err != nil {
+			return errors.Wrap(err, "schedule sync tablet repair")
+		}
+		// We don't have progress information because of the synchronous waiting
+		// on tablet repair schedule, so we can just report status done.
+		if params.Callback != nil {
+			params.Callback(ScyllaTaskStateDone, 0, 0)
+		}
+		return nil
+	}
+
+	// Final callback on progress obtained from synchronous waiting
+	if params.Callback != nil {
+		params.Callback(
+			ScyllaTaskState(taskStatus.State),
+			int64(taskStatus.ProgressCompleted),
+			int64(taskStatus.ProgressTotal),
+		)
+	}
+	if ScyllaTaskState(taskStatus.State) != ScyllaTaskStateDone {
+		return errors.Errorf("tablet repair task finished with state %q", ScyllaTaskStateFailed)
+	}
+	return nil
 }
 
 // Regex of schedule colocated table repair error. Taken from:
