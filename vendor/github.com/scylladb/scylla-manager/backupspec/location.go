@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backupspec
 
@@ -16,12 +16,13 @@ type Provider string
 
 // Provider enumeration.
 const (
-	S3    = Provider("s3")
-	GCS   = Provider("gcs")
-	Azure = Provider("azure")
+	S3           = Provider("s3")
+	GCS          = Provider("gcs")
+	Azure        = Provider("azure")
+	LocalStorage = Provider("localstorage")
 )
 
-var providers = []Provider{S3, GCS, Azure}
+var providers = []Provider{S3, GCS, Azure, LocalStorage}
 
 // Providers returns a list of all supported providers as a list of strings.
 func Providers() []string {
