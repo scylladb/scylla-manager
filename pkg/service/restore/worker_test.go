@@ -169,3 +169,101 @@ func TestHostsByDC(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateKeyspaceMappings(t *testing.T) {
+	testCases := []struct {
+		name             string
+		targetKeyspaces  []string
+		ksMappings       map[string]string
+		expectedErr      bool
+	}{
+		{
+			name:            "valid single mapping",
+			targetKeyspaces: []string{"ks_new"},
+			ksMappings: map[string]string{
+				"ks_old": "ks_new",
+			},
+			expectedErr: false,
+		},
+		{
+			name:            "valid multiple mappings",
+			targetKeyspaces: []string{"ks_new1", "ks_new2"},
+			ksMappings: map[string]string{
+				"ks_old1": "ks_new1",
+				"ks_old2": "ks_new2",
+			},
+			expectedErr: false,
+		},
+		{
+			name:            "target keyspace does not exist in cluster",
+			targetKeyspaces: []string{"ks_other"},
+			ksMappings: map[string]string{
+				"ks_old": "ks_new",
+			},
+			expectedErr: true,
+		},
+		{
+			name:            "duplicate target keyspace in mappings",
+			targetKeyspaces: []string{"ks_new"},
+			ksMappings: map[string]string{
+				"ks_old1": "ks_new",
+				"ks_old2": "ks_new",
+			},
+			expectedErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateKeyspaceMappings(tc.ksMappings, tc.targetKeyspaces)
+			if tc.expectedErr && err == nil {
+				t.Fatalf("Expected err, but got nil")
+			}
+			if !tc.expectedErr && err != nil {
+				t.Fatalf("Unexpected err: %v", err)
+			}
+		})
+	}
+}
+
+func TestTargetKeyspace(t *testing.T) {
+	testCases := []struct {
+		name             string
+		ksMappings       map[string]string
+		sourceKs         string
+		expectedTargetKs string
+	}{
+		{
+			name: "mapped keyspace",
+			ksMappings: map[string]string{
+				"ks_old": "ks_new",
+			},
+			sourceKs:         "ks_old",
+			expectedTargetKs: "ks_new",
+		},
+		{
+			name: "unmapped keyspace returns source",
+			ksMappings: map[string]string{
+				"ks_old": "ks_new",
+			},
+			sourceKs:         "ks_other",
+			expectedTargetKs: "ks_other",
+		},
+		{
+			name:             "no mappings returns source",
+			ksMappings:       nil,
+			sourceKs:         "ks1",
+			expectedTargetKs: "ks1",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			target := Target{KeyspaceMappings: tc.ksMappings}
+			actual := target.TargetKeyspace(tc.sourceKs)
+			if actual != tc.expectedTargetKs {
+				t.Fatalf("Expected %q, got %q", tc.expectedTargetKs, actual)
+			}
+		})
+	}
+}
