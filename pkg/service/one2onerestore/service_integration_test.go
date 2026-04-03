@@ -51,7 +51,7 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := []backupspec.Location{testLocation("1-1-restore", "")}
-	S3InitBucket(t, loc[0].Path)
+	InitBucket(t, loc[0].Path)
 	tag := h.runBackup(t, map[string]any{
 		"location": loc,
 	})

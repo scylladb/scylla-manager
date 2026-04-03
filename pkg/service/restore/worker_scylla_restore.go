@@ -42,6 +42,9 @@ func hostNativeRestoreSupport(ni *scyllaclient.NodeInfo, loc []Location, method 
 		return errors.New("no providers in locations") // Should never happen
 	}
 	for p := range locProviders {
+		if p == LocalStorage {
+			return errors.New("native restore is not supported for localstorage provider")
+		}
 		_, err := ni.ScyllaObjectStorageEndpoint(p)
 		if err != nil {
 			return errors.Wrap(err, "check scylla object storage endpoint")

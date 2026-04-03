@@ -1,0 +1,9 @@
+go 1.26.1
+
+use (
+	.
+	./backupspec
+	./v3/pkg/managerclient
+	./v3/pkg/util
+	./v3/swagger
+)

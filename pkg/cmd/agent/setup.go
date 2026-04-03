@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
 	"go.uber.org/zap"
@@ -40,6 +41,12 @@ func setupCommand(configFiles []string, level zapcore.Level) (agent.Config, log.
 	}
 	if err := rclone.RegisterAzureProvider(c.Azure); err != nil {
 		return c, logger, err
+	}
+	// Conditionally register localstorage provider
+	if c.LocalStorage.Path != "" {
+		if err := rclone.RegisterLocalDirProvider(string(backupspec.LocalStorage), "Local storage for backups", c.LocalStorage.Path); err != nil {
+			return c, logger, err
+		}
 	}
 
 	return c, logger, nil

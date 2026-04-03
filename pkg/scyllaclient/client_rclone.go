@@ -544,6 +544,11 @@ type RcloneListDirOpts struct {
 	NewestOnly bool
 	// Show only older versions of files in the listing (snapshot tag suffix attached)
 	VersionedOnly bool
+	// PropagateNotFound causes 404 errors (directory not found) to be returned as errors.
+	// When false (default), 404 errors are suppressed and an empty list is returned instead.
+	// This allows to align the behavior of listing non-existent directory on cloud (empty list)
+	// and local (404 error) storages.
+	PropagateNotFound bool
 }
 
 func (opts *RcloneListDirOpts) asModelOpts() *models.ListOptionsOpt {
@@ -561,6 +566,10 @@ func (opts *RcloneListDirOpts) asModelOpts() *models.ListOptionsOpt {
 		NoModTime:  !opts.ShowModTime,
 		NoMimeType: true,
 	}
+}
+
+func (opts *RcloneListDirOpts) propagateNotFound() bool {
+	return opts != nil && opts.PropagateNotFound
 }
 
 // RcloneListDirItem represents a file in a listing with RcloneListDir.
@@ -589,6 +598,9 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 	}
 	resp, err := c.agentOps.OperationsList(&p)
 	if err != nil {
+		if !opts.propagateNotFound() && StatusCodeOf(err) == http.StatusNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -629,6 +641,9 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 
 	resp, err := c.client.Do("OperationsList", req)
 	if err != nil {
+		if !opts.propagateNotFound() && StatusCodeOf(err) == http.StatusNotFound {
+			return nil
+		}
 		return err
 	}
 	defer resp.Body.Close()

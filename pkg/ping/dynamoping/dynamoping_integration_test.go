@@ -6,6 +6,7 @@ package dynamoping
 
 import (
 	"context"
+	"net"
 	"testing"
 	"time"
 
@@ -17,12 +18,12 @@ import (
 
 func TestPingIntegration(t *testing.T) {
 	config := Config{
-		Addr:                   "http://" + testconfig.ManagedClusterHost() + ":8000",
+		Addr:                   "http://" + net.JoinHostPort(testconfig.ManagedClusterHost(), "8000"),
 		Timeout:                250 * time.Millisecond,
 		RequiresAuthentication: true,
 	}
 	if testconfig.IsSSLEnabled() {
-		config.Addr = "https://" + testconfig.ManagedClusterHost() + ":8100"
+		config.Addr = "https://" + net.JoinHostPort(testconfig.ManagedClusterHost(), "8100")
 		sslOpts := testconfig.CQLSSLOptions()
 		tlsConfig, err := testconfig.TLSConfig(sslOpts)
 		if err != nil {

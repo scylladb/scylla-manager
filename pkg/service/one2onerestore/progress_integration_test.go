@@ -21,10 +21,10 @@ func TestGetProgressIntegration(t *testing.T) {
 		t.Skip("1-1-restore is available only for v-nodes")
 	}
 	loc := backupspec.Location{
-		Provider: backupspec.S3,
+		Provider: testconfig.BackupProvider(),
 		Path:     "my-1-1-restore-test",
 	}
-	testutils.S3InitBucket(t, loc.Path)
+	testutils.InitBucket(t, loc.Path)
 	w, _ := newTestWorker(t, testconfig.ManagedClusterHosts())
 	h := newTestHelper(t, testconfig.ManagedClusterHosts())
 	w.runInfo = struct{ ClusterID, TaskID, RunID uuid.UUID }{
@@ -155,7 +155,6 @@ func validateGetProgress(t *testing.T, pr Progress) {
 	t.Helper()
 	validateTablesProgress(t, pr.Tables)
 	validateViewsProgress(t, pr.Views)
-
 }
 
 func validateTablesProgress(t *testing.T, tables []TableProgress) {

@@ -43,21 +43,22 @@ func (c ScyllaConfig) Validate() (errs error) {
 
 // Config specifies the agent and scylla configuration.
 type Config struct {
-	AuthToken   string               `yaml:"auth_token"`
-	HTTPS       string               `yaml:"https"`
-	HTTPSPort   int                  `yaml:"https_port"`
-	TLSVersion  config.TLSVersion    `yaml:"tls_version"`
-	TLSCertFile string               `yaml:"tls_cert_file"`
-	TLSKeyFile  string               `yaml:"tls_key_file"`
-	Prometheus  string               `yaml:"prometheus"`
-	Debug       string               `yaml:"debug"`
-	CPU         CPUs                 `yaml:"cpu"`
-	Logger      config.LogConfig     `yaml:"logger"`
-	Scylla      ScyllaConfig         `yaml:"scylla"`
-	Rclone      rclone.GlobalOptions `yaml:"rclone"`
-	S3          rclone.S3Options     `yaml:"s3"`
-	GCS         rclone.GCSOptions    `yaml:"gcs"`
-	Azure       rclone.AzureOptions  `yaml:"azure"`
+	AuthToken    string                     `yaml:"auth_token"`
+	HTTPS        string                     `yaml:"https"`
+	HTTPSPort    int                        `yaml:"https_port"`
+	TLSVersion   config.TLSVersion          `yaml:"tls_version"`
+	TLSCertFile  string                     `yaml:"tls_cert_file"`
+	TLSKeyFile   string                     `yaml:"tls_key_file"`
+	Prometheus   string                     `yaml:"prometheus"`
+	Debug        string                     `yaml:"debug"`
+	CPU          CPUs                       `yaml:"cpu"`
+	Logger       config.LogConfig           `yaml:"logger"`
+	Scylla       ScyllaConfig               `yaml:"scylla"`
+	Rclone       rclone.GlobalOptions       `yaml:"rclone"`
+	S3           rclone.S3Options           `yaml:"s3"`
+	GCS          rclone.GCSOptions          `yaml:"gcs"`
+	Azure        rclone.AzureOptions        `yaml:"azure"`
+	LocalStorage rclone.LocalStorageOptions `yaml:"localstorage"`
 }
 
 func DefaultConfig() Config {

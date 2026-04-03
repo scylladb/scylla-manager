@@ -10,13 +10,14 @@ import (
 
 // integrationTestCfg describes single workflow config from './integration-test-cfg.yaml'.
 type integrationTestCfg struct {
-	ScyllaVersion string `yaml:"scylla-version"`
-	IPFamily      string `yaml:"ip-family"`
-	RaftSchema    string `yaml:"raft-schema"`
-	Tablets       string `yaml:"tablets"`
-	SSLEnabled    string `yaml:"ssl-enabled,omitempty"`
-	BackupMethod  string `yaml:"backup-method,omitempty"`
-	RestoreMethod string `yaml:"restore-method,omitempty"`
+	ScyllaVersion  string `yaml:"scylla-version"`
+	IPFamily       string `yaml:"ip-family"`
+	RaftSchema     string `yaml:"raft-schema"`
+	Tablets        string `yaml:"tablets"`
+	SSLEnabled     string `yaml:"ssl-enabled,omitempty"`
+	BackupMethod   string `yaml:"backup-method,omitempty"`
+	RestoreMethod  string `yaml:"restore-method,omitempty"`
+	BackupProvider string `yaml:"backup-provider,omitempty"`
 }
 
 func (cfg integrationTestCfg) name() string {
@@ -40,6 +41,9 @@ func (cfg integrationTestCfg) name() string {
 	}
 	if cfg.RestoreMethod != "" {
 		parts = append(parts, cfg.RestoreMethod)
+	}
+	if cfg.BackupProvider != "" {
+		parts = append(parts, cfg.BackupProvider)
 	}
 	return strings.Join(parts, "-")
 }

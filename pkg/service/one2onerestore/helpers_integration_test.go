@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/zap/zapcore"
@@ -112,7 +113,7 @@ func (h *testHelper) runRestore(t *testing.T, props map[string]any) {
 func testLocation(bucket, dc string) backupspec.Location {
 	return backupspec.Location{
 		DC:       dc,
-		Provider: backupspec.S3,
+		Provider: testconfig.BackupProvider(),
 		Path:     "restoretest-" + bucket,
 	}
 }

@@ -93,7 +93,7 @@ func newBackupTestHelper(t *testing.T, session gocqlx.Session, config backup.Con
 func newBackupTestHelperWithUser(t *testing.T, session gocqlx.Session, config backup.Config, location backupspec.Location, clientConf *scyllaclient.Config, user, pass string) *backupTestHelper {
 	t.Helper()
 
-	S3InitBucket(t, location.Path)
+	InitBucket(t, location.Path)
 
 	clusterID := uuid.MustRandom()
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
@@ -380,9 +380,9 @@ func (h *backupTestHelper) touchFile(ctx context.Context, dir, file, content str
 	}
 }
 
-func s3Location(bucket string) backupspec.Location {
+func testBackupLocation(bucket string) backupspec.Location {
 	return backupspec.Location{
-		Provider: backupspec.S3,
+		Provider: BackupProvider(),
 		Path:     bucket,
 	}
 }
@@ -443,9 +443,13 @@ func TestGetTargetIntegration(t *testing.T) {
 	const testBucket = "backuptest-get-target"
 
 	var (
-		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, defaultConfig(), s3Location(testBucket), nil)
-		ctx     = context.Background()
+		session    = CreateSessionWithoutMigration(t)
+		s3Location = backupspec.Location{
+			Provider: backupspec.S3,
+			Path:     testBucket,
+		}
+		h   = newBackupTestHelper(t, session, defaultConfig(), s3Location, nil)
+		ctx = context.Background()
 	)
 
 	CreateSessionAndDropAllKeyspaces(t, h.Client).Close()
@@ -554,9 +558,13 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 	const testBucket = "backuptest-get-target-error"
 
 	var (
-		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, defaultConfig(), s3Location(testBucket), nil)
-		ctx     = context.Background()
+		session    = CreateSessionWithoutMigration(t)
+		s3Location = backupspec.Location{
+			Provider: backupspec.S3,
+			Path:     testBucket,
+		}
+		h   = newBackupTestHelper(t, session, defaultConfig(), s3Location, nil)
+		ctx = context.Background()
 	)
 
 	CreateSessionAndDropAllKeyspaces(t, h.Client).Close()
@@ -585,7 +593,7 @@ func TestGetLastResumableRunIntegration(t *testing.T) {
 
 	var (
 		session = CreateScyllaManagerDBSession(t)
-		h       = newBackupTestHelper(t, session, config, s3Location(testBucket), nil)
+		h       = newBackupTestHelper(t, session, config, testBackupLocation(testBucket), nil)
 		ctx     = context.Background()
 	)
 
@@ -697,7 +705,7 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		testKeyspace = "backuptest_data"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -1039,7 +1047,7 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 		testKeyspace = "backuptest_data"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -1113,7 +1121,7 @@ func TestBackupResumeIntegration(t *testing.T) {
 		testKeyspace = "backuptest_resume"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -1413,7 +1421,7 @@ func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 		testKeyspace = "backuptest_temporary_manifests"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -1500,7 +1508,7 @@ func TestBackupTemporaryManifestMoveRollbackOnErrorIntegration(t *testing.T) {
 		testKeyspace = "backuptest_rollback"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -1565,7 +1573,7 @@ func TestBackupTemporaryManifestsNotFoundIssue2862Integration(t *testing.T) {
 		testKeyspace = "backuptest_issue2862"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -1610,7 +1618,7 @@ func TestPurgeIntegration(t *testing.T) {
 		testKeyspace = "backuptest_purge"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -1752,7 +1760,7 @@ func TestPurgeTemporaryManifestsIntegration(t *testing.T) {
 		testKeyspace = "backuptest_purge_tmp"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -1804,7 +1812,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		testKeyspace = "backuptest_delete"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -1970,9 +1978,13 @@ func TestGetValidationTargetErrorIntegration(t *testing.T) {
 
 	const testBucket = "backuptest-get-validation-target-error"
 
+	s3Location := backupspec.Location{
+		Provider: backupspec.S3,
+		Path:     testBucket,
+	}
 	var (
 		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, defaultConfig(), s3Location(testBucket), nil)
+		h       = newBackupTestHelper(t, session, defaultConfig(), s3Location, nil)
 		ctx     = context.Background()
 	)
 
@@ -2001,7 +2013,7 @@ func TestValidateIntegration(t *testing.T) {
 		testKeyspace = "backuptest_validate"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -2214,7 +2226,7 @@ func TestBackupListIntegration(t *testing.T) {
 		testKeyspace2 = "backuptest_list2"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -2357,7 +2369,7 @@ func TestBackupAlternatorIntegration(t *testing.T) {
 		rowCnt       = 100
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -2466,7 +2478,7 @@ func TestBackupViewsIntegration(t *testing.T) {
 		testSI       = "si_table"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (
@@ -2547,7 +2559,7 @@ func TestBackupViewsIntegration(t *testing.T) {
 }
 
 func TestBackupLWTIntegration(t *testing.T) {
-	location := s3Location("backuptest-lwt")
+	location := testBackupLocation("backuptest-lwt")
 	config := defaultConfig()
 
 	var (
@@ -2690,7 +2702,7 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 
 	Print("Given: backup service without CQL password")
 	var (
-		location       = s3Location(testBucket)
+		location       = testBackupLocation(testBucket)
 		session        = CreateScyllaManagerDBSession(t)
 		h              = newBackupTestHelperWithUser(t, session, defaultConfig(), location, nil, "no-credentials", "")
 		ctx            = context.Background()
@@ -2769,7 +2781,7 @@ func TestBackupSkipSchemaIntegration(t *testing.T) {
 }
 
 func TestBackupAuditIntegration(t *testing.T) {
-	location := s3Location("backuptest-audit")
+	location := testBackupLocation("backuptest-audit")
 	config := defaultConfig()
 
 	var (
@@ -2841,7 +2853,7 @@ func TestBackupMethodIntegration(t *testing.T) {
 	)
 
 	var (
-		location       = s3Location(testBucket)
+		location       = testBackupLocation(testBucket)
 		session        = CreateScyllaManagerDBSession(t)
 		h              = newBackupTestHelperWithUser(t, session, defaultConfig(), location, nil, "", "")
 		ctx            = context.Background()
@@ -2874,7 +2886,15 @@ func TestBackupMethodIntegration(t *testing.T) {
 	var testCases []testCase
 	// As currently scylla can't handle ipv6 object storage endpoints,
 	// we don't configure them for ipv6 test env and don't expect them to work.
+	// Localstorage doesn't support native backup API, so it always falls back to rclone.
 	switch {
+	case location.Provider == backupspec.LocalStorage:
+		testCases = []testCase{
+			{method: backup.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{method: backup.MethodNative, getTargetSuccess: false},
+			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
+		}
 	case support && !IsIPV6Network():
 		testCases = []testCase{
 			{method: backup.MethodAuto, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
@@ -2971,7 +2991,7 @@ func TestGetDescribeSchemaIntegration(t *testing.T) {
 		testKeyspace = "backuptest_describe_schema"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 	session := CreateScyllaManagerDBSession(t)
 	h := newBackupTestHelper(t, session, config, location, nil)
@@ -3163,7 +3183,7 @@ func TestBackupDeleteLocalSnapshotsIntegration(t *testing.T) {
 	)
 
 	var (
-		location       = s3Location(testBucket)
+		location       = testBackupLocation(testBucket)
 		session        = CreateScyllaManagerDBSession(t)
 		h              = newBackupTestHelperWithUser(t, session, defaultConfig(), location, nil, "", "")
 		ctx            = context.Background()
