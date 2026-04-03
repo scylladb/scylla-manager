@@ -100,8 +100,9 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 				size  int64
 			)
 			opts := &scyllaclient.RcloneListDirOpts{
-				FilesOnly:   true,
-				ShowModTime: true,
+				FilesOnly:         true,
+				ShowModTime:       true,
+				PropagateNotFound: true,
 			}
 			err := w.Client.RcloneListDirIter(ctx, h.IP, d.Path, opts, func(f *scyllaclient.RcloneListDirItem) {
 				if f.Name == backupspec.ScyllaSchema {
