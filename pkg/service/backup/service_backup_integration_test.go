@@ -443,13 +443,17 @@ func TestGetTargetIntegration(t *testing.T) {
 	const testBucket = "backuptest-get-target"
 
 	var (
-		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, defaultConfig(), testBackupLocation(testBucket), nil)
-		ctx     = context.Background()
+		session    = CreateSessionWithoutMigration(t)
+		s3Location = backupspec.Location{
+			Provider: backupspec.S3,
+			Path:     testBucket,
+		}
+		h   = newBackupTestHelper(t, session, defaultConfig(), s3Location, nil)
+		ctx = context.Background()
 	)
 
 	CreateSessionAndDropAllKeyspaces(t, h.Client).Close()
-	InitBucket(t, testBucket)
+	S3InitBucket(t, testBucket)
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
@@ -553,14 +557,14 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 
 	const testBucket = "backuptest-get-target-error"
 
-	s3Location := backupspec.Location{
-		Provider: backupspec.S3,
-		Path:     testBucket,
-	}
 	var (
-		session = CreateSessionWithoutMigration(t)
-		h       = newBackupTestHelper(t, session, defaultConfig(), s3Location, nil)
-		ctx     = context.Background()
+		session    = CreateSessionWithoutMigration(t)
+		s3Location = backupspec.Location{
+			Provider: backupspec.S3,
+			Path:     testBucket,
+		}
+		h   = newBackupTestHelper(t, session, defaultConfig(), s3Location, nil)
+		ctx = context.Background()
 	)
 
 	CreateSessionAndDropAllKeyspaces(t, h.Client).Close()
