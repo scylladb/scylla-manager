@@ -4,6 +4,7 @@ package rcserver
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/rclone/rclone/fs"
@@ -57,31 +58,103 @@ func TestPathHasPrefix(t *testing.T) {
 	}
 }
 
-func TestLocalToRemote(t *testing.T) {
+func TestDataToBackup(t *testing.T) {
 	rclone.InitFsConfig()
-	rclone.MustRegisterLocalDirProvider("tmp", "", "/tmp")
+	rclone.MustRegisterLocalDirProvider("data", "", "/tmp")
+	rclone.MustRegisterLocalDirProvider("localstorage", "", "/tmp")
 	if err := rclone.RegisterS3Provider(rclone.DefaultS3Options()); err != nil {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-
-	t.Run("local to remote", func(t *testing.T) {
+	t.Run("data to s3", func(t *testing.T) {
 		in := rc.Params{
-			"srcFs": "tmp:/foo",
+			"srcFs": "data:/foo",
 			"dstFs": "s3:bar",
 		}
-		if err := localToRemote()(ctx, in); err != nil {
-			t.Fatalf("localToRemote() error %s, expected nil", err)
+		if err := dataToBackup()(t.Context(), in); err != nil {
+			t.Fatalf("dataToBackup() error %s, expected nil", err)
 		}
 	})
-	t.Run("remote to local", func(t *testing.T) {
+	t.Run("data to localstorage", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "data:/foo",
+			"dstFs": "localstorage:bar",
+		}
+		if err := dataToBackup()(t.Context(), in); err != nil {
+			t.Fatalf("dataToBackup() error %s, expected nil", err)
+		}
+	})
+	t.Run("s3 to data rejected", func(t *testing.T) {
 		in := rc.Params{
 			"srcFs": "s3:bar",
-			"dstFs": "tmp:/foo",
+			"dstFs": "data:/foo",
 		}
-		if err := localToRemote()(ctx, in); err != fs.ErrorPermissionDenied {
-			t.Fatalf("localToRemote() error %s, expected %s", err, fs.ErrorPermissionDenied)
+		if err := dataToBackup()(t.Context(), in); errors.Is(err, fs.ErrorPermissionDenied) {
+			t.Fatalf("dataToBackup() error %s, expected %s", err, fs.ErrorPermissionDenied)
+		}
+	})
+	t.Run("localstorage to data rejected", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "localstorage:bar",
+			"dstFs": "data:/foo",
+		}
+		if err := dataToBackup()(t.Context(), in); errors.Is(err, fs.ErrorPermissionDenied) {
+			t.Fatalf("dataToBackup() error %s, expected %s", err, fs.ErrorPermissionDenied)
+		}
+	})
+	t.Run("data to data rejected", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "data:/foo",
+			"dstFs": "data:/bar",
+		}
+		if err := dataToBackup()(t.Context(), in); errors.Is(err, fs.ErrorPermissionDenied) {
+			t.Fatalf("dataToBackup() error %s, expected %s", err, fs.ErrorPermissionDenied)
+		}
+	})
+}
+
+func TestBackupToData(t *testing.T) {
+	rclone.InitFsConfig()
+	rclone.MustRegisterLocalDirProvider("data", "", "/tmp")
+	rclone.MustRegisterLocalDirProvider("localstorage", "", "/tmp")
+	if err := rclone.RegisterS3Provider(rclone.DefaultS3Options()); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("s3 to data", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "s3:bar",
+			"dstFs": "data:/foo",
+		}
+		if err := backupToData()(t.Context(), in); err != nil {
+			t.Fatalf("backupToData() error %s, expected nil", err)
+		}
+	})
+	t.Run("localstorage to data", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "localstorage:bar",
+			"dstFs": "data:/foo",
+		}
+		if err := backupToData()(t.Context(), in); err != nil {
+			t.Fatalf("backupToData() error %s, expected nil", err)
+		}
+	})
+	t.Run("data to s3 rejected", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "data:/foo",
+			"dstFs": "s3:bar",
+		}
+		if err := backupToData()(t.Context(), in); errors.Is(err, fs.ErrorPermissionDenied) {
+			t.Fatalf("backupToData() error %s, expected %s", err, fs.ErrorPermissionDenied)
+		}
+	})
+	t.Run("data to data rejected", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "data:/foo",
+			"dstFs": "data:/bar",
+		}
+		if err := backupToData()(t.Context(), in); errors.Is(err, fs.ErrorPermissionDenied) {
+			t.Fatalf("backupToData() error %s, expected %s", err, fs.ErrorPermissionDenied)
 		}
 	})
 }

@@ -74,40 +74,42 @@ func or(validators ...paramsValidator) paramsValidator {
 	}
 }
 
-func localToRemote() paramsValidator {
+const dataProvider = "data"
+
+func dataToBackup() paramsValidator {
 	return func(ctx context.Context, in rc.Params) error {
 		fsrc, err := rc.GetFsNamed(ctx, in, "srcFs")
 		if err != nil {
 			return err
 		}
-		if !fsrc.Features().IsLocal {
+		if fsrc.Name() != dataProvider {
 			return fs.ErrorPermissionDenied
 		}
 		fdst, err := rc.GetFsNamed(ctx, in, "dstFs")
 		if err != nil {
 			return err
 		}
-		if fdst.Features().IsLocal {
+		if fdst.Name() == dataProvider {
 			return fs.ErrorPermissionDenied
 		}
 		return nil
 	}
 }
 
-func remoteToLocal() paramsValidator {
+func backupToData() paramsValidator {
 	return func(ctx context.Context, in rc.Params) error {
 		fsrc, err := rc.GetFsNamed(ctx, in, "srcFs")
 		if err != nil {
 			return err
 		}
-		if fsrc.Features().IsLocal {
+		if fsrc.Name() == dataProvider {
 			return fs.ErrorPermissionDenied
 		}
 		fdst, err := rc.GetFsNamed(ctx, in, "dstFs")
 		if err != nil {
 			return err
 		}
-		if !fdst.Features().IsLocal {
+		if fdst.Name() != dataProvider {
 			return fs.ErrorPermissionDenied
 		}
 		return nil

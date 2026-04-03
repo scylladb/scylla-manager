@@ -437,7 +437,7 @@ func init() {
 
 func init() {
 	c := rc.Calls.Get("operations/movefile")
-	c.Fn = wrap(c.Fn, or(sameDir(), localToRemote()))
+	c.Fn = wrap(c.Fn, or(sameDir(), dataToBackup()))
 }
 
 // VersionedFileRegex is a rclone formatted regex that can be used to distinguish versioned files.
@@ -705,7 +705,7 @@ func init() {
 	rc.Add(rc.Call{
 		Path:         "sync/movedir",
 		AuthRequired: true,
-		Fn:           wrap(rcMoveOrCopyDir(true), localToRemote()),
+		Fn:           wrap(rcMoveOrCopyDir(true), dataToBackup()),
 		Title:        "Move contents of source directory to destination",
 		Help: `This takes the following parameters:
 
@@ -718,7 +718,7 @@ func init() {
 	rc.Add(rc.Call{
 		Path:         "sync/copydir",
 		AuthRequired: true,
-		Fn:           wrap(rcMoveOrCopyDir(false), localToRemote()),
+		Fn:           wrap(rcMoveOrCopyDir(false), dataToBackup()),
 		Title:        "Copy contents from source directory to destination",
 		Help: `This takes the following parameters:
 
@@ -731,7 +731,7 @@ func init() {
 	rc.Add(rc.Call{
 		Path:         "sync/copypaths",
 		AuthRequired: true,
-		Fn:           wrap(rcCopyPaths(), remoteToLocal()),
+		Fn:           wrap(rcCopyPaths(), backupToData()),
 		Title:        "Copy paths from source directory to destination",
 		Help: `This takes the following parameters:
 
