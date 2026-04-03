@@ -7,6 +7,7 @@ package cqlping
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"testing"
 	"time"
 
@@ -75,7 +76,7 @@ func TestPingTLSIntegration(t *testing.T) {
 	t.SkipNow()
 
 	config := Config{
-		Addr:    testconfig.ManagedClusterHost() + ":9042",
+		Addr:    net.JoinHostPort(testconfig.ManagedClusterHost(), "9042"),
 		Timeout: 250 * time.Millisecond,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
