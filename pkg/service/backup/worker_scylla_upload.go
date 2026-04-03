@@ -15,6 +15,9 @@ import (
 // hostNativeBackupSupport validates that native backup API can be used for given host.
 // Scylla version check is not performed for explicit --method=native.
 func hostNativeBackupSupport(ni *scyllaclient.NodeInfo, loc backupspec.Location, method Method) error {
+	if loc.Provider == backupspec.LocalStorage {
+		return errors.New("native backup is not supported for localstorage provider")
+	}
 	if method != MethodNative {
 		ok, err := ni.SupportsNativeBackupAPI()
 		if err != nil {
