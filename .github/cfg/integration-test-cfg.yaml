@@ -85,3 +85,4 @@
   ssl-enabled: false
   backup-method: rclone
   restore-method: rclone
+  backup-provider: localstorage
