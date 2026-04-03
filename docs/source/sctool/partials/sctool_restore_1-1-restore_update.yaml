@@ -73,8 +73,10 @@ options:
       usage: |
         A list of backup locations separated by a comma, specifies places where restored backup is stored.
 
-        The format is `[<dc>:]<provider>:<bucket>`.
-        The `<dc>` parameter will be ignored and nodes-mapping will be used instead.
+        The format is '[<dc>:]<provider>:<bucket>'.
+        The '<dc>' parameter will be ignored and nodes-mapping will be used instead.
+        The supported storage '<provider>'s are 'azure', 'gcs', 's3', 'localstorage'.
+        The 'bucket' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
     - name: name
       usage: |
         Task name that can be used instead of ID.
