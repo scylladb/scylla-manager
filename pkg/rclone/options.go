@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package rclone
 
@@ -178,4 +178,9 @@ func (o *AzureOptions) AutoFill() {
 	if o.Account == "" {
 		o.UseMsi = _true
 	}
+}
+
+// LocalStorageOptions specifies local storage configuration for backups.
+type LocalStorageOptions struct {
+	Path string `yaml:"path"`
 }

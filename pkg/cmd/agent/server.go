@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package main
 
@@ -17,6 +17,7 @@ import (
 	"github.com/rclone/rclone/fs"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg"
 	"github.com/scylladb/scylla-manager/v3/pkg/config/agent"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
@@ -102,12 +103,21 @@ func (s *server) init(ctx context.Context) error {
 	s.metrics.MustRegister()
 
 	// Register rclone providers
-	return multierr.Combine(
+	if err := multierr.Combine(
 		rclone.RegisterLocalDirProvider("data", "Jailed Scylla data", s.config.Scylla.DataDirectory),
 		rclone.RegisterS3Provider(s.config.S3),
 		rclone.RegisterGCSProvider(s.config.GCS),
 		rclone.RegisterAzureProvider(s.config.Azure),
-	)
+	); err != nil {
+		return err
+	}
+	// Register localstorage provider if configured
+	if s.config.LocalStorage.Path != "" {
+		if err := rclone.RegisterLocalDirProvider(string(backupspec.LocalStorage), "Local storage for backups", s.config.LocalStorage.Path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func findAndPinCPUs(ctx context.Context, cfg agent.Config, logger log.Logger) error {
