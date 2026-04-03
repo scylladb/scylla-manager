@@ -2,13 +2,14 @@ concurrency:
     cancel-in-progress: true
     group: int-${{ github.workflow }}-${{ github.ref }}
 env:
-    scylla-version: scylla:2025.3.7
+    scylla-version: scylla:2025.4.3
     ip-family: IPV4
     raft-schema: none
-    tablets: enabled
+    tablets: disabled
     ssl-enabled: "true"
-    backup-method: rclone
-    restore-method: native
+    backup-method: native
+    restore-method: rclone
+    backup-provider: localstorage
 jobs:
     backup:
         name: Test backup
@@ -114,7 +115,7 @@ jobs:
               run: make pkg-integration-test TABLETS=${{ env.tablets }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/one2onerestore
             - name: Verify SM server startup
               run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
-name: integration-tests-2025.3.7-IPV4-tablets-rclone-native
+name: integration-tests-2025.4.3-IPV4-native-rclone-localstorage
 "on":
     pull_request:
         paths-ignore:
