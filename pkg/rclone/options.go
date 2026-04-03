@@ -179,3 +179,8 @@ func (o *AzureOptions) AutoFill() {
 		o.UseMsi = _true
 	}
 }
+
+// LocalStorageOptions specifies local storage configuration for backups.
+type LocalStorageOptions struct {
+	Path string `yaml:"path"`
+}
