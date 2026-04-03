@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package agent_test
 
@@ -75,6 +75,11 @@ func TestParseConfig(t *testing.T) {
 			Name:   "gcs endpoint",
 			Input:  []string{"./testdata/gcs_endpoint.input.yaml"},
 			Golden: "./testdata/gcs_endpoint.golden.yaml",
+		},
+		{
+			Name:   "localstorage backup provider",
+			Input:  []string{"./testdata/localstorage.input.yaml"},
+			Golden: "./testdata/localstorage.golden.yaml",
 		},
 	}
 

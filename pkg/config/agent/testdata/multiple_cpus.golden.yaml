@@ -188,3 +188,5 @@ azure:
   memory_pool_flush_time: 5m
   memory_pool_use_mmap: "true"
   encoding: ""
+localstorage:
+  path: ""
