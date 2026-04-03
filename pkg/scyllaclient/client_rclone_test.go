@@ -218,22 +218,34 @@ func TestRcloneListDirNotFound(t *testing.T) {
 
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
-	ctx := context.Background()
 
-	check := func(t *testing.T, err error) {
+	check := func(t *testing.T, propagate bool, err error) {
 		t.Helper()
-		if scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
+		if propagate && scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 			t.Fatal("expected not found")
+		}
+		if !propagate && err != nil {
+			t.Fatal("expected no error")
 		}
 	}
 
-	t.Run("default", func(t *testing.T) {
-		_, err := client.RcloneListDir(ctx, scyllaclienttest.TestHost, "rclonetest:not-found", nil)
-		check(t, err)
+	t.Run("default suppress 404", func(t *testing.T) {
+		_, err := client.RcloneListDir(t.Context(), scyllaclienttest.TestHost, "rclonetest:not-found", nil)
+		check(t, false, err)
 	})
-	t.Run("iter", func(t *testing.T) {
-		err := client.RcloneListDirIter(ctx, scyllaclienttest.TestHost, "rclonetest:not-found", nil, func(_ *scyllaclient.RcloneListDirItem) {})
-		check(t, err)
+	t.Run("iter suppress 404", func(t *testing.T) {
+		err := client.RcloneListDirIter(t.Context(), scyllaclienttest.TestHost, "rclonetest:not-found", nil, func(_ *scyllaclient.RcloneListDirItem) {})
+		check(t, false, err)
+	})
+	t.Run("default propagate 404", func(t *testing.T) {
+		_, err := client.RcloneListDir(t.Context(), scyllaclienttest.TestHost, "rclonetest:not-found",
+			&scyllaclient.RcloneListDirOpts{PropagateNotFound: true})
+		check(t, true, err)
+	})
+	t.Run("iter propagate 404", func(t *testing.T) {
+		err := client.RcloneListDirIter(t.Context(), scyllaclienttest.TestHost, "rclonetest:not-found",
+			&scyllaclient.RcloneListDirOpts{PropagateNotFound: true}, func(_ *scyllaclient.RcloneListDirItem) {})
+		check(t, true, err)
 	})
 }
 
@@ -304,12 +316,14 @@ func TestRcloneListDirEscapeJail(t *testing.T) {
 		},
 		{
 			Name:     "access one level above root",
+			Opts:     &scyllaclient.RcloneListDirOpts{PropagateNotFound: true},
 			Path:     "rclonejail:subdir1/../..",
 			Expected: nil,
 			Error:    true,
 		},
 		{
 			Name:     "access several levels above root",
+			Opts:     &scyllaclient.RcloneListDirOpts{PropagateNotFound: true},
 			Path:     "rclonejail:subdir1/../../.././...",
 			Expected: nil,
 			Error:    true,
