@@ -13,21 +13,19 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 )
 
 var listRecursively = &scyllaclient.RcloneListDirOpts{Recurse: true}
 
-const (
-	testRemote = "s3"
-	testBucket = "backuptest-rclone"
-)
+const testBucket = "backuptest-rclone"
 
 func remotePath(p string) string {
-	return path.Join(testRemote+":"+testBucket, p)
+	return path.Join(string(testconfig.BackupProvider())+":"+testBucket, p)
 }
 
 func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
-	S3InitBucket(t, testBucket)
+	InitBucket(t, testBucket)
 
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
@@ -99,7 +97,7 @@ func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
 }
 
 func TestRcloneS3ToLocalCopyDirIntegration(t *testing.T) {
-	S3InitBucket(t, testBucket)
+	InitBucket(t, testBucket)
 
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()

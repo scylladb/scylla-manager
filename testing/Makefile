@@ -105,6 +105,7 @@ endif
 
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
+	mkdir -p ./localstorage/data
 
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_1 second_cluster_dc1_node_1
 	$(COMPOSE) exec -T --privileged dc1_node_1 su root -c 'echo 1048579 > /proc/sys/fs/aio-max-nr'

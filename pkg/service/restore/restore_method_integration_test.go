@@ -66,8 +66,8 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// IPV6 object storage endpoints are not supported by scylla
-	configuredObjectStorageEndpoint := !IsIPV6Network()
+	// Localstorage and IPV6 object storage endpoints are not supported by scylla
+	configuredObjectStorageEndpoint := !IsIPV6Network() && fx.loc.Provider != backupspec.LocalStorage
 	nativeQueryParams := map[string]string{
 		"scope":                "all",
 		"primary_replica_only": "true",
@@ -163,7 +163,7 @@ func setupRestoreMethodFixture(t *testing.T) restoreMethodFixture {
 
 	Print("Backup setup")
 	loc := testLocation("method", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
@@ -262,6 +262,9 @@ func TestRestoreFullChangingMethodIntegration(t *testing.T) {
 
 	Print("Location and permissions setup")
 	loc := testLocation("changing-method", "")
+	// Since native restore doesn't support localstorage,
+	// we need to use s3 for testing changing method.
+	loc.Provider = backupspec.S3
 	S3InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	backupProps := defaultTestBackupProperties(loc, ks)

@@ -129,12 +129,14 @@ INTEGRATION_TEST_ARGS := -cluster $(PUBLIC_NET)100 \
 -user cassandra -password cassandra \
 -agent-auth-token token \
 -s3-data-dir ./testing/minio/data -s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
-
 ifdef BACKUP_METHOD
 INTEGRATION_TEST_ARGS += -backup-method $(BACKUP_METHOD)
 endif
 ifdef RESTORE_METHOD
 INTEGRATION_TEST_ARGS += -restore-method $(RESTORE_METHOD)
+endif
+ifdef BACKUP_PROVIDER
+INTEGRATION_TEST_ARGS += -backup-provider $(BACKUP_PROVIDER)
 endif
 
 SSL_FLAGS := -ssl-ca-file ./testing/$(SSL_AUTHORITY_CRT) -ssl-key-file ./testing/$(SSL_CLIENT_KEY) -ssl-cert-file ./testing/$(SSL_CLIENT_CRT) -gocql.port $(SSL_PORT)
