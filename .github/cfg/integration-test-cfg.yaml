@@ -32,7 +32,7 @@
   tablets: enabled
   ssl-enabled: true
   backup-method: rclone
-  restore-method: native
+  restore-method: rclone
   backup-provider: localstorage
 
 - scylla-version: scylla:2025.3.7
@@ -49,7 +49,7 @@
   raft-schema: none
   tablets: disabled
   ssl-enabled: true
-  backup-method: native
+  backup-method: rclone
   restore-method: rclone
   backup-provider: localstorage
 
@@ -67,8 +67,8 @@
   raft-schema: none
   tablets: enabled
   ssl-enabled: true
-  backup-method: native
-  restore-method: native
+  backup-method: rclone
+  restore-method: rclone
   backup-provider: localstorage
 
 - scylla-version: scylla:2026.1.0-rc2
@@ -85,8 +85,8 @@
   raft-schema: none
   tablets: disabled
   ssl-enabled: true
-  backup-method: native
-  restore-method: native
+  backup-method: rclone
+  restore-method: rclone
   backup-provider: localstorage
 
 - scylla-version: scylla-nightly:latest

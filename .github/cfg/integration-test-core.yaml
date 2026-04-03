@@ -35,6 +35,7 @@ jobs:
           raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
+          backup-provider: ${{ env.backup-provider }}
 
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
@@ -54,6 +55,7 @@ jobs:
           raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
+          backup-provider: ${{ env.backup-provider }}
         # Go does not support negative lookahead in regex expressions, so it has to be done manually.
         # This regex ensures that all restore tests that didn't match restore-tables job will be run here.
       - name: Run tests
@@ -74,6 +76,7 @@ jobs:
           raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
+          backup-provider: ${{ env.backup-provider }}
 
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/backup
@@ -93,6 +96,7 @@ jobs:
           raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
+          backup-provider: ${{ env.backup-provider }}
 
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair
@@ -120,6 +124,7 @@ jobs:
           raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
+          backup-provider: ${{ env.backup-provider }}
 
       - name: Run cqlping tests
         run: make pkg-integration-test PKG=./pkg/ping/cqlping
@@ -128,7 +133,7 @@ jobs:
         run: make pkg-integration-test PKG=./pkg/ping/dynamoping
 
       - name: Run scyllaclient tests
-        run: make pkg-integration-test PKG=./pkg/scyllaclient
+        run: make pkg-integration-test BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/scyllaclient
 
       - name: Run cluster tests
         run: make pkg-integration-test PKG=./pkg/service/cluster
