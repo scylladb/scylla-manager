@@ -18,7 +18,7 @@ var (
 	flagS3Endpoint          = flag.String("s3-endpoint", "", "test S3 instance endpoint")
 	flagS3AccessKeyID       = flag.String("s3-access-key-id", "", "test S3 instance access key")
 	flagS3SecretAccessKey   = flag.String("s3-secret-access-key", "", "test S3 instance secret")
-	flagLocalStorageDataDir = flag.String("localstorage-data-dir", "./localstorage/data", "path to test localstorage root data dir")
+	flagLocalStorageDataDir = flag.String("localstorage-data-dir", "./testing/localstorage/data", "path to test localstorage root data dir")
 )
 
 // InitBucket recreates a local bucket for testconfig.BackupProvider.
