@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -279,6 +280,10 @@ func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
 // ScyllaObjectStorageEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
 // It also validates that agent's and Scylla's configurations match.
 func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (string, error) {
+	supportedProviders := []backupspec.Provider{backupspec.S3, backupspec.GCS}
+	if !slices.Contains(supportedProviders, provider) {
+		return "", errors.Errorf("unsupported provider: %s (supported providers are: %v)", provider, supportedProviders)
+	}
 	if len(ni.ObjectStorageEndpoints) == 0 {
 		return "", errors.New("no object storage endpoint configured")
 	}
