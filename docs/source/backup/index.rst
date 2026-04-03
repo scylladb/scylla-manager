@@ -10,6 +10,7 @@ Backup
    setup-s3-compatible-storage
    setup-gcs
    setup-azure-blobstorage
+   setup-local-storage
    native-backup
    examples
    specification
@@ -27,7 +28,9 @@ The following backup storage engines are supported:
 
 * Amazon S3,
 * S3 compatible API storage providers such as Ceph or MinIO,
-* Google Cloud Storage.
+* Google Cloud Storage,
+* Azure Blob Storage,
+* Local storage (network-mounted filesystem).
 
 For the purposes of backing up schema, ScyllaDB Manager requires CQL credentials (`sctool cluster update --username --password <cluster-update>`_).
 In case of an Alternator cluster, ScyllaDB Manager additionally requires Alternator credentials (`sctool cluster update --alternator-access-key-id --alternator-secret-access-key <cluster-update>`_).
@@ -92,6 +95,7 @@ Details may differ depending on the storage engine, please consult:
 * :doc:`Setup S3 compatible storage <setup-s3-compatible-storage>`
 * :doc:`Setup Google Cloud Storage <setup-gcs>`
 * :doc:`Setup Azure Blob Storage <setup-azure-blobstorage>`
+* :doc:`Setup Local Storage <setup-local-storage>`
 
 Removing backups
 ================

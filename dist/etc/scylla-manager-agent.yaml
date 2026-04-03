@@ -222,3 +222,19 @@
 #  account:
 # Storage account authentication key.
 #  key:
+
+# Backup local storage configuration.
+#
+# Use this to store backups on a network-mounted filesystem path.
+# The path must exist and be accessible by the agent.
+# Each backup location's bucket name becomes a subdirectory under the configured path.
+# All nodes from the same data center must have access to the same shared filesystem.
+#
+# To test location accessibility use `scylla-manager-agent check-location` command.
+# Example:
+# scylla-manager-agent check-location --location localstorage:mybucket
+#
+#localstorage:
+# Absolute path to the root directory for local backup storage.
+# Example: /mnt/nfs/mybucket
+#  path:
