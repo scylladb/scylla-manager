@@ -38,6 +38,20 @@ func TestNewLocation(t *testing.T) {
 			Provider: S3,
 			Bucket:   "bucket",
 		},
+		{
+			Name:     "Valid localstorage with prefix",
+			Location: "dc1:localstorage:bucket",
+			DC:       "dc1",
+			Provider: LocalStorage,
+			Bucket:   "bucket",
+		},
+		{
+			Name:     "Valid localstorage without prefix",
+			Location: "localstorage:bucket",
+			DC:       "",
+			Provider: LocalStorage,
+			Bucket:   "bucket",
+		},
 	}
 
 	for i := 0; i < len(table); i++ {
@@ -69,7 +83,7 @@ func TestNewLocation(t *testing.T) {
 func TestProviderMarshalUnmarshalText(t *testing.T) {
 	t.Parallel()
 
-	for _, k := range []Provider{S3} {
+	for _, k := range []Provider{S3, GCS, Azure, LocalStorage} {
 		b, err := k.MarshalText()
 		if err != nil {
 			t.Error(k, err)
@@ -103,6 +117,21 @@ func TestLocationMarshalUnmarshalText(t *testing.T) {
 			Name: "without dc",
 			Location: Location{
 				Provider: S3,
+				Path:     "my-bucket.domain",
+			},
+		},
+		{
+			Name: "localstorage with dc",
+			Location: Location{
+				DC:       "dc",
+				Provider: LocalStorage,
+				Path:     "my-bucket.domain",
+			},
+		},
+		{
+			Name: "localstorage without dc",
+			Location: Location{
+				Provider: LocalStorage,
 				Path:     "my-bucket.domain",
 			},
 		},
