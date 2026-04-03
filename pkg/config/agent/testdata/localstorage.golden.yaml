@@ -149,7 +149,7 @@ gcs:
   token: ""
   auth_url: ""
   token_url: ""
-  endpoint: http://localhost:32811
+  endpoint: ""
   project_number: ""
   service_account_file: ""
   service_account_credentials: ""
@@ -186,4 +186,4 @@ azure:
   memory_pool_use_mmap: "true"
   encoding: ""
 localstorage:
-  path: ""
+  path: /var/lib/localstorage
