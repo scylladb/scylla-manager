@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
@@ -165,6 +166,92 @@ func TestHostsByDC(t *testing.T) {
 			actual := hostsByDC(tc.nodes, tc.targetDC2SourceDCMap, tc.locationDCs)
 			if diff := gocmp.Diff(actual, tc.expected); diff != "" {
 				t.Fatalf("Unexpected result: %v", diff)
+			}
+		})
+	}
+}
+
+func TestValidateProperties(t *testing.T) {
+	validLoc, err := backupspec.NewLocation("s3:my-bucket")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCases := []struct {
+		name        string
+		target      Target
+		expectedErr bool
+	}{
+		{
+			name: "restore tables without keyspace mapping passes validation",
+			target: Target{
+				Location:      []backupspec.Location{validLoc},
+				SnapshotTag:   "sm_20240101000000UTC",
+				RestoreTables: true,
+				Transfers:     0,
+				Method:        MethodRclone,
+			},
+			expectedErr: false,
+		},
+		{
+			name: "restore tables with nil keyspace mapping passes validation",
+			target: Target{
+				Location:         []backupspec.Location{validLoc},
+				SnapshotTag:      "sm_20240101000000UTC",
+				RestoreTables:    true,
+				Transfers:        0,
+				Method:           MethodRclone,
+				KeyspaceMappings: nil,
+			},
+			expectedErr: false,
+		},
+		{
+			name: "restore tables with empty keyspace mapping passes validation",
+			target: Target{
+				Location:         []backupspec.Location{validLoc},
+				SnapshotTag:      "sm_20240101000000UTC",
+				RestoreTables:    true,
+				Transfers:        0,
+				Method:           MethodRclone,
+				KeyspaceMappings: map[string]string{},
+			},
+			expectedErr: false,
+		},
+		{
+			name: "restore schema without keyspace mapping passes validation",
+			target: Target{
+				Location:    []backupspec.Location{validLoc},
+				SnapshotTag: "sm_20240101000000UTC",
+				RestoreSchema: true,
+				Transfers:   0,
+				Method:      MethodRclone,
+			},
+			expectedErr: false,
+		},
+		{
+			name: "restore schema with keyspace mapping is forbidden",
+			target: Target{
+				Location:    []backupspec.Location{validLoc},
+				SnapshotTag: "sm_20240101000000UTC",
+				RestoreSchema: true,
+				Transfers:   0,
+				Method:      MethodRclone,
+				KeyspaceMappings: map[string]string{
+					"ks_old": "ks_new",
+				},
+			},
+			expectedErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.target.validateProperties()
+			if tc.expectedErr && err == nil {
+				t.Fatalf("Expected err, but got nil")
+			}
+			if !tc.expectedErr && err != nil {
+				t.Fatalf("Unexpected err: %v", err)
 			}
 		})
 	}
