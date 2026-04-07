@@ -14,21 +14,23 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/scylladb/scylla-manager/backupspec"
 )
 
 var (
 	flagCluster = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples of scylla manager db hosts")
 
-	flagTimeout       = flag.Duration("gocql.timeout", 10*time.Second, "sets the connection `timeout` for all operations")
-	flagPort          = flag.Int("gocql.port", 9042, "sets the port used to connect to the database cluster")
-	flagUser          = flag.String("user", "", "CQL user")
-	flagPassword      = flag.String("password", "", "CQL password")
-	flagCAFile        = flag.String("ssl-ca-file", "", "Certificate Authority file")
-	flagUserCertFile  = flag.String("ssl-cert-file", "", "User SSL certificate file")
-	flagUserKeyFile   = flag.String("ssl-key-file", "", "User SSL key file")
-	flagValidate      = flag.Bool("ssl-validate", false, "Enable host verification")
-	flagBackupMethod  = flag.String("backup-method", "", "Default backup --method to use")
-	flagRestoreMethod = flag.String("restore-method", "", "Default restore --method to use")
+	flagTimeout        = flag.Duration("gocql.timeout", 10*time.Second, "sets the connection `timeout` for all operations")
+	flagPort           = flag.Int("gocql.port", 9042, "sets the port used to connect to the database cluster")
+	flagUser           = flag.String("user", "", "CQL user")
+	flagPassword       = flag.String("password", "", "CQL password")
+	flagCAFile         = flag.String("ssl-ca-file", "", "Certificate Authority file")
+	flagUserCertFile   = flag.String("ssl-cert-file", "", "User SSL certificate file")
+	flagUserKeyFile    = flag.String("ssl-key-file", "", "User SSL key file")
+	flagValidate       = flag.Bool("ssl-validate", false, "Enable host verification")
+	flagBackupMethod   = flag.String("backup-method", "", "Default backup --method to use")
+	flagRestoreMethod  = flag.String("restore-method", "", "Default restore --method to use")
+	flagBackupProvider = flag.String("backup-provider", "s3", "Default backup location provider")
 
 	flagManagedCluster       = flag.String("managed-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data cluster hosts")
 	flagManagedSecondCluster = flag.String("managed-second-cluster", "127.0.0.1", "a comma-separated list of host:port tuples of data second cluster hosts")
@@ -224,4 +226,13 @@ func RestoreMethod() *string {
 		flag.Parse()
 	}
 	return flagRestoreMethod
+}
+
+// BackupProvider returns backup location provider to use.
+// Returns backupspec.S3 if not set.
+func BackupProvider() backupspec.Provider {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	return backupspec.Provider(*flagBackupProvider)
 }
