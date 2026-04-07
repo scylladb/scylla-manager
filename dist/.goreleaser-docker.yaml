@@ -101,6 +101,7 @@ docker_manifests:
     - "scylladb/scylla-manager:{{ .Version }}-aarch64"
     create_flags:
     - --insecure
+    - --amend
     push_flags:
     - --insecure
     skip_push: false
@@ -112,6 +113,7 @@ docker_manifests:
     - "scylladb/scylla-manager-agent:{{ .Version }}-aarch64"
     create_flags:
     - --insecure
+    - --amend
     push_flags:
     - --insecure
     skip_push: false
@@ -123,6 +125,7 @@ docker_manifests:
     - "scylladb/scylla-manager:{{ .Version }}-aarch64"
     create_flags:
     - --insecure
+    - --amend
     push_flags:
     - --insecure
     skip_push: .Env.SKIP_LATEST_RELEASE
@@ -134,6 +137,7 @@ docker_manifests:
     - "scylladb/scylla-manager-agent:{{ .Version }}-aarch64"
     create_flags:
     - --insecure
+    - --amend
     push_flags:
     - --insecure
     skip_push: .Env.SKIP_LATEST_RELEASE
