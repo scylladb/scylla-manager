@@ -15,6 +15,9 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./localstorage/data
+        target: /var/lib/localstorage
     networks:
       public:
       second:
@@ -35,6 +38,9 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./localstorage/data
+        target: /var/lib/localstorage
     networks:
       public:
       second:
@@ -55,6 +61,9 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs/
+      - type: bind
+        source: ./localstorage/data
+        target: /var/lib/localstorage
     networks:
       public:
       second:
@@ -75,6 +84,9 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./localstorage/data
+        target: /var/lib/localstorage
     networks:
       public:
       second:
@@ -95,6 +107,9 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./localstorage/data
+        target: /var/lib/localstorage
     networks:
       public:
       second:
@@ -115,6 +130,9 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./localstorage/data
+        target: /var/lib/localstorage
     networks:
       public:
       second:
@@ -135,6 +153,9 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./localstorage/data
+        target: /var/lib/localstorage
     networks:
       public:
       second:
@@ -155,6 +176,9 @@ services:
       - type: bind
         source: ./scylla/certs/
         target: /etc/scylla/certs
+      - type: bind
+        source: ./localstorage/data
+        target: /var/lib/localstorage
     networks:
       public:
       second:
