@@ -1,9 +1,10 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package rcserver
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/rclone/rclone/fs"
@@ -57,22 +58,65 @@ func TestPathHasPrefix(t *testing.T) {
 	}
 }
 
-func TestLocalToRemote(t *testing.T) {
+func TestFromLocal(t *testing.T) {
 	rclone.InitFsConfig()
 	rclone.MustRegisterLocalDirProvider("tmp", "", "/tmp")
 	if err := rclone.RegisterS3Provider(rclone.DefaultS3Options()); err != nil {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-
+	t.Run("local to local", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "tmp:/foo",
+			"dstFs": "tmp:/bar",
+		}
+		if err := fromLocal()(t.Context(), in); err != nil {
+			t.Fatalf("fromLocal() error %s, expected nil", err)
+		}
+	})
 	t.Run("local to remote", func(t *testing.T) {
 		in := rc.Params{
 			"srcFs": "tmp:/foo",
 			"dstFs": "s3:bar",
 		}
-		if err := localToRemote()(ctx, in); err != nil {
-			t.Fatalf("localToRemote() error %s, expected nil", err)
+		if err := fromLocal()(t.Context(), in); err != nil {
+			t.Fatalf("fromLocal() error %s, expected nil", err)
+		}
+	})
+	t.Run("remote to local rejected", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "s3:bar",
+			"dstFs": "tmp:/foo",
+		}
+		if err := fromLocal()(t.Context(), in); !errors.Is(err, fs.ErrorPermissionDenied) {
+			t.Fatalf("fromLocal() error %s, expected %s", err, fs.ErrorPermissionDenied)
+		}
+	})
+	t.Run("remote to remote rejected", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "s3:foo",
+			"dstFs": "s3:bar",
+		}
+		if err := fromLocal()(t.Context(), in); !errors.Is(err, fs.ErrorPermissionDenied) {
+			t.Fatalf("fromLocal() error %s, expected %s", err, fs.ErrorPermissionDenied)
+		}
+	})
+}
+
+func TestToLocal(t *testing.T) {
+	rclone.InitFsConfig()
+	rclone.MustRegisterLocalDirProvider("tmp", "", "/tmp")
+	if err := rclone.RegisterS3Provider(rclone.DefaultS3Options()); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("local to local", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "tmp:/foo",
+			"dstFs": "tmp:/bar",
+		}
+		if err := toLocal()(t.Context(), in); err != nil {
+			t.Fatalf("toLocal() error %s, expected nil", err)
 		}
 	})
 	t.Run("remote to local", func(t *testing.T) {
@@ -80,8 +124,26 @@ func TestLocalToRemote(t *testing.T) {
 			"srcFs": "s3:bar",
 			"dstFs": "tmp:/foo",
 		}
-		if err := localToRemote()(ctx, in); err != fs.ErrorPermissionDenied {
-			t.Fatalf("localToRemote() error %s, expected %s", err, fs.ErrorPermissionDenied)
+		if err := toLocal()(t.Context(), in); err != nil {
+			t.Fatalf("toLocal() error %s, expected nil", err)
+		}
+	})
+	t.Run("local to remote rejected", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "tmp:/foo",
+			"dstFs": "s3:bar",
+		}
+		if err := toLocal()(t.Context(), in); !errors.Is(err, fs.ErrorPermissionDenied) {
+			t.Fatalf("toLocal() error %s, expected %s", err, fs.ErrorPermissionDenied)
+		}
+	})
+	t.Run("remote to remote rejected", func(t *testing.T) {
+		in := rc.Params{
+			"srcFs": "s3:foo",
+			"dstFs": "s3:bar",
+		}
+		if err := toLocal()(t.Context(), in); !errors.Is(err, fs.ErrorPermissionDenied) {
+			t.Fatalf("toLocal() error %s, expected %s", err, fs.ErrorPermissionDenied)
 		}
 	})
 }

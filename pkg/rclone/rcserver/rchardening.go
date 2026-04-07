@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package rcserver
 
@@ -74,7 +74,7 @@ func or(validators ...paramsValidator) paramsValidator {
 	}
 }
 
-func localToRemote() paramsValidator {
+func fromLocal() paramsValidator {
 	return func(ctx context.Context, in rc.Params) error {
 		fsrc, err := rc.GetFsNamed(ctx, in, "srcFs")
 		if err != nil {
@@ -83,26 +83,12 @@ func localToRemote() paramsValidator {
 		if !fsrc.Features().IsLocal {
 			return fs.ErrorPermissionDenied
 		}
-		fdst, err := rc.GetFsNamed(ctx, in, "dstFs")
-		if err != nil {
-			return err
-		}
-		if fdst.Features().IsLocal {
-			return fs.ErrorPermissionDenied
-		}
 		return nil
 	}
 }
 
-func remoteToLocal() paramsValidator {
+func toLocal() paramsValidator {
 	return func(ctx context.Context, in rc.Params) error {
-		fsrc, err := rc.GetFsNamed(ctx, in, "srcFs")
-		if err != nil {
-			return err
-		}
-		if fsrc.Features().IsLocal {
-			return fs.ErrorPermissionDenied
-		}
 		fdst, err := rc.GetFsNamed(ctx, in, "dstFs")
 		if err != nil {
 			return err
