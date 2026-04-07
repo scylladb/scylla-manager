@@ -6,7 +6,7 @@ builds:
 
 dockers:
   - ids:
-    use: docker
+    use: buildx
     goos: linux
     goarch: amd64
     image_templates:
@@ -18,6 +18,9 @@ dockers:
       - release
       - license/
     build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--provenance=false"
+      - "--sbom=false"
       - "--label=name=scylla-manager"
       - "--label=maintainer=Karol Kokoszka <karol.kokoszka@scylladb.com>"
       - "--label=vendor=ScyllaDB, Inc."
@@ -27,7 +30,7 @@ dockers:
       - "--label=description=Scylla Manager"
 
   - ids:
-    use: docker
+    use: buildx
     goos: linux
     goarch: arm64
     image_templates:
@@ -41,6 +44,8 @@ dockers:
     build_flag_templates:
       - "--build-arg=ARCH=aarch64"
       - "--platform=linux/aarch64"
+      - "--provenance=false"
+      - "--sbom=false"
       - "--label=name=scylla-manager"
       - "--label=maintainer=Karol Kokoszka <karol.kokoszka@scylladb.com>"
       - "--label=vendor=ScyllaDB, Inc."
@@ -50,7 +55,7 @@ dockers:
       - "--label=description=Scylla Manager"
 
   - ids:
-    use: docker
+    use: buildx
     goos: linux
     goarch: amd64
     image_templates:
@@ -62,6 +67,9 @@ dockers:
       - release
       - license/
     build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--provenance=false"
+      - "--sbom=false"
       - "--label=name=scylla-manager-agent"
       - "--label=maintainer=Karol Kokoszka <karol.kokoszka@scylladb.com>"
       - "--label=vendor=ScyllaDB, Inc."
@@ -71,7 +79,7 @@ dockers:
       - "--label=description=Scylla Manager Agent"
 
   - ids:
-    use: docker
+    use: buildx
     goos: linux
     goarch: arm64
     image_templates:
@@ -85,6 +93,8 @@ dockers:
     build_flag_templates:
       - "--build-arg=ARCH=aarch64"
       - "--platform=linux/aarch64"
+      - "--provenance=false"
+      - "--sbom=false"
       - "--label=name=scylla-manager-agent"
       - "--label=maintainer=Karol Kokoszka <karol.kokoszka@scylladb.com>"
       - "--label=vendor=ScyllaDB, Inc."
@@ -101,7 +111,6 @@ docker_manifests:
     - "scylladb/scylla-manager:{{ .Version }}-aarch64"
     create_flags:
     - --insecure
-    - --amend
     push_flags:
     - --insecure
     skip_push: false
@@ -113,7 +122,6 @@ docker_manifests:
     - "scylladb/scylla-manager-agent:{{ .Version }}-aarch64"
     create_flags:
     - --insecure
-    - --amend
     push_flags:
     - --insecure
     skip_push: false
@@ -125,7 +133,6 @@ docker_manifests:
     - "scylladb/scylla-manager:{{ .Version }}-aarch64"
     create_flags:
     - --insecure
-    - --amend
     push_flags:
     - --insecure
     skip_push: .Env.SKIP_LATEST_RELEASE
@@ -137,7 +144,6 @@ docker_manifests:
     - "scylladb/scylla-manager-agent:{{ .Version }}-aarch64"
     create_flags:
     - --insecure
-    - --amend
     push_flags:
     - --insecure
     skip_push: .Env.SKIP_LATEST_RELEASE
