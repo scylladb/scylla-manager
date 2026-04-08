@@ -210,7 +210,7 @@ func defaultTestTarget(locDC, locPath, ks string, batchSize, parallel int, resto
 		Location: []backupspec.Location{
 			{
 				DC:       locDC,
-				Provider: backupspec.S3,
+				Provider: testconfig.BackupProvider(),
 				Path:     locPath,
 			},
 		},

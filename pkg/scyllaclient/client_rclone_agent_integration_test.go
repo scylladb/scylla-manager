@@ -32,7 +32,7 @@ func TestRcloneS3ListDirAgentIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	S3InitBucket(t, testBucket)
+	InitBucket(t, testBucket)
 
 	ctx := context.Background()
 
@@ -52,7 +52,7 @@ func TestRcloneDeletePathsInBatchesAgentIntegration(t *testing.T) {
 		dirName  = "tmp/copy"
 	)
 
-	S3InitBucket(t, testBucket)
+	InitBucket(t, testBucket)
 	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopmentWithLevel(zapcore.ErrorLevel))
 	if err != nil {
 		t.Fatal(err)
@@ -189,7 +189,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 
 	testHost := ManagedClusterHost()
 
-	S3InitBucket(t, testBucket)
+	InitBucket(t, testBucket)
 
 	ctx := context.Background()
 
@@ -254,7 +254,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 
 	testHost := ManagedClusterHost()
 
-	S3InitBucket(t, testBucket)
+	InitBucket(t, testBucket)
 
 	ctx := context.Background()
 
@@ -320,7 +320,7 @@ func TestRcloneJobProgressIntegration(t *testing.T) {
 	}
 
 	testHost := ManagedClusterHost()
-	S3InitBucket(t, testBucket)
+	InitBucket(t, testBucket)
 	ctx := context.Background()
 
 	defer func() {
@@ -449,7 +449,7 @@ func TestRcloneSuffixOptionIntegration(t *testing.T) {
 	}
 
 	testHost := ManagedClusterHost()
-	S3InitBucket(t, testBucket)
+	InitBucket(t, testBucket)
 	ctx := context.Background()
 	// This test also uses data from local data dir, so it needs to perform cleanup at the end
 	defer func() {
