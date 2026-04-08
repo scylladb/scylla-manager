@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 //go:build all || integration
 
@@ -13,21 +13,19 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 )
 
 var listRecursively = &scyllaclient.RcloneListDirOpts{Recurse: true}
 
-const (
-	testRemote = "s3"
-	testBucket = "backuptest-rclone"
-)
+const testBucket = "backuptest-rclone"
 
 func remotePath(p string) string {
-	return path.Join(testRemote+":"+testBucket, p)
+	return path.Join(string(testconfig.BackupProvider())+":"+testBucket, p)
 }
 
-func TestRcloneLocalToS3CopyDirIntegration(t *testing.T) {
-	S3InitBucket(t, testBucket)
+func TestRcloneDataToBackupCopyDirIntegration(t *testing.T) {
+	InitBucket(t, testBucket)
 
 	client, closeServer := scyllaclienttest.NewFakeRcloneServer(t)
 	defer closeServer()
@@ -105,7 +103,7 @@ func TestRcloneS3ToLocalCopyDirIntegration(t *testing.T) {
 	defer closeServer()
 	ctx := context.Background()
 
-	id, err := client.RcloneCopyDir(ctx, scyllaclienttest.TestHost, scyllaclient.TransfersFromConfig, scyllaclient.NoRateLimit, "rclonetest:foo", remotePath("/copy"), "")
+	id, err := client.RcloneCopyDir(ctx, scyllaclienttest.TestHost, scyllaclient.TransfersFromConfig, scyllaclient.NoRateLimit, "rclonetest:foo", "s3:"+testBucket+"/copy", "")
 	if err != nil {
 		t.Fatal(err)
 	}
