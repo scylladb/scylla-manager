@@ -24,7 +24,7 @@ func TestBackupPauseResumeOnDeduplicationStageIntegration(t *testing.T) {
 		testKeyspace = "backuptest_deduplication"
 	)
 
-	location := s3Location(testBucket)
+	location := testBackupLocation(testBucket)
 	config := defaultConfig()
 
 	var (

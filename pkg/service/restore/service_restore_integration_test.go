@@ -61,7 +61,7 @@ type restoreTestHelper struct {
 func newRestoreTestHelper(t *testing.T, session gocqlx.Session, config Config, location backupspec.Location, clientConf *scyllaclient.Config, user, pass string) *restoreTestHelper {
 	t.Helper()
 
-	S3InitBucket(t, location.Path)
+	InitBucket(t, location.Path)
 	clusterID := uuid.MustRandom()
 
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
@@ -185,9 +185,9 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	return s, backupSvc
 }
 
-func s3Location(bucket string) backupspec.Location {
+func testBackupLocation(bucket string) backupspec.Location {
 	return backupspec.Location{
-		Provider: backupspec.S3,
+		Provider: BackupProvider(),
 		Path:     bucket,
 	}
 }
@@ -195,7 +195,7 @@ func s3Location(bucket string) backupspec.Location {
 func testLocation(bucket, dc string) backupspec.Location {
 	return backupspec.Location{
 		DC:       dc,
-		Provider: backupspec.S3,
+		Provider: BackupProvider(),
 		Path:     "restoretest-" + bucket,
 	}
 }
@@ -334,10 +334,13 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 
 	testBucket, _, _ := getBucketKeyspaceUser(t)
 	var (
-		ctx            = context.Background()
-		cfg            = defaultTestConfig()
-		mgrSession     = CreateScyllaManagerDBSession(t)
-		loc            = s3Location(testBucket)
+		ctx        = context.Background()
+		cfg        = defaultTestConfig()
+		mgrSession = CreateScyllaManagerDBSession(t)
+		loc        = backupspec.Location{
+			Provider: backupspec.S3,
+			Path:     testBucket,
+		}
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
@@ -391,7 +394,7 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 		ignoreTarget = append(ignoreTarget, "!"+testKs2+"."+testSI+"_index")
 	}
 
-	tag := h.simpleBackup(s3Location(testBucket))
+	tag := h.simpleBackup(loc)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			h := h
@@ -584,10 +587,13 @@ func TestRestoreGetTargetUnitsViewsErrorIntegration(t *testing.T) {
 	testBucket, _, _ := getBucketKeyspaceUser(t)
 
 	var (
-		ctx            = context.Background()
-		cfg            = defaultTestConfig()
-		mgrSession     = CreateScyllaManagerDBSession(t)
-		loc            = s3Location(testBucket)
+		ctx        = context.Background()
+		cfg        = defaultTestConfig()
+		mgrSession = CreateScyllaManagerDBSession(t)
+		loc        = backupspec.Location{
+			Provider: backupspec.S3,
+			Path:     testBucket,
+		}
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
@@ -606,7 +612,7 @@ func TestRestoreGetTargetUnitsViewsErrorIntegration(t *testing.T) {
 	WriteData(h.T, clusterSession, testKs1, testBackupSize, testTable1, testTable2)
 	WriteData(h.T, clusterSession, testKs2, testBackupSize, testTable1, testTable2)
 
-	tag := h.simpleBackup(s3Location(testBucket))
+	tag := h.simpleBackup(loc)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -638,7 +644,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		ctx            = context.Background()
 		cfg            = defaultTestConfig()
 		mgrSession     = CreateScyllaManagerDBSession(t)
-		loc            = backupspec.Location{Provider: "s3", Path: testBucket}
+		loc            = testBackupLocation(testBucket)
 		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
@@ -649,7 +655,7 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		Location: []backupspec.Location{
 			{
 				DC:       "dc1",
-				Provider: backupspec.S3,
+				Provider: BackupProvider(),
 				Path:     testBucket,
 			},
 		},

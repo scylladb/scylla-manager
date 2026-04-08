@@ -57,7 +57,7 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := testLocation("user", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore")
@@ -81,7 +81,7 @@ func TestRestoreFullAuditIntegration(t *testing.T) {
 
 	Print("And: audit data backup")
 	loc := testLocation("audit", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("When: restore schema")
@@ -158,7 +158,7 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := testLocation("no-replication", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
@@ -235,7 +235,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 
 	Print("Run src backup")
 	loc := testLocation("schema-roundtrip", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Drop backed-up src cluster CQL schema")
@@ -430,7 +430,7 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := testLocation("drop-add", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
@@ -482,7 +482,7 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := testLocation("vnode-to-tablets", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
@@ -565,7 +565,7 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := testLocation("paused", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 
 	// Starting from SM 3.3.1, SM does not allow to back up views,
 	// but backed up views should still be tested as older backups might
@@ -766,7 +766,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := testLocation("preparation", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	backupProps := defaultTestBackupProperties(loc, ks)
 	backupProps["transfers"] = 3
@@ -937,7 +937,7 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := testLocation("batch-retry", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	backupProps := defaultTestBackupProperties(loc, ks)
 	backupProps["batch_size"] = 100
@@ -1106,8 +1106,8 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 		testLocation("multi-location-1", "dc1"),
 		testLocation("multi-location-2", "dc2"),
 	}
-	S3InitBucket(t, loc[0].Path)
-	S3InitBucket(t, loc[1].Path)
+	InitBucket(t, loc[0].Path)
+	InitBucket(t, loc[1].Path)
 	ksFilter := []string{ks}
 	backupProps := defaultTestBackupProperties(backupspec.Location{}, ks)
 	backupProps["location"] = loc
@@ -1188,7 +1188,7 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := testLocation("progress", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore")
@@ -1271,7 +1271,7 @@ func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
 	Print("Run backup")
 	loc := testLocation("one-location-1", "")
 
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	ksFilter := []string{ksTwoDC, ksOneDC}
 	backupProps := defaultTestBackupProperties(loc, "")
 	backupProps["keyspace"] = ksFilter
@@ -1337,8 +1337,8 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 		testLocation("dc-mapping-1", "dc1"),
 		testLocation("dc-mapping-2", "dc2"),
 	}
-	S3InitBucket(t, loc[0].Path)
-	S3InitBucket(t, loc[1].Path)
+	InitBucket(t, loc[0].Path)
+	InitBucket(t, loc[1].Path)
 	ksFilter := []string{ks}
 	backupProps := defaultTestBackupProperties(backupspec.Location{}, ks)
 	backupProps["location"] = loc
@@ -1434,7 +1434,7 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 
 	Print("Run backup")
 	loc := testLocation("alternator-full", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	backupProps := defaultTestBackupProperties(loc, "")
 	tag := h.runBackup(t, backupProps)
 
@@ -1551,7 +1551,7 @@ func TestRestoreFullLWTIntegration(t *testing.T) {
 
 	Print("And: backup of all user keyspaces")
 	loc := testLocation("lwt-full", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	backupProps := defaultTestBackupProperties(loc, "")
 	backupProps["keyspace"] = []string{cqlVnodeKs, cqlTabletKs, altVnodeKs, altTabletKs}
 	tag := h.runBackup(t, backupProps)

@@ -163,7 +163,7 @@ func setupRestoreMethodFixture(t *testing.T) restoreMethodFixture {
 
 	Print("Backup setup")
 	loc := testLocation("method", "")
-	S3InitBucket(t, loc.Path)
+	InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
