@@ -7,6 +7,7 @@ env:
     raft-schema: none
     tablets: disabled
     ssl-enabled: "true"
+    backup-provider: localstorage
 jobs:
     backup:
         name: Test backup
@@ -117,7 +118,7 @@ jobs:
               run: make pkg-integration-test TABLETS=${{ env.tablets }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/one2onerestore
             - name: Verify SM server startup
               run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
-name: integration-tests-2025.1.11-IPV4
+name: integration-tests-2025.1.11-IPV4-localstorage
 "on":
     pull_request:
         paths-ignore:
