@@ -633,6 +633,8 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	// Validate restore success
 
 	h := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
+	loc := testLocation("preparation", "")
+	InitBucket(t, loc.Path)
 
 	ni, err := h.dstCluster.Client.AnyNodeInfo(context.Background())
 	if err != nil {
@@ -642,13 +644,14 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBackup := nativeBackupSupport && !IsIPV6Network()
+	// Localstorage and IPV6 object storage endpoints are not supported by scylla
+	nativeBackup := nativeBackupSupport && !IsIPV6Network() && loc.Provider != backupspec.LocalStorage
 	// Note that this is just a test check - it does not reflect ni.SupportsNativeRestoreAPI().
 	nativeRestoreSupport, err := version.CheckConstraint(ni.ScyllaVersion, ">= 2025.3")
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeRestore := nativeRestoreSupport && !IsIPV6Network()
+	nativeRestore := nativeRestoreSupport && !IsIPV6Network() && loc.Provider != backupspec.LocalStorage
 
 	Print("Keyspace setup")
 	ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': %d}"
@@ -765,8 +768,6 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	validateState(h.srcCluster, "repair", true, 10, 99, pinnedCPU, 1)
 
 	Print("Run backup")
-	loc := testLocation("preparation", "")
-	InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	backupProps := defaultTestBackupProperties(loc, ks)
 	backupProps["transfers"] = 3

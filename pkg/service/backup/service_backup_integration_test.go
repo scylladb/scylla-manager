@@ -2876,6 +2876,10 @@ func TestBackupMethodIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// As currently scylla can't handle ipv6 object storage endpoints,
+	// we don't configure them for ipv6 test env and don't expect them to work.
+	// Native backup also does not support localstorage backup provider.
+	support = support && !IsIPV6Network() && location.Provider != backupspec.LocalStorage
 
 	type testCase struct {
 		method           backup.Method
@@ -2884,20 +2888,11 @@ func TestBackupMethodIntegration(t *testing.T) {
 		getTargetSuccess bool
 	}
 	var testCases []testCase
-	// As currently scylla can't handle ipv6 object storage endpoints,
-	// we don't configure them for ipv6 test env and don't expect them to work.
 	switch {
-	case support && !IsIPV6Network():
+	case support:
 		testCases = []testCase{
 			{method: backup.MethodAuto, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
 			{method: backup.MethodNative, ensuredPath: nativeAPIPath, blockedPath: rcloneAPIPath, getTargetSuccess: true},
-			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-		}
-	case support && IsIPV6Network():
-		testCases = []testCase{
-			{method: backup.MethodAuto, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
-			{method: backup.MethodNative, getTargetSuccess: false},
 			{method: backup.MethodRclone, ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 			{ensuredPath: rcloneAPIPath, blockedPath: nativeAPIPath, getTargetSuccess: true},
 		}
