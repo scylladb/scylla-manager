@@ -69,6 +69,7 @@
   ssl-enabled: false
   backup-method: rclone
   restore-method: rclone
+  backup-provider: localstorage
 
 - scylla-version: scylla-nightly:latest
   ip-family: IPV4
