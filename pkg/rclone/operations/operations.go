@@ -4,7 +4,6 @@ package operations
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -128,14 +127,8 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 	}
 
 	// Remove remote dir.
-	{
-		f, err := fs.NewFs(ctx, fmt.Sprintf("%s:%s/%s", l.Name(), l.Root(), testDirName))
-		if err != nil {
-			return errors.Wrap(err, "init remote temp dir")
-		}
-		if err := operations.Delete(ctx, f); err != nil {
-			return asOperationError("delete", l, err)
-		}
+	if err := operations.Purge(ctx, l, testDirName); err != nil {
+		return asOperationError("purge", l, err)
 	}
 
 	return nil
