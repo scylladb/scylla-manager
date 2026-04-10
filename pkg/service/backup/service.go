@@ -610,7 +610,7 @@ func (s *Service) resolveHosts(ctx context.Context, client *scyllaclient.Client,
 		}
 
 		for _, h := range checklist {
-			_, err := client.RcloneListDir(ctx, h, l.RemotePath(""), nil)
+			_, err := client.RcloneListDir(ctx, h, l.RemotePath("backup"), nil)
 			if err != nil {
 				s.logger.Debug(ctx, "Location check FAILED", "host", h, "location", l, "error", err)
 			} else {
