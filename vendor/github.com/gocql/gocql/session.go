@@ -38,6 +38,9 @@ import (
 	"unicode"
 
 	"github.com/gocql/gocql/debounce"
+	"github.com/gocql/gocql/events"
+	"github.com/gocql/gocql/internal/debug"
+	"github.com/gocql/gocql/internal/eventbus"
 	"github.com/gocql/gocql/internal/lru"
 	"github.com/gocql/gocql/tablets"
 )
@@ -52,61 +55,45 @@ import (
 // and automatically sets a default consistency level on all operations
 // that do not have a consistency level set.
 type Session struct {
-	cons                Consistency
-	pageSize            int
-	prefetch            float64
-	routingKeyInfoCache routingKeyInfoLRU
-	metadataDescriber   *metadataDescriber
-	trace               Tracer
-	queryObserver       QueryObserver
-	batchObserver       BatchObserver
-	connectObserver     ConnectObserver
-	frameObserver       FrameHeaderObserver
-	streamObserver      StreamObserver
-	hostSource          *ringDescriber
-	ringRefresher       *debounce.RefreshDebouncer
-	stmtsLRU            *preparedLRU
-
-	connCfg *ConnConfig
-
-	executor *queryExecutor
-	pool     *policyConnPool
-	policy   HostSelectionPolicy
-
-	mu sync.RWMutex
-
-	control controlConnection
-
-	// event handlers
-	nodeEvents   *eventDebouncer
-	schemaEvents *eventDebouncer
-
-	// ring metadata
-	useSystemSchema           bool
+	warningHandler            WarningHandler
+	queryObserver             QueryObserver
+	control                   controlConnection
+	ctx                       context.Context
+	logger                    StdLogger
+	trace                     Tracer
+	policy                    HostSelectionPolicy
+	batchObserver             BatchObserver
+	connectObserver           ConnectObserver
+	frameObserver             FrameHeaderObserver
+	streamObserver            StreamObserver
+	initErr                   error
+	nodeEvents                *eventDebouncer
+	stmtsLRU                  *preparedLRU
+	hostSource                *ringDescriber
+	pool                      *policyConnPool
+	ringRefresher             *debounce.RefreshDebouncer
+	readyCh                   chan struct{}
+	executor                  *queryExecutor
+	cancel                    context.CancelFunc
+	schemaEvents              *eventDebouncer
+	metadataDescriber         *metadataDescriber
+	eventBus                  *eventbus.EventBus[events.Event]
+	connCfg                   *ConnConfig
+	clientRoutesHandler       *ClientRoutesHandler
+	routingKeyInfoCache       routingKeyInfoLRU
+	addressTranslator         AddressTranslator
+	cfg                       ClusterConfig
+	prefetch                  float64
+	pageSize                  int
+	mu                        sync.RWMutex
+	sessionStateMu            sync.RWMutex
+	cons                      Consistency
+	isClosing                 bool
 	hasAggregatesAndFunctions bool
-
-	cfg ClusterConfig
-
-	ctx    context.Context
-	cancel context.CancelFunc
-
-	// sessionStateMu protects isClosed and isInitialized.
-	sessionStateMu sync.RWMutex
-	// isClosed is true once Session.Close is finished.
-	isClosed bool
-	// isClosing bool is true once Session.Close is started.
-	isClosing bool
-	// isInitialized is true once Session.init succeeds.
-	// you can use initialized() to read the value.
-	isInitialized bool
-	initErr       error
-	readyCh       chan struct{}
-
-	logger StdLogger
-
-	tabletsRoutingV1 bool
-
-	warningHandler WarningHandler
+	useSystemSchema           bool
+	tabletsRoutingV1          bool
+	isInitialized             bool
+	isClosed                  bool
 }
 
 var queryPool = &sync.Pool{
@@ -115,23 +102,21 @@ var queryPool = &sync.Pool{
 	},
 }
 
-func addrsToHosts(resolver DNSResolver, translateAddressPort func(addr net.IP, port int) (net.IP, int), addrs []string, defaultPort int, logger StdLogger) ([]*HostInfo, error) {
+func resolveInitialEndpoints(resolver DNSResolver, addrs []string, defaultPort int, logger StdLogger) ([]*HostInfo, error) {
 	var hosts []*HostInfo
+	var errs []error
 	for _, hostaddr := range addrs {
-		resolvedHosts, err := hostInfo(resolver, translateAddressPort, hostaddr, defaultPort)
+		resolvedHosts, err := resolveInitialEndpoint(resolver, hostaddr, defaultPort)
 		if err != nil {
-			// Try other hosts if unable to resolve DNS name
-			if _, ok := err.(*net.DNSError); ok {
-				logger.Printf("gocql: dns error: %v\n", err)
-				continue
-			}
-			return nil, err
+			err = fmt.Errorf("failed to resolve endpoint %q: %w", hostaddr, err)
+			errs = append(errs, err)
+			logger.Println(err.Error())
+			continue
 		}
-
 		hosts = append(hosts, resolvedHosts...)
 	}
 	if len(hosts) == 0 {
-		return nil, errors.New("failed to resolve any of the provided hostnames")
+		return nil, fmt.Errorf("failed to resolve any of the provided hostnames: %w", errors.Join(errs...))
 	}
 	return hosts, nil
 }
@@ -145,16 +130,22 @@ func newSessionCommon(cfg ClusterConfig) (*Session, error) {
 	ctx, cancel := context.WithCancel(context.TODO())
 
 	s := &Session{
-		cons:            cfg.Consistency,
-		prefetch:        0.25,
-		cfg:             cfg,
-		pageSize:        cfg.PageSize,
-		stmtsLRU:        &preparedLRU{lru: lru.New(cfg.MaxPreparedStmts)},
-		connectObserver: cfg.ConnectObserver,
-		ctx:             ctx,
-		cancel:          cancel,
-		logger:          cfg.logger(),
-		readyCh:         make(chan struct{}, 1),
+		cons:              cfg.Consistency,
+		prefetch:          0.25,
+		cfg:               cfg,
+		pageSize:          cfg.PageSize,
+		stmtsLRU:          &preparedLRU{lru: lru.New(cfg.MaxPreparedStmts)},
+		connectObserver:   cfg.ConnectObserver,
+		ctx:               ctx,
+		cancel:            cancel,
+		logger:            cfg.logger(),
+		addressTranslator: cfg.AddressTranslator,
+		readyCh:           make(chan struct{}, 1),
+	}
+
+	if cfg.ClientRoutesConfig != nil {
+		s.clientRoutesHandler = NewClientRoutesAddressTranslator(*cfg.ClientRoutesConfig, s.cfg.DNSResolver, s.cfg.SslOpts != nil, s.logger)
+		s.addressTranslator = s.clientRoutesHandler
 	}
 
 	// Close created resources on error otherwise they'll leak
@@ -166,6 +157,11 @@ func newSessionCommon(cfg ClusterConfig) (*Session, error) {
 	}()
 
 	s.metadataDescriber = newMetadataDescriber(s)
+
+	s.eventBus = eventbus.New[events.Event](cfg.EventBusConfig, cfg.Logger)
+	if err = s.eventBus.Start(); err != nil {
+		return nil, fmt.Errorf("gocql: unable to create session: %v", err)
+	}
 
 	s.nodeEvents = newEventDebouncer("NodeEvents", s.handleNodeEvent, s.logger)
 	s.schemaEvents = newEventDebouncer("SchemaEvents", s.handleSchemaEvent, s.logger)
@@ -253,12 +249,22 @@ func NewSessionNonBlocking(cfg ClusterConfig) (*Session, error) {
 	return s, nil
 }
 
+// SubscribeToEvents adds a new subscriber to the event bus.
+// name: subscriber name
+// queueSize: buffer size for the subscriber events, when buffer is overflowed events are dropped
+// filter: optional filter function (can be nil to receive all events)
+//
+// Returns a Subscriber instance that provides access to events and a Stop method.
+func (s *Session) SubscribeToEvents(name string, queueSize int, filter eventbus.FilterFunc[events.Event]) *eventbus.Subscriber[events.Event] {
+	return s.eventBus.Subscribe(name, queueSize, filter)
+}
+
 func (s *Session) init() error {
 	if s.cfg.disableInit {
 		return nil
 	}
 
-	hosts, err := addrsToHosts(s.cfg.DNSResolver, s.cfg.translateAddressPort, s.cfg.Hosts, s.cfg.Port, s.logger)
+	hosts, err := resolveInitialEndpoints(s.cfg.DNSResolver, s.cfg.Hosts, s.cfg.Port, s.logger)
 	if err != nil {
 		return err
 	}
@@ -277,8 +283,8 @@ func (s *Session) init() error {
 				var proto int
 				proto, err = s.control.discoverProtocol(hosts)
 				if err != nil {
-					err = fmt.Errorf("unable to discover protocol version: %v\n", err)
-					if gocqlDebug {
+					err = fmt.Errorf("unable to discover protocol version: %w\n", err)
+					if debug.Enabled {
 						s.logger.Println(err.Error())
 					}
 					continue
@@ -292,8 +298,8 @@ func (s *Session) init() error {
 			}
 
 			if err = s.control.connect(hosts); err != nil {
-				err = fmt.Errorf("unable to create control connection: %v\n", err)
-				if gocqlDebug {
+				err = fmt.Errorf("unable to create control connection: %w\n", err)
+				if debug.Enabled {
 					s.logger.Println(err.Error())
 				}
 				continue
@@ -301,7 +307,7 @@ func (s *Session) init() error {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("unable to connect to the cluster, last error: %v", err.Error())
+			return fmt.Errorf("unable to connect to the cluster, last error: %w", err)
 		}
 
 		conn := s.control.getConn().conn.(*Conn)
@@ -310,6 +316,12 @@ func (s *Session) init() error {
 		conn.mu.Unlock()
 
 		s.hostSource.setControlConn(s.control)
+
+		if s.clientRoutesHandler != nil {
+			if err = s.clientRoutesHandler.Initialize(s); err != nil {
+				return fmt.Errorf("unable to initialize client routes handler: %w", err)
+			}
+		}
 
 		if !s.cfg.DisableInitialHostLookup {
 			var newHosts []*HostInfo
@@ -331,20 +343,17 @@ func (s *Session) init() error {
 		newer, _ := checkSystemSchema(s.control)
 		s.useSystemSchema = newer
 		defer conn.finalizeConnection()
+	} else {
+		// For testing purposes we populate host ids
+		for _, host := range hosts {
+			if len(host.hostId) == 0 {
+				host.hostId = MustRandomUUID().String()
+			}
+		}
 	}
 
 	if partitioner != "" {
 		s.policy.SetPartitioner(partitioner)
-	}
-
-	for _, host := range hosts {
-		// In case when host lookup is disabled and when we are in unit tests,
-		// host are not discovered, and we are missing host ID information used
-		// by internal logic.
-		// Associate random UUIDs here with all hosts missing this information.
-		if len(host.HostID()) == 0 {
-			host.SetHostID(MustRandomUUID().String())
-		}
 	}
 
 	hostMap := make(map[string]*HostInfo, len(hosts))
@@ -472,7 +481,7 @@ func (s *Session) reconnectDownedHosts(intv time.Duration) {
 			hosts := s.hostSource.getHostsList()
 
 			// Print session.hostSource for debug.
-			if gocqlDebug {
+			if debug.Enabled {
 				buf := bytes.NewBufferString("Session.hostSource:")
 				for _, h := range hosts {
 					buf.WriteString("[" + h.ConnectAddress().String() + ":" + h.State().String() + "]")
@@ -603,12 +612,20 @@ func (s *Session) Close() {
 		s.schemaEvents.stop()
 	}
 
+	if s.eventBus != nil {
+		_ = s.eventBus.Stop()
+	}
+
 	if s.ringRefresher != nil {
 		s.ringRefresher.Stop()
 	}
 
 	if s.cancel != nil {
 		s.cancel()
+	}
+
+	if s.clientRoutesHandler != nil {
+		s.clientRoutesHandler.Stop()
 	}
 
 	s.sessionStateMu.Lock()
@@ -683,7 +700,23 @@ func (s *Session) KeyspaceMetadata(keyspace string) (*KeyspaceMetadata, error) {
 		return nil, ErrNoKeyspace
 	}
 
-	return s.metadataDescriber.getSchema(keyspace)
+	return s.metadataDescriber.GetKeyspace(keyspace)
+}
+
+// TableMetadata returns the schema metadata for the specified table. Returns an error if the keyspace or table does not exist.
+func (s *Session) TableMetadata(keyspace, table string) (*TableMetadata, error) {
+	// fail fast
+	if s.Closed() {
+		return nil, ErrSessionClosed
+	} else if err := s.Ready(); err != nil {
+		return nil, err
+	} else if keyspace == "" {
+		return nil, ErrNoKeyspace
+	} else if table == "" {
+		return nil, fmt.Errorf("no table name provided: %w", ErrNotFound)
+	}
+
+	return s.metadataDescriber.GetTable(keyspace, table)
 }
 
 // TabletsMetadata returns the metadata about tablets
@@ -966,6 +999,38 @@ func (s *Session) MapExecuteBatchCAS(batch *Batch, dest map[string]interface{}) 
 	return applied, iter, iter.err
 }
 
+// translateAddressPort is a helper method that will use the given AddressTranslator
+// if defined, to translate the given address and port into a possibly new address
+// and port, If no AddressTranslator or if an error occurs, the given address and
+// port will be returned.
+func translateAddressPort(addressTranslator AddressTranslator, host *HostInfo, addr AddressPort, logger StdLogger) (AddressPort, error) {
+	if addressTranslator == nil || !addr.IsValid() {
+		return addr, nil
+	}
+	translatorV2, ok := addressTranslator.(AddressTranslatorV2)
+	if !ok {
+		newAddr, newPort := addressTranslator.Translate(addr.Address, int(addr.Port))
+		if debug.Enabled {
+			logger.Printf("gocql: translated address %q to '%v:%d'", addr, newAddr, newPort)
+		}
+		return AddressPort{
+			Address: newAddr,
+			Port:    uint16(newPort),
+		}, nil
+	}
+	newAddr, err := translatorV2.TranslateHost(host, addr)
+	if err != nil {
+		if debug.Enabled {
+			logger.Printf("gocql: failed to translate address %q: %s", addr, err.Error())
+		}
+		return addr, err
+	}
+	if debug.Enabled {
+		logger.Printf("gocql: translated address %q to %q", addr, newAddr)
+	}
+	return newAddr, nil
+}
+
 type hostMetrics struct {
 	// Attempts is count of how many times this query has been attempted for this host.
 	// An attempt is either a retry or fetching next page of results.
@@ -976,11 +1041,11 @@ type hostMetrics struct {
 }
 
 type queryMetrics struct {
-	l sync.RWMutex
 	m map[string]*hostMetrics
 	// totalAttempts is total number of attempts.
-	// Equal to sum of all hostMetrics' Attempts.
+	// Equal to sum of all hostMetrics' Attempts
 	totalAttempts int
+	l             sync.RWMutex
 }
 
 // preFilledQueryMetrics initializes new queryMetrics based on per-host supplied data.
@@ -1075,65 +1140,55 @@ func (qm *queryMetrics) attempt(addAttempts int, addLatency time.Duration,
 
 // Query represents a CQL statement that can be executed.
 type Query struct {
-	stmt                  string
-	values                []interface{}
-	cons                  Consistency
-	pageSize              int
-	routingKey            []byte
-	pageState             []byte
-	prefetch              float64
-	trace                 Tracer
-	observer              QueryObserver
-	session               *Session
-	conn                  ConnInterface
-	rt                    RetryPolicy
-	spec                  SpeculativeExecutionPolicy
-	binding               func(q *QueryInfo) ([]interface{}, error)
-	serialCons            Consistency
-	defaultTimestamp      bool
-	defaultTimestampValue int64
-	disableSkipMetadata   bool
-	context               context.Context
-	idempotent            bool
-	customPayload         map[string][]byte
-	metrics               *queryMetrics
-	refCount              uint32
-
-	disableAutoPage bool
-
+	trace    Tracer
+	context  context.Context
+	spec     SpeculativeExecutionPolicy
+	rt       RetryPolicy
+	conn     ConnInterface
+	observer QueryObserver
+	metrics  *queryMetrics
+	session  *Session
+	// Timeout on waiting for response from server
+	customPayload map[string][]byte
 	// getKeyspace is field so that it can be overriden in tests
 	getKeyspace func() string
-
-	// used by control conn queries to prevent triggering a write to systems
-	// tables in AWS MCS see
-	skipPrepare bool
-
 	// routingInfo is a pointer because Query can be copied and copyable struct can't hold a mutex.
 	routingInfo *queryRoutingInfo
-
+	binding     func(q *QueryInfo) ([]interface{}, error)
 	// hostID specifies the host on which the query should be executed.
 	// If it is empty, then the host is picked by HostSelectionPolicy
-	hostID string
-
-	// Timeout on waiting for response from server
-	requestTimeout time.Duration
+	hostID     string
+	stmt       string
+	routingKey []byte
+	values     []interface{}
+	pageState  []byte
+	// requestTimeout is a timeout on waiting for response from server
+	requestTimeout        time.Duration
+	defaultTimestampValue int64
+	prefetch              float64
+	pageSize              int
+	refCount              uint32
+	cons                  Consistency
+	serialCons            Consistency
+	disableAutoPage       bool
+	idempotent            bool
+	skipPrepare           bool
+	disableSkipMetadata   bool
+	defaultTimestamp      bool
 }
 
 type queryRoutingInfo struct {
+	// partitioner is a reference to a Partitioner instance
+	// If nil default partitioner will be used.
+	partitioner Partitioner
+	keyspace    string
+	table       string
 	// mu protects contents of queryRoutingInfo.
 	mu sync.RWMutex
-
 	// "lwt" denotes the query being an LWT operation
 	// In effect if the query is of the form "INSERT/UPDATE/DELETE ... IF ..."
 	// For more details see https://docs.scylladb.com/using-scylla/lwt/
 	lwt bool
-
-	// If not nil, represents a custom partitioner for the table.
-	partitioner Partitioner
-
-	keyspace string
-
-	table string
 }
 
 func (qri *queryRoutingInfo) isLWT() bool {
@@ -1700,14 +1755,13 @@ func (q *Query) GetHostID() string {
 // database during the iteration if paging was enabled.
 type Iter struct {
 	err     error
-	pos     int
-	meta    resultMetadata
-	numRows int
+	framer  framerInterface
 	next    *nextIter
 	host    *HostInfo
-
-	framer framerInterface
-	closed int32
+	meta    resultMetadata
+	pos     int
+	numRows int
+	closed  int32
 }
 
 // Host returns the host which the query was sent to.
@@ -1976,10 +2030,10 @@ func (iter *Iter) NumRows() int {
 // single page might be attempted multiple times due to retries.
 type nextIter struct {
 	qry   *Query
+	next  *Iter
 	pos   int
 	oncea sync.Once
 	once  sync.Once
-	next  *Iter
 }
 
 func (n *nextIter) fetchAsync() {
@@ -2002,33 +2056,30 @@ func (n *nextIter) fetch() *Iter {
 }
 
 type Batch struct {
-	Type                  BatchType
-	Entries               []BatchEntry
-	Cons                  Consistency
-	routingKey            []byte
-	CustomPayload         map[string][]byte
-	rt                    RetryPolicy
-	spec                  SpeculativeExecutionPolicy
-	trace                 Tracer
-	observer              BatchObserver
-	session               *Session
-	serialCons            Consistency
-	defaultTimestamp      bool
-	defaultTimestampValue int64
-	context               context.Context
-	cancelBatch           func()
-	keyspace              string
-	metrics               *queryMetrics
-
+	context  context.Context
+	rt       RetryPolicy
+	spec     SpeculativeExecutionPolicy
+	trace    Tracer
+	observer BatchObserver
 	// routingInfo is a pointer because Query can be copied and copyable struct can't hold a mutex.
-	routingInfo *queryRoutingInfo
-
+	routingInfo   *queryRoutingInfo
+	metrics       *queryMetrics
+	cancelBatch   func()
+	CustomPayload map[string][]byte
+	session       *Session
+	keyspace      string
 	// hostID specifies the host on which the query should be executed.
 	// If it is empty, then the host is picked by HostSelectionPolicy
-	hostID string
-
-	// Timeout on waiting for response from server
-	requestTimeout time.Duration
+	hostID                string
+	routingKey            []byte
+	Entries               []BatchEntry
+	defaultTimestampValue int64
+	// requestTimeout is a timeout on waiting for response from serve
+	requestTimeout   time.Duration
+	serialCons       Consistency
+	Cons             Consistency
+	defaultTimestamp bool
+	Type             BatchType
 }
 
 // NewBatch creates a new batch operation using defaults defined in the cluster
@@ -2387,17 +2438,17 @@ const (
 )
 
 type BatchEntry struct {
+	binding    func(q *QueryInfo) ([]interface{}, error)
 	Stmt       string
 	Args       []interface{}
 	Idempotent bool
-	binding    func(q *QueryInfo) ([]interface{}, error)
 }
 
 type ColumnInfo struct {
+	TypeInfo TypeInfo
 	Keyspace string
 	Table    string
 	Name     string
-	TypeInfo TypeInfo
 }
 
 func (c ColumnInfo) String() string {
@@ -2411,12 +2462,12 @@ type routingKeyInfoLRU struct {
 }
 
 type routingKeyInfo struct {
-	indexes     []int
-	types       []TypeInfo
+	partitioner Partitioner
 	keyspace    string
 	table       string
+	indexes     []int
+	types       []TypeInfo
 	lwt         bool
-	partitioner Partitioner
 }
 
 func (r *routingKeyInfo) String() string {
@@ -2441,9 +2492,9 @@ func (r *routingKeyInfoLRU) Max(max int) {
 }
 
 type inflightCachedEntry struct {
-	wg    sync.WaitGroup
 	err   error
 	value interface{}
+	wg    sync.WaitGroup
 }
 
 // GetHosts return a list of hosts in the ring the driver knows of.
@@ -2451,32 +2502,69 @@ func (s *Session) GetHosts() []*HostInfo {
 	return s.hostSource.getHostsList()
 }
 
+type HostInformation interface {
+	Peer() net.IP
+	ConnectAddress() net.IP
+	UntranslatedConnectAddress() net.IP
+	BroadcastAddress() net.IP
+	ListenAddress() net.IP
+	RPCAddress() net.IP
+	PreferredIP() net.IP
+	DataCenter() string
+	Rack() string
+	HostID() string
+	WorkLoad() string
+	Partitioner() string
+	ClusterName() string
+	Tokens() []string
+	Port() int
+	IsUp() bool
+	ScyllaShardAwarePort() uint16
+	ScyllaShardAwarePortTLS() uint16
+	ScyllaShardCount() int
+}
+
+type HostPoolInfo interface {
+	GetConnectionCount() int
+	GetExcessConnectionCount() int
+	GetShardCount() int
+	String() string
+	InFlight() int
+	Host() HostInformation
+	IsClosed() bool
+}
+
+func (s *Session) GetHostPoolByID(hostID string) HostPoolInfo {
+	hostPool, _ := s.pool.getPoolByHostID(hostID)
+	return hostPool
+}
+
+func (s *Session) IterateHostPools(iter func(info HostPoolInfo) bool) {
+	s.pool.iteratePool(iter)
+}
+
 type ObservedQuery struct {
+	// Start is a time when the query was attempted
+	Start time.Time
+	// End is a time when the query attempt was completed
+	End time.Time
+	// Err is the error in the query.
+	// It only tracks network errors or errors of bad cassandra syntax, in particular selects with no match return nil error
+	// Do not modify the values here, they are shared with multiple goroutines.
+	Err error
+	// Host is a reference to the host where the query was executed.
+	Host *HostInfo
+	// Metrics is the metrics for this attempt
+	Metrics   *hostMetrics
 	Keyspace  string
 	Statement string
-
 	// Values holds a slice of bound values for the query.
 	// Do not modify the values here, they are shared with multiple goroutines.
 	Values []interface{}
-
-	Start time.Time // time immediately before the query was called
-	End   time.Time // time immediately after the query returned
-
 	// Rows is the number of rows in the current iter.
 	// In paginated queries, rows from previous scans are not counted.
 	// Rows is not used in batch queries and remains at the default value
 	Rows int
-
-	// Host is the informations about the host that performed the query
-	Host *HostInfo
-
-	// The metrics per this host
-	Metrics *hostMetrics
-
-	// Err is the error in the query.
-	// It only tracks network errors or errors of bad cassandra syntax, in particular selects with no match return nil error
-	Err error
-
 	// Attempt is the index of attempt at executing this query.
 	// The first attempt is number zero and any retries have non-zero attempt number.
 	Attempt int
@@ -2491,27 +2579,23 @@ type QueryObserver interface {
 }
 
 type ObservedBatch struct {
+	// Start is a time when the batch was attempted
+	Start time.Time
+	// End is a time when the batch attempt was completed
+	End time.Time
+	// Err is the error in the batch query.
+	// It only tracks network errors or errors of bad cassandra syntax, in particular selects with no match return nil error
+	Err error
+	// Host is a reference to the host where the batch was executed.
+	Host *HostInfo
+	// Metrics is the metrics for this attempt
+	Metrics    *hostMetrics
 	Keyspace   string
 	Statements []string
-
 	// Values holds a slice of bound values for each statement.
 	// Values[i] are bound values passed to Statements[i].
 	// Do not modify the values here, they are shared with multiple goroutines.
 	Values [][]interface{}
-
-	Start time.Time // time immediately before the batch query was called
-	End   time.Time // time immediately after the batch query returned
-
-	// Host is the informations about the host that performed the batch
-	Host *HostInfo
-
-	// Err is the error in the batch query.
-	// It only tracks network errors or errors of bad cassandra syntax, in particular selects with no match return nil error
-	Err error
-
-	// The metrics per this host
-	Metrics *hostMetrics
-
 	// Attempt is the index of attempt at executing this query.
 	// The first attempt is number zero and any retries have non-zero attempt number.
 	Attempt int
@@ -2545,8 +2629,8 @@ type ConnectObserver interface {
 }
 
 type Error struct {
-	Code    int
 	Message string
+	Code    int
 }
 
 func (e Error) Error() string {
@@ -2571,7 +2655,7 @@ var (
 type ErrProtocol struct{ error }
 
 func NewErrProtocol(format string, args ...interface{}) error {
-	return ErrProtocol{fmt.Errorf(format, args...)}
+	return ErrProtocol{error: fmt.Errorf(format, args...)}
 }
 
 // BatchSizeMaximum is the maximum number of statements a batch operation can have.
