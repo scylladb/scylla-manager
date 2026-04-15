@@ -148,7 +148,7 @@ func (s *simpleStrategy) replicaMap(tokenRing *tokenRing) tokenRingReplicas {
 			}
 		}
 
-		ring[i] = hostTokens{th.token, replicas}
+		ring[i] = hostTokens{token: th.token, hosts: replicas}
 	}
 
 	sort.Sort(ring)
@@ -300,7 +300,7 @@ func (n *networkTopology) replicaMap(tokenRing *tokenRing) tokenRingReplicas {
 			panic(fmt.Sprintf("first replica is not the primary replica for the token: expected %v got %v", replicas[0].ConnectAddress(), th.host.ConnectAddress()))
 		}
 
-		replicaRing = append(replicaRing, hostTokens{th.token, replicas})
+		replicaRing = append(replicaRing, hostTokens{token: th.token, hosts: replicas})
 	}
 
 	dcsWithReplicas := 0

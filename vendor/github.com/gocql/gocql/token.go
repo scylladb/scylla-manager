@@ -189,7 +189,7 @@ func newTokenRing(partitioner string, hosts []*HostInfo) (*tokenRing, error) {
 	for _, host := range hosts {
 		for _, strToken := range host.Tokens() {
 			token := tokenRing.partitioner.ParseString(strToken)
-			tokenRing.tokens = append(tokenRing.tokens, hostToken{token, host})
+			tokenRing.tokens = append(tokenRing.tokens, hostToken{token: token, host: host})
 		}
 	}
 
