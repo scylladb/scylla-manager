@@ -13,7 +13,6 @@ CURRENT_GID       := $(shell id -g)
 
 SCYLLA_VERSION?=scylla:latest
 IP_FAMILY?=IPV4
-RAFT_SCHEMA?=none
 TABLETS?=enabled
 
 MINIO_HOST := 192.168.200.99
@@ -59,7 +58,7 @@ build: ## Build custom docker image
 .PHONY: up
 up: ## Start docker containers
 up:
-	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and RAFT_SCHEMA=$(RAFT_SCHEMA) and TABLETS=$(TABLETS) and SSL_ENABLED=$(SSL_ENABLED)"
+	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and TABLETS=$(TABLETS) and SSL_ENABLED=$(SSL_ENABLED)"
 # Scylla bootstrap procedure have requirements that leads us to follow certain recipe:
 # 1. Spin up first node on the cluster
 # 2. Spin up and join other seed node, which is first node from DC2
@@ -86,12 +85,6 @@ else
 	@cp scylla/config/cqlshrc scylla/cqlshrc
 endif
 
-ifeq ($(RAFT_SCHEMA),enabled)
-	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' true
-endif
-ifeq ($(RAFT_SCHEMA),disabled)
-	@$(YQ) write -i scylla/scylla.yaml 'consistent_cluster_management' false
-endif
 ifeq ($(TABLETS),enabled)
 	@$(YQ) write -i scylla/scylla.yaml 'enable_tablets' true
 	@$(YQ) write -i scylla/scylla.yaml 'tablets_mode_for_new_keyspaces' enabled
@@ -150,10 +143,6 @@ endif
 	# We need to override the default cqlshrc file for TLS deployments, as maintenance socket does not support TLS connections and does not require any form of authentication.
 	@$(CQLSH_NODE) /var/lib/scylla/cql.m --cqlshrc=/dev/null -e "CREATE ROLE cassandra WITH PASSWORD = 'cassandra' AND LOGIN = true AND SUPERUSER = true" || true
 	@$(SECOND_CQLSH_NODE) /var/lib/scylla/cql.m --cqlshrc=/dev/null -e "CREATE ROLE cassandra WITH PASSWORD = 'cassandra' AND LOGIN = true AND SUPERUSER = true" || true
-	@echo "==> Upgrade auth ks replication"
-	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}" || true
-	@echo "==> Upgrade audit ks replication"
-	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE audit WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}" || true
 
 .PHONY: down
 down: ## Stop docker containers

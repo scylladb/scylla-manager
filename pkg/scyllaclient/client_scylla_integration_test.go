@@ -125,16 +125,11 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 	clusterSession := db.CreateSessionAndDropAllKeyspaces(t, client)
 	defer clusterSession.Close()
 
-	ni, err := client.AnyNodeInfo(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	ringDescriber := scyllaclient.NewRingDescriber(context.Background(), client)
 	for i := range testCases {
 		tc := testCases[i]
 		t.Run(tc.name, func(t *testing.T) {
-			if CheckConstraint(t, ni.ScyllaVersion, ">= 2025.1") && tc.replication != scyllaclient.NetworkTopologyStrategy {
+			if tc.replication != scyllaclient.NetworkTopologyStrategy {
 				// Tablets need to be manually disabled when using non
 				// NetworkTopologyStrategy keyspace replication strategy.
 				tc.replicationStmt += " AND tablets = {'enabled': false}"

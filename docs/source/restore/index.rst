@@ -9,7 +9,6 @@ Restore
    restore-tables
    native-restore
    restore-schema
-   old-restore-schema
    examples
 
 .. contents::
