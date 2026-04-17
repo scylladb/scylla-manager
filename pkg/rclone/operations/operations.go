@@ -4,6 +4,7 @@ package operations
 
 import (
 	"context"
+	stderr "errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -110,7 +111,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 		}
 	}
 
-	// Cat remote file.
+	// Create, cat and remove remote file.
 	{
 		o, err := l.NewObject(ctx, filepath.Join(testDirName, testFileName))
 		if err != nil {
@@ -120,15 +121,21 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 		if err != nil {
 			return asOperationError("open", l, err)
 		}
-		defer r.Close()
-		if _, err := io.Copy(io.Discard, r); err != nil {
-			return asOperationError("copy", l, err)
+		_, readErr := io.Copy(io.Discard, r)
+		if err := stderr.Join(readErr, r.Close()); err != nil {
+			return asOperationError("read", l, err)
+		}
+		if err := o.Remove(ctx); err != nil {
+			return asOperationError("remove", l, err)
 		}
 	}
 
-	// Remove remote dir.
+	// Cleanup.
 	if err := operations.Purge(ctx, l, testDirName); err != nil {
-		return asOperationError("purge", l, err)
+		// As we already verified all permissions needed by SM to perform
+		// a successful backup, we can just log an error here to allow
+		// backup to proceed in case of unexpected and not critical error.
+		fs.Errorf(l, "failed to remove test directory %q: %v", testDirName, err)
 	}
 
 	return nil
