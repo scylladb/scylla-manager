@@ -2,11 +2,12 @@ concurrency:
     cancel-in-progress: true
     group: int-${{ github.workflow }}-${{ github.ref }}
 env:
-    scylla-version: scylla-enterprise:2024.1.21
+    scylla-version: scylla:2025.4.7
     ip-family: IPV6
-    raft-schema: enabled
-    tablets: none
+    tablets: enabled
     ssl-enabled: "false"
+    backup-method: rclone
+    restore-method: rclone
 jobs:
     backup:
         name: Test backup
@@ -18,7 +19,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
@@ -34,7 +34,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
@@ -52,7 +51,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
@@ -68,7 +66,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
@@ -88,7 +85,6 @@ jobs:
               uses: ./.github/actions/test-setup
               with:
                 ip-family: ${{ env.ip-family }}
-                raft-schema: ${{ env.raft-schema }}
                 scylla-version: ${{ env.scylla-version }}
                 ssl-enabled: ${{ env.ssl-enabled }}
                 tablets: ${{ env.tablets }}
@@ -112,7 +108,7 @@ jobs:
               run: make pkg-integration-test TABLETS=${{ env.tablets }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/one2onerestore
             - name: Verify SM server startup
               run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
-name: integration-tests-2024.1.21-IPV6-raftschema-nossl
+name: integration-tests-2025.4.7-IPV6-tablets-nossl-rclone-rclone
 "on":
     pull_request:
         paths-ignore:
