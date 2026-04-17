@@ -32,7 +32,6 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
 
@@ -51,7 +50,6 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
         # Go does not support negative lookahead in regex expressions, so it has to be done manually.
@@ -71,7 +69,6 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
 
@@ -90,7 +87,6 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
 
@@ -117,7 +113,6 @@ jobs:
         with:
           scylla-version: ${{ env.scylla-version }}
           ip-family: ${{ env.ip-family }}
-          raft-schema: ${{ env.raft-schema }}
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
 

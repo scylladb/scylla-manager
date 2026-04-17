@@ -18,7 +18,6 @@ GOFILES = go list -f '{{range .GoFiles}}{{ $$.Dir }}/{{ . }} {{end}}{{range .Tes
 
 SCYLLA_VERSION?=scylla:latest
 IP_FAMILY?=IPV4
-RAFT_SCHEMA?=none
 TABLETS?=enabled
 # if true starts the scylla cluster with ssl only config
 SSL_ENABLED?=false
@@ -195,7 +194,7 @@ start-dev-env: .testing-up deploy-agent build-cli
 
 .PHONY: .testing-up
 .testing-up:
-	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) RAFT_SCHEMA=$(RAFT_SCHEMA) TABLETS=$(TABLETS) SSL_ENABLED=$(SSL_ENABLED) make -C testing build down up
+	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) TABLETS=$(TABLETS) SSL_ENABLED=$(SSL_ENABLED) make -C testing build down up
 
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes
