@@ -93,7 +93,7 @@ Upgrade the ScyllaDB Manager Server and Client
 
                sudo curl -o /etc/yum.repos.d/scylla-manager.repo -L https://downloads.scylladb.com/rpm/centos/|CENTOS_SCYLLADB_REPO|
 
-          .. group-tab::  Ubuntu
+      .. group-tab:: Ubuntu
 
            .. code-block:: console
                :substitutions:
