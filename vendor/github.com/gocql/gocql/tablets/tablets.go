@@ -20,12 +20,16 @@ func (r ReplicaInfo) ShardID() int {
 	return r.shardId
 }
 
+func (r ReplicaInfo) String() string {
+	return fmt.Sprintf("ReplicaInfo{hostId:%s, shardId:%d}", r.hostId, r.shardId)
+}
+
 type TabletInfoBuilder struct {
 	KeyspaceName string
 	TableName    string
+	Replicas     [][]interface{}
 	FirstToken   int64
 	LastToken    int64
-	Replicas     [][]interface{}
 }
 
 func NewTabletInfoBuilder() TabletInfoBuilder {
@@ -66,9 +70,9 @@ func (b TabletInfoBuilder) Build() (*TabletInfo, error) {
 type TabletInfo struct {
 	keyspaceName string
 	tableName    string
+	replicas     []ReplicaInfo
 	firstToken   int64
 	lastToken    int64
-	replicas     []ReplicaInfo
 }
 
 func (t *TabletInfo) KeyspaceName() string {

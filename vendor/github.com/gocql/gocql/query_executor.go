@@ -153,7 +153,7 @@ func (q *queryExecutor) executeQuery(qry ExecutableQuery) (*Iter, error) {
 func (q *queryExecutor) do(ctx context.Context, qry ExecutableQuery, hostIter NextHost) *Iter {
 	rt := qry.retryPolicy()
 	if rt == nil {
-		rt = &SimpleRetryPolicy{3}
+		rt = &SimpleRetryPolicy{NumRetries: 3}
 	}
 
 	lwtRT, isRTSupportsLWT := rt.(LWTRetryPolicy)

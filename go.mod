@@ -45,10 +45,10 @@ require (
 	go.uber.org/goleak v1.1.11
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.21.0
-	golang.org/x/crypto v0.46.0
-	golang.org/x/mod v0.30.0
+	golang.org/x/crypto v0.48.0
+	golang.org/x/mod v0.32.0
 	golang.org/x/sync v0.19.0
-	golang.org/x/sys v0.39.0
+	golang.org/x/sys v0.41.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -93,7 +93,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/lnquy/cron v1.1.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -122,12 +122,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.uber.org/config v1.4.0 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
-	golang.org/x/term v0.38.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
+	golang.org/x/term v0.40.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
+	golang.org/x/tools v0.41.0 // indirect
 	google.golang.org/api v0.114.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
@@ -138,7 +138,7 @@ require (
 )
 
 replace (
-	github.com/gocql/gocql => github.com/scylladb/gocql v1.15.3
+	github.com/gocql/gocql => github.com/scylladb/gocql v1.17.3
 	github.com/rclone/rclone => github.com/scylladb/rclone v1.54.1-0.20251215153917-de3d40fca4e9
 	google.golang.org/api v0.114.0 => github.com/scylladb/google-api-go-client v0.34.1-patched
 )
