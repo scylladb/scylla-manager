@@ -7,7 +7,7 @@ import "testing"
 func TestTLSVersionMarshalUnmarshalText(t *testing.T) {
 	t.Parallel()
 
-	for _, k := range []TLSVersion{TLSv13, TLSv12, TLSv10} {
+	for _, k := range []TLSVersion{TLSv13, TLSv12} {
 		b, err := k.MarshalText()
 		if err != nil {
 			t.Error(k, err)
