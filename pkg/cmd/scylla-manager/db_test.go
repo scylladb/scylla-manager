@@ -6,22 +6,25 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/topology"
 )
 
 func TestChooseDCRF(t *testing.T) {
 	testCases := []struct {
 		name     string
-		dcs      map[string]dcInfo
+		dcs      topology.ClusterTopology
 		expected map[string]int
 	}{
 		{
 			name: "1 dc 1 rack 1 node",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 1,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 1},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 1,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 1},
+						},
 					},
 				},
 			},
@@ -31,12 +34,14 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "1 dc 1 rack 2 nodes",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 2,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 2},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 2,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 2},
+						},
 					},
 				},
 			},
@@ -46,12 +51,14 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "1 dc 1 rack 3 nodes",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 3,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 3},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 3,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 3},
+						},
 					},
 				},
 			},
@@ -61,12 +68,14 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "1 dc 1 rack 5 nodes",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 5,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 5},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 5,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 5},
+						},
 					},
 				},
 			},
@@ -76,13 +85,15 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "1 dc 2 racks 1 node each",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 2,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 1},
-						"r2": {dc: "dc1", rack: "r2", nodes: 1},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 2,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 1},
+							"r2": {DC: "dc1", Rack: "r2", Nodes: 1},
+						},
 					},
 				},
 			},
@@ -92,13 +103,15 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "1 dc 2 racks 2 nodes each",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 4,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 2},
-						"r2": {dc: "dc1", rack: "r2", nodes: 2},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 4,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 2},
+							"r2": {DC: "dc1", Rack: "r2", Nodes: 2},
+						},
 					},
 				},
 			},
@@ -108,19 +121,21 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "2 dc 1 rack each 1 node each",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 1,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 1},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 1,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 1},
+						},
 					},
-				},
-				"dc2": {
-					dc:    "dc2",
-					nodes: 1,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc2", rack: "r1", nodes: 1},
+					"dc2": {
+						DC:    "dc2",
+						Nodes: 1,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc2", Rack: "r1", Nodes: 1},
+						},
 					},
 				},
 			},
@@ -131,19 +146,21 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "2 dc 1 rack each 3 nodes and 1 node",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 3,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 3},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 3,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 3},
+						},
 					},
-				},
-				"dc2": {
-					dc:    "dc2",
-					nodes: 1,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc2", rack: "r1", nodes: 1},
+					"dc2": {
+						DC:    "dc2",
+						Nodes: 1,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc2", Rack: "r1", Nodes: 1},
+						},
 					},
 				},
 			},
@@ -154,20 +171,22 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "2 dc 2 racks and 1 rack",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 4,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 2},
-						"r2": {dc: "dc1", rack: "r2", nodes: 2},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 4,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 2},
+							"r2": {DC: "dc1", Rack: "r2", Nodes: 2},
+						},
 					},
-				},
-				"dc2": {
-					dc:    "dc2",
-					nodes: 2,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc2", rack: "r1", nodes: 2},
+					"dc2": {
+						DC:    "dc2",
+						Nodes: 2,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc2", Rack: "r1", Nodes: 2},
+						},
 					},
 				},
 			},
@@ -178,21 +197,23 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "2 dc 2 racks each",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 2,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 1},
-						"r2": {dc: "dc1", rack: "r2", nodes: 1},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 2,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 1},
+							"r2": {DC: "dc1", Rack: "r2", Nodes: 1},
+						},
 					},
-				},
-				"dc2": {
-					dc:    "dc2",
-					nodes: 4,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc2", rack: "r1", nodes: 2},
-						"r2": {dc: "dc2", rack: "r2", nodes: 2},
+					"dc2": {
+						DC:    "dc2",
+						Nodes: 4,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc2", Rack: "r1", Nodes: 2},
+							"r2": {DC: "dc2", Rack: "r2", Nodes: 2},
+						},
 					},
 				},
 			},
@@ -203,26 +224,28 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "3 dc 1 rack each",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 1,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 1},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 1,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 1},
+						},
 					},
-				},
-				"dc2": {
-					dc:    "dc2",
-					nodes: 2,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc2", rack: "r1", nodes: 2},
+					"dc2": {
+						DC:    "dc2",
+						Nodes: 2,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc2", Rack: "r1", Nodes: 2},
+						},
 					},
-				},
-				"dc3": {
-					dc:    "dc3",
-					nodes: 3,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc3", rack: "r1", nodes: 3},
+					"dc3": {
+						DC:    "dc3",
+						Nodes: 3,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc3", Rack: "r1", Nodes: 3},
+						},
 					},
 				},
 			},
@@ -234,14 +257,16 @@ func TestChooseDCRF(t *testing.T) {
 		},
 		{
 			name: "1 dc 3 racks",
-			dcs: map[string]dcInfo{
-				"dc1": {
-					dc:    "dc1",
-					nodes: 22,
-					racks: map[string]rackInfo{
-						"r1": {dc: "dc1", rack: "r1", nodes: 5},
-						"r2": {dc: "dc1", rack: "r2", nodes: 7},
-						"r3": {dc: "dc1", rack: "r3", nodes: 10},
+			dcs: topology.ClusterTopology{
+				DCs: map[string]topology.DCTopology{
+					"dc1": {
+						DC:    "dc1",
+						Nodes: 22,
+						Racks: map[string]topology.RackTopology{
+							"r1": {DC: "dc1", Rack: "r1", Nodes: 5},
+							"r2": {DC: "dc1", Rack: "r2", Nodes: 7},
+							"r3": {DC: "dc1", Rack: "r3", Nodes: 10},
+						},
 					},
 				},
 			},

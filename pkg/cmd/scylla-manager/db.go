@@ -20,6 +20,7 @@ import (
 	config "github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	schemamigrate "github.com/scylladb/scylla-manager/v3/pkg/schema/migrate"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/topology"
 	"github.com/scylladb/scylla-manager/v3/schema"
 )
 
@@ -47,18 +48,19 @@ func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) err
 	}
 	defer session.Close()
 
-	dcs, err := queryDCInfo(ctx, session)
-	if err != nil {
-		return errors.Wrap(err, "query dc info")
+	topologyIter := topology.BuildSessionIter(ctx, session, true)
+	clusterTopology := topology.BuildClusterTopology(topologyIter.Iter)
+	if topologyIter.Err != nil {
+		return errors.Wrap(topologyIter.Err, "iter over cluster topology")
 	}
 	// First try to create scylla manager keyspace according to chooseDCRF.
 	// This is the most preferred option.
-	dcRF := chooseDCRF(dcs)
+	dcRF := chooseDCRF(clusterTopology)
 	if err := session.QueryWithContext(ctx, fmt.Sprintf(createKsStmt, c.Database.Keyspace, dcRFReplication(dcRF))).Exec(); err != nil {
 		logger.Info(ctx, "Failed to create upgraded keyspace, trying to create rf rack valid one", "error", err)
 		// In case that fails, try to create rf rack valid
 		// keyspace regardless of data availability.
-		dcRF = rfRackValidDCRF(dcs)
+		dcRF = rfRackValidDCRF(clusterTopology)
 		if err = session.QueryWithContext(ctx, fmt.Sprintf(createKsStmt, c.Database.Keyspace, dcRFReplication(dcRF))).Exec(); err != nil {
 			return errors.Wrap(err, "failed to create manager keyspace, "+
 				"consider creating it manually and starting manager server again")
@@ -67,65 +69,12 @@ func createKeyspace(ctx context.Context, c config.Config, logger log.Logger) err
 	return nil
 }
 
-type dcInfo struct {
-	dc    string
-	racks map[string]rackInfo
-	nodes int
-}
-
-type rackInfo struct {
-	dc    string
-	rack  string
-	nodes int
-}
-
-// queryDCInfo returns cluster topology aggregated by dc and rack.
-func queryDCInfo(ctx context.Context, session *gocql.Session) (map[string]dcInfo, error) {
-	dcs := make(map[string]dcInfo)
-	updateDCs := func(dc, rack string) {
-		// Initialize dc info if needed
-		if _, ok := dcs[dc]; !ok {
-			dcs[dc] = dcInfo{
-				dc:    dc,
-				racks: make(map[string]rackInfo),
-			}
-		}
-		dci := dcs[dc]
-		// Update rack info
-		ri := dci.racks[rack]
-		ri.dc = dc
-		ri.rack = rack
-		ri.nodes++
-		// Update dc info
-		dci.nodes++
-		// Update nested structure
-		dci.racks[rack] = ri
-		dcs[dc] = dci
-	}
-
-	var dc, rack string
-	it := session.QueryWithContext(ctx, "SELECT data_center, rack FROM system.peers").Iter()
-	for it.Scan(&dc, &rack) {
-		updateDCs(dc, rack)
-	}
-	if err := it.Close(); err != nil {
-		return nil, errors.Wrap(err, "select data_center and rack from system.peers")
-	}
-
-	if err := session.QueryWithContext(ctx, "SELECT data_center, rack FROM system.local").Scan(&dc, &rack); err != nil {
-		return nil, errors.Wrap(err, "select data_center and rack from system.local")
-	}
-	updateDCs(dc, rack)
-
-	return dcs, nil
-}
-
 // chooseDCRF returns dc to rf mapping for scylla manager keyspace.
 // It firstly prioritizes availability (rf=3) and secondly rf rack validity.
-func chooseDCRF(dcs map[string]dcInfo) map[string]int {
+func chooseDCRF(clusterTopology topology.ClusterTopology) map[string]int {
 	totalRackCnt := 0
-	for _, dci := range dcs {
-		totalRackCnt += len(dci.racks)
+	for _, dci := range clusterTopology.DCs {
+		totalRackCnt += len(dci.Racks)
 	}
 
 	dcRF := make(map[string]int)
@@ -136,50 +85,50 @@ func chooseDCRF(dcs map[string]dcInfo) map[string]int {
 	// we upgrade rf up to 3, as we prioritize increased
 	// availability over rf rack validity.
 	switch {
-	case len(dcs) == 1 && totalRackCnt <= 2:
+	case len(clusterTopology.DCs) == 1 && totalRackCnt <= 2:
 		// 1 dc 1 rack or 1 dc 2 racks scenarios.
 		// Those are the same because we can't yet/always
 		// specify per rack rf. In such cases, upgrade
 		// rf up to 3 for this dc.
-		for _, dci := range dcs {
-			dcRF[dci.dc] = min(dci.nodes, 3)
+		for _, dci := range clusterTopology.DCs {
+			dcRF[dci.DC] = min(dci.Nodes, 3)
 		}
-	case len(dcs) == 2 && totalRackCnt == 2:
+	case len(clusterTopology.DCs) == 2 && totalRackCnt == 2:
 		// 2 dc 1 rack each scenario.
 		// In such cases, upgrade rf up to
 		// 2 in one of those dcs and keep
 		// it at 1 in another one.
-		orderedDCs := make([]dcInfo, 0, len(dcs))
-		for _, dci := range dcs {
+		orderedDCs := make([]topology.DCTopology, 0, len(clusterTopology.DCs))
+		for _, dci := range clusterTopology.DCs {
 			orderedDCs = append(orderedDCs, dci)
 		}
 		// Sort dcs for deterministic result.
 		// Sort func args are flipped to ensure descending order.
-		slices.SortFunc(orderedDCs, func(b, a dcInfo) int {
-			if a.nodes != b.nodes {
-				return cmp.Compare(a.nodes, b.nodes)
+		slices.SortFunc(orderedDCs, func(b, a topology.DCTopology) int {
+			if a.Nodes != b.Nodes {
+				return cmp.Compare(a.Nodes, b.Nodes)
 			}
-			return cmp.Compare(a.dc, b.dc)
+			return cmp.Compare(a.DC, b.DC)
 		})
-		dcRF[orderedDCs[0].dc] = 1
-		dcRF[orderedDCs[1].dc] = 1
-		if orderedDCs[0].nodes > 1 {
-			dcRF[orderedDCs[0].dc] = 2
+		dcRF[orderedDCs[0].DC] = 1
+		dcRF[orderedDCs[1].DC] = 1
+		if orderedDCs[0].Nodes > 1 {
+			dcRF[orderedDCs[0].DC] = 2
 		}
 	default:
 		// In other scenarios, rf rack valid keyspace
 		// has bigger total rf than 3.
-		return rfRackValidDCRF(dcs)
+		return rfRackValidDCRF(clusterTopology)
 	}
 
 	return dcRF
 }
 
 // rfRackValidDCRF return rf rack valid dc to rf mapping.
-func rfRackValidDCRF(dcs map[string]dcInfo) map[string]int {
+func rfRackValidDCRF(clusterTopology topology.ClusterTopology) map[string]int {
 	dcRF := make(map[string]int)
-	for _, dci := range dcs {
-		dcRF[dci.dc] = len(dci.racks)
+	for _, dci := range clusterTopology.DCs {
+		dcRF[dci.DC] = len(dci.Racks)
 	}
 	return dcRF
 }
