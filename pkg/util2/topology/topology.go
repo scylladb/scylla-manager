@@ -61,6 +61,27 @@ func (ct ClusterTopology) String() string {
 	return fmt.Sprintf("{DCs: [%s]}", strings.Join(dcs, ", "))
 }
 
+// ContainsDCsAndRacks checks if all DCs from other are present in ct,
+// and for each such DC the set of rack names is exactly the same.
+// Node counts are ignored. ct may have additional DCs not present in other.
+func (ct ClusterTopology) ContainsDCsAndRacks(other ClusterTopology) bool {
+	for dc, otherDCTopo := range other.DCs {
+		dcTopo, ok := ct.DCs[dc]
+		if !ok {
+			return false
+		}
+		if len(dcTopo.Racks) != len(otherDCTopo.Racks) {
+			return false
+		}
+		for rack := range otherDCTopo.Racks {
+			if _, ok := dcTopo.Racks[rack]; !ok {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // BuildClusterTopology constructs a ClusterTopology from a dc/rack pair iterator.
 func BuildClusterTopology(dcRackIter iter.Seq2[string, string]) ClusterTopology {
 	clusterTopology := ClusterTopology{
