@@ -499,6 +499,126 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, c1, c2)
 }
 
+func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
+	// Tests tablet-aware restore by backing up and restoring tables
+	// with different initial tablet counts across multiple keyspaces.
+	testCases := []struct {
+		name      string
+		srcHosts  []string
+		dstHosts  []string
+		dcMapping map[string]string
+	}{
+		{
+			name:     "backup and restore on small cluster",
+			srcHosts: ManagedSecondClusterHosts(),
+			dstHosts: ManagedSecondClusterHosts(),
+		},
+		{
+			name:      "backup and restore on big cluster",
+			srcHosts:  ManagedClusterHosts(),
+			dstHosts:  ManagedClusterHosts(),
+			dcMapping: map[string]string{"dc1": "dc1"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newTestHelper(t, tc.srcHosts, tc.dstHosts)
+
+			ks1 := randomizedName("tablet_smoke_ks1_")
+			ks2 := randomizedName("tablet_smoke_ks2_")
+			tab1 := randomizedName("tab_8_")
+			tab2 := randomizedName("tab_32_")
+			tab3 := randomizedName("tab_2048_")
+			tables := []table{
+				{ks: ks1, tab: tab1},
+				{ks: ks1, tab: tab2},
+				{ks: ks2, tab: tab3},
+			}
+			ksFilter := []string{ks1, ks2}
+			loc := testLocation("tablet-aware-smoke", "")
+
+			var beforeTruncate map[string]map[int]int
+			var tag string
+
+			t.Run("create tables to back up", func(t *testing.T) {
+				Print("Create tablet keyspaces")
+				ksStmt := "CREATE KEYSPACE IF NOT EXISTS %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2} AND tablets = {'enabled': 'true'}"
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks1))
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks2))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks1))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks2))
+
+				Print("Create tables with different initial tablet counts")
+				tabStmt := "CREATE TABLE IF NOT EXISTS %q.%q (id int PRIMARY KEY, data int) WITH tablets = {'min_tablet_count': %d}"
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks1, tab1, 8))
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks1, tab2, 32))
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks2, tab3, 2048))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks1, tab1, 8))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks1, tab2, 32))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks2, tab3, 2048))
+
+				Print("Fill tables with data")
+				fillTable(t, h.srcCluster.rootSession, 50, ks1, tab1)
+				fillTable(t, h.srcCluster.rootSession, 100, ks1, tab2)
+				fillTable(t, h.srcCluster.rootSession, 200, ks2, tab3)
+
+				Print("Snapshot table contents")
+				beforeTruncate = make(map[string]map[int]int)
+				for _, tt := range tables {
+					key := tt.ks + "." + tt.tab
+					beforeTruncate[key] = selectTableAsMap[int, int](t, h.srcCluster.rootSession, tt.ks, tt.tab, "id", "data")
+				}
+			})
+			if t.Failed() {
+				t.FailNow()
+			}
+
+			t.Run("run backup", func(t *testing.T) {
+				S3InitBucket(t, loc.Path)
+				backupProps := defaultTestBackupProperties(loc, "")
+				backupProps["keyspace"] = ksFilter
+				tag = h.runBackup(t, backupProps)
+			})
+			if t.Failed() {
+				t.FailNow()
+			}
+
+			t.Run("truncate backed up tables", func(t *testing.T) {
+				for _, tt := range tables {
+					ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("TRUNCATE %q.%q", tt.ks, tt.tab))
+				}
+			})
+			if t.Failed() {
+				t.FailNow()
+			}
+
+			t.Run("restore backed up tables", func(t *testing.T) {
+				grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+				restoreProps := defaultTestProperties(loc, tag, true)
+				restoreProps["keyspace"] = ksFilter
+				if tc.dcMapping != nil {
+					restoreProps["dc_mapping"] = tc.dcMapping
+				}
+				h.runRestore(t, restoreProps)
+			})
+			if t.Failed() {
+				t.FailNow()
+			}
+
+			t.Run("verify tables contents after restore", func(t *testing.T) {
+				for _, tt := range tables {
+					key := tt.ks + "." + tt.tab
+					afterRestore := selectTableAsMap[int, int](t, h.dstCluster.rootSession, tt.ks, tt.tab, "id", "data")
+					if !maps.Equal(beforeTruncate[key], afterRestore) {
+						t.Fatalf("table %s content mismatch after restore", key)
+					}
+				}
+			})
+		})
+	}
+}
+
 func TestRestoreTablesPausedIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 

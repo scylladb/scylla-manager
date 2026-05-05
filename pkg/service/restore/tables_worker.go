@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore/tablet"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -196,11 +197,16 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.logger.Info(ctx, "Started restoring tables")
 	defer w.logger.Info(ctx, "Restoring tables finished")
 
-	workload, err := w.IndexWorkload(ctx, w.target.locationInfo)
+	workload, err := w.IndexWorkload(ctx)
 	if err != nil {
 		return err
 	}
 	w.initMetrics(workload)
+
+	tw := tablet.NewRestoreWorker(w.logger, w.client, w.nodeConfig, w.config.LongPollingTimeoutSeconds)
+	if err := tw.Restore(ctx, workload.TabletAwareWorkload); err != nil {
+		return errors.Wrap(err, "run tablet aware restore")
+	}
 
 	if w.target.Method == MethodNative {
 		if err := workload.NativeRestoreSupport(); err != nil {
