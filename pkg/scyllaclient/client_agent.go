@@ -277,6 +277,13 @@ func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2026.1")
 }
 
+// DescribeSchemaContainsLogicalIndexName returns whether node output of DESCRIBE SCHEMA
+// query contains logical index name (X) or the backing materialized view name (X_index).
+func (ni *NodeInfo) DescribeSchemaContainsLogicalIndexName() (bool, error) {
+	// Check ENT
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2026.2")
+}
+
 // ScyllaObjectStorageEndpoint returns endpoint that should be used when calling /storage_service/<backup|restore> API.
 // It also validates that agent's and Scylla's configurations match.
 func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (string, error) {

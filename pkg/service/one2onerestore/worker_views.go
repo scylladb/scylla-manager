@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
@@ -221,6 +222,15 @@ func (w *worker) viewsFromSchema(ctx context.Context, workload []hostWorkload) (
 		return nil, errors.Wrap(err, "raft read barrier")
 	}
 
+	ni, err := w.client.NodeInfo(ctx, host.Addr)
+	if err != nil {
+		return nil, errors.Wrap(err, "get node info")
+	}
+	logical, err := ni.DescribeSchemaContainsLogicalIndexName()
+	if err != nil {
+		return nil, errors.Wrap(err, "check if describe schema contains logical index name")
+	}
+
 	describedSchema, err := query.DescribeSchemaWithInternals(hostSession)
 	if err != nil {
 		return nil, errors.Wrap(err, "describe schema")
@@ -234,17 +244,21 @@ func (w *worker) viewsFromSchema(ctx context.Context, workload []hostWorkload) (
 			continue
 		}
 
+		name := stmt.Name
 		viewType := MaterializedView
 		if stmt.Type == "index" {
 			viewType = SecondaryIndex
+			if logical {
+				name = table.MaterializedViewBackingIndex(name)
+			}
 		}
-		baseTableName, err := w.getBaseTableName(stmt.Keyspace, stmt.Name)
+		baseTableName, err := w.getBaseTableName(stmt.Keyspace, name)
 		if err != nil {
-			return nil, errors.Wrapf(err, "get base table name for view %s.%s", stmt.Keyspace, stmt.Name)
+			return nil, errors.Wrapf(err, "get base table name for view %s.%s", stmt.Keyspace, name)
 		}
 		result = append(result, View{
 			Keyspace:    stmt.Keyspace,
-			View:        stmt.Name,
+			View:        name,
 			Type:        viewType,
 			BaseTable:   baseTableName,
 			CreateStmt:  stmt.CQLStmt,

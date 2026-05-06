@@ -60,7 +60,8 @@ const (
 
 // View represents statement used for recreating restored (dropped) views.
 type View struct {
-	Keyspace    string                       `json:"keyspace" db:"keyspace_name"`
+	Keyspace string `json:"keyspace" db:"keyspace_name"`
+	// View name. For SIs, it is the name of the backing materialized view.
 	View        string                       `json:"view" db:"view_name"`
 	Type        ViewType                     `json:"type" db:"view_type"`
 	BaseTable   string                       `json:"base_table"`
