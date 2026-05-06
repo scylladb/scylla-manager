@@ -32,3 +32,9 @@ var AuditTable = CQLTable{
 	Keyspace: AuditKeyspace,
 	Name:     "audit_log",
 }
+
+// MaterializedViewBackingIndex given the logical index name
+// returns the name of the materialized view backing the index.
+func MaterializedViewBackingIndex(indexName string) string {
+	return indexName + "_index"
+}
