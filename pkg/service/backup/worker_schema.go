@@ -1,15 +1,12 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"io"
-	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -20,8 +17,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 
-	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
-	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -36,11 +31,7 @@ func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc clus
 		return errors.Wrap(err, "get hosts supporting backup/restore from desc schema with internals")
 	}
 
-	if len(descSchemaHosts) > 0 {
-		return w.safeBackupAndRestoreSchemaDump(ctx, descSchemaHosts, sessionFunc, method)
-	}
-	w.unsafeBackupAndRestoreSchemaDump(ctx, sessionFunc)
-	return nil
+	return w.safeBackupAndRestoreSchemaDump(ctx, descSchemaHosts, sessionFunc, method)
 }
 
 func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaHosts []string, sessionFunc cluster.SessionFunc, method scyllaclient.SafeDescribeMethod) error {
@@ -81,31 +72,6 @@ func (w *worker) raftReadBarrier(ctx context.Context, session gocqlx.Session, ho
 		return query.RaftReadBarrier(session)
 	}
 	return errors.Errorf("unsupported method: %s", string(method))
-}
-
-func (w *worker) unsafeBackupAndRestoreSchemaDump(ctx context.Context, sessionFunc cluster.SessionFunc) {
-	w.Logger.Info(ctx, "Back up schema from sstables")
-	const explanation = ", backup of schema as CQL files will be skipped (for this ScyllaDB version schema is restored directly from sstables)"
-
-	session, err := sessionFunc(ctx, w.ClusterID)
-	if err != nil {
-		w.Logger.Error(ctx, "Couldn't create CQL session"+explanation, "error", err)
-		return
-	}
-	defer session.Close()
-
-	if err := session.AwaitSchemaAgreement(ctx); err != nil {
-		w.Logger.Error(ctx, "Couldn't await schema agreement"+explanation, "error", err)
-		return
-	}
-	b, err := createUnsafeSchemaArchive(ctx, w.Units, session)
-	if err != nil {
-		w.Logger.Error(ctx, "Couldn't create schema archive"+explanation, "error", err)
-		return
-	}
-
-	w.SchemaFilePath = backupspec.RemoteUnsafeSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
-	w.Schema = b
 }
 
 func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError error) {
@@ -215,46 +181,4 @@ func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclie
 		return outHosts, m, nil
 	}
 	return nil, "", nil
-}
-
-func createUnsafeSchemaArchive(ctx context.Context, units []Unit, clusterSession gocqlx.Session) (b bytes.Buffer, err error) {
-	gw := gzip.NewWriter(&b)
-	tw := tar.NewWriter(gw)
-
-	now := timeutc.Now()
-
-	for _, u := range units {
-		if err := ctx.Err(); err != nil {
-			return bytes.Buffer{}, err
-		}
-
-		km, err := clusterSession.KeyspaceMetadata(u.Keyspace)
-		if err != nil {
-			return bytes.Buffer{}, errors.Wrapf(err, "describe keyspace %s schema", u.Keyspace)
-		}
-
-		cqlSchema, err := km.ToCQL()
-		if err != nil {
-			return bytes.Buffer{}, errors.Wrapf(err, "cql keyspace %s metadata", u.Keyspace)
-		}
-
-		if err := tw.WriteHeader(&tar.Header{
-			Name:    u.Keyspace + ".cql",
-			Size:    int64(len(cqlSchema)),
-			Mode:    0o600,
-			ModTime: now,
-		}); err != nil {
-			return bytes.Buffer{}, errors.Wrapf(err, "tar keyspace %s schema", u.Keyspace)
-		}
-
-		if _, err := io.Copy(tw, strings.NewReader(cqlSchema)); err != nil {
-			return bytes.Buffer{}, errors.Wrapf(err, "copy %s schema", u.Keyspace)
-		}
-	}
-
-	if err := multierr.Combine(tw.Close(), gw.Close()); err != nil {
-		return bytes.Buffer{}, errors.Wrap(err, "writer close")
-	}
-
-	return b, nil
 }
