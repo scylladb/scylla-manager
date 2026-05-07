@@ -7,37 +7,23 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
-	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
-
-	"golang.org/x/sync/errgroup"
 )
 
 func (w *worker) DumpSchema(ctx context.Context, hi []hostInfo, sessionFunc cluster.SessionFunc) error {
+	w.Logger.Info(ctx, "Back up schema from DESCRIBE SCHEMA WITH INTERNALS")
+
 	var hosts []string
 	for i := range hi {
 		hosts = append(hosts, hi[i].IP)
 	}
-
-	descSchemaHosts, method, err := backupAndRestoreFromDescSchemaHosts(ctx, w.Client, hosts)
-	if err != nil {
-		return errors.Wrap(err, "get hosts supporting backup/restore from desc schema with internals")
-	}
-
-	return w.safeBackupAndRestoreSchemaDump(ctx, descSchemaHosts, sessionFunc, method)
-}
-
-func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaHosts []string, sessionFunc cluster.SessionFunc, method scyllaclient.SafeDescribeMethod) error {
-	w.Logger.Info(ctx, "Back up schema from DESCRIBE SCHEMA WITH INTERNALS")
-
-	session, host, err := w.createSingleHostSessionToAnyHost(ctx, descSchemaHosts, sessionFunc)
+	session, host, err := w.createSingleHostSessionToAnyHost(ctx, hosts, sessionFunc)
 	if err != nil {
 		if errors.Is(err, cluster.ErrNoCQLCredentials) {
 			err = errors.Wrapf(err, "CQL credentials are required to back up schema for this ScyllaDB version")
@@ -46,7 +32,7 @@ func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaH
 	}
 	defer session.Close()
 
-	if err := w.raftReadBarrier(ctx, session, host, method); err != nil {
+	if err := w.Client.RaftReadBarrier(ctx, host, ""); err != nil {
 		return errors.Wrap(err, "perform raft read barrier on desc schema host")
 	}
 
@@ -62,16 +48,6 @@ func (w *worker) safeBackupAndRestoreSchemaDump(ctx context.Context, descSchemaH
 	w.SchemaFilePath = backupspec.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
 	w.Schema = b
 	return nil
-}
-
-func (w *worker) raftReadBarrier(ctx context.Context, session gocqlx.Session, host string, method scyllaclient.SafeDescribeMethod) error {
-	switch method {
-	case scyllaclient.SafeDescribeMethodReadBarrierAPI:
-		return w.Client.RaftReadBarrier(ctx, host, "")
-	case scyllaclient.SafeDescribeMethodReadBarrierCQL:
-		return query.RaftReadBarrier(session)
-	}
-	return errors.Errorf("unsupported method: %s", string(method))
 }
 
 func (w *worker) UploadSchema(ctx context.Context, hosts []hostInfo) (stepError error) {
@@ -135,50 +111,4 @@ func marshalAndCompressArchive(v any) (bytes.Buffer, error) {
 	}
 
 	return b, nil
-}
-
-// backupAndRestoreFromDescSchemaHosts returns hosts that restore schema from desc schema with internals output.
-func backupAndRestoreFromDescSchemaHosts(ctx context.Context, client *scyllaclient.Client, hosts []string) ([]string, scyllaclient.SafeDescribeMethod, error) {
-	var (
-		mu            = sync.Mutex{}
-		eg            = errgroup.Group{}
-		hostsByMethod = map[scyllaclient.SafeDescribeMethod][]string{}
-	)
-	for _, host := range hosts {
-		h := host
-		eg.Go(func() error {
-			ni, err := client.NodeInfo(ctx, h)
-			if err != nil {
-				return err
-			}
-			method, err := ni.SupportsSafeDescribeSchemaWithInternals()
-			if err != nil {
-				return err
-			}
-			if method == "" {
-				return nil
-			}
-			mu.Lock()
-			defer mu.Unlock()
-			hostsByMethod[method] = append(hostsByMethod[method], h)
-			return nil
-		})
-	}
-	if err := eg.Wait(); err != nil {
-		return nil, "", err
-	}
-
-	// Supported methods in priority order - from high to low
-	methods := []scyllaclient.SafeDescribeMethod{
-		scyllaclient.SafeDescribeMethodReadBarrierAPI,
-		scyllaclient.SafeDescribeMethodReadBarrierCQL,
-	}
-	for _, m := range methods {
-		outHosts, ok := hostsByMethod[m]
-		if !ok {
-			continue
-		}
-		return outHosts, m, nil
-	}
-	return nil, "", nil
 }
