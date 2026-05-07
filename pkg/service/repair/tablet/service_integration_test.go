@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 //go:build all || integration
 
@@ -148,12 +148,6 @@ func TestTabletRepairIntegration(t *testing.T) {
 	}
 	if !ni.EnableTablets {
 		t.Skip("Tablet repair requires tablets to be enabled")
-	}
-
-	if ok, err := ni.SupportsTabletRepair(); err != nil {
-		t.Fatal(err)
-	} else if !ok {
-		t.Skip("Tablet repair requires tablet repair API support")
 	}
 
 	const (

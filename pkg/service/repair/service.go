@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package repair
 
@@ -246,10 +246,7 @@ func validateHost(t Target, p *plan, dcMap map[string][]string) error {
 	} else if !ok {
 		return util.ErrValidate(errors.Errorf("no such host %s in DC %s", t.Host, strings.Join(t.DC, ", ")))
 	}
-	// Ensure Host is not used with tablet repair API
-	if !p.apiSupport.tabletRepair {
-		return nil
-	}
+
 	var tabletKs []string
 	for _, ks := range p.Keyspaces {
 		if ks.Tablet {
@@ -418,23 +415,17 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 
 // ensureNoActiveRepairs checks if SM can proceed with repair
 // in the context of currently running repairs in the cluster.
-// It's behavior slightly differs for different scylla versions.
 // Note that scheduler takes care of not allowing multiple SM tasks with
 // the same type to be executed at the same time, but that does not
 // block general and tablet repair tasks from being executed at the same time.
 // They can run in parallel according to IsRepairCompatibleWithTabletRepair.
 //
-// For clusters which don't support tablet repair, tablet repair task is not available,
-// so the assumption is that no active repairs can be running in the cluster.
-// To check that, SM uses older scylla API providing no information about
-// listed repair tasks keyspace scope.
-//
-// For cluster which support tablet repair, it should be possible to repair
-// vnode (with general repair task) and tablet (with tablet repair task)
-// keyspaces at the same time. To check that, SM uses newer scylla API providing
-// information about listed repair tasks keyspace scope.
+// It should be possible to repair vnode (with general repair task)
+// and tablet (with tablet repair task) keyspaces at the same time.
+// To check that, SM uses newer scylla API providing information
+// about listed repair tasks keyspace scope.
 func (s *Service) ensureNoActiveRepairs(ctx context.Context, client *scyllaclient.Client, p *plan, ksRep scyllaclient.KeyspaceReplication) error {
-	if !p.apiSupport.tabletRepair || ksRep != scyllaclient.ReplicationVnode {
+	if ksRep != scyllaclient.ReplicationVnode {
 		if active, err := client.ActiveRepairs(ctx, p.Hosts); err != nil {
 			s.logger.Error(ctx, "Active repair check failed", "error", err)
 		} else if len(active) > 0 {
