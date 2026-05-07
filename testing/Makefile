@@ -150,10 +150,6 @@ endif
 	# We need to override the default cqlshrc file for TLS deployments, as maintenance socket does not support TLS connections and does not require any form of authentication.
 	@$(CQLSH_NODE) /var/lib/scylla/cql.m --cqlshrc=/dev/null -e "CREATE ROLE cassandra WITH PASSWORD = 'cassandra' AND LOGIN = true AND SUPERUSER = true" || true
 	@$(SECOND_CQLSH_NODE) /var/lib/scylla/cql.m --cqlshrc=/dev/null -e "CREATE ROLE cassandra WITH PASSWORD = 'cassandra' AND LOGIN = true AND SUPERUSER = true" || true
-	@echo "==> Upgrade auth ks replication"
-	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}" || true
-	@echo "==> Upgrade audit ks replication"
-	@$(CQLSH_NODE) $(PUBLIC_NET)11 -u cassandra -p cassandra -e "ALTER KEYSPACE audit WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}" || true
 
 .PHONY: down
 down: ## Stop docker containers
