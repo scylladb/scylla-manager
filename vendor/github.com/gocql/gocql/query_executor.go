@@ -153,7 +153,7 @@ func (q *queryExecutor) executeQuery(qry ExecutableQuery) (*Iter, error) {
 func (q *queryExecutor) do(ctx context.Context, qry ExecutableQuery, hostIter NextHost) *Iter {
 	rt := qry.retryPolicy()
 	if rt == nil {
-		rt = &SimpleRetryPolicy{3}
+		rt = &SimpleRetryPolicy{NumRetries: 3}
 	}
 
 	lwtRT, isRTSupportsLWT := rt.(LWTRetryPolicy)
@@ -253,11 +253,13 @@ func (q *queryExecutor) do(ctx context.Context, qry ExecutableQuery, hostIter Ne
 		// If query is unsuccessful, check the error with RetryPolicy to retry
 		switch retryType {
 		case Retry:
+			iter.finalize(true)
 			// retry on the same host
 			continue
 		case Rethrow, Ignore:
 			return iter
 		case RetryNextHost:
+			iter.finalize(true)
 			// retry on the next host
 			selectedHost = hostIter()
 			continue
@@ -273,9 +275,11 @@ func (q *queryExecutor) do(ctx context.Context, qry ExecutableQuery, hostIter Ne
 }
 
 func (q *queryExecutor) run(ctx context.Context, qry ExecutableQuery, hostIter NextHost, results chan<- *Iter) {
+	iter := q.do(ctx, qry, hostIter)
 	select {
-	case results <- q.do(ctx, qry, hostIter):
+	case results <- iter:
 	case <-ctx.Done():
+		iter.discard()
 	}
 	qry.releaseAfterExecution()
 }

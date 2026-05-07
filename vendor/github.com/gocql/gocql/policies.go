@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	randv2 "math/rand/v2"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -395,10 +396,10 @@ func newSingleHost(info *HostInfo, maxRetries byte, retryDelay time.Duration) *s
 }
 
 type singleHost struct {
+	info       *HostInfo
+	delay      time.Duration
 	retry      byte
 	maxRetries byte
-	delay      time.Duration
-	info       *HostInfo
 }
 
 func (s *singleHost) selectHost() SelectedHost {
@@ -522,23 +523,20 @@ type clusterMeta struct {
 var MAX_IN_FLIGHT_THRESHOLD int = 10
 
 type tokenAwareHostPolicy struct {
-	fallback            HostSelectionPolicy
+	fallback HostSelectionPolicy
+	// atomic store for *clusterMeta
+	metadata            atomic.Value
+	logger              StdLogger
 	getKeyspaceMetadata func(keyspace string) (*KeyspaceMetadata, error)
 	getKeyspaceName     func() string
-
-	shuffleReplicas          bool
-	nonLocalReplicasFallback bool
-
+	hosts               cowHostList
+	partitioner         string
 	// mu protects writes to hosts, partitioner, metadata.
 	// reads can be unlocked as long as they are not used for updating state later.
-	mu          sync.Mutex
-	hosts       cowHostList
-	partitioner string
-	metadata    atomic.Value // *clusterMeta
-
-	logger StdLogger
-
-	avoidSlowReplicas bool
+	mu                       sync.Mutex
+	shuffleReplicas          bool
+	nonLocalReplicasFallback bool
+	avoidSlowReplicas        bool
 }
 
 func (t *tokenAwareHostPolicy) Init(s *Session) {
@@ -553,7 +551,7 @@ func (t *tokenAwareHostPolicy) Init(s *Session) {
 		if keyspace == "" {
 			return nil, ErrNoKeyspace
 		}
-		return s.metadataDescriber.getSchema(keyspace)
+		return s.metadataDescriber.GetKeyspace(keyspace)
 	}
 	t.getKeyspaceName = func() string { return s.cfg.Keyspace }
 	t.logger = s.logger
@@ -721,6 +719,100 @@ func (m *clusterMeta) resetTokenRing(partitioner string, hosts []*HostInfo, logg
 	m.tokenRing = tokenRing
 }
 
+// hostSet is a small set optimized for tracking hosts returned by the
+// token-aware iterator. Uses an inline array for RF <= 9 (3 DCs × RF=3),
+// spilling to a map for larger replica sets.
+type hostSet struct {
+	overflow map[*HostInfo]struct{}
+	arr      [9]*HostInfo
+	n        int
+}
+
+func (s *hostSet) add(h *HostInfo) {
+	if s.n < len(s.arr) {
+		s.arr[s.n] = h
+		s.n++
+		return
+	}
+	if s.overflow == nil {
+		s.overflow = make(map[*HostInfo]struct{})
+		for i := range s.n {
+			s.overflow[s.arr[i]] = struct{}{}
+		}
+	}
+	s.overflow[h] = struct{}{}
+}
+
+func (s *hostSet) contains(h *HostInfo) bool {
+	if s.overflow != nil {
+		_, ok := s.overflow[h]
+		return ok
+	}
+	for i := range s.n {
+		if s.arr[i] == h {
+			return true
+		}
+	}
+	return false
+}
+
+// shuffleHostsInPlace shuffles the given slice in-place using math/rand/v2.
+func shuffleHostsInPlace(hosts []*HostInfo) {
+	randv2.Shuffle(len(hosts), func(i, j int) {
+		hosts[i], hosts[j] = hosts[j], hosts[i]
+	})
+}
+
+// partitionHealthy performs an in-place stable partition of replicas, moving
+// healthy (non-busy) hosts to the front while preserving relative order.
+func partitionHealthy(replicas []*HostInfo, s *Session) {
+	n := len(replicas)
+	if n <= 1 {
+		return
+	}
+
+	// Snapshot IsBusy to avoid TOCTOU races between counting and placement.
+	var busyBuf [9]bool
+	var busy []bool
+	if n <= len(busyBuf) {
+		busy = busyBuf[:n]
+	} else {
+		busy = make([]bool, n)
+	}
+
+	healthyCount := 0
+	for i, h := range replicas {
+		busy[i] = h.IsBusy(s)
+		if !busy[i] {
+			healthyCount++
+		}
+	}
+
+	if healthyCount == 0 || healthyCount == n {
+		return // all same category, nothing to do
+	}
+
+	var buf [9]*HostInfo
+	var tmp []*HostInfo
+	if n <= len(buf) {
+		tmp = buf[:n]
+	} else {
+		tmp = make([]*HostInfo, n)
+	}
+	copy(tmp, replicas)
+
+	hi, ui := 0, healthyCount
+	for i, h := range tmp {
+		if !busy[i] {
+			replicas[hi] = h
+			hi++
+		} else {
+			replicas[ui] = h
+			ui++
+		}
+	}
+}
+
 func (t *tokenAwareHostPolicy) Pick(qry ExecutableQuery) NextHost {
 	if qry == nil {
 		return t.fallback.Pick(qry)
@@ -749,12 +841,12 @@ func (t *tokenAwareHostPolicy) Pick(qry ExecutableQuery) NextHost {
 	var replicas []*HostInfo
 
 	if session := qry.GetSession(); session != nil && session.tabletsRoutingV1 && isInt64Token {
-		tabletReplicas := session.findTabletReplicasForToken(qry.Keyspace(), qry.Table(), int64(tokenCasted))
+		tabletReplicas := session.findTabletReplicasUnsafeForToken(qry.Keyspace(), qry.Table(), int64(tokenCasted))
 		if len(tabletReplicas) != 0 {
 			hosts := t.hosts.get()
 			for _, replica := range tabletReplicas {
 				for _, host := range hosts {
-					if host.hostId == replica.HostID() {
+					if host.hostId == UUID(replica.HostUUIDValue()) {
 						replicas = append(replicas, host)
 						break
 					}
@@ -766,10 +858,13 @@ func (t *tokenAwareHostPolicy) Pick(qry ExecutableQuery) NextHost {
 	if len(replicas) == 0 {
 		ht := meta.replicas[qry.Keyspace()].replicasFor(token)
 		if ht != nil {
-			// Clone ht.hosts, otherwise, if shuffling or avoidSlowReplicas is enabled, it will update ht.hosts
-			replicas = make([]*HostInfo, len(ht.hosts))
-			for id, replica := range ht.hosts {
-				replicas[id] = replica
+			needsMutation := t.shuffleReplicas || t.avoidSlowReplicas
+			if needsMutation {
+				replicas = make([]*HostInfo, len(ht.hosts))
+				copy(replicas, ht.hosts)
+			} else {
+				// Zero-copy: replicas must not be mutated below unless needsMutation is true.
+				replicas = ht.hosts
 			}
 		}
 	}
@@ -780,22 +875,11 @@ func (t *tokenAwareHostPolicy) Pick(qry ExecutableQuery) NextHost {
 	}
 
 	if t.shuffleReplicas && !qry.IsLWT() && len(replicas) > 1 {
-		replicas = shuffleHosts(replicas)
+		shuffleHostsInPlace(replicas)
 	}
 
 	if s := qry.GetSession(); s != nil && !qry.IsLWT() && t.avoidSlowReplicas {
-		healthyReplicas := make([]*HostInfo, 0, len(replicas))
-		unhealthyReplicas := make([]*HostInfo, 0, len(replicas))
-
-		for _, h := range replicas {
-			if h.IsBusy(s) {
-				unhealthyReplicas = append(unhealthyReplicas, h)
-			} else {
-				healthyReplicas = append(healthyReplicas, h)
-			}
-		}
-
-		replicas = append(healthyReplicas, unhealthyReplicas...)
+		partitionHealthy(replicas, s)
 	}
 
 	var (
@@ -817,7 +901,7 @@ func (t *tokenAwareHostPolicy) Pick(qry ExecutableQuery) NextHost {
 		remote = make([][]*HostInfo, maxTier)
 	}
 
-	used := make(map[*HostInfo]bool, len(replicas))
+	var used hostSet
 	return func() SelectedHost {
 		for i < len(replicas) {
 			h := replicas[i]
@@ -840,7 +924,7 @@ func (t *tokenAwareHostPolicy) Pick(qry ExecutableQuery) NextHost {
 			}
 
 			if h.IsUp() {
-				used[h] = true
+				used.add(h)
 				return selectedHost{info: h, token: token}
 			}
 		}
@@ -856,7 +940,7 @@ func (t *tokenAwareHostPolicy) Pick(qry ExecutableQuery) NextHost {
 				}
 
 				if h.IsUp() {
-					used[h] = true
+					used.add(h)
 					return selectedHost{info: h, token: token}
 				}
 			}
@@ -869,8 +953,8 @@ func (t *tokenAwareHostPolicy) Pick(qry ExecutableQuery) NextHost {
 
 		// filter the token aware selected hosts from the fallback hosts
 		for fallbackHost := fallbackIter(); fallbackHost != nil; fallbackHost = fallbackIter() {
-			if !used[fallbackHost.Info()] {
-				used[fallbackHost.Info()] = true
+			if !used.contains(fallbackHost.Info()) {
+				used.add(fallbackHost.Info())
 				return fallbackHost
 			}
 		}
@@ -1011,14 +1095,14 @@ func (d *dcAwareRR) Pick(q ExecutableQuery) NextHost {
 // a different rack, before hosts in all other datacenters
 
 type rackAwareRR struct {
+	localDC   string
+	localRack string
+	hosts     []cowHostList
 	// lastUsedHostIdx keeps the index of the last used host.
 	// It is accessed atomically and needs to be aligned to 64 bits, so we
 	// keep it first in the struct. Do not move it or add new struct members
 	// before it.
 	lastUsedHostIdx   uint64
-	localDC           string
-	localRack         string
-	hosts             []cowHostList
 	disableDCFailover bool
 }
 
@@ -1227,6 +1311,10 @@ type SpeculativeExecutionPolicy interface {
 }
 
 type NonSpeculativeExecution struct{}
+
+// defaultNonSpecExec is a package-level singleton that avoids allocating a new
+// NonSpeculativeExecution every time a Query or Batch is initialised.
+var defaultNonSpecExec SpeculativeExecutionPolicy = &NonSpeculativeExecution{}
 
 func (sp NonSpeculativeExecution) Attempts() int        { return 0 } // No additional attempts
 func (sp NonSpeculativeExecution) Delay() time.Duration { return 1 } // The delay. Must be positive to be used in a ticker.

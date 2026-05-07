@@ -14,3 +14,22 @@ testdata/pki/*.p12
 
 docs/_build/
 docs/source/.doctrees
+
+TODO*.md
+
+# Codex - AI assistant metadata
+.codex
+.codex/
+.codex-cache/
+.codex-config.json
+.codex-settings.json
+codex.log
+AGENTS.md
+
+# Claude - AI assistant metadata
+.anthropic/
+.claude/
+claude.log
+claude_history.json
+claude_config.json
+CLAUDE.md

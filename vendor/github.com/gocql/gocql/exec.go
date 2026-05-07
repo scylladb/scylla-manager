@@ -17,13 +17,13 @@ type SingleHostQueryExecutor struct {
 }
 
 // Exec executes the query without returning any rows.
-func (e SingleHostQueryExecutor) Exec(stmt string, values ...interface{}) error {
+func (e SingleHostQueryExecutor) Exec(stmt string, values ...any) error {
 	return e.control.query(stmt, values...).Close()
 }
 
 // Iter executes the query and returns an iterator capable of iterating
 // over all results.
-func (e SingleHostQueryExecutor) Iter(stmt string, values ...interface{}) *Iter {
+func (e SingleHostQueryExecutor) Iter(stmt string, values ...any) *Iter {
 	return e.control.query(stmt, values...)
 }
 
@@ -69,7 +69,7 @@ func NewSingleHostQueryExecutor(cfg *ClusterConfig) (e SingleHostQueryExecutor, 
 	}
 
 	var hosts []*HostInfo
-	if hosts, err = addrsToHosts(c.DNSResolver, c.translateAddressPort, c.Hosts, c.Port, c.Logger); err != nil {
+	if hosts, err = resolveInitialEndpoints(c.DNSResolver, c.Hosts, c.Port, c.Logger); err != nil {
 		err = fmt.Errorf("addrs to hosts: %w", err)
 		return
 	}
