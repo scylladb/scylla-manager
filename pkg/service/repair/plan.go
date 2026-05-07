@@ -1,4 +1,4 @@
-// Copyright (C) 2023 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package repair
 
@@ -379,9 +379,6 @@ func newHostKsTable(host, ks, table string) scyllaclient.HostKeyspaceTable {
 // apiSupport describes the support for optimized repair API
 // calls which are not present in all supported Scylla versions.
 type apiSupport struct {
-	// If /storage_service/repair_async/{keyspace} API supports
-	// 'small_table_optimization' query param.
-	smallTableRepair bool
 	// If /storage_service/tablets/repair API is exposed.
 	tabletRepair bool
 	// If /storage_service/tablets/repair API supports
@@ -390,8 +387,6 @@ type apiSupport struct {
 }
 
 func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts []string) (apiSupport, error) {
-	smallTableOpt := atomic.Bool{}
-	smallTableOpt.Store(true)
 	fullTabletTableOpt := atomic.Bool{}
 	fullTabletTableOpt.Store(true)
 	incrementalRepair := atomic.Bool{}
@@ -406,15 +401,7 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 				return err
 			}
 
-			res, err := ni.SupportsRepairSmallTableOptimization()
-			if err != nil {
-				return err
-			}
-			if !res {
-				smallTableOpt.Store(false)
-			}
-
-			res, err = ni.SupportsTabletRepair()
+			res, err := ni.SupportsTabletRepair()
 			if err != nil {
 				return err
 			}
@@ -438,7 +425,6 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 		return apiSupport{}, err
 	}
 	return apiSupport{
-		smallTableRepair:  smallTableOpt.Load(),
 		tabletRepair:      fullTabletTableOpt.Load(),
 		incrementalRepair: incrementalRepair.Load(),
 	}, nil
