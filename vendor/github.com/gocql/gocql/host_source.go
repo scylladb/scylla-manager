@@ -32,6 +32,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	frm "github.com/gocql/gocql/internal/frame"
 )
 
 var (
@@ -56,8 +58,10 @@ const (
 )
 
 type cassVersion struct {
-	Major, Minor, Patch int
-	Qualifier           string
+	Qualifier string
+	Major     int
+	Minor     int
+	Patch     int
 }
 
 func (c *cassVersion) Set(v string) error {
@@ -148,34 +152,118 @@ func (c cassVersion) nodeUpDelay() time.Duration {
 	return 10 * time.Second
 }
 
+type AddressPort struct {
+	Address net.IP
+	Port    uint16
+}
+
+func (a AddressPort) Equal(o AddressPort) bool {
+	return a.Address.Equal(o.Address) && a.Port == o.Port
+}
+
+func (a AddressPort) IsValid() bool {
+	return len(a.Address) != 0 && !a.Address.IsUnspecified() && a.Port != 0
+}
+
+func (a AddressPort) String() string {
+	return fmt.Sprintf("%s:%d", a.Address, a.Port)
+}
+
+func (a AddressPort) ToNetAddr() string {
+	return net.JoinHostPort(a.Address.String(), strconv.Itoa(int(a.Port)))
+}
+
+type translatedAddresses struct {
+	CQL           AddressPort
+	ShardAware    AddressPort
+	ShardAwareTLS AddressPort
+}
+
+func (h translatedAddresses) Equal(o *translatedAddresses) bool {
+	return h.CQL.Equal(o.CQL) && h.ShardAware.Equal(o.ShardAware) && h.ShardAwareTLS.Equal(o.ShardAwareTLS)
+}
+
+type HostInfoBuilder struct {
+	TranslatedAddresses *translatedAddresses
+	Workload            string
+	HostId              string
+	SchemaVersion       string
+	Hostname            string
+	ClusterName         string
+	Partitioner         string
+	Rack                string
+	DseVersion          string
+	DataCenter          string
+	ConnectAddress      net.IP
+	BroadcastAddress    net.IP
+	PreferredIP         net.IP
+	RpcAddress          net.IP
+	Peer                net.IP
+	ListenAddress       net.IP
+	Tokens              []string
+	Version             cassVersion
+	Port                int
+}
+
+func (b HostInfoBuilder) Build() HostInfo {
+	var hostUUID UUID
+	if b.HostId != "" {
+		var err error
+		hostUUID, err = ParseUUID(b.HostId)
+		if err != nil {
+			// Fall back: treat as opaque identifier (for tests with non-UUID strings).
+			copy(hostUUID[:], b.HostId)
+		}
+	}
+	return HostInfo{
+		dseVersion:          b.DseVersion,
+		hostId:              hostUUID,
+		dataCenter:          b.DataCenter,
+		schemaVersion:       b.SchemaVersion,
+		hostname:            b.Hostname,
+		clusterName:         b.ClusterName,
+		partitioner:         b.Partitioner,
+		rack:                b.Rack,
+		workload:            b.Workload,
+		tokens:              b.Tokens,
+		preferredIP:         b.PreferredIP,
+		broadcastAddress:    b.BroadcastAddress,
+		rpcAddress:          b.RpcAddress,
+		connectAddress:      b.ConnectAddress,
+		listenAddress:       b.ListenAddress,
+		translatedAddresses: b.TranslatedAddresses,
+		version:             b.Version,
+		port:                b.Port,
+		peer:                b.Peer,
+	}
+}
+
 type HostInfo struct {
+	translatedAddresses *translatedAddresses
+	workload            string
+	dseVersion          string
+	dataCenter          string
+	schemaVersion       string
+	hostname            string
+	clusterName         string
+	partitioner         string
+	rack                string
+	rpcAddress          net.IP
+	broadcastAddress    net.IP
+	tokens              []string
+	preferredIP         net.IP
+	peer                net.IP
+	listenAddress       net.IP
+	connectAddress      net.IP
+	version             cassVersion
+	scyllaFeatures      ScyllaHostFeatures
+	port                int
 	// TODO(zariel): reduce locking maybe, not all values will change, but to ensure
 	// that we are thread safe use a mutex to access all fields.
-	mu                         sync.RWMutex
-	hostname                   string
-	peer                       net.IP
-	broadcastAddress           net.IP
-	listenAddress              net.IP
-	rpcAddress                 net.IP
-	preferredIP                net.IP
-	connectAddress             net.IP
-	untranslatedConnectAddress net.IP
-	port                       int
-	dataCenter                 string
-	rack                       string
-	hostId                     string
-	workload                   string
-	graph                      bool
-	dseVersion                 string
-	partitioner                string
-	clusterName                string
-	version                    cassVersion
-	state                      nodeState
-	schemaVersion              string
-	tokens                     []string
-
-	scyllaShardAwarePort    uint16
-	scyllaShardAwarePortTLS uint16
+	mu     sync.RWMutex
+	state  nodeState
+	hostId UUID
+	graph  bool
 }
 
 func (h *HostInfo) Equal(host *HostInfo) bool {
@@ -184,7 +272,7 @@ func (h *HostInfo) Equal(host *HostInfo) bool {
 		return true
 	}
 
-	return h.HostID() == host.HostID() && h.ConnectAddressAndPort() == host.ConnectAddressAndPort()
+	return h.HostID() == host.HostID() && h.ConnectAddress().Equal(host.ConnectAddress()) && h.Port() == host.Port()
 }
 
 func (h *HostInfo) Peer() net.IP {
@@ -205,7 +293,9 @@ func validIpAddr(addr net.IP) bool {
 }
 
 func (h *HostInfo) connectAddressLocked() (net.IP, string) {
-	if validIpAddr(h.connectAddress) {
+	if h.translatedAddresses != nil && h.translatedAddresses.CQL.IsValid() {
+		return h.translatedAddresses.CQL.Address, "connect_address"
+	} else if validIpAddr(h.connectAddress) {
 		return h.connectAddress, "connect_address"
 	} else if validIpAddr(h.rpcAddress) {
 		return h.rpcAddress, "rpc_adress"
@@ -218,6 +308,19 @@ func (h *HostInfo) connectAddressLocked() (net.IP, string) {
 		return h.peer, "peer"
 	}
 	return net.IPv4zero, "invalid"
+}
+
+func (h *HostInfo) getDriverFacingIpAddressLocked() net.IP {
+	if validIpAddr(h.rpcAddress) {
+		return h.rpcAddress
+	} else if validIpAddr(h.preferredIP) {
+		return h.preferredIP
+	} else if validIpAddr(h.broadcastAddress) {
+		return h.broadcastAddress
+	} else if validIpAddr(h.peer) {
+		return h.peer
+	}
+	return net.IPv4zero
 }
 
 // nodeToNodeAddress returns address broadcasted between node to nodes.
@@ -237,8 +340,7 @@ func (h *HostInfo) nodeToNodeAddress() net.IP {
 }
 
 // Returns the address that should be used to connect to the host.
-// If you wish to override this, use an AddressTranslator or
-// use a HostFilter to SetConnectAddress()
+// If you wish to override this, use an AddressTranslator
 func (h *HostInfo) ConnectAddress() net.IP {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -249,37 +351,10 @@ func (h *HostInfo) ConnectAddress() net.IP {
 	panic(fmt.Sprintf("no valid connect address for host: %v. Is your cluster configured correctly?", h))
 }
 
-// ConnectAddressWithError same as ConnectAddress, but an error instead of panic.
-func (h *HostInfo) ConnectAddressWithError() (net.IP, error) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	if addr, source := h.connectAddressLocked(); source != "invalid" {
-		return addr, nil
-	}
-	return nil, fmt.Errorf("no valid connect address for host: %v", h)
-}
-
 func (h *HostInfo) UntranslatedConnectAddress() net.IP {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-
-	if len(h.untranslatedConnectAddress) != 0 {
-		return h.untranslatedConnectAddress
-	}
-
-	if addr, _ := h.connectAddressLocked(); validIpAddr(addr) {
-		return addr
-	}
-	panic(fmt.Sprintf("no valid connect address for host: %v. Is your cluster configured correctly?", h))
-}
-
-func (h *HostInfo) SetConnectAddress(address net.IP) *HostInfo {
-	// TODO(zariel): should this not be exported?
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.connectAddress = address
-	return h
+	return h.connectAddress
 }
 
 func (h *HostInfo) BroadcastAddress() net.IP {
@@ -323,13 +398,18 @@ func (h *HostInfo) Rack() string {
 func (h *HostInfo) HostID() string {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	return h.hostId
+	if h.hostId.IsEmpty() {
+		return ""
+	}
+	return h.hostId.String()
 }
 
-func (h *HostInfo) SetHostID(hostID string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.hostId = hostID
+// hostUUID returns the raw binary host UUID under the read lock.
+// Use this instead of direct field access on shared HostInfo to avoid data races.
+func (h *HostInfo) hostUUID() UUID {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.hostId
 }
 
 func (h *HostInfo) WorkLoad() string {
@@ -353,7 +433,10 @@ func (h *HostInfo) DSEVersion() string {
 func (h *HostInfo) Partitioner() string {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	return h.partitioner
+	if h.partitioner != "" {
+		return h.partitioner
+	}
+	return h.scyllaFeatures.partitioner
 }
 
 func (h *HostInfo) ClusterName() string {
@@ -432,7 +515,7 @@ func (h *HostInfo) update(from *HostInfo) {
 	if h.rack == "" {
 		h.rack = from.rack
 	}
-	if h.hostId == "" {
+	if h.hostId.IsEmpty() {
 		h.hostId = from.hostId
 	}
 	if h.workload == "" {
@@ -464,9 +547,11 @@ func (h *HostInfo) IsBusy(s *Session) bool {
 	return ok && h != nil && pool.InFlight() >= MAX_IN_FLIGHT_THRESHOLD
 }
 
+// ConnectAddressAndPort returns "{ConnectAddress}:{Port}"
+// Deprecated: Use ConnectAddress and Port separately.
 func (h *HostInfo) ConnectAddressAndPort() string {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	h.mu.RLock()
+	defer h.mu.RUnlock()
 	addr, _ := h.connectAddressLocked()
 	return net.JoinHostPort(addr.String(), strconv.Itoa(h.port))
 }
@@ -481,14 +566,19 @@ func (h *HostInfo) String() string {
 		"port=%d data_center=%q rack=%q host_id=%q version=%q state=%s num_tokens=%d]",
 		h.hostname, h.connectAddress, h.peer, h.rpcAddress, h.broadcastAddress, h.preferredIP,
 		connectAddr, source,
-		h.port, h.dataCenter, h.rack, h.hostId, h.version, h.state, len(h.tokens))
+		h.port, h.dataCenter, h.rack, h.hostId.String(), h.version, h.state, len(h.tokens))
 }
 
-func (h *HostInfo) setScyllaSupported(s scyllaSupported) {
+func (h *HostInfo) setScyllaFeatures(s ScyllaHostFeatures) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.scyllaShardAwarePort = s.shardAwarePort
-	h.scyllaShardAwarePortTLS = s.shardAwarePortSSL
+	h.scyllaFeatures = s
+}
+
+func (h *HostInfo) ScyllaFeatures() ScyllaHostFeatures {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.scyllaFeatures
 }
 
 // ScyllaShardAwarePort returns the shard aware port of this host.
@@ -496,7 +586,7 @@ func (h *HostInfo) setScyllaSupported(s scyllaSupported) {
 func (h *HostInfo) ScyllaShardAwarePort() uint16 {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	return h.scyllaShardAwarePort
+	return h.scyllaFeatures.ShardAwarePort()
 }
 
 // ScyllaShardAwarePortTLS returns the TLS-enabled shard aware port of this host.
@@ -504,15 +594,38 @@ func (h *HostInfo) ScyllaShardAwarePort() uint16 {
 func (h *HostInfo) ScyllaShardAwarePortTLS() uint16 {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	return h.scyllaShardAwarePortTLS
+	return h.scyllaFeatures.ShardAwarePortTLS()
+}
+
+// ScyllaShardCount returns count of shards on the node.
+func (h *HostInfo) ScyllaShardCount() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.scyllaFeatures.ShardsCount()
+}
+
+func (h *HostInfo) setTranslatedConnectionInfo(info translatedAddresses) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.translatedAddresses = &info
+}
+
+func (h *HostInfo) getTranslatedConnectionInfo() *translatedAddresses {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.translatedAddresses
 }
 
 // Returns true if we are using system_schema.keyspaces instead of system.schema_keyspaces
 func checkSystemSchema(control controlConnection) (bool, error) {
 	iter := control.querySystem("SELECT * FROM system_schema.keyspaces")
+	if iter == nil {
+		return false, errNoControl
+	}
+	defer iter.Close()
 	if err := iter.err; err != nil {
-		if errf, ok := err.(*errorFrame); ok {
-			if errf.code == ErrCodeSyntax {
+		if errf, ok := err.(*frm.ErrorFrame); ok {
+			if errf.Code == ErrCodeSyntax {
 				return false, nil
 			}
 		}
@@ -525,9 +638,11 @@ func checkSystemSchema(control controlConnection) (bool, error) {
 
 // Given a map that represents a row from either system.local or system.peers
 // return as much information as we can in *HostInfo
-func hostInfoFromMap(row map[string]interface{}, host *HostInfo, translateAddressPort func(addr net.IP, port int) (net.IP, int)) (*HostInfo, error) {
+func hostInfoFromMap(row map[string]any, defaultPort int) (*HostInfo, error) {
 	const assertErrorMsg = "Assertion failed for %s"
 	var ok bool
+
+	host := HostInfo{}
 
 	// Default to our connected port if the cluster doesn't have port information
 	for key, value := range row {
@@ -547,7 +662,7 @@ func hostInfoFromMap(row map[string]interface{}, host *HostInfo, translateAddres
 			if !ok {
 				return nil, fmt.Errorf(assertErrorMsg, "host_id")
 			}
-			host.hostId = hostId.String()
+			host.hostId = hostId
 		case "release_version":
 			version, ok := value.(string)
 			if !ok {
@@ -637,15 +752,17 @@ func hostInfoFromMap(row map[string]interface{}, host *HostInfo, translateAddres
 		// Not sure what the port field will be called until the JIRA issue is complete
 	}
 
-	host.untranslatedConnectAddress = host.ConnectAddress()
-	ip, port := translateAddressPort(host.untranslatedConnectAddress, host.port)
-	host.connectAddress = ip
-	host.port = port
+	if host.port == 0 {
+		host.port = defaultPort
+	}
 
-	return host, nil
+	host.connectAddress = host.getDriverFacingIpAddressLocked()
+	return &host, nil
 }
 
-func hostInfoFromIter(iter *Iter, connectAddress net.IP, defaultPort int, translateAddressPort func(addr net.IP, port int) (net.IP, int)) (*HostInfo, error) {
+func hostInfoFromIter(iter *Iter, defaultPort int) (*HostInfo, error) {
+	defer iter.Close()
+
 	rows, err := iter.SliceMap()
 	if err != nil {
 		// TODO(zariel): make typed error
@@ -656,7 +773,7 @@ func hostInfoFromIter(iter *Iter, connectAddress net.IP, defaultPort int, transl
 		return nil, errors.New("query returned 0 rows")
 	}
 
-	host, err := hostInfoFromMap(rows[0], &HostInfo{connectAddress: connectAddress, port: defaultPort}, translateAddressPort)
+	host, err := hostInfoFromMap(rows[0], defaultPort)
 	if err != nil {
 		return nil, err
 	}
@@ -699,7 +816,7 @@ func (s *Session) refreshRing() error {
 			if !ok {
 				return fmt.Errorf("get existing host=%s from prevHosts: %w", h, ErrCannotFindHost)
 			}
-			if h.connectAddress.Equal(existing.connectAddress) && h.nodeToNodeAddress().Equal(existing.nodeToNodeAddress()) {
+			if h.UntranslatedConnectAddress().Equal(existing.UntranslatedConnectAddress()) && h.nodeToNodeAddress().Equal(existing.nodeToNodeAddress()) {
 				// no host IP change
 				host.update(h)
 			} else {

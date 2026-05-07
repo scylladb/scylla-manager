@@ -31,6 +31,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gocql/gocql/internal/debug"
 	"github.com/gocql/gocql/tablets"
 
 	"github.com/gocql/gocql/debounce"
@@ -52,14 +53,12 @@ type SetTablets interface {
 }
 
 type policyConnPool struct {
-	session *Session
-
-	port     int
-	numConns int
-	keyspace string
-
-	mu            sync.RWMutex
+	session       *Session
 	hostConnPools map[string]*hostConnPool
+	keyspace      string
+	port          int
+	numConns      int
+	mu            sync.RWMutex
 }
 
 func connConfig(cfg *ClusterConfig) (*ConnConfig, error) {
@@ -74,7 +73,7 @@ func connConfig(cfg *ClusterConfig) (*ConnConfig, error) {
 			if cfg.SocketKeepalive > 0 {
 				d.KeepAlive = cfg.SocketKeepalive
 			}
-			dialer = &ScyllaShardAwareDialer{d}
+			dialer = &ScyllaShardAwareDialer{Dialer: d}
 		}
 
 		hostDialer = &scyllaDialer{
@@ -144,7 +143,6 @@ func (p *policyConnPool) SetHosts(hosts []*HostInfo) {
 			pools <- newHostConnPool(
 				p.session,
 				host,
-				p.port,
 				p.numConns,
 				p.keyspace,
 			)
@@ -205,6 +203,16 @@ func (p *policyConnPool) getPoolByHostID(hostID string) (pool *hostConnPool, ok 
 	return
 }
 
+func (p *policyConnPool) iteratePool(iter func(info HostPoolInfo) bool) {
+	p.mu.RLock()
+	for _, pool := range p.hostConnPools {
+		if !iter(pool) {
+			break
+		}
+	}
+	p.mu.RUnlock()
+}
+
 func (p *policyConnPool) Close() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -224,7 +232,6 @@ func (p *policyConnPool) addHost(host *HostInfo) {
 		pool = newHostConnPool(
 			p.session,
 			host,
-			host.Port(), // TODO: if port == 0 use pool.port?
 			p.numConns,
 			p.keyspace,
 		)
@@ -253,31 +260,28 @@ func (p *policyConnPool) removeHost(hostID string) {
 // hostConnPool is a connection pool for a single host.
 // Connection selection is based on a provided ConnSelectionPolicy
 type hostConnPool struct {
-	session  *Session
-	host     *HostInfo
-	size     int
-	keyspace string
-	// protection for connPicker, closed, filling
-	mu         sync.RWMutex
 	connPicker ConnPicker
-	closed     bool
-	filling    bool
+	logger     StdLogger
+	session    *Session
+	host       *HostInfo
 	debouncer  *debounce.SimpleDebouncer
-
-	logger StdLogger
+	keyspace   string
+	size       int
+	// protection for connPicker, closed, filling
+	mu      sync.RWMutex
+	closed  bool
+	filling bool
 }
 
-func (h *hostConnPool) String() string {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	size, _ := h.connPicker.Size()
+func (pool *hostConnPool) String() string {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+	size, _ := pool.connPicker.Size()
 	return fmt.Sprintf("[filling=%v closed=%v conns=%v size=%v host=%v]",
-		h.filling, h.closed, size, h.size, h.host)
+		pool.filling, pool.closed, size, pool.size, pool.host)
 }
 
-func newHostConnPool(session *Session, host *HostInfo, port, size int,
-	keyspace string) *hostConnPool {
-
+func newHostConnPool(session *Session, host *HostInfo, size int, keyspace string) *hostConnPool {
 	pool := &hostConnPool{
 		session:    session,
 		host:       host,
@@ -337,12 +341,14 @@ func (pool *hostConnPool) InFlight() int {
 // Close the connection pool
 func (pool *hostConnPool) Close() {
 	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
-	if !pool.closed {
-		pool.connPicker.Close()
+	if pool.closed {
+		pool.mu.Unlock()
+		return
 	}
 	pool.closed = true
+	pool.mu.Unlock()
+
+	pool.connPicker.Close()
 }
 
 // Fill the connection pool
@@ -425,7 +431,7 @@ func (pool *hostConnPool) logConnectErr(err error) {
 	if opErr, ok := err.(*net.OpError); ok && (opErr.Op == "dial" || opErr.Op == "read") {
 		// connection refused
 		// these are typical during a node outage so avoid log spam.
-		if gocqlDebug {
+		if debug.Enabled {
 			pool.logger.Printf("unable to dial %q: %v\n", pool.host, err)
 		}
 	} else if err != nil {
@@ -437,7 +443,7 @@ func (pool *hostConnPool) logConnectErr(err error) {
 // transition back to a not-filling state.
 func (pool *hostConnPool) fillingStopped(err error) {
 	if err != nil {
-		if gocqlDebug {
+		if debug.Enabled {
 			pool.logger.Printf("gocql: filling stopped %q: %v\n", pool.host.ConnectAddress(), err)
 		}
 		// wait for some time to avoid back-to-back filling
@@ -455,7 +461,7 @@ func (pool *hostConnPool) fillingStopped(err error) {
 
 	// if we errored and the size is now zero, make sure the host is marked as down
 	// see https://github.com/apache/cassandra-gocql-driver/issues/1614
-	if gocqlDebug {
+	if debug.Enabled {
 		pool.logger.Printf("gocql: conns of pool after stopped %q: %v\n", host.ConnectAddress(), count)
 	}
 	if err != nil && count == 0 {
@@ -517,7 +523,7 @@ func (pool *hostConnPool) connect() (err error) {
 				break
 			}
 		}
-		if gocqlDebug {
+		if debug.Enabled {
 			pool.logger.Printf("gocql: connection failed %q: %v, reconnecting with %T\n",
 				pool.host.ConnectAddress(), err, reconnectionPolicy)
 		}
@@ -538,16 +544,23 @@ func (pool *hostConnPool) connect() (err error) {
 
 	// add the Conn to the pool
 	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
 	if pool.closed {
+		pool.mu.Unlock()
 		conn.Close()
 		return nil
 	}
 
 	// lazily initialize the connPicker when we know the required type
 	pool.initConnPicker(conn)
-	pool.connPicker.Put(conn)
+	if err := pool.connPicker.Put(conn); err != nil {
+		pool.mu.Unlock()
+		conn.Close()
+		if debug.Enabled {
+			pool.logger.Printf("gocql: pool connection was not added to the pool: %w", err)
+		}
+		return nil
+	}
+	pool.mu.Unlock()
 	conn.finalizeConnection()
 
 	return nil
@@ -583,10 +596,38 @@ func (pool *hostConnPool) HandleError(conn *Conn, err error, closed bool) {
 		return
 	}
 
-	if gocqlDebug {
+	if debug.Enabled {
 		pool.logger.Printf("gocql: pool connection error %q: %v\n", conn.addr, err)
 	}
 
 	pool.connPicker.Remove(conn)
 	go pool.fill_debounce()
+}
+
+func (pool *hostConnPool) GetConnectionCount() int {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	return pool.connPicker.GetConnectionCount()
+}
+
+func (pool *hostConnPool) GetExcessConnectionCount() int {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	return pool.connPicker.GetExcessConnectionCount()
+}
+
+func (pool *hostConnPool) GetShardCount() int {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	return pool.connPicker.GetShardCount()
+}
+
+func (pool *hostConnPool) Host() HostInformation {
+	return pool.host
+}
+
+func (pool *hostConnPool) IsClosed() bool {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	return pool.closed
 }
