@@ -1697,12 +1697,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		// Check small_table_optimization support
-		support, err := globalNodeInfo.SupportsRepairSmallTableOptimization()
-		if err != nil {
-			t.Fatal(err)
-		}
-
 		var (
 			repairCalled int32
 			optUsed      = atomic.Bool{}
@@ -1732,9 +1726,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("Then: repair is done")
 		h.assertDone(longWait)
 
-		// small_table_optimization should be used when supported
-		if support != optUsed.Load() {
-			t.Fatalf("small_table_optimization support: %v, used in API call: %v", support, optUsed.Load())
+		// small_table_optimization should be used
+		if !optUsed.Load() {
+			t.Fatal("small_table_optimization wasn't used")
 		}
 
 		Print("And: one repair task was issued")
