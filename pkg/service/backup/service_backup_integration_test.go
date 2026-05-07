@@ -777,11 +777,6 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		}
 	}
 
-	ni, err := h.Client.AnyNodeInfo(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	Print("And: files")
 	manifests, schemas, _, scyllaManifests := h.listS3Files()
 	// Manifest meta per host per snapshot
@@ -790,14 +785,8 @@ func TestBackupSmokeIntegration(t *testing.T) {
 		t.Fatalf("expected %d manifests, got %d", expectedNumberOfManifests, len(manifests))
 	}
 
-	// Schema meta per snapshot
-	var schemasCount = 2
-	if ok, err := ni.SupportsAlternatorSchemaBackupFromAPI(); err != nil {
-		t.Fatal(err)
-	} else if ok {
-		// Alternator schema per snapshot
-		schemasCount *= 2
-	}
+	// Schema (cql and alternator) meta per snapshot
+	var schemasCount = 2 * 2
 	if len(schemas) != schemasCount {
 		t.Fatalf("expected %d schemas, got %d", schemasCount, len(schemas))
 	}
@@ -2982,10 +2971,6 @@ func TestGetDescribeSchemaIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	alternatorSchemaSupport, err := ni.SupportsAlternatorSchemaBackupFromAPI()
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	ctx := context.Background()
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
@@ -3076,27 +3061,27 @@ func TestGetDescribeSchemaIntegration(t *testing.T) {
 			clusterID:        h.ClusterID,
 			taskID:           h.TaskID,
 			cqlSchema:        cqlSchema2,
-			alternatorSchema: alternatorSchemaSupport,
+			alternatorSchema: true,
 		},
 		{
 			name:             "tag2 no task ID",
 			tag:              tag2,
 			clusterID:        h.ClusterID,
 			cqlSchema:        cqlSchema2,
-			alternatorSchema: alternatorSchemaSupport,
+			alternatorSchema: true,
 		},
 		{
 			name:             "tag2 no cluster ID",
 			tag:              tag2,
 			taskID:           h.TaskID,
 			cqlSchema:        cqlSchema2,
-			alternatorSchema: alternatorSchemaSupport,
+			alternatorSchema: true,
 		},
 		{
 			name:             "tag2 none",
 			tag:              tag2,
 			cqlSchema:        cqlSchema2,
-			alternatorSchema: alternatorSchemaSupport,
+			alternatorSchema: true,
 		},
 	}
 
