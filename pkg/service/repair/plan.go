@@ -379,16 +379,12 @@ func newHostKsTable(host, ks, table string) scyllaclient.HostKeyspaceTable {
 // apiSupport describes the support for optimized repair API
 // calls which are not present in all supported Scylla versions.
 type apiSupport struct {
-	// If /storage_service/tablets/repair API is exposed.
-	tabletRepair bool
 	// If /storage_service/tablets/repair API supports
 	// 'incremental_mode' query param.
 	incrementalRepair bool
 }
 
 func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts []string) (apiSupport, error) {
-	fullTabletTableOpt := atomic.Bool{}
-	fullTabletTableOpt.Store(true)
 	incrementalRepair := atomic.Bool{}
 	incrementalRepair.Store(true)
 	eg := errgroup.Group{}
@@ -401,15 +397,7 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 				return err
 			}
 
-			res, err := ni.SupportsTabletRepair()
-			if err != nil {
-				return err
-			}
-			if !res {
-				fullTabletTableOpt.Store(false)
-			}
-
-			res, err = ni.SupportsIncrementalRepair()
+			res, err := ni.SupportsIncrementalRepair()
 			if err != nil {
 				return err
 			}
@@ -425,7 +413,6 @@ func getRepairAPISupport(ctx context.Context, client *scyllaclient.Client, hosts
 		return apiSupport{}, err
 	}
 	return apiSupport{
-		tabletRepair:      fullTabletTableOpt.Load(),
 		incrementalRepair: incrementalRepair.Load(),
 	}, nil
 }

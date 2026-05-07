@@ -789,12 +789,7 @@ func TestServiceRepairResumeAllRangesIntegration(t *testing.T) {
 	// Create keyspaces. Low RF increases repair parallelism.
 	createVnodeKeyspace(t, clusterSession, ks1, 2, 1)
 	createVnodeKeyspace(t, clusterSession, ks2, 1, 1)
-
-	if tabletRepairSupport(t) {
-		createVnodeKeyspace(t, clusterSession, ks3, 1, 1)
-	} else {
-		createDefaultKeyspace(t, clusterSession, ks3, 1, 1)
-	}
+	createVnodeKeyspace(t, clusterSession, ks3, 1, 1)
 
 	// Create and fill tables
 	WriteData(t, clusterSession, ks1, 1, t1)
@@ -1103,30 +1098,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 				t.Error("Found ignored host in progress")
 			}
 		}
-	})
-
-	t.Run("repair host", func(t *testing.T) {
-		h := newRepairTestHelper(t, session, defaultConfig())
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		if tabletRepairSupport(t) {
-			t.Skip("This behavior is tested by test 'repair tablet API filtering'")
-		}
-
-		host := netip.MustParseAddr(h.GetHostsFromDC("dc1")[0])
-		h.Hrt.SetInterceptor(repairReqAssertHostInterceptor(t, host))
-
-		Print("When: run repair")
-		h.runRepair(ctx, singleUnit(map[string]any{
-			"host": host,
-		}))
-
-		Print("Then: repair is running")
-		h.assertRunning(shortWait)
-
-		Print("When: repair is done")
-		h.assertDone(longWait)
 	})
 
 	t.Run("repair dc local keyspace mismatch", func(t *testing.T) {
@@ -2100,10 +2071,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 	})
 
 	t.Run("repair tablet API filtering", func(t *testing.T) {
-		if !tabletRepairSupport(t) {
-			t.Skip("Test expects tablet repair API to be exposed")
-		}
-
 		const (
 			tabletMultiDCKs  = "tablet_api_filtering_multi_dc_tablet_ks"
 			tabletSingleDCKs = "tablet_api_filtering_single_dc_tablet_ks"
@@ -2222,14 +2189,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 				singleCall:    false,
 				loadBalancing: true,
 			},
-		}
-
-		if !tabletRepairSupport(t) {
-			// For this Scylla version tablet tables
-			// are still repaired with the old repair API.
-			testCases[0].api = repairAsyncEndpoint
-			testCases[0].singleCall = false
-			testCases[0].loadBalancing = false
 		}
 
 		Print("When: prepare keyspaces")
@@ -2607,10 +2566,6 @@ func TestTabletRepairInteractionIntegration(t *testing.T) {
 	defer cancel()
 
 	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
-
-	if CheckConstraint(t, globalNodeInfo.ScyllaVersion, "< 2025.1") {
-		t.Skip("This test requires tablet repair API")
-	}
 
 	const (
 		vnodeKs  = "test_vnode_ks"
