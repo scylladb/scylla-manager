@@ -489,8 +489,10 @@ func TestGetTargetIntegration(t *testing.T) {
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
 				cmpopts.SortSlices(func(a, b backup.Unit) bool { return a.Keyspace < b.Keyspace }),
 				cmpopts.IgnoreUnexported(backup.Target{}),
-				cmpopts.IgnoreSliceElements(func(u backup.Unit) bool { return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" }),
-				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" })); diff != "" {
+				cmpopts.IgnoreSliceElements(func(u backup.Unit) bool {
+					return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" || u.Keyspace == "system_distributed_everywhere"
+				}),
+				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" || t == "service_levels" })); diff != "" {
 				t.Fatal(diff)
 			}
 		})

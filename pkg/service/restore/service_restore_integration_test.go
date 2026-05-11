@@ -367,6 +367,7 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 	ignoreTarget := []string{
 		"!system_auth.*",
 		"!system_distributed.service_levels",
+		"!system_distributed_everywhere.cdc_generation_descriptions_v2",
 	}
 	// It's not possible to create views on tablet keyspaces
 	var ignoredViews []string

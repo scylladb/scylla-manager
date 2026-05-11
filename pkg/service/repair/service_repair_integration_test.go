@@ -453,8 +453,10 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
 				cmpopts.SortSlices(func(u1, u2 repair.Unit) bool { return u1.Keyspace < u2.Keyspace }),
 				cmpopts.IgnoreUnexported(repair.Target{}),
-				cmpopts.IgnoreSliceElements(func(u repair.Unit) bool { return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" }),
-				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" }),
+				cmpopts.IgnoreSliceElements(func(u repair.Unit) bool {
+					return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" || u.Keyspace == "system_distributed_everywhere"
+				}),
+				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" || t == "service_levels" }),
 				cmpopts.IgnoreFields(repair.Target{}, "Host")); diff != "" {
 				t.Fatal(diff)
 			}
