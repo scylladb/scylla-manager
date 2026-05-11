@@ -1,9 +1,9 @@
 {
   "units": [
     {
-      "Keyspace": "system_distributed_everywhere",
+      "Keyspace": "system_replicated_keys",
       "Tables": [
-        "cdc_generation_descriptions_v2"
+        "encrypted_keys"
       ],
       "AllTables": true
     }

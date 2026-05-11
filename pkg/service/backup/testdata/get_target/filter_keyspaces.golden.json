@@ -1,9 +1,11 @@
 {
   "units": [
     {
-      "keyspace": "system_distributed_everywhere",
+      "keyspace": "system_distributed",
       "tables": [
-        "cdc_generation_descriptions_v2"
+        "view_build_status",
+        "cdc_generation_timestamps",
+        "cdc_streams_descriptions_v2"
       ],
       "all_tables": true
     },
