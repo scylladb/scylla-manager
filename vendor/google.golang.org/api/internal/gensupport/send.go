@@ -8,25 +8,74 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/googleapis/gax-go/v2"
+	"github.com/googleapis/gax-go/v2/callctx"
 )
 
-// Hook is the type of a function that is called once before each HTTP request
-// that is sent by a generated API.  It returns a function that is called after
-// the request returns.
-// Hooks are not called if the context is nil.
-type Hook func(ctx context.Context, req *http.Request) func(resp *http.Response)
+// Use this error type to return an error which allows introspection of both
+// the context error and the error from the service.
+type wrappedCallErr struct {
+	ctxErr     error
+	wrappedErr error
+}
 
-var hooks []Hook
+func (e wrappedCallErr) Error() string {
+	return fmt.Sprintf("retry failed with %v; last error: %v", e.ctxErr, e.wrappedErr)
+}
 
-// RegisterHook registers a Hook to be called before each HTTP request by a
-// generated API.  Hooks are called in the order they are registered.  Each
-// hook can return a function; if it is non-nil, it is called after the HTTP
-// request returns.  These functions are called in the reverse order.
-// RegisterHook should not be called concurrently with itself or SendRequest.
-func RegisterHook(h Hook) {
-	hooks = append(hooks, h)
+func (e wrappedCallErr) Unwrap() error {
+	return e.wrappedErr
+}
+
+// Is allows errors.Is to match the error from the call as well as context
+// sentinel errors.
+func (e wrappedCallErr) Is(target error) bool {
+	return errors.Is(e.ctxErr, target) || errors.Is(e.wrappedErr, target)
+}
+
+// addContextHeaders adds headers set in context metadata.
+// x-goog-api-client and x-goog-request-params are merged properly.
+func addContextHeaders(ctx context.Context, req *http.Request) {
+	if ctx == nil {
+		return
+	}
+	headers := callctx.HeadersFromContext(ctx)
+	for k, vals := range headers {
+		if strings.EqualFold(k, "x-goog-api-client") {
+			mergeHeader(req.Header, k, vals, ' ')
+		} else if strings.EqualFold(k, "x-goog-request-params") {
+			mergeHeader(req.Header, k, vals, '&')
+		} else {
+			for _, v := range vals {
+				req.Header.Add(k, v)
+			}
+		}
+	}
+}
+
+// mergeHeader merges multiple values into a single header.
+func mergeHeader(header http.Header, key string, vals []string, separator rune) {
+	var mergedVal strings.Builder
+	baseHeader := header.Get(key)
+	if baseHeader != "" {
+		mergedVal.WriteString(baseHeader)
+		mergedVal.WriteRune(separator)
+	}
+	for _, v := range vals {
+		mergedVal.WriteString(v)
+		mergedVal.WriteRune(separator)
+	}
+	if mergedVal.Len() > 0 {
+		// Remove the last separator and replace the header on the request.
+		header.Set(key, mergedVal.String()[:mergedVal.Len()-1])
+	}
 }
 
 // SendRequest sends a single HTTP request using the given client.
@@ -34,6 +83,8 @@ func RegisterHook(h Hook) {
 // req.WithContext, then calls any functions returned by the hooks in
 // reverse order.
 func SendRequest(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
+	addContextHeaders(ctx, req)
+
 	// Disallow Accept-Encoding because it interferes with the automatic gzip handling
 	// done by the default http.Transport. See https://github.com/google/google-api-go-client/issues/219.
 	if _, ok := req.Header["Accept-Encoding"]; ok {
@@ -42,23 +93,7 @@ func SendRequest(ctx context.Context, client *http.Client, req *http.Request) (*
 	if ctx == nil {
 		return client.Do(req)
 	}
-	// Call hooks in order of registration, store returned funcs.
-	post := make([]func(resp *http.Response), len(hooks))
-	for i, h := range hooks {
-		fn := h(ctx, req)
-		post[i] = fn
-	}
-
-	// Send request.
-	resp, err := send(ctx, client, req)
-
-	// Call returned funcs in reverse order.
-	for i := len(post) - 1; i >= 0; i-- {
-		if fn := post[i]; fn != nil {
-			fn(resp)
-		}
-	}
-	return resp, err
+	return send(ctx, client, req)
 }
 
 func send(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
@@ -83,7 +118,9 @@ func send(ctx context.Context, client *http.Client, req *http.Request) (*http.Re
 // If ctx is non-nil, it calls all hooks, then sends the request with
 // req.WithContext, then calls any functions returned by the hooks in
 // reverse order.
-func SendRequestWithRetry(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
+func SendRequestWithRetry(ctx context.Context, client *http.Client, req *http.Request, retry *RetryConfig) (*http.Response, error) {
+	addContextHeaders(ctx, req)
+
 	// Disallow Accept-Encoding because it interferes with the automatic gzip handling
 	// done by the default http.Transport. See https://github.com/google/google-api-go-client/issues/219.
 	if _, ok := req.Header["Accept-Encoding"]; ok {
@@ -92,48 +129,69 @@ func SendRequestWithRetry(ctx context.Context, client *http.Client, req *http.Re
 	if ctx == nil {
 		return client.Do(req)
 	}
-	// Call hooks in order of registration, store returned funcs.
-	post := make([]func(resp *http.Response), len(hooks))
-	for i, h := range hooks {
-		fn := h(ctx, req)
-		post[i] = fn
-	}
-
-	// Send request with retry.
-	resp, err := sendAndRetry(ctx, client, req)
-
-	// Call returned funcs in reverse order.
-	for i := len(post) - 1; i >= 0; i-- {
-		if fn := post[i]; fn != nil {
-			fn(resp)
-		}
-	}
-	return resp, err
+	return sendAndRetry(ctx, client, req, retry)
 }
 
-func sendAndRetry(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
+func sendAndRetry(ctx context.Context, client *http.Client, req *http.Request, retry *RetryConfig) (*http.Response, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
 
 	var resp *http.Response
 	var err error
+	attempts := 1
+	invocationID := uuid.New().String()
+
+	xGoogHeaderVals := req.Header.Values("X-Goog-Api-Client")
+	baseXGoogHeader := strings.Join(xGoogHeaderVals, " ")
 
 	// Loop to retry the request, up to the context deadline.
 	var pause time.Duration
-	bo := backoff()
+	var bo Backoff
+	if retry != nil && retry.Backoff != nil {
+		bo = &gax.Backoff{
+			Initial:    retry.Backoff.Initial,
+			Max:        retry.Backoff.Max,
+			Multiplier: retry.Backoff.Multiplier,
+		}
+	} else {
+		bo = backoff()
+	}
+
+	var errorFunc = retry.errorFunc()
 
 	for {
+		t := time.NewTimer(pause)
 		select {
 		case <-ctx.Done():
-			// If we got an error, and the context has been canceled,
-			// the context's error is probably more useful.
-			if err == nil {
-				err = ctx.Err()
+			t.Stop()
+			// If we got an error and the context has been canceled, return an error acknowledging
+			// both the context cancelation and the service error.
+			if err != nil {
+				return resp, wrappedCallErr{ctx.Err(), err}
 			}
-			return resp, err
-		case <-time.After(pause):
+			return resp, ctx.Err()
+		case <-t.C:
 		}
+
+		if ctx.Err() != nil {
+			// Check for context cancellation once more. If more than one case in a
+			// select is satisfied at the same time, Go will choose one arbitrarily.
+			// That can cause an operation to go through even if the context was
+			// canceled before.
+			if err != nil {
+				return resp, wrappedCallErr{ctx.Err(), err}
+			}
+			return resp, ctx.Err()
+		}
+
+		// Set retry metrics and idempotency headers for GCS.
+		// TODO(b/274504690): Consider dropping gccl-invocation-id key since it
+		// duplicates the X-Goog-Gcs-Idempotency-Token header (added in v0.115.0).
+		invocationHeader := fmt.Sprintf("gccl-invocation-id/%s gccl-attempt-count/%d", invocationID, attempts)
+		xGoogHeader := strings.Join([]string{invocationHeader, baseXGoogHeader}, " ")
+		req.Header.Set("X-Goog-Api-Client", xGoogHeader)
+		req.Header.Set("X-Goog-Gcs-Idempotency-Token", invocationID)
 
 		resp, err = client.Do(req.WithContext(ctx))
 
@@ -145,9 +203,10 @@ func sendAndRetry(ctx context.Context, client *http.Client, req *http.Request) (
 		// Check if we can retry the request. A retry can only be done if the error
 		// is retryable and the request body can be re-created using GetBody (this
 		// will not be possible if the body was unbuffered).
-		if req.GetBody == nil || !shouldRetry(status, err) {
+		if req.GetBody == nil || !errorFunc(status, err) {
 			break
 		}
+		attempts++
 		var errBody error
 		req.Body, errBody = req.GetBody()
 		if errBody != nil {
@@ -169,4 +228,20 @@ func DecodeResponse(target interface{}, res *http.Response) error {
 		return nil
 	}
 	return json.NewDecoder(res.Body).Decode(target)
+}
+
+// DecodeResponseBytes decodes the body of res into target and returns bytes read
+// from the body. If there is no body, target is unchanged.
+func DecodeResponseBytes(target interface{}, res *http.Response) ([]byte, error) {
+	if res.StatusCode == http.StatusNoContent {
+		return nil, nil
+	}
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(b, target); err != nil {
+		return nil, err
+	}
+	return b, nil
 }
