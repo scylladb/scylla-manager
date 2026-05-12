@@ -6,38 +6,23 @@ package gensupport
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
-	gax "github.com/googleapis/gax-go/v2"
-)
-
-// Backoff is an interface around gax.Backoff's Pause method, allowing tests to provide their
-// own implementation.
-type Backoff interface {
-	Pause() time.Duration
-}
-
-// These are declared as global variables so that tests can overwrite them.
-var (
-	retryDeadline = 32 * time.Second
-	backoff       = func() Backoff {
-		return &gax.Backoff{Initial: 100 * time.Millisecond}
-	}
-	// isRetryable is a platform-specific hook, specified in retryable_linux.go
-	syscallRetryable func(error) bool = func(err error) bool { return false }
+	"github.com/google/uuid"
+	"google.golang.org/api/internal"
 )
 
 const (
-	// statusTooManyRequests is returned by the storage API if the
-	// per-project limits have been temporarily exceeded. The request
-	// should be retried.
-	// https://cloud.google.com/storage/docs/json_api/v1/status-codes#standardcodes
-	statusTooManyRequests = 429
+	crc32cPrefix  = "crc32c"
+	hashHeaderKey = "X-Goog-Hash"
 )
 
 // ResumableUpload is used by the generated APIs to provide resumable uploads.
@@ -57,6 +42,22 @@ type ResumableUpload struct {
 
 	// Callback is an optional function that will be periodically called with the cumulative number of bytes uploaded.
 	Callback func(int64)
+
+	// Retry optionally configures retries for requests made against the upload.
+	Retry *RetryConfig
+
+	// ChunkRetryDeadline configures the per-chunk deadline after which no further
+	// retries should happen.
+	ChunkRetryDeadline time.Duration
+
+	// ChunkTransferTimeout configures the per-chunk transfer timeout. If a chunk upload stalls for longer than
+	// this duration, the upload will be retried.
+	ChunkTransferTimeout time.Duration
+
+	// Track current request invocation ID and attempt count for retry metrics
+	// and idempotency headers.
+	invocationID string
+	attempts     int
 }
 
 // Progress returns the number of bytes uploaded at this point.
@@ -91,6 +92,15 @@ func (rx *ResumableUpload) doUploadRequest(ctx context.Context, data io.Reader, 
 	req.Header.Set("Content-Type", rx.MediaType)
 	req.Header.Set("User-Agent", rx.UserAgent)
 
+	// TODO(b/274504690): Consider dropping gccl-invocation-id key since it
+	// duplicates the X-Goog-Gcs-Idempotency-Token header (added in v0.115.0).
+	baseXGoogHeader := "gl-go/" + GoVersion() + " gdcl/" + internal.Version
+	invocationHeader := fmt.Sprintf("gccl-invocation-id/%s gccl-attempt-count/%d", rx.invocationID, rx.attempts)
+	req.Header.Set("X-Goog-Api-Client", strings.Join([]string{baseXGoogHeader, invocationHeader}, " "))
+
+	// Set idempotency token header which is used by GCS uploads.
+	req.Header.Set("X-Goog-Gcs-Idempotency-Token", rx.invocationID)
+
 	// Google's upload endpoint uses status code 308 for a
 	// different purpose than the "308 Permanent Redirect"
 	// since-standardized in RFC 7238. Because of the conflict in
@@ -99,6 +109,11 @@ func (rx *ResumableUpload) doUploadRequest(ctx context.Context, data io.Reader, 
 	// and sets the upload-specific "X-HTTP-Status-Code-Override:
 	// 308" response header.
 	req.Header.Set("X-GUploader-No-308", "yes")
+
+	// Server accepts checksum only on final request through header.
+	if final && rx.Media.enableAutoChecksum {
+		req.Header.Set(hashHeaderKey, fmt.Sprintf("%v=%v", crc32cPrefix, encodeUint32(rx.Media.fullObjectChecksum)))
+	}
 
 	return SendRequest(ctx, rx.Client, req)
 }
@@ -123,136 +138,219 @@ func (rx *ResumableUpload) reportProgress(old, updated int64) {
 	}
 }
 
-// transferChunk performs a single HTTP request to upload a single chunk from rx.Media.
-func (rx *ResumableUpload) transferChunk(ctx context.Context) (*http.Response, error) {
-	chunk, off, size, err := rx.Media.Chunk()
-
-	done := err == io.EOF
-	if !done && err != nil {
-		return nil, err
+// transferChunk performs a single HTTP request to upload a single chunk.
+// It uses a goroutine to perform the upload and a timer to enforce ChunkTransferTimeout.
+func (rx *ResumableUpload) transferChunk(ctx context.Context, chunk io.Reader, off, size int64, done bool) (*http.Response, error) {
+	// If no timeout is specified, perform the request synchronously without a timer.
+	if rx.ChunkTransferTimeout == 0 {
+		res, err := rx.doUploadRequest(ctx, chunk, off, size, done)
+		if err != nil {
+			return res, err
+		}
+		return res, nil
 	}
 
-	res, err := rx.doUploadRequest(ctx, chunk, off, int64(size), done)
-	if err != nil {
-		return res, err
+	// Start a timer for the ChunkTransferTimeout duration.
+	timer := time.NewTimer(rx.ChunkTransferTimeout)
+
+	// A struct to hold the result from the goroutine.
+	type uploadResult struct {
+		res *http.Response
+		err error
 	}
 
-	// We sent "X-GUploader-No-308: yes" (see comment elsewhere in
-	// this file), so we don't expect to get a 308.
-	if res.StatusCode == 308 {
-		return nil, errors.New("unexpected 308 response status code")
+	// A buffered channel to receive the result of the upload.
+	resultCh := make(chan uploadResult, 1)
+
+	// Create a cancellable context for the upload request. This allows us to
+	// abort the request if the timer fires first.
+	rCtx, cancel := context.WithCancel(ctx)
+	// NOTE: We do NOT use `defer cancel()` here. The context must remain valid
+	// for the caller to read the response body of a successful request.
+	// Cancellation is handled manually on timeout paths.
+
+	// Starting the chunk upload in parallel.
+	go func() {
+		res, err := rx.doUploadRequest(rCtx, chunk, off, size, done)
+		resultCh <- uploadResult{res: res, err: err}
+	}()
+
+	// Wait for timer to fire or result channel to have the uploadResult or ctx to be cancelled.
+	select {
+	// Note: Calling cancel() will guarantee that the goroutine finishes,
+	// so these two cases will never block forever on draining the resultCh.
+	case <-ctx.Done():
+		// Context is cancelled for the overall upload.
+		cancel()
+		// Drain resultCh.
+		<-resultCh
+		return nil, ctx.Err()
+	case <-timer.C:
+		// Chunk Transfer timer fired before resultCh so we return context.DeadlineExceeded.
+		cancel()
+		// Drain resultCh.
+		<-resultCh
+		return nil, context.DeadlineExceeded
+	case result := <-resultCh:
+		// Handle the result from the upload.
+		if result.err != nil {
+			return result.res, result.err
+		}
+		return result.res, nil
+	}
+}
+
+// uploadChunkWithRetries attempts to upload a single chunk, with retries
+// within ChunkRetryDeadline if ChunkTransferTimeout is non-zero.
+func (rx *ResumableUpload) uploadChunkWithRetries(ctx context.Context, chunk io.Reader, off, size int64, done bool) (*http.Response, error) {
+	// Configure error retryable criteria.
+	shouldRetry := rx.Retry.errorFunc()
+
+	// Configure single chunk retry deadline.
+	chunkRetryDeadline := defaultRetryDeadline
+	if rx.ChunkRetryDeadline != 0 {
+		chunkRetryDeadline = rx.ChunkRetryDeadline
 	}
 
-	if res.StatusCode == http.StatusOK {
-		rx.reportProgress(off, off+int64(size))
-	}
+	// Each chunk gets its own initialized-at-zero backoff and invocation ID.
+	bo := rx.Retry.backoff()
+	quitAfterTimer := time.NewTimer(chunkRetryDeadline)
+	defer quitAfterTimer.Stop()
+	rx.attempts = 1
+	rx.invocationID = uuid.New().String()
 
-	if statusResumeIncomplete(res) {
-		rx.Media.Next()
+	var pause time.Duration
+	var resp *http.Response
+	var err error
+
+	// Retry loop for a single chunk.
+	for {
+		// Wait for the backoff period, unless the context is canceled or the
+		// retry deadline is hit.
+		backoffPauseTimer := time.NewTimer(pause)
+		select {
+		case <-ctx.Done():
+			backoffPauseTimer.Stop()
+			if err == nil {
+				err = ctx.Err()
+			}
+			return resp, err
+		case <-backoffPauseTimer.C:
+		case <-quitAfterTimer.C:
+			backoffPauseTimer.Stop()
+			return resp, err
+		}
+		backoffPauseTimer.Stop()
+
+		// Check for context cancellation or timeout once more. If more than one
+		// case in the select statement above was satisfied at the same time, Go
+		// will choose one arbitrarily.
+		// That can cause an operation to go through even if the context was
+		// canceled before or the timeout was reached.
+		select {
+		case <-ctx.Done():
+			if err == nil {
+				err = ctx.Err()
+			}
+			return resp, err
+		case <-quitAfterTimer.C:
+			return resp, err
+		default:
+		}
+
+		// We close the response's body here, since we definitely will not
+		// return `resp` now. If we close it before the select case above, a
+		// timer may fire and cause us to return a response with a closed body
+		// (in which case, the caller will not get the error message in the body).
+		if resp != nil && resp.Body != nil {
+			// Read the body to EOF - if the Body is not both read to EOF and closed,
+			// the Client's underlying RoundTripper may not be able to re-use the
+			// persistent TCP connection to the server for a subsequent "keep-alive" request.
+			// See https://pkg.go.dev/net/http#Client.Do
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+		}
+
+		resp, err = rx.transferChunk(ctx, chunk, off, size, done)
+		status := 0
+		if resp != nil {
+			status = resp.StatusCode
+		}
+		// We sent "X-GUploader-No-308: yes" (see comment elsewhere in
+		// this file), so we don't expect to get a 308.
+		if status == 308 {
+			return nil, errors.New("unexpected 308 response status code")
+		}
+		// Chunk upload should be retried if the ChunkTransferTimeout is non-zero and err is context deadline exceeded
+		// or we encounter a retryable error.
+		if (rx.ChunkTransferTimeout != 0 && errors.Is(err, context.DeadlineExceeded)) || shouldRetry(status, err) {
+			rx.attempts++
+			pause = bo.Pause()
+			chunk, _, _, _ = rx.Media.Chunk()
+			continue
+		}
+		return resp, err
 	}
-	return res, nil
 }
 
 // Upload starts the process of a resumable upload with a cancellable context.
-// It retries using the provided back off strategy until cancelled or the
-// strategy indicates to stop retrying.
 // It is called from the auto-generated API code and is not visible to the user.
 // Before sending an HTTP request, Upload calls any registered hook functions,
 // and calls the returned functions after the request returns (see send.go).
 // rx is private to the auto-generated API code.
 // Exactly one of resp or err will be nil.  If resp is non-nil, the caller must call resp.Body.Close.
-func (rx *ResumableUpload) Upload(ctx context.Context) (resp *http.Response, err error) {
+// Upload does not parse the response into the error on a non 200 response;
+// it is the caller's responsibility to call resp.Body.Close.
+func (rx *ResumableUpload) Upload(ctx context.Context) (*http.Response, error) {
+	for {
+		chunk, off, size, err := rx.Media.Chunk()
+		done := err == io.EOF
+		if !done && err != nil {
+			return nil, err
+		}
 
-	// There are a couple of cases where it's possible for err and resp to both
-	// be non-nil. However, we expose a simpler contract to our callers: exactly
-	// one of resp and err will be non-nil. This means that any response body
-	// must be closed here before returning a non-nil error.
-	var prepareReturn = func(resp *http.Response, err error) (*http.Response, error) {
+		resp, err := rx.uploadChunkWithRetries(ctx, chunk, off, int64(size), done)
+		// There are a couple of cases where it's possible for err and resp to both
+		// be non-nil. However, we expose a simpler contract to our callers: exactly
+		// one of resp and err will be non-nil. This means that any response body
+		// must be closed here before returning a non-nil error.
 		if err != nil {
 			if resp != nil && resp.Body != nil {
 				resp.Body.Close()
 			}
+			// If there were retries, indicate this in the error message and wrap the final error.
+			if rx.attempts > 1 {
+				return nil, fmt.Errorf("chunk upload failed after %d attempts, final error: %w", rx.attempts, err)
+			}
 			return nil, err
+		}
+
+		// This case is very unlikely but possible only if rx.ChunkRetryDeadline is
+		// set to a very small value, in which case no requests will be sent before
+		// the deadline. Return an error to avoid causing a panic.
+		if resp == nil {
+			return nil, fmt.Errorf("upload request to %v not sent, choose larger value for ChunkRetryDeadline", rx.URI)
+		}
+		if resp.StatusCode == http.StatusOK {
+			rx.reportProgress(off, off+int64(size))
+		}
+		if statusResumeIncomplete(resp) {
+			// The upload is not yet complete, but the server has acknowledged this chunk.
+			// We don't have anything to do with the response body.
+			if resp.Body != nil {
+				io.Copy(io.Discard, resp.Body)
+				resp.Body.Close()
+			}
+			rx.Media.Next()
+			continue
 		}
 		return resp, nil
 	}
-
-	// Send all chunks.
-	for {
-		var pause time.Duration
-
-		// Each chunk gets its own initialized-at-zero retry.
-		bo := backoff()
-		quitAfter := time.After(retryDeadline)
-
-		// Retry loop for a single chunk.
-		for {
-			select {
-			case <-ctx.Done():
-				if err == nil {
-					err = ctx.Err()
-				}
-				return prepareReturn(resp, err)
-			case <-time.After(pause):
-			case <-quitAfter:
-				return prepareReturn(resp, err)
-			}
-
-			resp, err = rx.transferChunk(ctx)
-
-			var status int
-			if resp != nil {
-				status = resp.StatusCode
-			}
-
-			// Check if we should retry the request.
-			if !shouldRetry(status, err) {
-				break
-			}
-
-			pause = bo.Pause()
-			if resp != nil && resp.Body != nil {
-				resp.Body.Close()
-			}
-		}
-
-		// If the chunk was uploaded successfully, but there's still
-		// more to go, upload the next chunk without any delay.
-		if statusResumeIncomplete(resp) {
-			resp.Body.Close()
-			continue
-		}
-
-		return prepareReturn(resp, err)
-	}
 }
 
-// shouldRetry indicates whether an error is retryable for the purposes of this
-// package, following guidance from
-// https://cloud.google.com/storage/docs/exponential-backoff .
-func shouldRetry(status int, err error) bool {
-	if 500 <= status && status <= 599 {
-		return true
-	}
-	if status == statusTooManyRequests {
-		return true
-	}
-	if err == io.ErrUnexpectedEOF {
-		return true
-	}
-	// Transient network errors should be retried.
-	if syscallRetryable(err) {
-		return true
-	}
-	if err, ok := err.(interface{ Temporary() bool }); ok {
-		if err.Temporary() {
-			return true
-		}
-	}
-	// If Go 1.13 error unwrapping is available, use this to examine wrapped
-	// errors.
-	if err, ok := err.(interface{ Unwrap() error }); ok {
-		return shouldRetry(status, err.Unwrap())
-	}
-	return false
+// Encode a uint32 as Base64 in big-endian byte order.
+func encodeUint32(u uint32) string {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, u)
+	return base64.StdEncoding.EncodeToString(b)
 }
