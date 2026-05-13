@@ -18,20 +18,20 @@ Scylla Manager consists of tree components:
 | ScyllaDB version | Workflows                                                                                                                        | Limitations                                                               |
 |------------------|----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
 | **2025.1.12**    | ![integration-tests-2025.1.12-IPV4]<br/>![integration-tests-2025.1.12-IPV6-tablets-nossl]                                        | Restoration of **Authentication** and **Service Levels** is not supported |
-| **2025.4.7**     | ![integration-tests-2025.4.7-IPV4-native-rclone]<br/>![integration-tests-2025.4.7-IPV6-tablets-nossl-rclone-rclone]              | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2025.4.7**     | ![integration-tests-2025.4.7-IPV4-native-rclone]<br/>![integration-tests-2025.4.7-IPV6-tablets-nossl-rclone-rclone-gcs]          | Restoration of **Authentication** and **Service Levels** is not supported |
 | **2026.1.2**     | ![integration-tests-2026.1.2-IPV4-tablets-native-native]<br/>![integration-tests-2026.1.2-IPV6-nossl-rclone-rclone-localstorage] | Restoration of **Authentication** and **Service Levels** is not supported |
 | **2026.2.0-rc1** | ![integration-tests-2026.2.0-rc1-IPV4-tablets-rclone-native]<br/>![integration-tests-2026.2.0-rc1-IPV6-nossl-rclone-rclone]      | Restoration of **Authentication** and **Service Levels** is not supported |
-| **latest**       | ![integration-tests-latest-IPV4-native-native]<br/>![integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]                  | Restoration of **Authentication** and **Service Levels** is not supported |
+| **latest**       | ![integration-tests-latest-IPV4-native-native-gcs]<br/>![integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]              | Restoration of **Authentication** and **Service Levels** is not supported |
 
 [integration-tests-2025.1.12-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.12-IPV4.yaml/badge.svg?branch=master
 [integration-tests-2025.1.12-IPV6-tablets-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.12-IPV6-tablets-nossl.yaml/badge.svg?branch=master
 [integration-tests-2025.4.7-IPV4-native-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.7-IPV4-native-rclone.yaml/badge.svg?branch=master
-[integration-tests-2025.4.7-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.7-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=master
+[integration-tests-2025.4.7-IPV6-tablets-nossl-rclone-rclone-gcs]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.4.7-IPV6-tablets-nossl-rclone-rclone-gcs.yaml/badge.svg?branch=master
 [integration-tests-2026.1.2-IPV4-tablets-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.2-IPV4-tablets-native-native.yaml/badge.svg?branch=master
 [integration-tests-2026.1.2-IPV6-nossl-rclone-rclone-localstorage]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.2-IPV6-nossl-rclone-rclone-localstorage.yaml/badge.svg?branch=master
 [integration-tests-2026.2.0-rc1-IPV4-tablets-rclone-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.2.0-rc1-IPV4-tablets-rclone-native.yaml/badge.svg?branch=master
 [integration-tests-2026.2.0-rc1-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.2.0-rc1-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=master
-[integration-tests-latest-IPV4-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV4-native-native.yaml/badge.svg?branch=master
+[integration-tests-latest-IPV4-native-native-gcs]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV4-native-native-gcs.yaml/badge.svg?branch=master
 [integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=master
 
 ## Installing and updating Go
