@@ -708,6 +708,52 @@ func TestScyllaObjectStorageEndpoint(t *testing.T) {
 			},
 			endpoint: "https://[2001:0DB9:200::99]:9000",
 		},
+		{
+			name:     "both gcs and s3 endpoints",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				Gcs: models.NodeInfoRcloneBackendConfigGcs{
+					Endpoint: "http://192.168.200.97:4443",
+				},
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.99:9000",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Name: "http://192.168.200.97:4443",
+					Type: "gs",
+				},
+				{
+					Name: "https://192.168.200.99:9000",
+					Type: "s3",
+				},
+			},
+			endpoint: "https://192.168.200.99:9000",
+		},
+		{
+			name:     "both gcs and s3 endpoints (reordered)",
+			provider: backupspec.S3,
+			rclone: models.NodeInfoRcloneBackendConfig{
+				Gcs: models.NodeInfoRcloneBackendConfigGcs{
+					Endpoint: "http://192.168.200.97:4443",
+				},
+				S3: models.NodeInfoRcloneBackendConfigS3{
+					Endpoint: "https://192.168.200.99:9000",
+				},
+			},
+			scylla: []models.ObjectStorageEndpoint{
+				{
+					Name: "https://192.168.200.99:9000",
+					Type: "s3",
+				},
+				{
+					Name: "http://192.168.200.97:4443",
+					Type: "gs",
+				},
+			},
+			endpoint: "https://192.168.200.99:9000",
+		},
 	}
 
 	for _, tc := range testCases {
