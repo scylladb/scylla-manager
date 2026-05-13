@@ -4,7 +4,6 @@ package scyllaclient
 
 import (
 	"context"
-	stdErr "errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -219,25 +218,17 @@ func (ni *NodeInfo) ScyllaObjectStorageEndpoint(provider backupspec.Provider) (s
 	if len(ni.ObjectStorageEndpoints) == 0 {
 		return "", errors.New("no object storage endpoint configured")
 	}
-	var (
-		match         bool
-		unknownOSEErr error
-	)
+	match := false
 	for _, ose := range ni.ObjectStorageEndpoints {
 		switch {
-		case isS3ObjectStorageEndpoint(ose):
+		case provider == backupspec.S3 && isS3ObjectStorageEndpoint(ose):
 			match = equalS3ObjectStorageEndpoints(ni.RcloneBackendConfig.S3, ose)
-		case isGSObjectStorageEndpoint(ose):
+		case provider == backupspec.GCS && isGSObjectStorageEndpoint(ose):
 			match = equalGSObjectStorageEndpoints(ni.RcloneBackendConfig.Gcs, ose)
-		default:
-			unknownOSEErr = stdErr.Join(unknownOSEErr, errors.Errorf("object storage endpoint %q has unknown type %q", ose.Name, ose.Type))
 		}
 		if match {
 			return ose.Name, nil
 		}
-	}
-	if unknownOSEErr != nil {
-		return "", unknownOSEErr
 	}
 	return "", errors.Errorf("scylla and scylla-manager-agent backup configurations don't match. "+
 		"Please make sure that the same endpoint is set in both `scylla-manager-agent.yaml` %s config "+
