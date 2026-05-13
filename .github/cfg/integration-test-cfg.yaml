@@ -21,6 +21,7 @@
   ssl-enabled: false
   backup-method: rclone
   restore-method: rclone
+  backup-provider: gcs
 
 - scylla-version: scylla:2026.1.2
   ip-family: IPV4
@@ -57,6 +58,7 @@
   ssl-enabled: true
   backup-method: native
   restore-method: native
+  backup-provider: gcs
 
 - scylla-version: scylla-nightly:latest
   ip-family: IPV6
