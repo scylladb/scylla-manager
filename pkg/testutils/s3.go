@@ -18,6 +18,9 @@ var (
 	flagS3Endpoint          = flag.String("s3-endpoint", "", "test S3 instance endpoint")
 	flagS3AccessKeyID       = flag.String("s3-access-key-id", "", "test S3 instance access key")
 	flagS3SecretAccessKey   = flag.String("s3-secret-access-key", "", "test S3 instance secret")
+	flagGCSDataDir          = flag.String("gcs-data-dir", "./testing/fake-gcs/data", "path to test GCS instance root data dir")
+	flagGCSEndpoint         = flag.String("gcs-endpoint", "", "test GCS instance endpoint")
+	flagGCSAnonymous        = flag.String("gcs-anonymous", "true", "test GCS instance anonymous access")
 	flagLocalStorageDataDir = flag.String("localstorage-data-dir", "./testing/localstorage/data", "path to test localstorage root data dir")
 )
 
@@ -32,6 +35,8 @@ func InitBucket(t *testing.T, bucket string) {
 	switch testconfig.BackupProvider() {
 	case backupspec.S3:
 		S3InitBucket(t, bucket)
+	case backupspec.GCS:
+		GCSInitBucket(t, bucket)
 	case backupspec.LocalStorage:
 		LocalStorageInitBucket(t, bucket)
 	default:
@@ -69,6 +74,21 @@ func S3InitBucket(t *testing.T, bucket string) {
 	initDir(t, filepath.Join(*flagS3DataDir, bucket))
 }
 
+// GCSInitBucket recreates a local bucket if gcs-data-dir flag is specified.
+func GCSInitBucket(t *testing.T, bucket string) {
+	t.Helper()
+
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	if *flagGCSDataDir == "" {
+		t.Logf("No gcs data dir specified, skipped clearing bucket %s", bucket)
+		return
+	}
+
+	initDir(t, filepath.Join(*flagGCSDataDir, bucket))
+}
+
 func initDir(t *testing.T, dir string) {
 	t.Helper()
 
@@ -86,4 +106,12 @@ func S3Credentials() (provider, endpoint, accessKeyID, secretAccessKey string) {
 		flag.Parse()
 	}
 	return *flagS3Provider, *flagS3Endpoint, *flagS3AccessKeyID, *flagS3SecretAccessKey
+}
+
+// GCSCredentials returns endpoint flag for the test GCS instance.
+func GCSCredentials() (endpoint, anonymous string) {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	return *flagGCSEndpoint, *flagGCSAnonymous
 }

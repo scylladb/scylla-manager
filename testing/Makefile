@@ -17,6 +17,8 @@ TABLETS?=enabled
 
 MINIO_HOST := 192.168.200.99
 MINIO_ENDPOINT := https://192.168.200.99:9000
+GCS_ENDPOINT := http://192.168.200.97:4443
+SCYLLA_GCS_ENDPOINT := http://192.168.200.97:4443
 COMPOSE_FILE := docker-compose-ipv4.yaml
 AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent.yaml
 PUBLIC_NET := 192.168.100.
@@ -28,6 +30,8 @@ ifeq ($(IP_FAMILY), IPV6)
 	# we don't configure them for ipv6 test env.
 	MINIO_HOST := xxx
 	MINIO_ENDPOINT := https://[2001:0DB9:200::99]:9000
+	GCS_ENDPOINT := http://[2001:0DB9:200::97]:4443
+	SCYLLA_GCS_ENDPOINT := xxx
 	COMPOSE_FILE := docker-compose-ipv6.yaml
 	AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent-ipv6.yaml
 	PUBLIC_NET := 2001:0DB9:100::
@@ -42,6 +46,7 @@ export SCYLLA_ARGS
 export SCYLLA_SECOND_CLUSTER_ARGS
 export MINIO_ENDPOINT
 export MINIO_CERT_DIR
+export GCS_ENDPOINT
 
 include .env
 
@@ -69,6 +74,7 @@ up:
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
 	@cp scylla/config/scylla-sm.yaml scylla/scylla-sm.yaml
 	@$(YQ) write -i scylla/scylla.yaml 'object_storage_endpoints[0].(name)' $(MINIO_HOST)
+	@$(YQ) write -i scylla/scylla.yaml 'object_storage_endpoints[1].(name)' $(SCYLLA_GCS_ENDPOINT)
 
 ifeq ($(SSL_ENABLED),true)
 	# disable non-ssl ports
@@ -98,6 +104,7 @@ endif
 
 	@echo "==> Starting containers"
 	mkdir -p $(MINIO_DATA_DIR)
+	mkdir -p ./fake-gcs/data
 	mkdir -p ./localstorage/data
 
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_1 second_cluster_dc1_node_1
