@@ -47,6 +47,7 @@ func (r *rcloneTestHelper) setup() {
 	rclone.MustRegisterLocalDirProvider("rclonejail", "", "testdata/rclone/jail")
 	rclone.MustRegisterLocalDirProvider("localstorage", "", r.tmpDir)
 	rclone.MustRegisterS3Provider(S3Credentials())
+	rclone.MustRegisterGCSProvider(GCSCredentials())
 }
 
 func (r *rcloneTestHelper) tearDown() {

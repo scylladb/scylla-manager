@@ -83,6 +83,17 @@ func RegisterGCSProvider(opts GCSOptions) error {
 	return errors.Wrap(registerProvider(name, backend, opts), "register provider")
 }
 
+// MustRegisterGCSProvider calls RegisterGCSProvider and panics on error.
+func MustRegisterGCSProvider(endpoint, anonymous string) {
+	opts := DefaultGCSOptions()
+	opts.Endpoint = endpoint
+	opts.Anonymous = anonymous
+
+	if err := RegisterGCSProvider(opts); err != nil {
+		panic(err)
+	}
+}
+
 // RegisterAzureProvider must be called before server is started.
 // It allows for adding dynamically adding gcs provider named gcs.
 func RegisterAzureProvider(opts AzureOptions) error {
