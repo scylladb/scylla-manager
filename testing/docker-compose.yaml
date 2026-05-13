@@ -225,6 +225,18 @@ services:
     networks:
       second:
 
+  fake-gcs-server:
+    image: fsouza/fake-gcs-server:${FAKE_GCS_VERSION}
+    user: ${CURRENT_UID}:${CURRENT_GID}
+    volumes:
+      - type: bind
+        source: ./fake-gcs/data
+        target: /data
+    ports:
+      - "4443:4443"
+    networks:
+      second:
+
   prometheus:
     image: prom/prometheus:${PROMETHEUS_VERSION}
     ports:

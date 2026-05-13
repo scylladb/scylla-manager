@@ -74,6 +74,12 @@ services:
       second:
         ipv4_address: 192.168.200.99
 
+  fake-gcs-server:
+    command: -scheme http -port 4443 -backend filesystem -filesystem-root /data -external-url http://192.168.200.97:4443
+    networks:
+      second:
+        ipv4_address: 192.168.200.97
+
   prometheus:
     volumes:
       - type: bind

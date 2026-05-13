@@ -652,6 +652,11 @@ object_storage_endpoints:
   - port: 9000
     https: true
     aws_region: us-east-1
+  - type: gs
+    credentials_file: none
+    # Not needed, but fixes parsing issues for scylla versions that don't recognize gs endpoints
+    aws_region: us-east-1
+    port: 4443
 
 audit: "table"
 audit_categories: "DCL,DDL,AUTH,ADMIN"

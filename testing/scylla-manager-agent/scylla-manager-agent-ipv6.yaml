@@ -15,5 +15,9 @@ s3:
   region: us-east-1
   endpoint: https://[2001:0DB9:200::99]:9000
 
+gcs:
+  endpoint: http://[2001:0DB9:200::97]:4443
+  anonymous: true
+
 localstorage:
   path: /var/lib/localstorage
