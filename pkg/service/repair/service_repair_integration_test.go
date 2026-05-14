@@ -456,7 +456,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 				cmpopts.IgnoreSliceElements(func(u repair.Unit) bool {
 					return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" || u.Keyspace == "system_distributed_everywhere"
 				}),
-				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" || t == "service_levels" }),
+				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" || t == "service_levels" || t == "snapshot_sstables" }),
 				cmpopts.IgnoreFields(repair.Target{}, "Host")); diff != "" {
 				t.Fatal(diff)
 			}
