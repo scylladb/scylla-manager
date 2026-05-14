@@ -22,6 +22,13 @@ var LWTSystemTable = CQLTable{
 	Name:     "paxos",
 }
 
+// ScyllaBackupTables lists internal scylla tables used for storing
+// scylla orchestrated backup state. These tables should be excluded
+// from SM backup/restore procedures.
+var ScyllaBackupTables = []CQLTable{
+	{Keyspace: "system_distributed", Name: "snapshot_sstables"},
+}
+
 // AuditKeyspace stores audit data. It lacks "system" prefix
 // and can be altered by users, but it's still an internal keyspace.
 // See https://docs.scylladb.com/manual/stable/operating-scylla/security/auditing.html.
