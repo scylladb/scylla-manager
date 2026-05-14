@@ -8,9 +8,12 @@ import (
 	"io"
 	"os"
 	"path"
+	"runtime"
 	"strconv"
+	stdsync "sync"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/rclone/rclone/fs"
@@ -595,6 +598,98 @@ func setGuardedConfig(in rc.Params) error {
 	return nil
 }
 
+// rcRetentionLock sets object retention lock on multiple paths in parallel.
+// Progress is reported via the accounting transfer mechanism, where each
+// object is represented as a 1-byte transfer. This allows reusing the
+// existing job/progress endpoint to track per-object completion.
+func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	// Parse input
+	f, remote, err := rc.GetFsAndRemote(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	rl, ok := f.(fs.RetentionLocker)
+	if !ok {
+		return nil, errors.Errorf("backend %q does not support retention lock", f.Name())
+	}
+	paths, err := getStringSlice(in, "paths")
+	if err != nil {
+		return nil, err
+	}
+	if len(paths) == 0 {
+		return nil, errors.New("empty paths")
+	}
+	locked, err := in.GetBool("locked")
+	if err != nil {
+		return nil, err
+	}
+	untilStr, err := in.GetString("until")
+	if err != nil {
+		return nil, err
+	}
+	untilDt, err := strfmt.ParseDateTime(untilStr)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse until timestamp")
+	}
+	until := time.Time(untilDt)
+	overrideLock, err := in.GetBool("override_lock")
+	if err != nil {
+		return nil, err
+	}
+
+	stats := accounting.Stats(ctx)
+	workers := 2 * runtime.NumCPU()
+	ch := make(chan string, workers)
+
+	var (
+		wg       stdsync.WaitGroup
+		firstErr error
+		once     stdsync.Once
+	)
+	setErr := func(err error) {
+		once.Do(func() { firstErr = err })
+	}
+
+	for range workers {
+		wg.Go(func() {
+			for p := range ch {
+				if ctx.Err() != nil {
+					setErr(ctx.Err())
+					break
+				}
+				tr := stats.NewTransferRemoteSize(p, 1)
+				acc := tr.Account(ctx, nil)
+				err := rl.RetentionLock(ctx, path.Join(remote, p), locked, until, overrideLock)
+				if err == nil {
+					acc.DryRun(1)
+				} else {
+					setErr(err)
+				}
+				tr.Done(ctx, err)
+			}
+		})
+	}
+
+	for _, p := range paths {
+		select {
+		case <-ctx.Done():
+		case ch <- p:
+		}
+		if ctx.Err() != nil {
+			setErr(ctx.Err())
+			break
+		}
+	}
+	close(ch)
+	wg.Wait()
+
+	if firstErr != nil {
+		return nil, errors.Wrapf(firstErr, "failed to set retention lock on %d out of %d objects",
+			stats.Aggregated().Failed, len(paths))
+	}
+	return make(rc.Params), nil
+}
+
 // rcDeletePaths returns rc function that deletes paths from remote.
 func rcDeletePaths(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	f, remote, err := rc.GetFsAndRemote(ctx, in)
@@ -752,6 +847,21 @@ func init() {
 - fs - a remote name string eg "s3:"
 - remote - a directory path within that remote
 - paths - slice of paths to be deleted from remote directory`,
+	})
+
+	rc.Add(rc.Call{
+		Path:         "operations/retention-lock",
+		AuthRequired: true,
+		Fn:           rcRetentionLock,
+		Title:        "Set object retention lock on multiple paths",
+		Help: `This takes the following parameters:
+
+- fs - a remote name string eg "gs:"
+- remote - a directory path within that remote
+- paths - slice of paths to set retention lock on
+- locked - true for locked mode (cannot be overridden), false for unlocked mode
+- until - RFC3339 timestamp until which the objects are retained
+- override_lock - whether to override existing retention policy`,
 	})
 }
 
