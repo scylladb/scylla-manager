@@ -527,6 +527,17 @@ func (lf lwtFilter) filter(ks, tab string, _ scyllaclient.Ring) bool {
 	return t != table.LWTSystemTable && !strings.HasSuffix(tab, table.LWTStateTableSuffix)
 }
 
+// Filter out internal scylla tables used for storing scylla orchestrated backup state.
+type scyllaBackupFilter struct{}
+
+func (sf scyllaBackupFilter) filter(ks, tab string, _ scyllaclient.Ring) bool {
+	t := table.CQLTable{
+		Keyspace: ks,
+		Name:     tab,
+	}
+	return !slices.Contains(table.ScyllaBackupTables, t)
+}
+
 // tableValidator checks if it's safe to back up table.
 type tabValidator interface {
 	validate(ks, tab string, ring scyllaclient.Ring) error
