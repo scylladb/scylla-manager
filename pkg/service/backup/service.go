@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -137,6 +137,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 	if err := json.Unmarshal(properties, &p); err != nil {
 		return Target{}, util.ErrValidate(err)
 	}
+	p.expandDefaultTaskProperties()
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
@@ -803,6 +804,12 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		},
 		StageMoveManifest: func() error {
 			return w.MoveManifest(ctx, hi)
+		},
+		StageRetentionLock: func() error {
+			if target.RetentionLockMode != RetentionLockDisabled {
+				return w.RetentionLock(ctx, hi, target)
+			}
+			return nil
 		},
 		StagePurge: func() error {
 			return w.Purge(ctx, hi, target.RetentionMap)

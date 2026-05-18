@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package scyllaclient
 
@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
@@ -19,6 +20,19 @@ import (
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
+
+// MaxSStableComponentCountInReqBody defines max sstable component
+// files names count that can be safely put into a single request
+// body and processed by SM agent. SM agent rclone server reads
+// the whole req body into memory before processing it.
+// It makes it sensitive to req body size - that's why rclone
+// server limits read req body size to 1MB (rcserver.bodySizeLimit).
+// That can be a problem when sending huge amounts of sstable
+// component file names. Single sstable component file name has
+// ~60 characters, so we can assume very generous 100 bytes
+// used per sstable component. This results in ~10k sstable
+// component file names in a single req body.
+const MaxSStableComponentCountInReqBody = 10000
 
 // RcloneSetBandwidthLimit sets bandwidth limit of all the current and future
 // transfers performed under current client session.
@@ -758,6 +772,42 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, body *b
 		return err
 	}
 	return nil
+}
+
+// RcloneRetentionLock sets object retention locks on the specified paths.
+// The remoteDir param format is "provider:bucket/path".
+// Specified paths are relative to remoteDir.
+// If locked is true, retention locks cannot be overridden in the future.
+// The until param specifies the retention lock deadline.
+// If overrideLock is true, unlocked retention locks will be overridden.
+func (c *Client) RcloneRetentionLock(ctx context.Context, host, remoteDir string, paths []string, locked bool, until time.Time, overrideLock bool) (int64, error) {
+	fs, remote, err := rcloneSplitRemotePath(remoteDir)
+	if err != nil {
+		return 0, err
+	}
+	if paths == nil {
+		paths = make([]string, 0)
+	}
+
+	p := operations.OperationsRetentionLockParams{
+		Context: forceHost(ctx, host),
+		Options: &models.RetentionLockOptions{
+			Fs:           fs,
+			Remote:       remote,
+			Paths:        paths,
+			Locked:       locked,
+			Until:        strfmt.DateTime(until),
+			OverrideLock: overrideLock,
+		},
+		Async: true,
+	}
+
+	resp, err := c.agentOps.OperationsRetentionLock(&p)
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.Payload.Jobid, nil
 }
 
 // rcloneSplitRemotePath splits string path into file system and file path.

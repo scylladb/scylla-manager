@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package metrics
 
@@ -9,13 +9,14 @@ import (
 )
 
 type BackupMetrics struct {
-	snapshot           *prometheus.GaugeVec
-	filesSizeBytes     *prometheus.GaugeVec
-	filesUploadedBytes *prometheus.GaugeVec
-	filesSkippedBytes  *prometheus.GaugeVec
-	filesFailedBytes   *prometheus.GaugeVec
-	purgeFiles         *prometheus.GaugeVec
-	purgeDeletedFiles  *prometheus.GaugeVec
+	snapshot             *prometheus.GaugeVec
+	filesSizeBytes       *prometheus.GaugeVec
+	filesUploadedBytes   *prometheus.GaugeVec
+	filesSkippedBytes    *prometheus.GaugeVec
+	filesFailedBytes     *prometheus.GaugeVec
+	purgeFiles           *prometheus.GaugeVec
+	purgeDeletedFiles    *prometheus.GaugeVec
+	retentionLockedFiles *prometheus.GaugeVec
 }
 
 func NewBackupMetrics() BackupMetrics {
@@ -36,6 +37,8 @@ func NewBackupMetrics() BackupMetrics {
 			"purge_files", "cluster", "host"),
 		purgeDeletedFiles: g("Number of files that were deleted.",
 			"purge_deleted_files", "cluster", "host"),
+		retentionLockedFiles: g("Number of backup files that had retention lock set.",
+			"retention_locked_files", "cluster", "keyspace", "table", "host"),
 	}
 }
 
@@ -54,6 +57,7 @@ func (m BackupMetrics) all() []prometheus.Collector {
 		m.filesFailedBytes,
 		m.purgeFiles,
 		m.purgeDeletedFiles,
+		m.retentionLockedFiles,
 	}
 }
 
@@ -96,4 +100,15 @@ func (m BackupMetrics) SetFilesProgress(clusterID uuid.UUID, keyspace, table, ho
 func (m BackupMetrics) SetPurgeFiles(clusterID uuid.UUID, host string, total, deleted int) {
 	m.purgeFiles.WithLabelValues(clusterID.String(), host).Set(float64(total))
 	m.purgeDeletedFiles.WithLabelValues(clusterID.String(), host).Set(float64(deleted))
+}
+
+// IncreaseRetentionLockedFiles increases backup "retention_locked_files" metric.
+func (m BackupMetrics) IncreaseRetentionLockedFiles(clusterID uuid.UUID, keyspace, table, host string, locked int64) {
+	l := prometheus.Labels{
+		"cluster":  clusterID.String(),
+		"keyspace": keyspace,
+		"table":    table,
+		"host":     host,
+	}
+	m.retentionLockedFiles.With(l).Add(float64(locked))
 }

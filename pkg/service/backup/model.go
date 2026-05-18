@@ -46,20 +46,22 @@ type ListItem struct {
 
 // Target specifies what should be backed up and where.
 type Target struct {
-	Units            []Unit                `json:"units,omitempty"`
-	DC               []string              `json:"dc,omitempty"`
-	Location         []backupspec.Location `json:"location"`
-	Retention        int                   `json:"retention"`
-	RetentionDays    int                   `json:"retention_days"`
-	RetentionMap     RetentionMap          `json:"-"` // policy for all tasks, injected in runtime
-	RateLimit        []DCLimit             `json:"rate_limit,omitempty"`
-	Transfers        int                   `json:"transfers"`
-	SnapshotParallel []DCLimit             `json:"snapshot_parallel,omitempty"`
-	UploadParallel   []DCLimit             `json:"upload_parallel,omitempty"`
-	Continue         bool                  `json:"continue,omitempty"`
-	PurgeOnly        bool                  `json:"purge_only,omitempty"`
-	SkipSchema       bool                  `json:"skip_schema,omitempty"`
-	Method           Method                `json:"method,omitempty"`
+	Units                 []Unit                `json:"units,omitempty"`
+	DC                    []string              `json:"dc,omitempty"`
+	Location              []backupspec.Location `json:"location"`
+	Retention             int                   `json:"retention"`
+	RetentionDays         int                   `json:"retention_days"`
+	RetentionMap          RetentionMap          `json:"-"` // policy for all tasks, injected in runtime
+	RateLimit             []DCLimit             `json:"rate_limit,omitempty"`
+	Transfers             int                   `json:"transfers"`
+	SnapshotParallel      []DCLimit             `json:"snapshot_parallel,omitempty"`
+	UploadParallel        []DCLimit             `json:"upload_parallel,omitempty"`
+	Continue              bool                  `json:"continue,omitempty"`
+	PurgeOnly             bool                  `json:"purge_only,omitempty"`
+	SkipSchema            bool                  `json:"skip_schema,omitempty"`
+	Method                Method                `json:"method,omitempty"`
+	RetentionLockMode     RetentionLockMode     `json:"retention_lock_mode"`
+	OverrideRetentionLock bool                  `json:"override_retention_lock"`
 
 	// LiveNodes caches node status for GetTarget GetTargetSize calls.
 	liveNodes scyllaclient.NodeStatusInfoSlice `json:"-"`
@@ -95,6 +97,18 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 // stageNone is a special Stage indicating the there is no stage.
 // This happens when working with runs coming from versions prior to adding stage.
 const stageNone Stage = ""
+
+// RetentionLockMode describes the object retention lock mode for backup files.
+type RetentionLockMode string
+
+const (
+	// RetentionLockDisabled means that no retention lock is applied to backup files.
+	RetentionLockDisabled RetentionLockMode = "disabled"
+	// RetentionLockUnlocked means that retention lock is applied but can be overridden with special permissions.
+	RetentionLockUnlocked RetentionLockMode = "unlocked"
+	// RetentionLockLocked means that retention lock is applied and cannot be overridden.
+	RetentionLockLocked RetentionLockMode = "locked"
+)
 
 // Method describes which API should be used by SM during backup.
 type Method string
@@ -220,20 +234,22 @@ type TableProgress struct {
 
 // taskProperties is the main data structure of the runner.Properties blob.
 type taskProperties struct {
-	Keyspace         []string              `json:"keyspace"`
-	DC               []string              `json:"dc"`
-	Location         []backupspec.Location `json:"location"`
-	Retention        *int                  `json:"retention"`
-	RetentionDays    *int                  `json:"retention_days"`
-	RetentionMap     RetentionMap          `json:"retention_map"`
-	RateLimit        []DCLimit             `json:"rate_limit"`
-	Transfers        int                   `json:"transfers"`
-	SnapshotParallel []DCLimit             `json:"snapshot_parallel"`
-	UploadParallel   []DCLimit             `json:"upload_parallel"`
-	Continue         bool                  `json:"continue"`
-	PurgeOnly        bool                  `json:"purge_only"`
-	SkipSchema       bool                  `json:"skip_schema"`
-	Method           Method                `json:"method,omitempty"`
+	Keyspace              []string              `json:"keyspace"`
+	DC                    []string              `json:"dc"`
+	Location              []backupspec.Location `json:"location"`
+	Retention             *int                  `json:"retention"`
+	RetentionDays         *int                  `json:"retention_days"`
+	RetentionMap          RetentionMap          `json:"retention_map"`
+	RateLimit             []DCLimit             `json:"rate_limit"`
+	Transfers             int                   `json:"transfers"`
+	SnapshotParallel      []DCLimit             `json:"snapshot_parallel"`
+	UploadParallel        []DCLimit             `json:"upload_parallel"`
+	Continue              bool                  `json:"continue"`
+	PurgeOnly             bool                  `json:"purge_only"`
+	SkipSchema            bool                  `json:"skip_schema"`
+	Method                Method                `json:"method,omitempty"`
+	RetentionLockMode     RetentionLockMode     `json:"retention_lock_mode"`
+	OverrideRetentionLock bool                  `json:"override_retention_lock"`
 }
 
 func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error {
@@ -249,6 +265,17 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 	}
 	if !slices.Contains([]Method{MethodAuto, MethodRclone, MethodNative}, p.Method) {
 		return errors.New("unknown Method: " + string(p.Method))
+	}
+	if !slices.Contains([]RetentionLockMode{RetentionLockDisabled, RetentionLockUnlocked, RetentionLockLocked}, p.RetentionLockMode) {
+		return errors.New("unknown retention lock mode: " + string(p.RetentionLockMode))
+	}
+	if p.RetentionLockMode != RetentionLockDisabled {
+		if p.RetentionDays == nil || *p.RetentionDays <= 0 {
+			return errors.New("retention days must be set when retention lock is enabled")
+		}
+		if p.Retention != nil && *p.Retention > 0 {
+			return errors.New("count-based retention mustn't be set when retention lock is enabled")
+		}
 	}
 
 	// Validate location DCs
@@ -289,21 +316,23 @@ func (p taskProperties) toTarget(ctx context.Context, client *scyllaclient.Clien
 	}
 
 	return Target{
-		Units:            units,
-		DC:               dcs,
-		Location:         FilterDCs(p.Location, dcs),
-		Retention:        policy.Retention,
-		RetentionDays:    policy.RetentionDays,
-		RetentionMap:     p.RetentionMap,
-		RateLimit:        rateLimit,
-		Transfers:        p.Transfers,
-		SnapshotParallel: FilterDCs(p.SnapshotParallel, dcs),
-		UploadParallel:   FilterDCs(p.UploadParallel, dcs),
-		Continue:         p.Continue,
-		PurgeOnly:        p.PurgeOnly,
-		SkipSchema:       p.SkipSchema,
-		Method:           p.Method,
-		liveNodes:        liveNodes,
+		Units:                 units,
+		DC:                    dcs,
+		Location:              FilterDCs(p.Location, dcs),
+		Retention:             policy.Retention,
+		RetentionDays:         policy.RetentionDays,
+		RetentionMap:          p.RetentionMap,
+		RateLimit:             rateLimit,
+		Transfers:             p.Transfers,
+		SnapshotParallel:      FilterDCs(p.SnapshotParallel, dcs),
+		UploadParallel:        FilterDCs(p.UploadParallel, dcs),
+		Continue:              p.Continue,
+		PurgeOnly:             p.PurgeOnly,
+		SkipSchema:            p.SkipSchema,
+		Method:                p.Method,
+		RetentionLockMode:     p.RetentionLockMode,
+		OverrideRetentionLock: p.OverrideRetentionLock,
+		liveNodes:             liveNodes,
 	}, nil
 }
 
@@ -403,11 +432,25 @@ func (p taskProperties) extractRetention() RetentionPolicy {
 	return r
 }
 
+// expandDefaultTaskProperties replaces known meaningless
+// zero values in task properties with their defaults.
+func (p *taskProperties) expandDefaultTaskProperties() {
+	d := defaultTaskProperties()
+	if p.Method == "" {
+		p.Method = d.Method
+	}
+	if p.RetentionLockMode == "" {
+		p.RetentionLockMode = d.RetentionLockMode
+	}
+}
+
 func defaultTaskProperties() taskProperties {
 	return taskProperties{
-		Transfers: scyllaclient.TransfersFromConfig,
-		Method:    MethodRclone,
-		Continue:  true,
+		Transfers:             scyllaclient.TransfersFromConfig,
+		Method:                MethodRclone,
+		Continue:              true,
+		RetentionLockMode:     RetentionLockDisabled,
+		OverrideRetentionLock: false,
 	}
 }
 
