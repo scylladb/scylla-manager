@@ -621,7 +621,10 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 	}
 	locked, err := in.GetBool("locked")
 	if err != nil {
-		return nil, err
+		if rc.NotErrParamNotFound(err) {
+			return nil, err
+		}
+		locked = false
 	}
 	untilStr, err := in.GetString("until")
 	if err != nil {
@@ -634,7 +637,10 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 	until := time.Time(untilDt)
 	overrideLock, err := in.GetBool("override_lock")
 	if err != nil {
-		return nil, err
+		if rc.NotErrParamNotFound(err) {
+			return nil, err
+		}
+		overrideLock = false
 	}
 
 	stats := accounting.Stats(ctx)
