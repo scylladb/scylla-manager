@@ -33,6 +33,7 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/scylladb/go-reflectx v1.0.1 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
+	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/text v0.36.0 // indirect
