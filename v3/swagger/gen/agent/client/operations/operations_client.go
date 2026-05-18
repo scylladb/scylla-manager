@@ -65,6 +65,8 @@ type ClientService interface {
 
 	OperationsPurge(params *OperationsPurgeParams) (*OperationsPurgeOK, error)
 
+	OperationsRetentionLock(params *OperationsRetentionLockParams) (*OperationsRetentionLockOK, error)
+
 	PinCPU(params *PinCPUParams) (*PinCPUOK, error)
 
 	Reload(params *ReloadParams) (*ReloadOK, error)
@@ -777,6 +779,41 @@ func (a *Client) OperationsPurge(params *OperationsPurgeParams) (*OperationsPurg
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*OperationsPurgeDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+OperationsRetentionLock retentions lock
+
+Set object retention lock
+*/
+func (a *Client) OperationsRetentionLock(params *OperationsRetentionLockParams) (*OperationsRetentionLockOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewOperationsRetentionLockParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "OperationsRetentionLock",
+		Method:             "POST",
+		PathPattern:        "/rclone/operations/retention-lock",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &OperationsRetentionLockReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*OperationsRetentionLockOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*OperationsRetentionLockDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

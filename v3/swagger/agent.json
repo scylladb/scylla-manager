@@ -704,6 +704,58 @@
         "security": []
       }
     },
+    "/rclone/operations/retention-lock": {
+      "post": {
+        "description": "Set object retention lock",
+        "summary": "Retention lock",
+        "operationId": "OperationsRetentionLock",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_async",
+            "description": "Async request",
+            "type": "boolean",
+            "required": true,
+            "default": true
+          },
+          {
+            "in": "query",
+            "name": "_group",
+            "description": "Place this operation under this stat group",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "Options",
+            "description": "Options",
+            "schema": {
+              "$ref": "#/definitions/RetentionLockOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job ID",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/job/stop": {
       "post": {
         "description": "Stops job with provided ID",
@@ -1368,6 +1420,40 @@
             "type": "string",
             "description": "path"
           }
+        }
+      }
+    },
+    "RetentionLockOptions": {
+      "type": "object",
+      "properties": {
+        "fs": {
+          "description": "File system e.g. s3: or gcs:",
+          "type": "string"
+        },
+        "remote": {
+          "description": "A directory within that remote eg. files/",
+          "type": "string"
+        },
+        "paths": {
+          "description": "Paths relative to remote eg. file.txt",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "path"
+          }
+        },
+        "locked": {
+          "description": "Locked (true) means the retention cannot be overridden, unlocked (false) means the retention can be overridden with special permissions",
+          "type": "boolean"
+        },
+        "until": {
+          "description": "Timestamp until which the object is retained",
+          "type": "string",
+          "format": "date-time"
+        },
+        "override_lock": {
+          "description": "Allows overriding existing retention policy",
+          "type": "boolean"
         }
       }
     },
