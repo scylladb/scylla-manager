@@ -942,6 +942,48 @@ func (f *Fs) Hashes() hash.Set {
 	return hash.Set(hash.MD5)
 }
 
+// RetentionLock sets object retention lock on the specified remote using Objects.Patch.
+func (f *Fs) RetentionLock(ctx context.Context, remote string, locked bool, until time.Time, overrideLock bool) error {
+	bucket, bucketPath := f.split(remote)
+	mode := "Unlocked"
+	if locked {
+		mode = "Locked"
+	}
+	obj := &storage.Object{
+		Retention: &storage.ObjectRetention{
+			Mode:            mode,
+			RetainUntilTime: until.Format(time.RFC3339),
+		},
+	}
+	var result *storage.Object
+	err := f.pacer.Call(func() (bool, error) {
+		var err error
+		result, err = f.svc.Objects.Patch(bucket, bucketPath, obj).
+			OverrideUnlockedRetention(overrideLock).
+			Fields("retention"). // Just to limit server response size
+			Context(ctx).
+			Do()
+		return shouldRetry(err)
+	})
+	if err != nil {
+		return errors.Wrapf(err, "lock remote %q with mode %q, until %v, overrideLock %v ", remote, mode, until, overrideLock)
+	}
+	if result.Retention == nil {
+		return errors.New("server returned no retention configuration")
+	}
+	if result.Retention.Mode != mode {
+		return errors.Errorf(" requested mode %q but server returned %q", mode, result.Retention.Mode)
+	}
+	returnedUntil, err := time.Parse(time.RFC3339, result.Retention.RetainUntilTime)
+	if err != nil {
+		return errors.Errorf("could not parse server retainUntilTime %q: %v", result.Retention.RetainUntilTime, err)
+	}
+	if !returnedUntil.Equal(until) {
+		return errors.Errorf("requested retainUntilTime %q but server returned %q", until.Format(time.RFC3339), result.Retention.RetainUntilTime)
+	}
+	return nil
+}
+
 // ------------------------------------------------------------
 
 // Fs returns the parent Fs
@@ -1219,10 +1261,11 @@ func (o *Object) MimeType(ctx context.Context) string {
 
 // Check the interfaces are satisfied
 var (
-	_ fs.Fs          = &Fs{}
-	_ fs.Copier      = &Fs{}
-	_ fs.PutStreamer = &Fs{}
-	_ fs.ListRer     = &Fs{}
-	_ fs.Object      = &Object{}
-	_ fs.MimeTyper   = &Object{}
+	_ fs.Fs              = &Fs{}
+	_ fs.Copier          = &Fs{}
+	_ fs.PutStreamer     = &Fs{}
+	_ fs.ListRer         = &Fs{}
+	_ fs.RetentionLocker = &Fs{}
+	_ fs.Object          = &Object{}
+	_ fs.MimeTyper       = &Object{}
 )

@@ -1045,6 +1045,17 @@ type ListRer interface {
 	ListR(ctx context.Context, dir string, callback ListRCallback) error
 }
 
+// RetentionLocker is an optional interface for Fs
+type RetentionLocker interface {
+	// RetentionLock sets object retention lock on the specified remote.
+	// locked=true means the retention cannot be overridden (e.g., Locked mode),
+	// locked=false means the retention can be overridden with special
+	// permissions (e.g., Unlocked mode).
+	// until is the timestamp until which the object is retained.
+	// overrideLock allows overriding existing retention policy (e.g., OverrideUnlockedRetention).
+	RetentionLock(ctx context.Context, remote string, locked bool, until time.Time, overrideLock bool) error
+}
+
 // RangeSeeker is the interface that wraps the RangeSeek method.
 //
 // Some of the returns from Object.Open() may optionally implement
