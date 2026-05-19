@@ -62,3 +62,18 @@ method: |
   
   Using native backup functionalities requires additional configuration and has its own limitations,
   which are described in details in https://manager.docs.scylladb.com/stable/backup/native-backup.
+
+retention-lock-mode: |
+  Sets the object retention lock mode for backup files. When enabled, backup files in the backup location are protected from deletion until the retention period (set by '--retention-days') expires.
+  Supported for GCS cloud provider only.
+  Possible values:
+
+  * 'disabled': No retention lock is applied to backup files (default).
+  * 'unlocked': Retention lock is applied but can be shortened or removed with special permissions.
+  * 'locked': Retention lock is applied and cannot be overridden.
+
+  Requires '--retention-days' to be set to a positive value. Count-based '--retention' mustn't be set when retention lock is enabled.
+
+override-retention-lock: |
+  When set, allows previously set retention locks to be overridden when updating them as a part of the next backup task execution.
+  This flag is only relevant when changing retention lock configuration on an existing task.

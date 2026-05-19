@@ -90,7 +90,7 @@ options:
         The 'bucket' parameter is a bucket name, it must be an alphanumeric string and **may contain a dash and or a dot, but other characters are forbidden**.
     - name: method
       default_value: rclone
-      usage: |-
+      usage: |
         Control native backup method (See https://manager.docs.scylladb.com/stable/backup/native-backup):
 
         * 'auto': Use the supported native backup functionalities, otherwise use rclone backup.
@@ -107,6 +107,11 @@ options:
       default_value: "3"
       usage: |
         Number of times a task reruns following a failure.
+    - name: override-retention-lock
+      default_value: "false"
+      usage: |-
+        When set, allows previously set retention locks to be overridden when updating them as a part of the next backup task execution.
+        This flag is only relevant when changing retention lock configuration on an existing task.
     - name: purge-only
       default_value: "false"
       usage: |
@@ -129,6 +134,18 @@ options:
       usage: |
         The `number of days` for which backup is stored, the next backup will initiate a purge of all expired backups.
         Can be used simultaneously with '--retention' flag.
+    - name: retention-lock-mode
+      default_value: disabled
+      usage: |
+        Sets the object retention lock mode for backup files. When enabled, backup files in the backup location are protected from deletion until the retention period (set by '--retention-days') expires.
+        Supported for GCS cloud provider only.
+        Possible values:
+
+        * 'disabled': No retention lock is applied to backup files (default).
+        * 'unlocked': Retention lock is applied but can be shortened or removed with special permissions.
+        * 'locked': Retention lock is applied and cannot be overridden.
+
+        Requires '--retention-days' to be set to a positive value. Count-based '--retention' mustn't be set when retention lock is enabled.
     - name: retry-wait
       default_value: 10m
       usage: |
