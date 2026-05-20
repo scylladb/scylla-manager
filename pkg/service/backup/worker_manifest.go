@@ -17,11 +17,11 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo) (stepError error) {
-	// Limit parallelism level, on huge clusters creating manifest content in
-	// memory for all nodes at the same time can lead to memory issues.
-	const maxParallel = 12
+// MaxManifestInMemory limits parallelism level, on huge clusters creating manifest
+// content in memory for all nodes at the same time can lead to memory issues.
+const MaxManifestInMemory = 12
 
+func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo) (stepError error) {
 	f := func(h hostInfo) error {
 		w.Logger.Info(ctx, "Uploading manifest file on host", "host", h.IP)
 
@@ -39,7 +39,7 @@ func (w *worker) UploadManifest(ctx context.Context, hosts []hostInfo) (stepErro
 		)
 	}
 
-	return hostsInParallel(hosts, maxParallel, f, notify)
+	return hostsInParallel(hosts, MaxManifestInMemory, f, notify)
 }
 
 func (w *worker) createAndUploadHostManifest(ctx context.Context, h hostInfo) error {
