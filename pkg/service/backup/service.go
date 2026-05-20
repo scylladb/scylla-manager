@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -137,6 +137,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 	if err := json.Unmarshal(properties, &p); err != nil {
 		return Target{}, util.ErrValidate(err)
 	}
+	p.expandDefaultTaskProperties()
 
 	client, err := s.scyllaClient(ctx, clusterID)
 	if err != nil {
