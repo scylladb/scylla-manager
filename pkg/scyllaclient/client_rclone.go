@@ -1,4 +1,4 @@
-// Copyright (C) 2025 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package scyllaclient
 
@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
@@ -771,6 +772,42 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, body *b
 		return err
 	}
 	return nil
+}
+
+// RcloneRetentionLock sets object retention locks on the specified paths.
+// The remoteDir param format is "provider:bucket/path".
+// Specified paths are relative to remoteDir.
+// If locked is true, retention locks cannot be overridden in the future.
+// The until param specifies the retention lock deadline.
+// If overrideLock is true, unlocked retention locks will be overridden.
+func (c *Client) RcloneRetentionLock(ctx context.Context, host, remoteDir string, paths []string, locked bool, until time.Time, overrideLock bool) (int64, error) {
+	fs, remote, err := rcloneSplitRemotePath(remoteDir)
+	if err != nil {
+		return 0, err
+	}
+	if paths == nil {
+		paths = make([]string, 0)
+	}
+
+	p := operations.OperationsRetentionLockParams{
+		Context: forceHost(ctx, host),
+		Options: &models.RetentionLockOptions{
+			Fs:           fs,
+			Remote:       remote,
+			Paths:        paths,
+			Locked:       locked,
+			Until:        strfmt.DateTime(until),
+			OverrideLock: overrideLock,
+		},
+		Async: true,
+	}
+
+	resp, err := c.agentOps.OperationsRetentionLock(&p)
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.Payload.Jobid, nil
 }
 
 // rcloneSplitRemotePath splits string path into file system and file path.
