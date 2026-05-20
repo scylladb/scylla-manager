@@ -20,6 +20,19 @@ import (
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
+// MaxSStableComponentCountInReqBody defines max sstable component
+// files names count that can be safely put into a single request
+// body and processed by SM agent. SM agent rclone server reads
+// the whole req body into memory before processing it.
+// It makes it sensitive to req body size - that's why rclone
+// server limits read req body size to 1MB (rcserver.bodySizeLimit).
+// That can be a problem when sending huge amounts of sstable
+// component file names. Single sstable component file name has
+// ~60 characters, so we can assume very generous 100 bytes
+// used per sstable component. This results in ~10k sstable
+// component file names in a single req body.
+const MaxSStableComponentCountInReqBody = 10000
+
 // RcloneSetBandwidthLimit sets bandwidth limit of all the current and future
 // transfers performed under current client session.
 // Limit is expressed in MiB per second.
