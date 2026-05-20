@@ -82,5 +82,7 @@
   ],
   "continue": true,
   "transfers": -1,
-  "method": "rclone"
+  "method": "rclone",
+  "retention_lock_mode": "disabled",
+  "override_retention_lock": false
 }

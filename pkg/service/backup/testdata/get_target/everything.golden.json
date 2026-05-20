@@ -78,5 +78,7 @@
   ],
   "continue": true,
   "transfers": -1,
-  "method": "auto"
+  "method": "auto",
+  "retention_lock_mode": "disabled",
+  "override_retention_lock": false
 }
