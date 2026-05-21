@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/netip"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -32,7 +33,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
-	"github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -208,7 +209,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 		return Target{}, errors.Wrap(err, "create cluster session")
 	}
 
-	liveNodeIPs, err := slices.MapWithError(liveNodes.Hosts(), netip.ParseAddr)
+	liveNodeIPs, err := slices2.MapWithError(liveNodes.Hosts(), netip.ParseAddr)
 	if err != nil {
 		return Target{}, err
 	}
@@ -804,6 +805,12 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		},
 		StageMoveManifest: func() error {
 			return w.MoveManifest(ctx, hi)
+		},
+		StageRetentionLock: func() error {
+			if slices.Contains([]RetentionLockMode{RetentionLockUnlocked, RetentionLockLocked}, target.RetentionLockMode) {
+				return w.RetentionLock(ctx, hi, target)
+			}
+			return nil
 		},
 		StagePurge: func() error {
 			return w.Purge(ctx, hi, target.RetentionMap)
