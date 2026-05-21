@@ -717,7 +717,16 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 	}
 
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
-	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	// Additionally validate that backup retention
+	// locks don't interfere with restore procedure.
+	if target.Location[0].Provider == backupspec.GCS {
+		backupProps := defaultTestBackupProperties(target.Location[0], "")
+		backupProps["retention_days"] = 1
+		backupProps["retention_lock_mode"] = "unlocked"
+		target.SnapshotTag = srcH.simpleBackupWithProperties(target.Location[0], backupProps)
+	} else {
+		target.SnapshotTag = srcH.simpleBackup(target.Location[0])
+	}
 
 	if target.RestoreTables {
 		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
