@@ -49,3 +49,5 @@ func (s *Service) InitTarget(ctx context.Context, clusterID uuid.UUID, target *T
 func (t Target) Hosts() []string {
 	return t.liveNodes.Hosts()
 }
+
+var RetentionLockUntil = retentionLockUntil
