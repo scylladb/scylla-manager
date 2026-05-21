@@ -23,3 +23,6 @@
 bin
 docs/_build
 source/.doctrees
+
+# Ensure that vendor dir is not ignored
+!/vendor/**
