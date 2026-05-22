@@ -38,7 +38,7 @@ require (
 	github.com/scylladb/scylla-manager/backupspec v1.0.3-0.20260407094300-c4d92171ff7c
 	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20251216101300-0a07cdbca348
 	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20251216101300-0a07cdbca348
-	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20260519142257-766c0d1c0f87
+	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20260522113449-181dd7c9c1b5
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stoewer/go-strcase v1.3.0
@@ -50,6 +50,7 @@ require (
 	golang.org/x/mod v0.34.0
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.43.0
+	google.golang.org/api v0.274.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -149,7 +150,6 @@ require (
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
-	google.golang.org/api v0.274.0 // indirect
 	google.golang.org/genproto v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260427160629-7cedc36a6bc4 // indirect
