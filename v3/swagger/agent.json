@@ -678,10 +678,10 @@
         "parameters": [
           {
             "in": "body",
-            "name": "RemotePath",
-            "description": "Remote path",
+            "name": "Options",
+            "description": "Options",
             "schema": {
-              "$ref": "#/definitions/RemotePath"
+              "$ref": "#/definitions/CheckPermissionsOptions"
             }
           }
         ],
@@ -1179,6 +1179,27 @@
         "remote": {
           "description": "A path within that remote eg. dir",
           "type": "string"
+        }
+      }
+    },
+    "CheckPermissionsOptions": {
+      "type": "object",
+      "properties": {
+        "fs": {
+          "description": "A remote name string eg. drive:",
+          "type": "string"
+        },
+        "remote": {
+          "description": "A path within that remote eg. dir",
+          "type": "string"
+        },
+        "locked": {
+          "description": "Locked (true) means the retention cannot be overridden, unlocked (false) means the retention can be overridden with special permissions",
+          "type": "boolean"
+        },
+        "override_lock": {
+          "description": "Allows overriding existing retention policy",
+          "type": "boolean"
         }
       }
     },
