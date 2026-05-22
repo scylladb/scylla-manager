@@ -63,11 +63,11 @@ for the operations check permissions operation typically these are written to a 
 */
 type OperationsCheckPermissionsParams struct {
 
-	/*RemotePath
-	  Remote path
+	/*Options
+	  Options
 
 	*/
-	RemotePath *models.RemotePath
+	Options *models.CheckPermissionsOptions
 
 	timeout    time.Duration
 	Context    context.Context
@@ -107,15 +107,15 @@ func (o *OperationsCheckPermissionsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithRemotePath adds the remotePath to the operations check permissions params
-func (o *OperationsCheckPermissionsParams) WithRemotePath(remotePath *models.RemotePath) *OperationsCheckPermissionsParams {
-	o.SetRemotePath(remotePath)
+// WithOptions adds the options to the operations check permissions params
+func (o *OperationsCheckPermissionsParams) WithOptions(options *models.CheckPermissionsOptions) *OperationsCheckPermissionsParams {
+	o.SetOptions(options)
 	return o
 }
 
-// SetRemotePath adds the remotePath to the operations check permissions params
-func (o *OperationsCheckPermissionsParams) SetRemotePath(remotePath *models.RemotePath) {
-	o.RemotePath = remotePath
+// SetOptions adds the options to the operations check permissions params
+func (o *OperationsCheckPermissionsParams) SetOptions(options *models.CheckPermissionsOptions) {
+	o.Options = options
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -126,8 +126,8 @@ func (o *OperationsCheckPermissionsParams) WriteToRequest(r runtime.ClientReques
 	}
 	var res []error
 
-	if o.RemotePath != nil {
-		if err := r.SetBodyParam(o.RemotePath); err != nil {
+	if o.Options != nil {
+		if err := r.SetBodyParam(o.Options); err != nil {
 			return err
 		}
 	}
