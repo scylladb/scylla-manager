@@ -730,7 +730,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath string) error {
 	p := operations.OperationsCheckPermissionsParams{
 		Context: forceHost(ctx, host),
-		RemotePath: &models.RemotePath{
+		Options: &models.CheckPermissionsOptions{
 			Fs:     remotePath,
 			Remote: "",
 		},
