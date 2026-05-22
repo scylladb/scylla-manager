@@ -730,6 +730,24 @@
         },
         "size": {
           "type": "integer"
+        },
+        "transfers": {
+          "type": "integer"
+        },
+        "purge_only": {
+          "type": "boolean"
+        },
+        "skip_schema": {
+          "type": "boolean"
+        },
+        "method": {
+          "type": "string"
+        },
+        "retention_lock_mode": {
+          "type": "string"
+        },
+        "override_retention_lock": {
+          "type": "boolean"
         }
       }
     },
@@ -921,6 +939,15 @@
           "type": "string",
           "format": "date-time",
           "x-nullable": true
+        },
+        "retention_lock_mode": {
+          "type": "string"
+        },
+        "override_retention_lock": {
+          "type": "boolean"
+        },
+        "retention_days": {
+          "type": "integer"
         }
       }
     },
