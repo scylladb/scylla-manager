@@ -7,7 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/netip"
+	"path"
 	"slices"
 	"sort"
 	"strings"
@@ -162,7 +164,9 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 	if err != nil {
 		return Target{}, err
 	}
-	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, p.Location); err != nil {
+	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, p.Location,
+		clusterID, p.RetentionLockMode != RetentionLockDisabled, p.OverrideRetentionLock,
+	); err != nil {
 		if strings.Contains(err.Error(), "NoSuchBucket") {
 			return Target{}, errors.New("specified bucket does not exist")
 		}
@@ -251,6 +255,7 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 // checkLocationsAvailableFromNodes checks if each node has access location for its datacenter.
 func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *scyllaclient.Client,
 	nodes scyllaclient.NodeStatusInfoSlice, locations []backupspec.Location,
+	clusterID uuid.UUID, locked, overrideLock bool,
 ) error {
 	s.logger.Info(ctx, "Checking accessibility of remote locations")
 	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
@@ -261,13 +266,49 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 		dcl[l.DC] = l
 	}
 
+	// When checking permissions related to retention lock, it's expected
+	// that some files might be left locked for a short retention period.
+	// They might also be left due to missing permissions or any other
+	// unexpected error. We need to clean them up on the next permission check,
+	// so that they don't accumulate over time.
+	// Since the same bucket is used by multiple SM agents, the cleanup
+	// needs to be performed separately, so that it does not interfere
+	// with some agents still ongoing permission checks.
+	// Since multiple clusters can be backed up to the same bucket,
+	// only the files related to current cluster permission checks
+	// should be cleaned up.
+	permissionCheckPath := path.Join(".permission-check", "cluster", clusterID.String())
+
+	// Cleanup leftover permission check files
+	cleanedUpDCs := map[string]struct{}{}
+	for _, n := range nodes {
+		if _, ok := cleanedUpDCs[n.Datacenter]; ok {
+			continue
+		}
+		cleanedUpDCs[n.Datacenter] = struct{}{}
+
+		l, ok := dcl[n.Datacenter]
+		if !ok {
+			l = dcl[""]
+		}
+
+		err := client.RcloneDeleteDir(ctx, n.Addr, l.RemotePath(permissionCheckPath))
+		if err != nil && scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
+			s.logger.Info(ctx, "Failed to cleanup permission check dir",
+				"host", n.Addr,
+				"location", l,
+				"error", err,
+			)
+		}
+	}
+
 	f := func(i int) error {
 		n := nodes[i]
 		l, ok := dcl[n.Datacenter]
 		if !ok {
 			l = dcl[""]
 		}
-		return s.checkHostLocation(ctx, client, n.Addr, l)
+		return s.checkHostLocation(ctx, client, n.Addr, l, permissionCheckPath, locked, overrideLock)
 	}
 
 	notify := func(i int, err error) {
@@ -287,8 +328,13 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 	return util.ErrValidate(parallel.Run(len(nodes), parallel.NoLimit, f, notify))
 }
 
-func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client, h string, l backupspec.Location) error {
-	err := client.RcloneCheckPermissions(ctx, h, l.RemotePath(""))
+func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client,
+	h string, l backupspec.Location, path string, locked, overrideLock bool,
+) error {
+	err := client.RcloneCheckPermissions(ctx, h, l.RemotePath(path), scyllaclient.PermissionCheckOpts{
+		CheckRetentionLock:         locked,
+		CheckOverrideRetentionLock: overrideLock,
+	})
 	if err != nil {
 		s.logger.Info(ctx, "Location check FAILED", "host", h, "location", l, "error", err)
 

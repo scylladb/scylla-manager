@@ -99,7 +99,7 @@ func (s *Service) GetValidationTarget(ctx context.Context, clusterID uuid.UUID, 
 	}
 
 	// Validate validation target and get target nodes...
-	liveNodes, err := s.checkValidationTarget(ctx, client, t)
+	liveNodes, err := s.checkValidationTarget(ctx, client, clusterID, t)
 	if err != nil {
 		return t, err
 	}
@@ -144,7 +144,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 	}
 
 	if len(target.liveNodes) == 0 {
-		target.liveNodes, err = s.checkValidationTarget(ctx, client, target)
+		target.liveNodes, err = s.checkValidationTarget(ctx, client, clusterID, target)
 		if err != nil {
 			return err
 		}
@@ -313,7 +313,7 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 	return nil
 }
 
-func (s *Service) checkValidationTarget(ctx context.Context, client *scyllaclient.Client, target ValidationTarget) (scyllaclient.NodeStatusInfoSlice, error) {
+func (s *Service) checkValidationTarget(ctx context.Context, client *scyllaclient.Client, clusterID uuid.UUID, target ValidationTarget) (scyllaclient.NodeStatusInfoSlice, error) {
 	// Get live nodes
 	status, err := client.Status(ctx)
 	if err != nil {
@@ -336,7 +336,7 @@ func (s *Service) checkValidationTarget(ctx context.Context, client *scyllaclien
 	if len(liveNodes) == 0 {
 		return nil, util.ErrValidate(errors.Errorf("wrong location"))
 	}
-	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, target.Location); err != nil {
+	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, target.Location, clusterID, false, false); err != nil {
 		return nil, util.ErrValidate(errors.Wrap(err, "location is not accessible"))
 	}
 

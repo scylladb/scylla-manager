@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package scyllaclient
 
@@ -29,7 +29,7 @@ func (c *Client) GetNodesWithLocationAccess(ctx context.Context, nodes NodeStatu
 	err := parallel.Run(len(nodes), parallel.NoLimit, func(i int) error {
 		n := nodes[i]
 
-		err := c.RcloneCheckPermissions(ctx, n.Addr, remotePath)
+		err := c.RcloneCheckPermissions(ctx, n.Addr, remotePath, PermissionCheckOpts{})
 		if err == nil {
 			c.logger.Info(ctx, "Host location access check OK",
 				"host", n.Addr,

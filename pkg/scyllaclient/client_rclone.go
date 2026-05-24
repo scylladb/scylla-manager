@@ -725,17 +725,32 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	}
 }
 
+// PermissionCheckOpts describes permission check options.
+type PermissionCheckOpts struct {
+	// CheckRetentionLock controls if the permission to set retention lock on existing object is granted.
+	CheckRetentionLock bool
+	// CheckOverrideRetentionLock controls if the permission to override unlocked retention lock is granted.
+	CheckOverrideRetentionLock bool
+}
+
 // RcloneCheckPermissions checks if location is available for listing, getting,
-// creating, and deleting objects.
-func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath string) error {
+// creating, and deleting objects. Test files are created under remotePath.
+func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath string, opts PermissionCheckOpts) error {
+	fs, remote, err := rcloneSplitRemotePath(remotePath)
+	if err != nil {
+		return err
+	}
+
 	p := operations.OperationsCheckPermissionsParams{
 		Context: forceHost(ctx, host),
 		Options: &models.CheckPermissionsOptions{
-			Fs:     remotePath,
-			Remote: "",
+			Fs:           fs,
+			Remote:       remote,
+			Locked:       opts.CheckRetentionLock,
+			OverrideLock: opts.CheckOverrideRetentionLock,
 		},
 	}
-	_, err := c.agentOps.OperationsCheckPermissions(&p)
+	_, err = c.agentOps.OperationsCheckPermissions(&p)
 	return err
 }
 
