@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package operations
 
@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/pkg/errors"
@@ -15,6 +16,7 @@ import (
 	"github.com/rclone/rclone/fs/operations"
 	"github.com/rclone/rclone/fs/sync"
 	"github.com/rclone/rclone/lib/pacer"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 )
 
 // OperationError wraps remote fs errors returned by CheckPermissions function
@@ -57,9 +59,13 @@ func (e OperationError) StatusCode() int {
 	return e.statusCode
 }
 
-// CheckPermissions checks if file system is available for listing, getting,
-// creating, and deleting objects.
-func CheckPermissions(ctx context.Context, l fs.Fs) error {
+// CheckPermissions checks if file system is available for
+// listing, getting, creating, and deleting objects.
+// The remote parameter specifies a subdirectory within l
+// where the test directory is created.
+// Locked and overrideLock controls whether retention lock
+// permissions should be verified.
+func CheckPermissions(ctx context.Context, l fs.Fs, remote string, locked, overrideLock bool) error {
 	// Disable retries for calls in permissions check.
 	ctx = pacer.WithRetries(ctx, 1)
 
@@ -72,10 +78,10 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 
 	// Create tmp file.
 	var (
-		testDirName  = filepath.Base(tmpDir)
+		testDirName  = filepath.Join(remote, filepath.Base(tmpDir))
 		testFileName = "test"
 	)
-	if err := os.Mkdir(filepath.Join(tmpDir, testDirName), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Join(tmpDir, testDirName), os.ModePerm); err != nil {
 		return errors.Wrap(err, "create local tmp subdirectory")
 	}
 	tmpFile := filepath.Join(tmpDir, testDirName, testFileName)
@@ -84,18 +90,12 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 	}
 
 	// Copy local tmp dir contents to the destination.
-	{
-		f, err := fs.NewFs(context.Background(), tmpDir)
-		if err != nil {
-			return errors.Wrap(err, "init temp dir")
-		}
-		if err := sync.CopyDir(ctx, l, f, true); err != nil {
-			// Special handling of permissions errors
-			if errors.Is(err, credentials.ErrNoValidProvidersFoundInChain) {
-				return errors.New("no providers - attach IAM Role to EC2 instance or put your access keys to s3 section of /etc/scylla-manager-agent/scylla-manager-agent.yaml and restart agent") // nolint: lll
-			}
-			return asOperationError("put", l, err)
-		}
+	f, err := fs.NewFs(ctx, tmpDir)
+	if err != nil {
+		return errors.Wrap(err, "init temp dir")
+	}
+	if err := copyTestFile(ctx, l, f); err != nil {
+		return err
 	}
 
 	// List directory.
@@ -130,6 +130,13 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 		}
 	}
 
+	// Retention lock check.
+	if locked {
+		if err := checkRetentionLock(ctx, l, f, filepath.Join(testDirName, testFileName), overrideLock); err != nil {
+			return err
+		}
+	}
+
 	// Cleanup.
 	if err := operations.Purge(ctx, l, testDirName); err != nil {
 		// As we already verified all permissions needed by SM to perform
@@ -138,5 +145,48 @@ func CheckPermissions(ctx context.Context, l fs.Fs) error {
 		fs.Errorf(l, "failed to remove test directory %q: %v", testDirName, err)
 	}
 
+	return nil
+}
+
+// checkRetentionLock verifies retention lock and optional override lock
+// permissions by re-copying the test file and applying retention policies.
+func checkRetentionLock(ctx context.Context, l, localFs fs.Fs, remote string, overrideLock bool) error {
+	rl, ok := l.(fs.RetentionLocker)
+	if !ok {
+		return asOperationError("retention-lock", l, errors.Errorf("backend %q does not support retention lock", l.Name()))
+	}
+
+	// Re-copy the test file.
+	if err := copyTestFile(ctx, l, localFs); err != nil {
+		return err
+	}
+
+	// Apply retention lock (unlocked, now+1m).
+	// Time is rounded as retention periods are calculated according to
+	// snapshot tags, which have a second level precision.
+	retainUntil := timeutc.Now().Round(time.Second).Add(time.Minute)
+	if err := rl.RetentionLock(ctx, remote, false, retainUntil, false); err != nil {
+		return asOperationError("retention-lock", l, err)
+	}
+
+	// Override retention lock (locked).
+	if overrideLock {
+		if err := rl.RetentionLock(ctx, remote, true, retainUntil, true); err != nil {
+			return asOperationError("override-lock", l, err)
+		}
+	}
+
+	return nil
+}
+
+func copyTestFile(ctx context.Context, l, tmpFs fs.Fs) error {
+	err := sync.CopyDir(ctx, l, tmpFs, true)
+	if err != nil {
+		// Special handling of permissions errors.
+		if errors.Is(err, credentials.ErrNoValidProvidersFoundInChain) {
+			return errors.New("no providers - attach IAM Role to EC2 instance or put your access keys to s3 section of /etc/scylla-manager-agent/scylla-manager-agent.yaml and restart agent") // nolint: lll
+		}
+		return asOperationError("put", l, err)
+	}
 	return nil
 }
