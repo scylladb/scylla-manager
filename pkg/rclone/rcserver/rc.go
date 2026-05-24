@@ -408,14 +408,36 @@ func init() {
 }
 
 // rcCheckPermissions checks if location is available for listing, getting,
-// creating, and deleting objects.
+// creating, and deleting objects. Optionally checks retention lock
+// and override lock permissions.
 func rcCheckPermissions(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	l, err := rc.GetFs(ctx, in)
 	if err != nil {
-		return nil, errors.Wrap(err, "init location")
+		return nil, err
+	}
+	remote, err := in.GetString("remote")
+	if err != nil {
+		if rc.NotErrParamNotFound(err) {
+			return nil, err
+		}
+		remote = ""
+	}
+	locked, err := in.GetBool("locked")
+	if err != nil {
+		if rc.NotErrParamNotFound(err) {
+			return nil, err
+		}
+		locked = false
+	}
+	overrideLock, err := in.GetBool("override_lock")
+	if err != nil {
+		if rc.NotErrParamNotFound(err) {
+			return nil, err
+		}
+		overrideLock = false
 	}
 
-	if err := operations.CheckPermissions(ctx, l); err != nil {
+	if err := operations.CheckPermissions(ctx, l, remote, locked, overrideLock); err != nil {
 		fs.Errorf(nil, "Location check: error=%s", err)
 		return nil, err
 	}
@@ -433,6 +455,9 @@ func init() {
 		Help: `This takes the following parameters
 
 - fs - a remote name string eg "s3:repository"
+- remote - a path within that remote
+- locked - check retention lock permissions
+- override_lock - check override lock permissions
 
 `,
 	})
