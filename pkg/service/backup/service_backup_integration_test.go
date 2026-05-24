@@ -249,6 +249,8 @@ func (h *backupTestHelper) listS3Files() (manifests, schemas, files, scyllaManif
 	}
 	for _, f := range allFiles {
 		switch {
+		case strings.HasPrefix(f.Path, ".permission-check"):
+			// Ignore permission check leftover
 		case strings.HasPrefix(f.Path, "backup/meta"):
 			manifests = append(manifests, f.Path)
 		case strings.HasPrefix(f.Path, "backup/schema"):

@@ -49,7 +49,7 @@ var checkLocationCmd = &cobra.Command{
 			return errors.Wrap(err, "init location")
 		}
 
-		return operations.CheckPermissions(context.Background(), f)
+		return operations.CheckPermissions(context.Background(), f, "", false, false)
 	},
 }
 

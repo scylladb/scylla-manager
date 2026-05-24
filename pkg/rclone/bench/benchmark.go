@@ -231,7 +231,7 @@ func NewBenchmark(ctx context.Context, location string) (*Benchmark, error) {
 	}
 
 	// Get better debug information if there are permission issues
-	if err := operations.CheckPermissions(ctx, f); err != nil {
+	if err := operations.CheckPermissions(ctx, f, "", false, false); err != nil {
 		return nil, err
 	}
 
