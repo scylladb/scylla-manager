@@ -28,9 +28,12 @@ type tableKey struct {
 // and host tables.
 func aggregateProgress(run *Run, vis ProgressVisitor) (Progress, error) {
 	p := Progress{
-		SnapshotTag: run.SnapshotTag,
-		DC:          run.DC,
-		Stage:       run.Stage,
+		SnapshotTag:           run.SnapshotTag,
+		DC:                    run.DC,
+		Stage:                 run.Stage,
+		RetentionLockMode:     run.RetentionLockMode,
+		OverrideRetentionLock: run.OverrideRetentionLock,
+		RetentionDays:         run.RetentionDays,
 	}
 
 	if len(run.Units) == 0 {

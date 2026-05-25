@@ -124,33 +124,64 @@ func TestBackupRetentionLockIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, testKeyspace, 1)
 
-	Print("When: first backup with retention lock (unlocked, 1 day) is executed")
-	props := defaultTestProperties(location, testKeyspace)
-	props["retention_days"] = 1
-	props["retention_lock_mode"] = "unlocked"
-	if CheckConstraint(t, ni.ScyllaVersion, "< 2026.1") {
-		props["method"] = "rclone"
+	getTargetAndValidate := func(lockMode string, overrideLock bool, retentionDays int) backup.Target {
+		props := defaultTestProperties(location, testKeyspace)
+		props["retention_lock_mode"] = lockMode
+		props["override_retention_lock"] = overrideLock
+		props["retention_days"] = retentionDays
+		if CheckConstraint(t, ni.ScyllaVersion, "< 2026.1") {
+			props["method"] = "rclone"
+		}
+
+		rawProps, err := json.Marshal(props)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		target, err := h.service.GetTarget(t.Context(), h.ClusterID, rawProps)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(target.RetentionLockMode) != lockMode {
+			t.Fatalf("Expected retention lock mode %q, got %q", lockMode, target.RetentionLockMode)
+		}
+		if target.OverrideRetentionLock != overrideLock {
+			t.Fatalf("Expected override retention lock %v, got %v", overrideLock, target.OverrideRetentionLock)
+		}
+		if target.RetentionDays != retentionDays {
+			t.Fatalf("Expected retention days %d, got %d", retentionDays, target.RetentionDays)
+		}
+
+		return target
 	}
 
-	rawProps, err := json.Marshal(props)
-	if err != nil {
-		t.Fatal(err)
+	getTagAndValidate := func(runID uuid.UUID, lockMode string, overrideLock bool, retentionDays int) string {
+		pr, err := h.service.GetProgress(t.Context(), h.ClusterID, h.TaskID, runID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(pr.RetentionLockMode) != lockMode {
+			t.Fatalf("Expected retention lock mode %q, got %q", lockMode, pr.RetentionLockMode)
+		}
+		if pr.OverrideRetentionLock != overrideLock {
+			t.Fatalf("Expected override retention lock %v, got %v", overrideLock, pr.OverrideRetentionLock)
+		}
+		if pr.RetentionDays != retentionDays {
+			t.Fatalf("Expected retention days %d, got %d", retentionDays, pr.RetentionDays)
+		}
+
+		return pr.SnapshotTag
 	}
-	target, err := h.service.GetTarget(t.Context(), h.ClusterID, rawProps)
-	if err != nil {
-		t.Fatal(err)
-	}
+
+	Print("When: first backup with retention lock (unlocked, 1 day) is executed")
+	target := getTargetAndValidate("unlocked", false, 1)
 
 	runID := uuid.NewTime()
 	if err := h.service.Backup(t.Context(), h.ClusterID, h.TaskID, runID, target); err != nil {
 		t.Fatal(err)
 	}
 
-	pr, err := h.service.GetProgress(t.Context(), h.ClusterID, h.TaskID, runID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tagA := pr.SnapshotTag
+	tagA := getTagAndValidate(runID, "unlocked", false, 1)
 	Print("Then: first backup completed with tag " + tagA)
 
 	Print("Then: all objects have correct retention locks (tag A)")
@@ -167,11 +198,7 @@ func TestBackupRetentionLockIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pr, err = h.service.GetProgress(t.Context(), h.ClusterID, h.TaskID, runID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tagB := pr.SnapshotTag
+	tagB := getTagAndValidate(runID, "unlocked", false, 1)
 	Print("Then: second backup completed with tag " + tagB)
 
 	Print("Then: all objects have correct retention locks (tag B)")
@@ -190,18 +217,7 @@ func TestBackupRetentionLockIntegration(t *testing.T) {
 	}
 
 	Print("When: target is updated to locked mode, 2 days, with override")
-	props["retention_days"] = 2
-	props["retention_lock_mode"] = "locked"
-	props["override_retention_lock"] = true
-
-	rawProps, err = json.Marshal(props)
-	if err != nil {
-		t.Fatal(err)
-	}
-	target, err = h.service.GetTarget(t.Context(), h.ClusterID, rawProps)
-	if err != nil {
-		t.Fatal(err)
-	}
+	target = getTargetAndValidate("locked", true, 2)
 
 	Print("And: new data is written")
 	WriteData(t, clusterSession, testKeyspace, 1)
@@ -212,11 +228,7 @@ func TestBackupRetentionLockIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pr, err = h.service.GetProgress(t.Context(), h.ClusterID, h.TaskID, runID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tagC := pr.SnapshotTag
+	tagC := getTagAndValidate(runID, "locked", true, 2)
 	Print("Then: third backup completed with tag " + tagC)
 
 	Print("Then: all objects have correct retention locks (tag C)")
