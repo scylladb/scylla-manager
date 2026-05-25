@@ -19,7 +19,7 @@ ADD etc/supervisord.conf.d/scylla-manager-agent.conf /etc/supervisord.conf.d/scy
 
 # Remove 3rd party services
 RUN rm /etc/supervisord.conf.d/scylla-housekeeping.conf \
-       /etc/supervisord.conf.d/scylla-node-exporter.conf
+       /etc/supervisord.conf.d/scylla-node-exporter.conf || true
 
 # Allow SSH as root
 RUN mkdir /var/run/sshd && chmod 0755 /var/run/sshd && ssh-keygen -A && \
