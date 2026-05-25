@@ -695,14 +695,17 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	)
 
 	run := &Run{
-		ClusterID: clusterID,
-		TaskID:    taskID,
-		ID:        runID,
-		Units:     target.Units,
-		DC:        target.DC,
-		Location:  target.Location,
-		StartTime: timeutc.Now().UTC(),
-		Stage:     StageInit,
+		ClusterID:             clusterID,
+		TaskID:                taskID,
+		ID:                    runID,
+		Units:                 target.Units,
+		DC:                    target.DC,
+		Location:              target.Location,
+		StartTime:             timeutc.Now().UTC(),
+		Stage:                 StageInit,
+		RetentionLockMode:     target.RetentionLockMode,
+		OverrideRetentionLock: target.OverrideRetentionLock,
+		RetentionDays:         target.RetentionDays,
 	}
 
 	s.logger.Info(ctx, "Initializing backup",
