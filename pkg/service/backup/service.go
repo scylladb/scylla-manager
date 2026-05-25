@@ -1143,9 +1143,12 @@ func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid
 	switch run.Stage {
 	case stageNone, StageInit, StageSnapshot, StageIndex:
 		return Progress{
-			SnapshotTag: run.SnapshotTag,
-			DC:          run.DC,
-			Stage:       run.Stage,
+			SnapshotTag:           run.SnapshotTag,
+			DC:                    run.DC,
+			Stage:                 run.Stage,
+			RetentionLockMode:     run.RetentionLockMode,
+			OverrideRetentionLock: run.OverrideRetentionLock,
+			RetentionDays:         run.RetentionDays,
 		}, nil
 	}
 
