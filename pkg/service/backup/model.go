@@ -129,14 +129,17 @@ type Run struct {
 	TaskID    uuid.UUID
 	ID        uuid.UUID
 
-	PrevID      uuid.UUID
-	SnapshotTag string
-	Units       []Unit
-	DC          []string
-	Nodes       []string
-	Location    []backupspec.Location
-	StartTime   time.Time
-	Stage       Stage
+	PrevID                uuid.UUID
+	SnapshotTag           string
+	Units                 []Unit
+	DC                    []string
+	Nodes                 []string
+	Location              []backupspec.Location
+	StartTime             time.Time
+	Stage                 Stage
+	RetentionLockMode     RetentionLockMode
+	OverrideRetentionLock bool
+	RetentionDays         int
 }
 
 type fileInfo struct {
