@@ -205,10 +205,13 @@ type progress struct {
 type Progress struct {
 	progress
 
-	SnapshotTag string         `json:"snapshot_tag"`
-	DC          []string       `json:"dcs,omitempty"`
-	Hosts       []HostProgress `json:"hosts,omitempty"`
-	Stage       Stage          `json:"stage"`
+	SnapshotTag           string            `json:"snapshot_tag"`
+	DC                    []string          `json:"dcs,omitempty"`
+	Hosts                 []HostProgress    `json:"hosts,omitempty"`
+	Stage                 Stage             `json:"stage"`
+	RetentionLockMode     RetentionLockMode `json:"retention_lock_mode"`
+	OverrideRetentionLock bool              `json:"override_retention_lock"`
+	RetentionDays         int               `json:"retention_days"`
 }
 
 // HostProgress groups uploading progress for keyspaces belonging to this host.
