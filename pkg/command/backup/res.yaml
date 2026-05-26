@@ -62,3 +62,26 @@ method: |
   
   Using native backup functionalities requires additional configuration and has its own limitations,
   which are described in details in https://manager.docs.scylladb.com/stable/backup/native-backup.
+
+retention-lock-mode: |
+  Set object retention lock mode for snapshot files.
+  When enabled, snapshot files in the backup location are protected from deletion until the retention period (set by '--retention-days') expires.
+  Supported for GCS cloud provider only.
+  Supported values:
+
+  * 'disabled': No retention lock is applied to snapshot files (default).
+  * 'unlocked': Retention lock is applied but can be shortened or removed with special permissions.
+  * 'locked': Retention lock is applied and cannot be overridden.
+
+  Requires '--retention-days' to be set to a positive value.
+  Count-based '--retention' mustn't be set when retention lock is enabled.
+  
+  Using retention lock requires additional configuration and has its own limitations,
+  which are described in details in https://manager.docs.scylladb.com/stable/backup/retention-lock.
+
+override-retention-lock: |
+  Override previously set retention locks in 'unlocked' mode.
+  This flag is required when changing retention lock mode to 'locked' or when decreasing retention period ('--retention-days').
+  
+  Using retention lock requires additional configuration and has its own limitations,
+  which are described in details in https://manager.docs.scylladb.com/stable/backup/retention-lock.

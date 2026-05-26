@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -26,21 +26,23 @@ type command struct {
 
 	client *managerclient.Client
 
-	cluster          string
-	dc               []string
-	location         []string
-	keyspace         []string
-	retention        int
-	retentionDays    int
-	rateLimit        []string
-	transfers        int
-	snapshotParallel []string
-	uploadParallel   []string
-	dryRun           bool
-	showTables       bool
-	purgeOnly        bool
-	skipSchema       bool
-	method           string
+	cluster               string
+	dc                    []string
+	location              []string
+	keyspace              []string
+	retention             int
+	retentionDays         int
+	rateLimit             []string
+	transfers             int
+	snapshotParallel      []string
+	uploadParallel        []string
+	dryRun                bool
+	showTables            bool
+	purgeOnly             bool
+	skipSchema            bool
+	method                string
+	retentionLockMode     string
+	overrideRetentionLock bool
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -95,6 +97,8 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.purgeOnly, "purge-only", false, "")
 	w.Unwrap().BoolVar(&cmd.skipSchema, "skip-schema", false, "")
 	w.Unwrap().StringVar(&cmd.method, "method", "rclone", "")
+	w.Unwrap().StringVar(&cmd.retentionLockMode, "retention-lock-mode", "disabled", "")
+	w.Unwrap().BoolVar(&cmd.overrideRetentionLock, "override-retention-lock", false, "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -171,6 +175,14 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("method").Changed {
 		props["method"] = cmd.method
+		ok = true
+	}
+	if cmd.Flag("retention-lock-mode").Changed {
+		props["retention_lock_mode"] = cmd.retentionLockMode
+		ok = true
+	}
+	if cmd.Flag("override-retention-lock").Changed {
+		props["override_retention_lock"] = cmd.overrideRetentionLock
 		ok = true
 	}
 
