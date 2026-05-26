@@ -12,6 +12,7 @@ Backup
    setup-azure-blobstorage
    setup-local-storage
    native-backup
+   retention-lock
    examples
    specification
 
