@@ -558,6 +558,31 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 			JSON:  `{"upload_parallel": ["foobar:100"], "location": ["s3:backuptest-get-target"]}`,
 			Error: `invalid upload-parallel: no such datacenter foobar`,
 		},
+		{
+			Name:  "unknown retention lock mode",
+			JSON:  `{"retention_lock_mode": "foobar", "location": ["s3:backuptest-get-target-error"]}`,
+			Error: "unknown retention lock mode: foobar",
+		},
+		{
+			Name:  "retention lock enabled without retention days",
+			JSON:  `{"retention_lock_mode": "unlocked", "location": ["s3:backuptest-get-target-error"]}`,
+			Error: "retention days must be set when retention lock is enabled",
+		},
+		{
+			Name:  "retention lock enabled with count-based retention",
+			JSON:  `{"retention_lock_mode": "unlocked", "retention_days": 7, "retention": 3, "location": ["s3:backuptest-get-target-error"]}`,
+			Error: "count-based retention mustn't be set when retention lock is enabled",
+		},
+		{
+			Name:  "retention lock enabled with non-gcs provider",
+			JSON:  `{"retention_lock_mode": "unlocked", "retention_days": 7, "location": ["s3:backuptest-get-target-error"]}`,
+			Error: "retention lock is not supported for s3 provider",
+		},
+		{
+			Name:  "override retention lock when disabled",
+			JSON:  `{"retention_lock_mode": "disabled", "override_retention_lock": true, "location": ["s3:backuptest-get-target-error"]}`,
+			Error: "retention lock cannot be overridden when it is disabled",
+		},
 	}
 
 	const testBucket = "backuptest-get-target-error"
