@@ -1006,7 +1006,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		taskRetentions := []retentionProp{
 			{
 				Retention:     3,
-				RetentionDays: 30,
+				RetentionDays: 17,
 			},
 			{
 				Retention:     2,
@@ -1015,6 +1015,9 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			{
 				Retention:     11,
 				RetentionDays: 100,
+			},
+			{
+				RetentionDays: 15,
 			},
 		}
 
@@ -1077,6 +1080,72 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			if diff := cmp.Diff(res, taskRetentions[i]); diff != "" {
 				t.Fatal(diff)
 			}
+		}
+
+		Print("When: task with mixed retention is deleted")
+		mixedDeletedTask := 0
+		if err := h.service.DeleteTask(ctx, tasks[mixedDeletedTask]); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: task with just retention days below default is deleted")
+		lowDaysDeletedTask := 3
+		if err := h.service.DeleteTask(ctx, tasks[lowDaysDeletedTask]); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: task is disabled")
+		disabledTask := 1
+		tasks[disabledTask].Enabled = false
+		if err := h.service.PutTask(ctx, tasks[disabledTask]); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: enabled task is re-triggered")
+		enabledTask := 2
+		if err := h.service.StartTask(ctx, tasks[enabledTask]); err != nil {
+			t.Fatal(err)
+		}
+		h.assertStatus(tasks[enabledTask], scheduler.StatusRunning)
+		h.runner.Done()
+		h.assertStatus(tasks[enabledTask], scheduler.StatusDone)
+
+		Print("Then: retention map contains correct retention for deleted and disabled tasks")
+		expectedRetMap := backup.RetentionMap{
+			// Deleted task with mixed retention uses max
+			// from specified and default retention days.
+			tasks[mixedDeletedTask].ID: {
+				RetentionDays: 30,
+			},
+			// Disabled task preserves its retention policy
+			tasks[disabledTask].ID: {
+				Retention:     taskRetentions[disabledTask].Retention,
+				RetentionDays: taskRetentions[disabledTask].RetentionDays,
+			},
+			// Enabled task preserves its retention policy
+			tasks[enabledTask].ID: {
+				Retention:     taskRetentions[enabledTask].Retention,
+				RetentionDays: taskRetentions[enabledTask].RetentionDays,
+			},
+			// Deleted task with just retention days
+			// keeps its retention policy.
+			tasks[lowDaysDeletedTask].ID: {
+				RetentionDays: taskRetentions[lowDaysDeletedTask].RetentionDays,
+			},
+		}
+		expected := retentionProp{
+			Retention:     taskRetentions[enabledTask].Retention,
+			RetentionDays: taskRetentions[enabledTask].RetentionDays,
+			RetentionMap:  expectedRetMap,
+		}
+		allProps := h.runner.Properties()
+		lastProp := allProps[len(allProps)-1]
+		var res retentionProp
+		if err := json.Unmarshal(lastProp, &res); err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(res, expected); diff != "" {
+			t.Fatal(diff)
 		}
 	})
 
