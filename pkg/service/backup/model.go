@@ -291,6 +291,9 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 			}
 		}
 	}
+	if p.RetentionLockMode == RetentionLockDisabled && p.OverrideRetentionLock {
+		return util.ErrValidate(errors.New("retention lock cannot be overridden when it is disabled"))
+	}
 
 	// Validate location DCs
 	if err := CheckDCs(p.Location, dcMap); err != nil {
