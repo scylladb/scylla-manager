@@ -102,7 +102,14 @@ func (s *Service) Runner() Runner {
 // TaskDecorator generates "retention_map" for backup task.
 func (s *Service) TaskDecorator(schedSvc *scheduler.Service) func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
 	return func(ctx context.Context, clusterID, _ uuid.UUID, properties json.RawMessage) (json.RawMessage, error) {
-		tasks, err := schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{TaskType: []scheduler.TaskType{scheduler.BackupTask}})
+		tasks, err := schedSvc.ListTasks(ctx, clusterID, scheduler.ListFilter{
+			TaskType: []scheduler.TaskType{scheduler.BackupTask},
+			// Disabled tasks can still be re-enabled and their retention policy should be respected
+			Disabled: true,
+			// Deleted tasks can't be re-enabled, but we should still retain their backups for some time.
+			// The count-based retention doesn't make sense for them anymore, so we need to switch to the time-based one.
+			Deleted: true,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -111,6 +118,15 @@ func (s *Service) TaskDecorator(schedSvc *scheduler.Service) func(ctx context.Co
 			r, err := ExtractRetention(t.Properties)
 			if err != nil {
 				return nil, errors.Wrapf(err, "extract retention for task %s", t.ID)
+			}
+			// Deleted task can have both count-based and time-based retention policies configured.
+			// For increased safety, we should use the max from the configured time-based retention
+			// and the default time-based retention for deleted tasks. Deleted tasks with just
+			// time-based retention configured don't need to be switched.
+			if t.Deleted && r.Retention != 0 {
+				r = RetentionPolicy{
+					RetentionDays: max(r.RetentionDays, defaultRetentionForDeletedTask().RetentionDays),
+				}
 			}
 			retentionMap[t.ID] = r
 		}
