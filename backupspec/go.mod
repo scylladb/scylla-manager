@@ -1,6 +1,6 @@
 module github.com/scylladb/scylla-manager/backupspec
 
-go 1.23.2
+go 1.26.3
 
 require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.46.0

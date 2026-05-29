@@ -1,6 +1,6 @@
 module github.com/scylladb/scylla-manager/v3/swagger
 
-go 1.25.1
+go 1.26.3
 
 require (
 	github.com/go-openapi/errors v0.22.0
