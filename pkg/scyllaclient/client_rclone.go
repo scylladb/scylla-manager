@@ -15,7 +15,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	agentClient "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
@@ -604,7 +603,7 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 		Context: forceHost(ctx, host),
 		ListOpts: &models.ListOptions{
 			Fs:            &remotePath,
-			Remote:        pointer.StringPtr(""),
+			Remote:        new(""),
 			Opt:           opts.asModelOpts(),
 			NewestOnly:    opts != nil && opts.NewestOnly,
 			VersionedOnly: opts != nil && opts.VersionedOnly,
@@ -636,7 +635,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 
 	listOpts := &models.ListOptions{
 		Fs:            &remotePath,
-		Remote:        pointer.StringPtr(""),
+		Remote:        new(""),
 		Opt:           opts.asModelOpts(),
 		NewestOnly:    opts != nil && opts.NewestOnly,
 		VersionedOnly: opts != nil && opts.VersionedOnly,

@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/aws/smithy-go/ptr"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
@@ -372,7 +371,7 @@ func CreateAlternatorClient(t *testing.T, client *scyllaclient.Client, host, acc
 	}
 
 	awsCfg := aws.Config{
-		BaseEndpoint: ptr.String(ni.AlternatorAddr(host)),
+		BaseEndpoint: new(ni.AlternatorAddr(host)),
 		Region:       "scylla",
 		HTTPClient: &http.Client{
 			Transport: &http.Transport{

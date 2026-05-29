@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package scyllaclient
 
@@ -23,7 +23,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/maputil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/prom"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
@@ -298,8 +297,8 @@ var AllKeyspaceTypes = []KeyspaceType{
 func (c *Client) FilteredKeyspaces(ctx context.Context, ksType KeyspaceType, replication KeyspaceReplication) ([]string, error) {
 	resp, err := c.scyllaOps.StorageServiceKeyspacesGet(&operations.StorageServiceKeyspacesGetParams{
 		Context:     ctx,
-		Type:        pointer.StringPtr(string(ksType)),
-		Replication: pointer.StringPtr(string(replication)),
+		Type:        new(string(ksType)),
+		Replication: new(string(replication)),
 	})
 	if err != nil {
 		return nil, err
@@ -653,12 +652,10 @@ func (c *Client) TabletRepair(ctx context.Context, keyspace, table, master strin
 		AwaitCompletion: &dontAwaitCompletion,
 	}
 	if len(dcs) > 0 {
-		merged := strings.Join(dcs, ",")
-		p.SetDcsFilter(&merged)
+		p.SetDcsFilter(new(strings.Join(dcs, ",")))
 	}
 	if len(hostIDs) > 0 {
-		merged := strings.Join(hostIDs, ",")
-		p.SetHostsFilter(&merged)
+		p.SetHostsFilter(new(strings.Join(hostIDs, ",")))
 	}
 	if incrementalMode != "" {
 		p.SetIncrementalMode(&incrementalMode)
@@ -693,29 +690,27 @@ func IsColocatedTableErr(scheduleTabletRepairErr error) (ks, tab string, ok bool
 
 func tabletRepairShouldRetryHandler(err error) *bool {
 	if _, _, ok := IsColocatedTableErr(err); ok {
-		return pointer.BoolPtr(false)
+		return new(false)
 	}
 	return nil
 }
 
 // Repair invokes async repair and returns the repair command ID.
 func (c *Client) Repair(ctx context.Context, keyspace, table, master string, replicaSet []string, ranges []TokenRange, intensity int, smallTableOpt bool) (int32, error) {
-	dr := dumpRanges(ranges)
 	p := operations.StorageServiceRepairAsyncByKeyspacePostParams{
 		Context:        forceHost(ctx, master),
 		Keyspace:       keyspace,
 		ColumnFamilies: &table,
-		Ranges:         &dr,
+		Ranges:         new(dumpRanges(ranges)),
 	}
 	if smallTableOpt {
-		p.SmallTableOptimization = pointer.StringPtr("true")
+		p.SmallTableOptimization = new("true")
 	} else {
-		p.RangesParallelism = pointer.StringPtr(strconv.Itoa(intensity))
+		p.RangesParallelism = new(strconv.Itoa(intensity))
 	}
 	// Single node cluster repair fails with hosts param
 	if len(replicaSet) > 1 {
-		hosts := strings.Join(replicaSet, ",")
-		p.Hosts = &hosts
+		p.Hosts = new(strings.Join(replicaSet, ","))
 	}
 
 	resp, err := c.scyllaOps.StorageServiceRepairAsyncByKeyspacePost(&p)
@@ -743,7 +738,7 @@ func dumpRanges(ranges []TokenRange) string {
 func repairStatusShouldRetryHandler(err error) *bool {
 	s, m := StatusCodeAndMessageOf(err)
 	if s == http.StatusInternalServerError && strings.Contains(m, "unknown repair id") {
-		return pointer.BoolPtr(false)
+		return new(false)
 	}
 	return nil
 }
@@ -937,7 +932,7 @@ func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, t
 
 	var cf *string
 	if len(tables) > 0 {
-		cf = pointer.StringPtr(strings.Join(tables, ","))
+		cf = new(strings.Join(tables, ","))
 	}
 
 	p := operations.StorageServiceSnapshotsPostParams{
@@ -965,7 +960,7 @@ func isSnapshotAlreadyExists(err error) bool {
 
 func takeSnapshotShouldRetryHandler(err error) *bool {
 	if isSnapshotAlreadyExists(err) {
-		return pointer.BoolPtr(false)
+		return new(false)
 	}
 	return nil
 }
@@ -989,8 +984,8 @@ func (c *Client) DeleteTableSnapshot(ctx context.Context, host, tag, keyspace, t
 	_, err := c.scyllaOps.StorageServiceSnapshotsDelete(&operations.StorageServiceSnapshotsDeleteParams{ // nolint: errcheck
 		Context: forceHost(ctx, host),
 		Tag:     &tag,
-		Kn:      pointer.StringPtr(keyspace),
-		Cf:      pointer.StringPtr(table),
+		Kn:      &keyspace,
+		Cf:      &table,
 	})
 	return err
 }
@@ -1180,7 +1175,7 @@ func (c *Client) AwaitLoadSSTables(ctx context.Context, host, keyspace, table st
 
 	dontRetryOnAlreadyLoadingSSTablesRetryHandler := func(err error) *bool {
 		if isAlreadyLoadingSSTables(err) {
-			return pointer.BoolPtr(false)
+			return new(false)
 		}
 		return nil
 	}
@@ -1327,7 +1322,7 @@ func (c *Client) ControlTabletLoadBalancing(ctx context.Context, enabled bool) e
 		// It's fine not to retry even is the context error
 		// is propagated from parent - it wouldn't work anyway.
 		if errors.Is(err, context.DeadlineExceeded) {
-			return pointer.BoolPtr(false)
+			return new(false)
 		}
 		return nil
 	})
@@ -1374,7 +1369,7 @@ func (c *Client) ScyllaBackup(ctx context.Context, host, endpoint, bucket, prefi
 		Keyspace:  keyspace,
 		Table:     table,
 		Snapshot:  &snapshotTag,
-		MoveFiles: pointer.BoolPtr(true),
+		MoveFiles: new(true),
 	})
 	if err != nil {
 		return "", err
@@ -1436,7 +1431,7 @@ func isScyllaTaskRunning(err error) bool {
 
 func scyllaWaitTaskShouldRetryHandler(err error) *bool {
 	if isScyllaTaskRunning(err) {
-		return pointer.BoolPtr(false)
+		return new(false)
 	}
 	return nil
 }
