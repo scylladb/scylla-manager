@@ -21,7 +21,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -250,13 +249,13 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 				// Host
 				Location:  h.Location,
 				Manifests: len(manifests),
-				StartedAt: pointer.TimePtr(timeutc.Now()),
+				StartedAt: new(timeutc.Now()),
 			}
 			if h.ID == nodeID {
 				putProgress()
 			}
 			defer func() {
-				progress.CompletedAt = pointer.TimePtr(timeutc.Now())
+				progress.CompletedAt = new(timeutc.Now())
 				putProgress()
 			}()
 
