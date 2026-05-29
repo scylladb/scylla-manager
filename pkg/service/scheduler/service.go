@@ -21,7 +21,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -506,7 +505,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		if r.Status == StatusStopped && s.isClosed() {
 			r.Status = StatusAborted
 		}
-		r.EndTime = pointer.TimePtr(now())
+		r.EndTime = new(now())
 
 		if ti.TaskType == HealthCheckTask {
 			if r.Status != StatusDone {
