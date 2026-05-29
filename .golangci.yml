@@ -35,6 +35,7 @@ linters:
     - wsl
     - wsl_v5
     - noinlineerr
+    - gomodguard
   settings:
     errcheck:
       check-blank: true
@@ -155,7 +156,7 @@ linters:
       - path: (.+)\.go$
         text: should not use dot imports
       - path: (.+)\.go$
-        text: string `string` has [\d]+ occurrences, make it a constant
+        text: string `.+` has [\d]+ occurrences, make it a constant
       - path: (.+)\.go$
         text: Function name[:] .+, Cyclomatic Complexity
       - path: (.+)\.go$
