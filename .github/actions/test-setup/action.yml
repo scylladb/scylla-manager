@@ -24,13 +24,13 @@ runs:
   using: "composite"
   steps:
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v6
       with:
         go-version-file: ./go.mod
         cache-dependency-path: '**/go.sum'
 
     - name: Restore dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v5
       id: cache-dependencies
       with:
         path: ~/work/scylla-manager/scylla-manager/bin
