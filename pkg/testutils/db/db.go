@@ -666,7 +666,7 @@ func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, 
 				t.Fatal(err)
 			}
 			if out.Count != int32(rowCnt) {
-				t.Fatalf("expected %d items in LSI %q of %q, got %d", rowCnt, lsi, table, out.Count)
+				t.Fatalf("expected %d items in LSI %d of %q, got %d", rowCnt, lsi, table, out.Count)
 			}
 		}
 
@@ -679,7 +679,7 @@ func ValidateAlternatorTableData(t *testing.T, client *dynamodb.Client, rowCnt, 
 				t.Fatal(err)
 			}
 			if out.Count != int32(rowCnt) {
-				t.Fatalf("expected %d items in GSI %q of %q, got %d", rowCnt, gsi, table, out.Count)
+				t.Fatalf("expected %d items in GSI %d of %q, got %d", rowCnt, gsi, table, out.Count)
 			}
 		}
 	}
