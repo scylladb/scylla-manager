@@ -728,6 +728,26 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 		target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 	}
 
+	ni, err := dstH.Client.AnyNodeInfo(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	supportsIncrementalRepair, err := ni.SupportsIncrementalRepair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	encounteredTabletRepair := atomic.NewInt64(0)
+	dstH.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasPrefix(req.URL.Path, "/storage_service/tablets/repair") && req.Method == http.MethodPost {
+			encounteredTabletRepair.Inc()
+			incrementalMode := req.URL.Query().Get("incremental_mode")
+			if supportsIncrementalRepair && incrementalMode != scyllaclient.IncrementalModeFull {
+				t.Errorf("Expected incremental repair mode %q, got %q", scyllaclient.IncrementalModeFull, incrementalMode)
+			}
+		}
+		return nil, nil
+	}))
+
 	if target.RestoreTables {
 		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
 	} else {
@@ -737,6 +757,13 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target)); err != nil {
 		t.Fatal(err)
+	}
+
+	if target.RestoreTables {
+		rd := scyllaclient.NewRingDescriber(t.Context(), dstH.Client)
+		if rd.IsTabletKeyspace(keyspace) && encounteredTabletRepair.Load() == 0 {
+			t.Error("Expected tablet table to be repaired after restore")
+		}
 	}
 
 	dstH.validateRestoreSuccess(dstSession, srcSession, target, []table{{ks: keyspace, tab: BigTableName}})
