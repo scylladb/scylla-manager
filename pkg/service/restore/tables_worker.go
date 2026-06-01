@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/parallel"
@@ -323,10 +324,11 @@ func (w *tablesWorker) stageRepair(ctx context.Context) error {
 		}
 	}
 	repairProps, err := json.Marshal(map[string]any{
-		"keyspace":    keyspace,
-		"intensity":   0,
-		"parallel":    0,
-		"allow_empty": true,
+		"keyspace":         keyspace,
+		"intensity":        0,
+		"parallel":         0,
+		"allow_empty":      true,
+		"incremental_mode": scyllaclient.IncrementalModeFull,
 	})
 	if err != nil {
 		return errors.Wrap(err, "parse repair properties")
