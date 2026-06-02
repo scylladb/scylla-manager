@@ -4,7 +4,13 @@ FROM scylladb/${SCYLLA_VERSION}
 
 # Install 3rd party tools
 USER root
-RUN (apt-get update && apt-get install -y iptables less net-tools openssh-server) || (microdnf install --refresh -y iptables less net-tools openssh-server)
+# Scylla is already installed in the base image. Do not refresh baked-in live
+# Scylla apt repositories when installing generic OS packages, as old Scylla
+# images (e.g., 2025.1.12) can contain stale signing keys for those repositories.
+# We don't have any reinstall/upgrade test scenarios in SM CI, but if we would
+# like to implement them, then we would need to come up with a different workaround.
+RUN (rm -f /etc/apt/sources.list.d/*scylla* && apt-get update && apt-get install -y iptables less net-tools openssh-server) || \
+    (microdnf install --refresh -y iptables less net-tools openssh-server)
 
 # Set root password
 RUN echo "root:root" | chpasswd root
