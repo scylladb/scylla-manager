@@ -33,8 +33,8 @@ The following backup storage engines are supported:
 * Azure Blob Storage,
 * Local storage (network-mounted filesystem).
 
-For the purposes of backing up schema, ScyllaDB Manager requires CQL credentials (`sctool cluster update --username --password <cluster-update>`_).
-In case of an Alternator cluster, ScyllaDB Manager additionally requires Alternator credentials (`sctool cluster update --alternator-access-key-id --alternator-secret-access-key <cluster-update>`_).
+For the purposes of backing up schema, ScyllaDB Manager requires CQL credentials (:ref:`sctool cluster update --username --password <cluster-update>`).
+In case of an Alternator cluster, ScyllaDB Manager additionally requires Alternator credentials (:ref:`sctool cluster update --alternator-access-key-id --alternator-secret-access-key <cluster-update>`).
 Alternator credentials can point to the same underlying CQL role as the CQL credentials (See `Alternator docs <https://docs.scylladb.com/manual/stable/alternator/compatibility.html#authentication-and-authorization>`_ for details).
 
 Features
