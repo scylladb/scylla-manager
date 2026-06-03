@@ -15,7 +15,7 @@ Prerequisites
 
     * `permission to create <https://docs.scylladb.com/manual/stable/operating-scylla/security/authorization.html#permissions>`_ restored keyspaces.
 
-* In case of an Alternator cluster, ScyllaDB Manager additionally requires Alternator credentials (`sctool cluster update --alternator-access-key-id --alternator-secret-access-key <cluster-update>`_) with the same permissions as above. Alternator credentials can point to the same underlying CQL role as the CQL credentials (See `Alternator docs <https://docs.scylladb.com/manual/stable/alternator/compatibility.html#authentication-and-authorization>`_ for details).
+* In case of an Alternator cluster, ScyllaDB Manager additionally requires Alternator credentials (:ref:`sctool cluster update --alternator-access-key-id --alternator-secret-access-key <cluster-update>`) with the same permissions as above. Alternator credentials can point to the same underlying CQL role as the CQL credentials (See `Alternator docs <https://docs.scylladb.com/manual/stable/alternator/compatibility.html#authentication-and-authorization>`_ for details).
 
 * No overlapping schema in restore destination cluster (see the procedure below for more details)
 

@@ -18,12 +18,12 @@ Restore tables
 Prerequisites
 =============
 
-* ScyllaDB Manager requires CQL credentials (`sctool cluster update --username --password <cluster-update>`_) with:
+* ScyllaDB Manager requires CQL credentials (:ref:`sctool cluster update --username --password <cluster-update>`) with:
 
     * `permission to alter <https://docs.scylladb.com/manual/stable/operating-scylla/security/authorization.html#permissions>`_ restored tables.
     * `permission to drop and create <https://docs.scylladb.com/manual/stable/operating-scylla/security/authorization.html#permissions>`_ Materialized Views and Secondary Indexes of restored tables.
 
-* In case of an Alternator cluster, ScyllaDB Manager additionally requires Alternator credentials (`sctool cluster update --alternator-access-key-id --alternator-secret-access-key <cluster-update>`_) with the same permissions as above. Alternator credentials can point to the same underlying CQL role as the CQL credentials (See `Alternator docs <https://docs.scylladb.com/manual/stable/alternator/compatibility.html#authentication-and-authorization>`_ for details).
+* In case of an Alternator cluster, ScyllaDB Manager additionally requires Alternator credentials (:ref:`sctool cluster update --alternator-access-key-id --alternator-secret-access-key <cluster-update>`) with the same permissions as above. Alternator credentials can point to the same underlying CQL role as the CQL credentials (See `Alternator docs <https://docs.scylladb.com/manual/stable/alternator/compatibility.html#authentication-and-authorization>`_ for details).
 
 * Restoring the content of the tables assumes that the correct schema (identical as in the backup) is already present in the destination cluster.
 
