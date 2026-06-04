@@ -7,3 +7,6 @@ scrape_configs:
       - server: '2001:0DB9:100::2'
         scheme: 'http'
         services: ['scylla']
+  - job_name: 'scylla-manager'
+    static_configs:
+      - targets: ['[2001:0DB9:100::2]:5090']
