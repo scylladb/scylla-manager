@@ -39,6 +39,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
@@ -499,6 +500,100 @@ func TestGetTargetIntegration(t *testing.T) {
 				t.Fatal(diff)
 			}
 		})
+	}
+}
+
+func TestGetTargetInParallelIntegration(t *testing.T) {
+	// This test verifies that GetTarget can be successfully called in parallel.
+	// The main pain point are the leftover permission check files that needs
+	// to be cleaned up at some point. This test simulates leftover permission
+	// check files (with known and unknown format), executes regular GetTarget
+	// and GetTarget with retention lock configuration in parallel, and validates
+	// that all (except the file with unknown format) files are eventually cleaned up.
+	const testBucket = "backuptest-get-target-in-parallel"
+	GCSInitBucket(t, testBucket)
+
+	var (
+		session  = CreateSessionWithoutMigration(t)
+		location = backupspec.Location{Provider: backupspec.GCS, Path: testBucket}
+		cfg      = defaultConfig()
+		h        = newBackupTestHelper(t, session, cfg, location, nil)
+		ctx      = t.Context()
+	)
+	ni, err := h.Client.AnyNodeInfo(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Prepare additional service using altered config
+	cleanupCfg := defaultConfig()
+	cleanupCfg.PermissionCheckFilesTTL = time.Nanosecond
+	cleanupH := newBackupTestHelper(t, session, cleanupCfg, location, nil)
+	cleanupH.ClusterID = h.ClusterID
+
+	// Prepare different backup properties
+	props := defaultTestProperties(location, "")
+	if CheckConstraint(t, ni.ScyllaVersion, "< 2026.1") {
+		props["method"] = "rclone"
+	}
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(err)
+	}
+	props["retention_days"] = 1
+	props["retention_lock_mode"] = backup.RetentionLockUnlocked
+	rawRetentionLockProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	getProps := func(i int) json.RawMessage {
+		if i%2 == 0 {
+			return rawRetentionLockProps
+		}
+		return rawProps
+	}
+
+	Print("Given: initial leftover permission check files")
+	basePath := path.Join(".permission-check", "cluster", h.ClusterID.String())
+	initialFile := path.Join(uuid.NewTime().String(), "test", "file")
+	if err := h.Client.RclonePut(ctx, ManagedClusterHost(), location.RemotePath(path.Join(basePath, initialFile)), bytes.NewBuffer([]byte{0})); err != nil {
+		t.Fatal(err)
+	}
+	initialFileUnknownFormat := path.Join("unknown", "test", "file")
+	if err := h.Client.RclonePut(ctx, ManagedClusterHost(), location.RemotePath(path.Join(basePath, initialFileUnknownFormat)), bytes.NewBuffer([]byte{0})); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: call GetTarget in parallel")
+	eg := errgroup.Group{}
+	for i := range 5 {
+		eg.Go(func() error {
+			_, err := h.service.GetTarget(ctx, h.ClusterID, getProps(i))
+			return err
+		})
+	}
+
+	Print("Then: all calls to GetTarget succeeded")
+	if err := eg.Wait(); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("When: call GetTarget with instant permission check files cleanup")
+	if _, err := cleanupH.service.GetTarget(ctx, h.ClusterID, rawProps); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: all permission check files (apart from initial unknown) are cleaned up")
+	leftoverFiles, err := h.Client.RcloneListDir(ctx, ManagedClusterHost(), location.RemotePath(basePath), &scyllaclient.RcloneListDirOpts{
+		Recurse:   true,
+		FilesOnly: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(leftoverFiles) != 1 || leftoverFiles[0].Path != initialFileUnknownFormat {
+		t.Fatalf("Expected only the initial unknown permission check file to be present after cleanup, got: %v", leftoverFiles)
 	}
 }
 
