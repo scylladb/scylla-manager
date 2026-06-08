@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/netip"
 	"path"
 	"slices"
@@ -16,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
@@ -285,15 +285,16 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 	// When checking permissions related to retention lock, it's expected
 	// that some files might be left locked for a short retention period.
 	// They might also be left due to missing permissions or any other
-	// unexpected error. We need to clean them up on the next permission check,
-	// so that they don't accumulate over time.
-	// Since the same bucket is used by multiple SM agents, the cleanup
-	// needs to be performed separately, so that it does not interfere
-	// with some agents still ongoing permission checks.
-	// Since multiple clusters can be backed up to the same bucket,
-	// only the files related to current cluster permission checks
-	// should be cleaned up.
-	permissionCheckPath := path.Join(".permission-check", "cluster", clusterID.String())
+	// unexpected error. We need to clean them up, so that they don't
+	// accumulate over time. Since the same bucket is used by multiple
+	// SM agents, the cleanup needs to be performed separately,
+	// so that it does not interfere with some agents still ongoing
+	// permission checks. Since permission check is performed during
+	// task creation, update, execution, dry run, it needs to handle
+	// concurrent execution. To do that, timestamp is added to the permission
+	// check files path, so that the cleanup can only target stale files.
+	permissionCheckBasePath := path.Join(".permission-check", "cluster", clusterID.String())
+	permissionCheckPath := path.Join(permissionCheckBasePath, uuid.NewTime().String())
 
 	// Cleanup leftover permission check files
 	cleanedUpDCs := map[string]struct{}{}
@@ -308,14 +309,7 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 			l = dcl[""]
 		}
 
-		err := client.RcloneDeleteDir(ctx, n.Addr, l.RemotePath(permissionCheckPath))
-		if err != nil && scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
-			s.logger.Info(ctx, "Failed to cleanup permission check dir",
-				"host", n.Addr,
-				"location", l,
-				"error", err,
-			)
-		}
+		s.cleanupPermissionCheckFiles(ctx, client, n.Addr, l.RemotePath(permissionCheckBasePath))
 	}
 
 	f := func(i int) error {
@@ -342,6 +336,48 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 
 	// Run checkHostLocation in parallel
 	return util.ErrValidate(parallel.Run(len(nodes), parallel.NoLimit, f, notify))
+}
+
+func (s *Service) cleanupPermissionCheckFiles(ctx context.Context, client *scyllaclient.Client, host, remotePath string) {
+	if s.config.PermissionCheckFilesTTL == 0 {
+		// Cleanup is disabled, nothing to do
+		return
+	}
+
+	opts := &scyllaclient.RcloneListDirOpts{
+		Recurse:   true,
+		FilesOnly: true,
+	}
+	err := client.RcloneListDirIter(ctx, host, remotePath, opts, func(item *scyllaclient.RcloneListDirItem) {
+		rawTimeUUID, _, _ := strings.Cut(item.Path, "/")
+		id, err := gocql.ParseUUID(rawTimeUUID)
+		if err != nil {
+			s.logger.Error(ctx, "Failed to extract permission check file timestamp, skipping",
+				"host", host,
+				"file", path.Join(remotePath, item.Path),
+				"error", err,
+			)
+			return
+		}
+
+		if timeutc.Since(id.Time()) > s.config.PermissionCheckFilesTTL {
+			if err := client.RcloneDeleteFile(ctx, host, path.Join(remotePath, item.Path)); err != nil {
+				s.logger.Info(ctx, "Failed to cleanup stale permission check file, skipping",
+					"host", host,
+					"file", path.Join(remotePath, item.Path),
+					"error", err,
+				)
+			}
+		}
+	})
+	if err != nil {
+		s.logger.Error(ctx, "Failed to list permission check files, skipping",
+			"host", host,
+			"path", remotePath,
+			"error", err,
+		)
+		return
+	}
 }
 
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client,
