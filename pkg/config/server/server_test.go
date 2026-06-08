@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package server_test
 
@@ -86,6 +86,7 @@ func TestConfigModification(t *testing.T) {
 			DiskSpaceFreeMinPercent:   1,
 			LongPollingTimeoutSeconds: 5,
 			AgeMax:                    24 * time.Hour,
+			PermissionCheckFilesTTL:   5 * time.Minute,
 		},
 		Restore: restore.Config{
 			DiskSpaceFreeMinPercent:   1,

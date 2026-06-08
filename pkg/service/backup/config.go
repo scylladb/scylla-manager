@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -15,6 +15,10 @@ type Config struct {
 	DiskSpaceFreeMinPercent   int           `yaml:"disk_space_free_min_percent"`
 	LongPollingTimeoutSeconds int           `yaml:"long_polling_timeout_seconds"`
 	AgeMax                    time.Duration `yaml:"age_max"`
+	// PermissionCheckFilesTTL defines the time after which leftover
+	// permission check files are considered stale and can be deleted.
+	// Setting it to zero disables the cleanup.
+	PermissionCheckFilesTTL time.Duration `yaml:"permission_check_files_ttl"`
 }
 
 func DefaultConfig() Config {
@@ -22,6 +26,7 @@ func DefaultConfig() Config {
 		DiskSpaceFreeMinPercent:   10,
 		LongPollingTimeoutSeconds: 10,
 		AgeMax:                    24 * time.Hour,
+		PermissionCheckFilesTTL:   5 * time.Minute,
 	}
 }
 
@@ -36,6 +41,9 @@ func (c *Config) Validate() error {
 	}
 	if c.AgeMax < 0 {
 		err = multierr.Append(err, errors.New("invalid age_max, must be >= 0"))
+	}
+	if c.PermissionCheckFilesTTL < 0 {
+		err = multierr.Append(err, errors.New("invalid permission_check_files_ttl, must be >= 0"))
 	}
 
 	return err
