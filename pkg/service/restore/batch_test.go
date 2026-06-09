@@ -270,6 +270,163 @@ func TestBatchDispatcherHostWithoutNativeRestore(t *testing.T) {
 	}
 }
 
+func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
+	l := backupspec.Location{
+		Provider: "s3",
+		Path:     "l",
+	}
+	newRawWorkload := func(sstables []RemoteSSTable) []RemoteDirWorkload {
+		var size int64
+		for _, sst := range sstables {
+			size += sst.Size
+		}
+		return []RemoteDirWorkload{
+			{
+				ManifestInfo: &backupspec.ManifestInfo{
+					Location: l,
+					DC:       "dc1",
+				},
+				TableName: TableName{
+					Keyspace: "ks1",
+					Table:    "t1",
+				},
+				RemoteSSTableDir: "a",
+				Size:             size,
+				SSTables:         sstables,
+			},
+		}
+	}
+	defaultSSTables := func() []RemoteSSTable {
+		return []RemoteSSTable{
+			{Size: 40, SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}, Files: []string{"a-1", "a-2", "a-3"}}},
+			{Size: 30, SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}, Files: []string{"b-1", "b-2"}}},
+			{Size: 20, SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}, Files: []string{"c-1"}}},
+			{Size: 10, SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}, Files: []string{"d-1", "d-2"}}},
+			{Size: 10, SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}, Files: []string{"e-1"}}},
+			{Size: 10, SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}, Files: []string{"f-1"}}},
+			{Size: 10, SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}, Files: []string{"g-1"}}},
+		}
+	}
+	smallSSTables := func(cnt int) []RemoteSSTable {
+		sstables := make([]RemoteSSTable, cnt)
+		for i := range sstables {
+			sstables[i] = RemoteSSTable{
+				SSTable: SSTable{ID: sstable.ID{Type: sstable.UUID}, Files: []string{"f"}},
+				Size:    1,
+			}
+		}
+		return sstables
+	}
+	locationInfo := []LocationInfo{
+		{
+			Location: l,
+			DCHosts:  map[string][]string{"dc1": {"h1"}},
+		},
+	}
+
+	testCases := []struct {
+		name                 string
+		sstables             []RemoteSSTable
+		shardCnt             uint
+		batchSize            int
+		method               Method
+		rcloneFileCountLimit int
+
+		expectedSSTableCnt int
+	}{
+		{
+			name:                 "regular rclone batch",
+			sstables:             defaultSSTables(),
+			shardCnt:             3,
+			batchSize:            1,
+			method:               MethodRclone,
+			rcloneFileCountLimit: 0,
+			expectedSSTableCnt:   3,
+		},
+		{
+			name:                 "first shard group may exceed rclone limit",
+			sstables:             defaultSSTables(),
+			shardCnt:             3,
+			batchSize:            10000,
+			method:               MethodRclone,
+			rcloneFileCountLimit: 2,
+			expectedSSTableCnt:   3,
+		},
+		{
+			name:                 "rclone file count limits large batch size",
+			sstables:             defaultSSTables(),
+			shardCnt:             1,
+			batchSize:            10000,
+			method:               MethodRclone,
+			rcloneFileCountLimit: 5,
+			expectedSSTableCnt:   2,
+		},
+		{
+			name:                 "size based rclone batch",
+			sstables:             smallSSTables(40),
+			shardCnt:             1,
+			batchSize:            maxBatchSize,
+			method:               MethodRclone,
+			rcloneFileCountLimit: 0,
+			expectedSSTableCnt:   2,
+		},
+		{
+			name:                 "rclone file count limits size based batch",
+			sstables:             smallSSTables(40),
+			shardCnt:             1,
+			batchSize:            maxBatchSize,
+			method:               MethodRclone,
+			rcloneFileCountLimit: 1,
+			expectedSSTableCnt:   1,
+		},
+		{
+			name:                 "regular native batch is not throttled",
+			sstables:             defaultSSTables(),
+			shardCnt:             3,
+			batchSize:            1,
+			method:               MethodNative,
+			rcloneFileCountLimit: 2,
+			expectedSSTableCnt:   7,
+		},
+		{
+			name:                 "size based native batch is not throttled",
+			sstables:             defaultSSTables(),
+			shardCnt:             3,
+			batchSize:            maxBatchSize,
+			method:               MethodNative,
+			rcloneFileCountLimit: 2,
+			expectedSSTableCnt:   7,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			workload := aggregateWorkload(newRawWorkload(tc.sstables))
+			hostInfo := map[string]hostBatchInfo{
+				"h1": {shardCnt: tc.shardCnt, nativeRestoreSupport: true},
+			}
+			bd := newBatchDispatcher(workload, tc.batchSize, hostInfo, locationInfo, tc.method).
+				withRcloneBatchFileCountLimit(tc.rcloneFileCountLimit)
+
+			b, ok := bd.dispatchBatch("h1")
+			if !ok {
+				t.Fatal("Expected batch")
+			}
+
+			if len(b.SSTables) != tc.expectedSSTableCnt {
+				t.Fatalf("Expected %d sstables, got %d", tc.expectedSSTableCnt, len(b.SSTables))
+			}
+			var files int
+			for _, sst := range b.SSTables {
+				files += len(sst.Files)
+			}
+			if b.method == MethodRclone && tc.rcloneFileCountLimit > 0 && len(b.SSTables) > int(tc.shardCnt) && files > tc.rcloneFileCountLimit {
+				t.Fatalf("Expected at most %d files, got %d", tc.rcloneFileCountLimit, files)
+			}
+		})
+	}
+}
+
 // TestBatchDispatcherIntegerID validates that sstables with
 // integer based IDs use 5% limit when maxBatchSize is used.
 func TestBatchDispatcherIntegerID(t *testing.T) {
@@ -407,11 +564,9 @@ func TestBatchDispatcherMultiHostNative(t *testing.T) {
 
 	// Host h1 with 2 shards gets the first batch.
 	// SSTables sorted descending: [100, 90, 80, 70, 60, 50, 50].
-	// Since 2 first sstables are smaller than expected workload,
-	// the next 2 are also added to the batch. This might seem like
-	// a poor batching strategy, but that's because sstable count
-	// is relatively small to the shard count, which is not the case
-	// in the real life scenarios.
+	// The first shard-count SSTables are always batched. The next
+	// shard-count group would exceed h1 expected workload, so it is
+	// left for another host.
 	b1, ok := bd.dispatchBatch("h1")
 	if !ok {
 		t.Fatal("Expected batch for h1")
@@ -419,17 +574,18 @@ func TestBatchDispatcherMultiHostNative(t *testing.T) {
 	if b1.method != MethodNative {
 		t.Errorf("Expected method %q, got %q", MethodNative, b1.method)
 	}
-	if len(b1.SSTables) != 4 {
-		t.Errorf("Expected 4 sstables for h1, got %d", len(b1.SSTables))
+	if len(b1.SSTables) != 2 {
+		t.Errorf("Expected 2 sstables for h1, got %d", len(b1.SSTables))
 	}
-	if b1.Size != 340 {
-		t.Errorf("Expected batch size 340, got %d", b1.Size)
+	if b1.Size != 190 {
+		t.Errorf("Expected batch size 190, got %d", b1.Size)
 	}
 	bd.ReportSuccess(b1)
 
 	// Host h2 with 3 shards gets the second batch.
-	// Remaining SSTables: [60, 50, 50].
-	// It takes all 3 remaining sstables.
+	// Remaining SSTables: [80, 70, 60, 50, 50].
+	// It gets the first shard-count group and then the leftovers are
+	// added to avoid leaving less than one SSTable per shard.
 	b2, ok := bd.dispatchBatch("h2")
 	if !ok {
 		t.Fatal("Expected batch for h2")
@@ -437,13 +593,22 @@ func TestBatchDispatcherMultiHostNative(t *testing.T) {
 	if b2.method != MethodNative {
 		t.Errorf("Expected method %q, got %q", MethodNative, b2.method)
 	}
-	if len(b2.SSTables) != 3 {
-		t.Errorf("Expected 3 SSTables for h2, got %d", len(b2.SSTables))
+	if len(b2.SSTables) != 5 {
+		t.Errorf("Expected 5 SSTables for h2, got %d", len(b2.SSTables))
 	}
-	if b2.Size != 160 {
-		t.Errorf("Expected batch size 160, got %d", b2.Size)
+	if b2.Size != 310 {
+		t.Errorf("Expected batch size 310, got %d", b2.Size)
 	}
 	bd.ReportSuccess(b2)
+	if b1.Size <= 0 || b1.Size > 200 {
+		t.Errorf("Expected h1 workload to fit its expected 200 bytes, got %d", b1.Size)
+	}
+	if b2.Size <= 0 || b2.Size < 300 {
+		t.Errorf("Expected h2 workload to use remaining expected capacity, got %d", b2.Size)
+	}
+	if b1.Size+b2.Size != 500 {
+		t.Errorf("Expected total dispatched size 500, got %d", b1.Size+b2.Size)
+	}
 
 	_, ok = bd.dispatchBatch("h1")
 	if ok {

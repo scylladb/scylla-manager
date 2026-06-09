@@ -1,4 +1,4 @@
-// Copyright (C) 2024 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package restore
 
@@ -64,6 +64,10 @@ type batchDispatcher struct {
 	// batches contain N*node_shard_cnt SSTables of total
 	// size up to 100% of node expected workload.
 	batchSize int
+	// If greater than zero, rclone batch can contain up to rcloneBatchFileCountLimit files.
+	// This is a soft limit which can be exceeded so that batch contains at lest shard cnt
+	// sstables or less than shard cnt sstables would be left in the pool after batch dispatch.
+	rcloneBatchFileCountLimit int
 	// Equals total_backup_size/($\sum_{node} shard_cnt(node)$)
 	expectedShardWorkload int64
 	hostInfo              map[string]hostBatchInfo
@@ -89,6 +93,11 @@ func newBatchDispatcher(workload Workload, batchSize int, hostInfo map[string]ho
 		hostInfo:              hostInfo,
 		method:                method,
 	}
+}
+
+func (bd *batchDispatcher) withRcloneBatchFileCountLimit(limit int) *batchDispatcher {
+	bd.rcloneBatchFileCountLimit = limit
+	return bd
 }
 
 // Describes current state of SSTables that are yet to be batched.
@@ -364,56 +373,78 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 		batchMethod = MethodNative
 	}
 
+	// Set batch limits.
+	// The files count limit comes from rclone server limitation,
+	// but it's not a hard limit and can be crossed to a small degree.
+	// Size and SST cnt limits come from batching strategy controlled
+	// with --batch-size and batch restoration method. They can also
+	// be slightly extended if needed.
+	var fileCntLimit int
+	var sizeLimit int64
+	var sstCntLimit int
+	if batchMethod == MethodRclone && bd.rcloneBatchFileCountLimit > 0 {
+		fileCntLimit = bd.rcloneBatchFileCountLimit
+	}
+	switch {
+	case batchMethod == MethodNative:
+		sizeLimit = bd.getSizeBasedLimit(host, 100, 5)
+	case bd.batchSize == maxBatchSize:
+		sizeLimit = bd.getSizeBasedLimit(host, 5, 5)
+	default:
+		sstCntLimit = bd.getSstCntBasedLimit(host)
+	}
+
+	getNextShardCntSSTables := func(i int) (fileCnt int, size int64, sstCnt int) {
+		for j := range hi.shardCnt {
+			idx := i + int(j)
+			if idx >= len(sstables) {
+				return
+			}
+			fileCnt += len(sstables[idx].Files)
+			size += sstables[idx].Size
+			sstCnt++
+		}
+		return
+	}
+
 	var i int
 	var size int64
-	if bd.batchSize == maxBatchSize || batchMethod == MethodNative {
-		// Create batch containing multiple of node shard count sstables
-		// and size up to a percentage of expected node workload.
-		// For rclone restore with --batch-size=0, aim for 5% of expected node workload.
-		// For native restore, aim for 100% of expected node workload.
-		expectedNodeWorkload := bd.expectedShardWorkload * int64(hi.shardCnt)
-		sizeLimit := expectedNodeWorkload / 20
-		if batchMethod == MethodNative {
-			// For 5% rclone batches, we expect imbalance in workload distribution
-			// to be less significant even in the more problematic scenarios.
-			// The risk of noticeable imbalance in 100% native batches is much higher,
-			// so we fall back to 5% batches when node already restored its expected workload.
-			alreadyAssigned := bd.workloadProgress.hostAssignedBytes[host]
-			remainingExpected := max(expectedNodeWorkload-alreadyAssigned, 0)
-			sizeLimit = max(remainingExpected, sizeLimit)
+	var fileCnt int
+	for {
+		nextFileCnt, nextSize, nextSstCnt := getNextShardCntSSTables(i)
+		if nextSstCnt == 0 {
+			break
 		}
-		for {
-			for range hi.shardCnt {
-				if i >= len(sstables) {
-					break
-				}
-				size += sstables[i].Size
-				i++
-			}
-			if i >= len(sstables) {
+		// Don't validate the first shard cnt sstables,
+		// so that setting strange limits doesn't result
+		// in hanging on empty batch creation.
+		if i > 0 {
+			if fileCntLimit > 0 && fileCnt+nextFileCnt > fileCntLimit {
 				break
 			}
-			if size > sizeLimit {
+			if sizeLimit > 0 && size+nextSize > sizeLimit {
+				break
+			}
+			if sstCntLimit > 0 && i+nextSstCnt > sstCntLimit {
 				break
 			}
 		}
-	} else {
-		// Create batch containing node_shard_count*batch_size sstables.
-		i = min(bd.batchSize*int(hi.shardCnt), len(sstables))
-		for j := range i {
-			size += sstables[j].Size
-		}
+
+		fileCnt += nextFileCnt
+		size += nextSize
+		i += nextSstCnt
 	}
 
 	if i == 0 {
 		return batch{}, false
 	}
 	// Extend batch if it was to leave less than
-	// 1 sstable per shard for the next one.
+	// 1 sstable per shard for the next one
+	// (ignore the limits).
 	if len(sstables)-i < int(hi.shardCnt) {
-		for ; i < len(sstables); i++ {
-			size += sstables[i].Size
-		}
+		_, nextSize, nextSstCnt := getNextShardCntSSTables(i)
+		size += nextSize
+		i += nextSstCnt
 	}
 
 	rdp.RemainingSSTables[batchT] = sstables[i:]
@@ -430,6 +461,38 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 		Size:             size,
 		SSTables:         sstables[:i],
 	}, true
+}
+
+func (bd *batchDispatcher) getSizeBasedLimit(host string, targetPercentage, overworkPercentage int) (sizeLimit int64) {
+	// Create batch containing multiple of node shard count sstables
+	// and size up to a targetPercentage of expected node workload.
+	// To reduce the imbalance between node workloads, batches are
+	// created with targetPercentage up until node crosses its total
+	// expected workload. After that, batches are created according
+	// to overworkPercentage.
+	hi := bd.hostInfo[host]
+	if hi.shardCnt == 0 {
+		hi.shardCnt = 1
+	}
+	expectedNodeWorkload := bd.expectedShardWorkload * int64(hi.shardCnt)
+	overworkSizeLimit := expectedNodeWorkload * int64(overworkPercentage) / 100
+
+	maxTargetSizeLimit := expectedNodeWorkload * int64(targetPercentage) / 100
+	alreadyAssigned := bd.workloadProgress.hostAssignedBytes[host]
+	remainingExpected := max(expectedNodeWorkload-alreadyAssigned, 0)
+	targetSizeLimit := min(remainingExpected, maxTargetSizeLimit)
+
+	return max(overworkSizeLimit, targetSizeLimit)
+}
+
+func (bd *batchDispatcher) getSstCntBasedLimit(host string) (sstCntLimit int) {
+	// Create batch containing node_shard_count*batch_size sstables.
+	hi := bd.hostInfo[host]
+	if hi.shardCnt == 0 {
+		hi.shardCnt = 1
+	}
+
+	return bd.batchSize * int(hi.shardCnt)
 }
 
 // ReportSuccess notifies batchDispatcher that given batch was restored successfully.
