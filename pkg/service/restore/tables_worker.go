@@ -247,7 +247,8 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			nativeRestoreSupport: hi.NativeRestoreSupport,
 		}
 	}
-	bd := newBatchDispatcher(workload, w.target.BatchSize, hbi, w.target.locationInfo, w.target.Method)
+	bd := newBatchDispatcher(workload, w.target.BatchSize, hbi, w.target.locationInfo, w.target.Method).
+		withRcloneBatchFileCountLimit(scyllaclient.MaxSStableComponentCountInReqBody)
 
 	f := func(n int) error {
 		host := hosts[n]
