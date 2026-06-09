@@ -1,3 +1,4 @@
+## workspace
 # cel.dev/expr v0.25.1
 ## explicit; go 1.23.0
 cel.dev/expr
@@ -230,6 +231,8 @@ github.com/coreos/go-semver/semver
 # github.com/cpuguy83/go-md2man/v2 v2.0.3
 ## explicit; go 1.11
 github.com/cpuguy83/go-md2man/v2/md2man
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+## explicit
 # github.com/envoyproxy/go-control-plane/envoy v1.36.0
 ## explicit; go 1.23.0
 github.com/envoyproxy/go-control-plane/envoy/admin/v3
@@ -393,6 +396,8 @@ github.com/gocql/gocql/tablets
 github.com/golang/mock/gomock
 github.com/golang/mock/mockgen
 github.com/golang/mock/mockgen/model
+# github.com/golang/snappy v0.0.4
+## explicit
 # github.com/google/go-cmp v0.7.0
 ## explicit; go 1.21
 github.com/google/go-cmp/cmp
@@ -486,6 +491,8 @@ github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/s2
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/kr/pretty v0.3.1
+## explicit; go 1.12
 # github.com/lnquy/cron v1.1.1
 ## explicit; go 1.11
 github.com/lnquy/cron
@@ -545,6 +552,8 @@ github.com/planetscale/vtprotobuf/types/known/emptypb
 github.com/planetscale/vtprotobuf/types/known/structpb
 github.com/planetscale/vtprotobuf/types/known/timestamppb
 github.com/planetscale/vtprotobuf/types/known/wrapperspb
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+## explicit
 # github.com/prometheus/client_golang v1.21.1
 ## explicit; go 1.21
 github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil
@@ -622,6 +631,8 @@ github.com/rivo/uniseg
 # github.com/robfig/cron/v3 v3.0.1
 ## explicit; go 1.12
 github.com/robfig/cron/v3
+# github.com/rogpeppe/go-internal v1.14.1
+## explicit; go 1.23
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
@@ -646,58 +657,19 @@ github.com/scylladb/gocqlx/v2/migrate
 github.com/scylladb/gocqlx/v2/qb
 github.com/scylladb/gocqlx/v2/table
 # github.com/scylladb/scylla-manager/backupspec v1.0.3-0.20260407094300-c4d92171ff7c
-## explicit; go 1.23.2
-github.com/scylladb/scylla-manager/backupspec
+## explicit; go 1.26.3
 # github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20260527104540-b3e9f76ffdee
-## explicit; go 1.25.1
-github.com/scylladb/scylla-manager/v3/pkg/managerclient
-github.com/scylladb/scylla-manager/v3/pkg/managerclient/table
+## explicit; go 1.26.3
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20250530081649-30bcf253e6a6
+## explicit; go 1.26.3
+# github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20260522113449-181dd7c9c1b5
+## explicit; go 1.26.3
 # github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20260527104540-b3e9f76ffdee
-## explicit; go 1.25.1
-github.com/scylladb/scylla-manager/v3/pkg/util
-github.com/scylladb/scylla-manager/v3/pkg/util/certutil
-github.com/scylladb/scylla-manager/v3/pkg/util/cfgutil
-github.com/scylladb/scylla-manager/v3/pkg/util/clipper
-github.com/scylladb/scylla-manager/v3/pkg/util/cpuset
-github.com/scylladb/scylla-manager/v3/pkg/util/duration
-github.com/scylladb/scylla-manager/v3/pkg/util/fsutil
-github.com/scylladb/scylla-manager/v3/pkg/util/httplog
-github.com/scylladb/scylla-manager/v3/pkg/util/httppprof
-github.com/scylladb/scylla-manager/v3/pkg/util/httpx
-github.com/scylladb/scylla-manager/v3/pkg/util/inexlist
-github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/dcfilter
-github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter
-github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil
-github.com/scylladb/scylla-manager/v3/pkg/util/logutil
-github.com/scylladb/scylla-manager/v3/pkg/util/maputil
-github.com/scylladb/scylla-manager/v3/pkg/util/netwait
-github.com/scylladb/scylla-manager/v3/pkg/util/osutil
-github.com/scylladb/scylla-manager/v3/pkg/util/parallel
-github.com/scylladb/scylla-manager/v3/pkg/util/pathparser
-github.com/scylladb/scylla-manager/v3/pkg/util/pointer
-github.com/scylladb/scylla-manager/v3/pkg/util/prom
-github.com/scylladb/scylla-manager/v3/pkg/util/query
-github.com/scylladb/scylla-manager/v3/pkg/util/retry
-github.com/scylladb/scylla-manager/v3/pkg/util/schedules
-github.com/scylladb/scylla-manager/v3/pkg/util/sizesuffix
-github.com/scylladb/scylla-manager/v3/pkg/util/slice
-github.com/scylladb/scylla-manager/v3/pkg/util/timeutc
-github.com/scylladb/scylla-manager/v3/pkg/util/uuid
-github.com/scylladb/scylla-manager/v3/pkg/util/version
-github.com/scylladb/scylla-manager/v3/pkg/util/workerpool
+## explicit; go 1.26.3
+# github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20260522113449-181dd7c9c1b5
+## explicit; go 1.26.3
 # github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20260527104540-b3e9f76ffdee
-## explicit; go 1.25.1
-github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client
-github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations
-github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/client/operations
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla-manager/models
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/client
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/client/config
-github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v2/models
+## explicit; go 1.26.3
 # github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 ## explicit
 github.com/scylladb/termtables
@@ -730,6 +702,8 @@ github.com/spiffe/go-spiffe/v2/spiffeid
 # github.com/stoewer/go-strcase v1.3.0
 ## explicit; go 1.11
 github.com/stoewer/go-strcase
+# github.com/stretchr/testify v1.11.1
+## explicit; go 1.17
 # go.mongodb.org/mongo-driver v1.14.0
 ## explicit; go 1.18
 go.mongodb.org/mongo-driver/bson
