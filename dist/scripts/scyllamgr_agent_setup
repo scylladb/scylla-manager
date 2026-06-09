@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (C) 2017 ScyllaDB
+# Copyright (C) 2026 ScyllaDB
 #
 
 set -eu -o pipefail
@@ -8,6 +8,11 @@ set -eu -o pipefail
 is_systemd() {
     grep -q '^systemd$' /proc/1/comm
 }
+
+SCYLLA_HELPER_SLICE_PATH=/usr/lib/systemd/system/scylla-helper.slice
+SCYLLA_HELPER_SLICE_DEB_PATH=/lib/systemd/system/scylla-helper.slice
+LEGACY_SCYLLA_HELPER_SLICE=/etc/systemd/system/scylla-helper.slice
+LEGACY_SCYLLA_HELPER_SLICE_D=/etc/systemd/system/scylla-helper.slice.d
 
 interactive_ask_service() {
     echo $1
@@ -96,58 +101,33 @@ if [[ "$(id -u)" != "0" ]]; then
 fi
 
 if [[ ${INTERACTIVE} == 1 ]]; then
-    interactive_ask_service "Do you want to create scylla-helper.slice if it does not exist?" "Yes - limit Scylla Manager Agent and other helper programs memory. No - skip this step." "yes" &&:
+    interactive_ask_service "Do you want to configure scylla-helper.slice?" "Yes - use ScyllaDB-provided resource limits for ScyllaDB Manager Agent and other helper programs. No - skip this step." "yes" &&:
     SCYLLA_HELPER_SLICE=$?
-    interactive_ask_service "Do you want the Scylla Manager Agent service to automatically start when the node boots?" "Yes - automatically start Scylla Manager Agent when the node boots. No - skip this step." "yes" &&:
+    interactive_ask_service "Do you want the ScyllaDB Manager Agent service to automatically start when the node boots?" "Yes - automatically start ScyllaDB Manager Agent when the node boots. No - skip this step." "yes" &&:
     ENABLE_SERVICE=$?
 fi
 
-if [[ ${SCYLLA_HELPER_SLICE} == 1 && ! -f /etc/systemd/system/scylla-helper.slice ]]; then
-    cat << EOS > /etc/systemd/system/scylla-helper.slice
-[Unit]
-Description=Slice used to run companion programs to Scylla. Memory, CPU and IO restricted
-Before=slices.target
-
-[Slice]
-MemoryAccounting=true
-IOAccounting=true
-CPUAccounting=true
-
-CPUShares=10
-CPUWeight=10
-IOWeight=10
-BlockIOWeight=10
-
-# MemoryHigh is the throttle point
-# MemoryHigh=4%
-# MemoryMax is the OOM point. As Scylla reserves 7% by default, the other two percent goes to
-# the kernel and other non contained processes
-# MemoryMax=5%
-# Systemd deprecated settings BlockIOWeight, MemoryLimit and CPUShares. But they are still the ones used in RHEL7
-# Newer SystemD wants MemoryHigh/MemoryMax, IOWeight and CPUWeight instead. Luckily both newer and older SystemD seem to
-# ignore the unwanted option so safest to get both. Using just the old versions would work too but
-# seems less future proof. Using just the new versions does not work at all for RHEL7/
-# MemoryLimit=5%
-EOS
-    MEMTOTAL=$(cat /proc/meminfo | grep -e "^MemTotal:" | sed -s 's/^MemTotal:\s*\([0-9]*\) kB$/\1/')
-    MEMHIGH_M=$((${MEMTOTAL} * 4 / 100 / 1024))
-    MEMLIMIT_M=$((${MEMTOTAL} * 5 / 100 / 1024))
-
-    # For systems with not a lot of memory, override default reservations for the slices
-    # seastar has a minimum reservation of 1.5GB that kicks in, and 21GB * 0.07 = 1.5GB.
-    # So for anything smaller than that we will not use percentages in the helper slice
-    if [[ $(($MEMTOTAL * 1024)) -lt 23008753371 ]]; then
-        MEMHIGH_M=1200
-        MEMLIMIT_M=1400
+if [[ ${SCYLLA_HELPER_SLICE} == 1 ]]; then
+    if [[ ! -f ${SCYLLA_HELPER_SLICE_PATH} && ! -f ${SCYLLA_HELPER_SLICE_DEB_PATH} ]]; then
+        echo "scylla-helper.slice is not provided by ScyllaDB on this node."
+        echo "Install or upgrade the ScyllaDB package that provides scylla-helper.slice, or run:"
+        echo "  $(basename $0) --no-scylla-helper-slice"
+        echo "Expected unit path:"
+        echo "  ${SCYLLA_HELPER_SLICE_PATH}"
+        echo "or:"
+        echo "  ${SCYLLA_HELPER_SLICE_DEB_PATH}"
+        exit 1
     fi
 
-    mkdir -p /etc/systemd/system/scylla-helper.slice.d/
-    cat << EOS > /etc/systemd/system/scylla-helper.slice.d/memory.conf
-[Slice]
-MemoryHigh=${MEMHIGH_M}M
-MemoryMax=${MEMLIMIT_M}M
-MemoryLimit=${MEMLIMIT_M}M
-EOS
+    # SM used to configure scylla-helper.slice in /etc. It is now shipped with Scylla,
+    # so move legacy SM-managed overrides aside to let Scylla's unit take effect.
+    for path in "${LEGACY_SCYLLA_HELPER_SLICE}" "${LEGACY_SCYLLA_HELPER_SLICE_D}"; do
+        if [[ -e ${path} || -L ${path} ]]; then
+            backup=${path}.scylla-manager.bak.$(date +%Y%m%d%H%M%S).${RANDOM}
+            echo "Moving existing ${path} to ${backup} to let ScyllaDB-provided scylla-helper.slice take effect."
+            mv "${path}" "${backup}"
+        fi
+    done
 fi
 
 if [[ ${ENABLE_SERVICE} == 1 ]]; then
@@ -156,6 +136,8 @@ if [[ ${ENABLE_SERVICE} == 1 ]]; then
     fi
 fi
 
-systemctl daemon-reload
+if is_systemd; then
+    systemctl daemon-reload
+fi
 
-echo "Scylla Manager Agent setup finished."
+echo "ScyllaDB Manager Agent setup finished."
