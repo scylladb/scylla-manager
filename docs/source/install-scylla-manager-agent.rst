@@ -69,6 +69,11 @@ You will need to run this command as root or with sudo.
 .. note:: Make sure you run the ScyllaDB Manager Agent setup script, and enable ScyllaDB helper slice.
    The helper slice contains a cgroup definition that governs ScyllaDB Manager Agent resources usage.
    Without the slice the node latency during backup upload maybe unpredictable.
+   The helper slice is provided by ScyllaDB packages. If helper slice configuration is enabled and the ScyllaDB-provided
+   ``scylla-helper.slice`` unit is missing, the setup script fails and asks you to install or upgrade the ScyllaDB package
+   that provides it. If a legacy local ``/etc/systemd/system/scylla-helper.slice`` override or
+   ``/etc/systemd/system/scylla-helper.slice.d`` drop-in directory exists, the setup script moves it to a backup path so
+   the ScyllaDB-provided configuration can take effect without deleting local changes.
 
 .. code-block:: none
 
@@ -84,6 +89,8 @@ You will need to run this command as root or with sudo.
    Interactive mode is enabled when no flags are provided.
 
 Run the ``scyllamgr_agent_setup`` script to configure the service. You will need to run this command as root or with sudo.
+When run with ``--no-scylla-helper-slice``, the script skips helper slice configuration and leaves any existing
+``scylla-helper.slice`` files untouched.
 
 For example:
 

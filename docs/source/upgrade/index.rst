@@ -159,8 +159,8 @@ This step requires sudo rights:
 .. code:: sh
 
     $ sudo scyllamgr_agent_setup
-    Do you want to create scylla-helper.slice if it does not exist?
-    Yes - limit ScyllaDB Manager Agent and other helper programs memory. No - skip this step.
+    Do you want to configure scylla-helper.slice?
+    Yes - use ScyllaDB-provided resource limits for ScyllaDB Manager Agent and other helper programs. No - skip this step.
     [YES/no] YES
     Do you want the ScyllaDB Manager Agent service to automatically start when the node boots?
     Yes - automatically start ScyllaDB Manager Agent when the node boots. No - skip this step.
@@ -168,6 +168,17 @@ This step requires sudo rights:
 
 First step relates to limiting resources that are available to the agent and second
 instructs systemd to run agent on node restart.
+
+The helper slice configuration is provided by ScyllaDB packages. If helper slice
+configuration is enabled and the ScyllaDB-provided ``scylla-helper.slice`` unit is
+missing, the setup script fails and asks you to install or upgrade the ScyllaDB
+package that provides it. If a legacy local
+``/etc/systemd/system/scylla-helper.slice`` override or
+``/etc/systemd/system/scylla-helper.slice.d`` drop-in directory exists, the setup
+script moves it to a backup path so the ScyllaDB-provided configuration can take
+effect without deleting local changes. If you intentionally maintain local helper
+slice customizations, use ``--no-scylla-helper-slice`` to skip helper slice
+configuration and leave any existing ``scylla-helper.slice`` files untouched.
 
 Reconcile configuration files
 -----------------------------
