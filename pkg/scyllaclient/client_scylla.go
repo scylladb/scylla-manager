@@ -1435,11 +1435,11 @@ func (c *Client) TabletRestore(ctx context.Context, host, keyspace, table, snaps
 	})
 
 	resp, err := c.scyllaOps.StorageServiceTabletsRestorePost(&operations.StorageServiceTabletsRestorePostParams{
-		Context:        forceHost(ctx, host),
-		Keyspace:       keyspace,
-		Table:          table,
-		Snapshot:       snapshotTag,
-		BackupLocation: bl,
+		Context:              forceHost(ctx, host),
+		Keyspace:             keyspace,
+		Table:                table,
+		Snapshot:             snapshotTag,
+		BackupSourceLocation: bl,
 	})
 	if err != nil {
 		return "", err

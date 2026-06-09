@@ -12833,7 +12833,7 @@
             "description": "Name of the snapshot to restore from"
           },
           {
-            "name": "backup_location",
+            "name": "backup_source_location",
             "in": "body",
             "required": true,
             "schema": {

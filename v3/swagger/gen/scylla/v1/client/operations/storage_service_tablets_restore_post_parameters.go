@@ -63,11 +63,11 @@ for the storage service tablets restore post operation typically these are writt
 */
 type StorageServiceTabletsRestorePostParams struct {
 
-	/*BackupLocation
+	/*BackupSourceLocation
 	  Array of backup location objects
 
 	*/
-	BackupLocation []*models.TabletRestoreBackupLocation
+	BackupSourceLocation []*models.TabletRestoreBackupLocation
 	/*Keyspace
 	  Name of a keyspace to copy SSTables to
 
@@ -122,15 +122,15 @@ func (o *StorageServiceTabletsRestorePostParams) SetHTTPClient(client *http.Clie
 	o.HTTPClient = client
 }
 
-// WithBackupLocation adds the backupLocation to the storage service tablets restore post params
-func (o *StorageServiceTabletsRestorePostParams) WithBackupLocation(backupLocation []*models.TabletRestoreBackupLocation) *StorageServiceTabletsRestorePostParams {
-	o.SetBackupLocation(backupLocation)
+// WithBackupSourceLocation adds the backupSourceLocation to the storage service tablets restore post params
+func (o *StorageServiceTabletsRestorePostParams) WithBackupSourceLocation(backupSourceLocation []*models.TabletRestoreBackupLocation) *StorageServiceTabletsRestorePostParams {
+	o.SetBackupSourceLocation(backupSourceLocation)
 	return o
 }
 
-// SetBackupLocation adds the backupLocation to the storage service tablets restore post params
-func (o *StorageServiceTabletsRestorePostParams) SetBackupLocation(backupLocation []*models.TabletRestoreBackupLocation) {
-	o.BackupLocation = backupLocation
+// SetBackupSourceLocation adds the backupSourceLocation to the storage service tablets restore post params
+func (o *StorageServiceTabletsRestorePostParams) SetBackupSourceLocation(backupSourceLocation []*models.TabletRestoreBackupLocation) {
+	o.BackupSourceLocation = backupSourceLocation
 }
 
 // WithKeyspace adds the keyspace to the storage service tablets restore post params
@@ -174,8 +174,8 @@ func (o *StorageServiceTabletsRestorePostParams) WriteToRequest(r runtime.Client
 	}
 	var res []error
 
-	if o.BackupLocation != nil {
-		if err := r.SetBodyParam(o.BackupLocation); err != nil {
+	if o.BackupSourceLocation != nil {
+		if err := r.SetBodyParam(o.BackupSourceLocation); err != nil {
 			return err
 		}
 	}
