@@ -276,6 +276,17 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 		}
 	}
 
+	if len(t.KeyspaceMappings) > 0 {
+		tables, err := w.client.AllTables(ctx)
+		if err != nil {
+			return errors.Wrap(err, "get all tables for keyspace mapping validation")
+		}
+		targetKeyspaces := slices.Collect(maps.Keys(tables))
+		if err := validateKeyspaceMappings(t.KeyspaceMappings, targetKeyspaces); err != nil {
+			return err
+		}
+	}
+
 	w.logger.Info(ctx, "Initialized target", "target", t)
 	return nil
 }
@@ -302,6 +313,23 @@ func (w *worker) validateDCMappings(dcMappings map[string]string, sourceDC, targ
 			return errors.Errorf("DC mapping contains duplicates in target DCs: %s", targetDC)
 		}
 		targetDCMappingSet.Add(targetDC)
+	}
+	return nil
+}
+
+// validateKeyspaceMappings that every target keyspace from mappings exists in target cluster
+// and that target keyspaces are not duplicated.
+func validateKeyspaceMappings(ksMappings map[string]string, targetKeyspaces []string) error {
+	targetKSSet := strset.New(targetKeyspaces...)
+	targetKSMappingSet := strset.New()
+	for _, targetKS := range ksMappings {
+		if !targetKSSet.Has(targetKS) {
+			return errors.Errorf("no such keyspace in target cluster: %s", targetKS)
+		}
+		if targetKSMappingSet.Has(targetKS) {
+			return errors.Errorf("keyspace mapping contains duplicates in target keyspaces: %s", targetKS)
+		}
+		targetKSMappingSet.Add(targetKS)
 	}
 	return nil
 }
@@ -378,14 +406,15 @@ func (w *worker) initUnits(ctx context.Context, locationInfo []LocationInfo) err
 			foundManifest = true
 
 			filesHandler := func(fm backupspec.FilesMeta) {
-				ru := unitMap[fm.Keyspace]
-				ru.Keyspace = fm.Keyspace
+				targetKs := w.target.TargetKeyspace(fm.Keyspace)
+				ru := unitMap[targetKs]
+				ru.Keyspace = targetKs
 				ru.Size += fm.Size
 
 				for i, t := range ru.Tables {
 					if t.Table == fm.Table {
 						ru.Tables[i].Size += fm.Size
-						unitMap[fm.Keyspace] = ru
+						unitMap[targetKs] = ru
 
 						return
 					}
@@ -395,7 +424,7 @@ func (w *worker) initUnits(ctx context.Context, locationInfo []LocationInfo) err
 					Table: fm.Table,
 					Size:  fm.Size,
 				})
-				unitMap[fm.Keyspace] = ru
+				unitMap[targetKs] = ru
 			}
 
 			return miwc.ForEachIndexIter(w.target.Keyspace, filesHandler)
