@@ -68,10 +68,9 @@ func DataCentreHostFilter(dataCenter string) HostFilter {
 }
 
 // WhiteListHostFilter filters incoming hosts by checking that their address is
-// in the initial hosts whitelist. It probes all known addresses of a host
-// (connect, rpc, broadcast, listen, peer, preferred, translated CQL) for a match.
+// in the initial hosts whitelist.
 func WhiteListHostFilter(hosts ...string) HostFilter {
-	hostInfos, err := resolveInitialEndpoints(defaultDnsResolver, hosts, 9042, nopLogger{})
+	hostInfos, err := addrsToHosts(defaultDnsResolver, nil, hosts, 9042, nopLogger{})
 	if err != nil {
 		// dont want to panic here, but rather not break the API
 		panic(fmt.Errorf("unable to lookup host info from address: %v", err))
@@ -83,27 +82,6 @@ func WhiteListHostFilter(hosts ...string) HostFilter {
 	}
 
 	return HostFilterFunc(func(host *HostInfo) bool {
-		host.mu.RLock()
-		defer host.mu.RUnlock()
-
-		if validIpAddr(host.rpcAddress) && m[host.rpcAddress.String()] {
-			return true
-		}
-		if validIpAddr(host.broadcastAddress) && m[host.broadcastAddress.String()] {
-			return true
-		}
-		if validIpAddr(host.listenAddress) && m[host.listenAddress.String()] {
-			return true
-		}
-		if validIpAddr(host.peer) && m[host.peer.String()] {
-			return true
-		}
-		if validIpAddr(host.preferredIP) && m[host.preferredIP.String()] {
-			return true
-		}
-		if host.translatedAddresses != nil && host.translatedAddresses.CQL.IsValid() && m[host.translatedAddresses.CQL.Address.String()] {
-			return true
-		}
-		return false
+		return m[host.ConnectAddress().String()]
 	})
 }

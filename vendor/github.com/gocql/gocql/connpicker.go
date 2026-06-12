@@ -8,7 +8,7 @@ import (
 
 type ConnPicker interface {
 	Pick(Token, ExecutableQuery) *Conn
-	Put(*Conn) error
+	Put(*Conn)
 	Remove(conn *Conn)
 	InFlight() int
 	Size() (int, int)
@@ -18,10 +18,6 @@ type ConnPicker interface {
 	// nrShard specifies how many shards the host has.
 	// If nrShards is zero, the caller shouldn't use shard-aware port.
 	NextShard() (shardID, nrShards int)
-
-	GetConnectionCount() int
-	GetExcessConnectionCount() int
-	GetShardCount() int
 }
 
 type defaultConnPicker struct {
@@ -29,21 +25,6 @@ type defaultConnPicker struct {
 	pos   uint32
 	size  int
 	mu    sync.RWMutex
-}
-
-func (p *defaultConnPicker) GetConnectionCount() int {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return len(p.conns)
-}
-
-func (p *defaultConnPicker) GetExcessConnectionCount() int {
-	return 0
-}
-
-func (p *defaultConnPicker) GetShardCount() int {
-	// It is not supposed to be used for scylla nodes and therefore does not know anything about shards count
-	return 0
 }
 
 func newDefaultConnPicker(size int) *defaultConnPicker {
@@ -82,23 +63,17 @@ func (p *defaultConnPicker) Close() {
 }
 
 func (p *defaultConnPicker) InFlight() int {
-	p.mu.RLock()
 	size := len(p.conns)
-	p.mu.RUnlock()
 	return size
 }
 
 func (p *defaultConnPicker) Size() (int, int) {
-	p.mu.RLock()
 	size := len(p.conns)
-	p.mu.RUnlock()
 	return size, p.size - size
 }
 
 func (p *defaultConnPicker) Pick(Token, ExecutableQuery) *Conn {
 	pos := int(atomic.AddUint32(&p.pos, 1) - 1)
-
-	p.mu.RLock()
 	size := len(p.conns)
 
 	var (
@@ -117,16 +92,14 @@ func (p *defaultConnPicker) Pick(Token, ExecutableQuery) *Conn {
 			streamsAvailable = streams
 		}
 	}
-	p.mu.RUnlock()
 
 	return leastBusyConn
 }
 
-func (p *defaultConnPicker) Put(conn *Conn) error {
+func (p *defaultConnPicker) Put(conn *Conn) {
 	p.mu.Lock()
 	p.conns = append(p.conns, conn)
 	p.mu.Unlock()
-	return nil
 }
 
 func (*defaultConnPicker) NextShard() (shardID, nrShards int) {
@@ -138,24 +111,11 @@ func (*defaultConnPicker) NextShard() (shardID, nrShards int) {
 // to the point where we have first connection.
 type nopConnPicker struct{}
 
-func (p nopConnPicker) GetConnectionCount() int {
-	return 0
-}
-
-func (p nopConnPicker) GetExcessConnectionCount() int {
-	return 0
-}
-
-func (p nopConnPicker) GetShardCount() int {
-	return 0
-}
-
 func (nopConnPicker) Pick(Token, ExecutableQuery) *Conn {
 	return nil
 }
 
-func (nopConnPicker) Put(*Conn) error {
-	return nil
+func (nopConnPicker) Put(*Conn) {
 }
 
 func (nopConnPicker) Remove(conn *Conn) {

@@ -28,7 +28,7 @@ func EncTime(v time.Time) ([]byte, error) {
 	}
 	// It supposed to be v.UTC().UnixMilli(), for backward compatibility map `time.Time{}` to nil value
 	if v.IsZero() {
-		return make([]byte, 0), nil
+		return nil, nil
 	}
 	ms := v.UTC().UnixMilli()
 	return []byte{byte(ms >> 56), byte(ms >> 48), byte(ms >> 40), byte(ms >> 32), byte(ms >> 24), byte(ms >> 16), byte(ms >> 8), byte(ms)}, nil

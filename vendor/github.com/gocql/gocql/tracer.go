@@ -188,8 +188,8 @@ type TraceEntry struct {
 	Timestamp time.Time
 	Activity  string
 	Source    string
-	Thread    string
 	Elapsed   int
+	Thread    string
 }
 
 func (t *TracerEnhanced) GetActivities(traceId []byte) ([]TraceEntry, error) {

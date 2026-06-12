@@ -3,7 +3,6 @@ package tests
 import (
 	"math/rand"
 	"sync"
-	"time"
 )
 
 // RandInterface defines the thread-safe random number generator interface.
@@ -162,16 +161,4 @@ func (r *ThreadSafeRand) Read(p []byte) (n int, err error) {
 	r.mux.Lock()
 	defer r.mux.Unlock()
 	return r.r.Read(p)
-}
-
-var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-const randCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-func RandomText(size int) string {
-	result := make([]byte, size)
-	for i := range result {
-		result[i] = randCharset[rand.Intn(len(randCharset))]
-	}
-	return string(result)
 }

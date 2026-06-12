@@ -6,7 +6,7 @@ import (
 	"gopkg.in/inf.v0"
 )
 
-func Marshal(value any) ([]byte, error) {
+func Marshal(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
 	case nil:
 		return nil, nil
