@@ -13,7 +13,7 @@ func errBrokenData(p []byte) error {
 	return nil
 }
 
-func errNilReference(v any) error {
+func errNilReference(v interface{}) error {
 	return fmt.Errorf("failed to unmarshal varint: can not unmarshal into nil reference %#v)", v)
 }
 

@@ -1,7 +1,6 @@
 package tablets
 
 import (
-	"encoding/binary"
 	"math"
 	"math/rand"
 	"sync/atomic"
@@ -15,17 +14,17 @@ const randSeed = 100
 // where each combination contains `rf` elements. The generator cycles through all possible combinations
 // infinitely in a thread-safe manner using an atomic counter.
 type ReplicaSetGenerator struct {
-	hosts   []HostUUID // List of available hosts
-	rf      int        // Replication factor (number of hosts per combination)
-	len     int        // Total number of hosts
-	counter uint64     // Current position in the sequence of combinations
-	total   uint64     // Total number of possible combinations (n choose rf)
+	hosts   []string // List of available hosts
+	rf      int      // Replication factor (number of hosts per combination)
+	len     int      // Total number of hosts
+	counter uint64   // Current position in the sequence of combinations
+	total   uint64   // Total number of possible combinations (n choose rf)
 }
 
 // NewReplicaSetGenerator creates and returns a new ReplicaSetGenerator for the given set of hosts
 // and replication factor `rf`. It panics if `rf` is non-positive or greater than the number of hosts.
 // The generator produces all k-combinations of the input set and loops over them indefinitely.
-func NewReplicaSetGenerator(hosts []HostUUID, rf int) *ReplicaSetGenerator {
+func NewReplicaSetGenerator(hosts []string, rf int) *ReplicaSetGenerator {
 	n := len(hosts)
 	if rf <= 0 {
 		panic("replication factor must be positive")
@@ -78,7 +77,24 @@ func binomial(hosts, rf int) int {
 
 // unrankCombination returns the k-combination of elements from the input slice
 // corresponding to the given rank (counter) in lexicographic order.
-func unrankCombination(n, k, counter int, input []HostUUID) []ReplicaInfo {
+//
+// Parameters:
+//
+//	n       - total number of elements in the input slice (should be len(input))
+//	k       - number of elements to choose in the combination
+//	counter - the index (rank) of the desired combination in lexicographic order
+//	input   - a slice of strings to choose elements from; assumed to have n elements
+//
+// Returns:
+//
+//	A slice of ReplicaInfo structs representing the combination at the given rank.
+//	Each ReplicaInfo contains a hostId from the input and a shardId set to 0.
+//
+// Example:
+//
+//	input := []string{"a", "b", "c", "d"}
+//	result := unrankCombination(4, 2, 3, input) // returns the 4th combination (zero-based)
+func unrankCombination(n, k, counter int, input []string) []ReplicaInfo {
 	comb := make([]ReplicaInfo, 0, k)
 	x := 0
 	for i := 0; i < k; i++ {
@@ -108,26 +124,29 @@ func getRnd() *rand.Rand {
 	return rand.New(rand.NewSource(randSeed))
 }
 
-// GenerateHostUUIDs generates a slice of deterministic HostUUIDs for testing.
-// Byte 0 is set to 0xFE so that even index 0 is never the zero UUID.
-func GenerateHostUUIDs(count int) []HostUUID {
-	hosts := make([]HostUUID, count)
-	for i := range hosts {
-		hosts[i][0] = 0xFE
-		binary.BigEndian.PutUint64(hosts[i][8:], uint64(i))
-	}
-	return hosts
-}
-
 // createTablets generates a list of TabletInfo entries for a given keyspace and table.
 // Each tablet is assigned a token range and a set of replica hosts.
-func createTablets(ks, table string, hosts []HostUUID, rf, count int, tokenRangeCount int64) TabletInfoList {
-	out := make(TabletInfoList, count)
+//
+// Parameters:
+//
+//	ks              - the keyspace name.
+//	table           - the table name.
+//	hosts           - a list of available host identifiers.
+//	rf              - replication factor, number of replicas per tablet.
+//	count           - total number of tablets to create.
+//	tokenRangeCount - total number of distinct token ranges to divide the ring into.
+//
+// Returns:
+//
+//	A TabletInfoList containing 'count' tablets, each with its own token range
+//	and a replica set selected using a round-robin combination generator.
+func createTablets(ks, table string, hosts []string, rf, count int, tokenRangeCount int64) TabletInfoList {
+	out := make([]*TabletInfo, count)
 	step := math.MaxUint64 / uint64(tokenRangeCount)
 	repGen := NewReplicaSetGenerator(hosts, rf)
 	firstToken := int64(math.MinInt64)
 	for i := 0; i < count; i++ {
-		out[i] = TabletInfo{
+		out[i] = &TabletInfo{
 			keyspaceName: ks,
 			tableName:    table,
 			firstToken:   firstToken,
