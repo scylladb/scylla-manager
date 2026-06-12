@@ -36,10 +36,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/gocql/gocql/events"
-	"github.com/gocql/gocql/internal/debug"
-	frm "github.com/gocql/gocql/internal/frame"
 )
 
 var (
@@ -65,8 +61,8 @@ const (
 type controlConnection interface {
 	getConn() *connHost
 	awaitSchemaAgreement() error
-	query(statement string, values ...any) (iter *Iter)
-	querySystem(statement string, values ...any) (iter *Iter)
+	query(statement string, values ...interface{}) (iter *Iter)
+	querySystem(statement string, values ...interface{}) (iter *Iter)
 	discoverProtocol(hosts []*HostInfo) (int, error)
 	connect(hosts []*HostInfo) error
 	close()
@@ -77,12 +73,15 @@ type controlConnection interface {
 // Ensure that the atomic variable is aligned to a 64bit boundary
 // so that atomic operations can be applied on 32bit architectures.
 type controlConn struct {
-	conn         atomic.Value
-	retry        RetryPolicy
-	session      *Session
-	quit         chan struct{}
 	state        int32
 	reconnecting int32
+
+	session *Session
+	conn    atomic.Value
+
+	retry RetryPolicy
+
+	quit chan struct{}
 }
 
 func (c *controlConn) getSession() *Session {
@@ -126,7 +125,7 @@ func (c *controlConn) heartBeat() {
 		}
 
 		switch resp.(type) {
-		case *frm.SupportedFrame:
+		case *supportedFrame:
 			// Everything ok
 			sleepTime = 30 * time.Second
 			continue
@@ -144,7 +143,7 @@ func (c *controlConn) heartBeat() {
 	}
 }
 
-func resolveInitialEndpoint(resolver DNSResolver, addr string, defaultPort int) ([]*HostInfo, error) {
+func hostInfo(resolver DNSResolver, translateAddressPort func(addr net.IP, port int) (net.IP, int), addr string, defaultPort int) ([]*HostInfo, error) {
 	var port int
 	host, portStr, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -157,17 +156,18 @@ func resolveInitialEndpoint(resolver DNSResolver, addr string, defaultPort int) 
 		}
 	}
 
+	var hosts []*HostInfo
+
 	// Check if host is a literal IP address
 	if ip := net.ParseIP(host); ip != nil {
 		if validIpAddr(ip) {
-			hb := HostInfoBuilder{
-				// Fake hosts for initial endpoints do not need HostID
-				Hostname:       host,
-				ConnectAddress: ip,
-				Port:           port,
+			hh := &HostInfo{hostname: host, connectAddress: ip, port: port}
+			hh.untranslatedConnectAddress = ip
+			if translateAddressPort != nil {
+				hh.connectAddress, hh.port = translateAddressPort(ip, port)
 			}
-			hh := hb.Build()
-			return []*HostInfo{&hh}, nil
+			hosts = append(hosts, hh)
+			return hosts, nil
 		}
 	}
 
@@ -179,17 +179,14 @@ func resolveInitialEndpoint(resolver DNSResolver, addr string, defaultPort int) 
 		return nil, fmt.Errorf("no IP's returned from DNS lookup for %q", addr)
 	}
 
-	var hosts []*HostInfo
 	for _, ip := range ips {
 		if validIpAddr(ip) {
-			hb := HostInfoBuilder{
-				// Fake hosts for initial endpoints do not need HostID
-				Hostname:       host,
-				ConnectAddress: ip,
-				Port:           port,
+			hh := &HostInfo{hostname: host, connectAddress: ip, port: port}
+			hh.untranslatedConnectAddress = ip
+			if translateAddressPort != nil {
+				hh.connectAddress, hh.port = translateAddressPort(ip, port)
 			}
-			hh := hb.Build()
-			hosts = append(hosts, &hh)
+			hosts = append(hosts, hh)
 		}
 	}
 
@@ -220,7 +217,7 @@ func parseProtocolFromError(err error) int {
 	matches := protocolSupportRe.FindAllStringSubmatch(err.Error(), -1)
 	if len(matches) != 1 || len(matches[0]) != 2 {
 		if verr, ok := err.(*protocolError); ok {
-			return int(verr.frame.Header().Version.Version())
+			return int(verr.frame.Header().version.version())
 		}
 		return 0
 	}
@@ -317,10 +314,16 @@ type connHost struct {
 func (c *controlConn) setupConn(conn *Conn) error {
 	// we need up-to-date host info for the filterHost call below
 	iter := conn.querySystem(context.TODO(), qrySystemLocal)
-	host, err := hostInfoFromIter(iter, c.session.cfg.Port)
+	defaultPort := 9042
+	if tcpAddr, ok := conn.conn.RemoteAddr().(*net.TCPAddr); ok {
+		defaultPort = tcpAddr.Port
+	}
+	host, err := hostInfoFromIter(iter, conn.host.connectAddress, defaultPort, c.session.cfg.translateAddressPort)
 	if err != nil {
 		return err
 	}
+
+	host = c.session.hostSource.addOrUpdate(host)
 
 	if c.session.cfg.filterHost(host) {
 		return fmt.Errorf("host was filtered: %v", host.ConnectAddress())
@@ -334,21 +337,8 @@ func (c *controlConn) setupConn(conn *Conn) error {
 		conn: conn,
 		host: host,
 	}
-	old, _ := c.conn.Swap(ch).(*connHost)
-	var oldHost events.HostInfo
-	if old != nil && old.host != nil {
-		oldHost.HostID = old.host.HostID()
-		oldHost.Host = old.host.ConnectAddress()
-		oldHost.Port = old.host.Port()
-	}
-	c.session.publishEvent(&events.ControlConnectionRecreatedEvent{
-		OldHost: oldHost,
-		NewHost: events.HostInfo{
-			HostID: host.HostID(),
-			Host:   host.ConnectAddress(),
-			Port:   host.Port(),
-		},
-	})
+
+	c.conn.Store(ch)
 	if c.session.initialized() {
 		// We connected to control conn, so add the connect the host in pool as well.
 		// Notify session we can start trying to connect to the node.
@@ -373,9 +363,6 @@ func (c *controlConn) registerEvents(conn *Conn) error {
 	if !c.session.cfg.Events.DisableSchemaEvents {
 		events = append(events, "SCHEMA_CHANGE")
 	}
-	if c.session.cfg.ClientRoutesConfig != nil {
-		events = append(events, "CLIENT_ROUTES_CHANGE")
-	}
 
 	if len(events) == 0 {
 		return nil
@@ -388,12 +375,11 @@ func (c *controlConn) registerEvents(conn *Conn) error {
 	if err != nil {
 		return err
 	}
-	defer framer.Release()
 
 	frame, err := framer.parseFrame()
 	if err != nil {
 		return err
-	} else if _, ok := frame.(*frm.ReadyFrame); !ok {
+	} else if _, ok := frame.(*readyFrame); !ok {
 		return fmt.Errorf("unexpected frame in response to register: got %T: %v\n", frame, frame)
 	}
 
@@ -454,7 +440,7 @@ func (c *controlConn) attemptReconnect() error {
 	c.session.logger.Printf("gocql: control falling back to initial contact points.\n")
 	// Fallback to initial contact points, as it may be the case that all known initialHosts
 	// changed their IPs while keeping the same hostname(s).
-	initialHosts, resolvErr := resolveInitialEndpoints(c.session.cfg.DNSResolver, c.session.cfg.Hosts, c.session.cfg.Port, c.session.logger)
+	initialHosts, resolvErr := addrsToHosts(c.session.cfg.DNSResolver, c.session.cfg.translateAddressPort, c.session.cfg.Hosts, c.session.cfg.Port, c.session.logger)
 	if resolvErr != nil {
 		return fmt.Errorf("resolve contact points' hostnames: %v", resolvErr)
 	}
@@ -479,13 +465,6 @@ func (c *controlConn) attemptReconnectToAnyOfHosts(hosts []*HostInfo) error {
 			continue
 		}
 		conn.finalizeConnection()
-		c.session.publishEvent(&events.ControlConnectionRecreatedEvent{
-			NewHost: events.HostInfo{
-				Host:   host.ConnectAddress(),
-				Port:   host.Port(),
-				HostID: host.HostID(),
-			},
-		})
 		return nil
 	}
 	return fmt.Errorf("unable to connect to any known node: %v", hosts)
@@ -511,15 +490,6 @@ func (c *controlConn) getConn() *connHost {
 	return c.conn.Load().(*connHost)
 }
 
-// writeFrame sends frame w on the control connection and returns the parsed
-// response frame.
-//
-// NOTE: The returned frame must not retain any byte-slice references to the
-// framer's read buffer, because the framer is released back to the pool
-// immediately after parseFrame returns (via defer). Frame types that use
-// readBytesCopy (e.g. SupportedFrame, AuthChallengeFrame, AuthSuccessFrame)
-// are safe; frame types that use readBytes and expose []byte fields would not
-// be safe and must not be returned from this function.
 func (c *controlConn) writeFrame(w frameBuilder) (frame, error) {
 	ch := c.getConn()
 	if ch == nil {
@@ -530,13 +500,12 @@ func (c *controlConn) writeFrame(w frameBuilder) (frame, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer framer.Release()
 
 	return framer.parseFrame()
 }
 
 // query will return nil if the connection is closed or nil
-func (c *controlConn) querySystem(statement string, values ...any) (iter *Iter) {
+func (c *controlConn) querySystem(statement string, values ...interface{}) (iter *Iter) {
 	conn := c.getConn().conn.(*Conn)
 	return c.runQuery(c.session.Query(statement+conn.usingTimeoutClause, values...).
 		Consistency(One).
@@ -546,7 +515,7 @@ func (c *controlConn) querySystem(statement string, values ...any) (iter *Iter) 
 }
 
 // query will return nil if the connection is closed or nil
-func (c *controlConn) query(statement string, values ...any) (iter *Iter) {
+func (c *controlConn) query(statement string, values ...interface{}) (iter *Iter) {
 	return c.runQuery(c.session.Query(statement, values...).Consistency(One).RoutingKey([]byte{}).Trace(nil))
 }
 
@@ -557,7 +526,7 @@ func (c *controlConn) runQuery(qry *Query) (iter *Iter) {
 		qry.conn = ch.conn
 		iter = ch.conn.executeQuery(context.TODO(), qry)
 
-		if debug.Enabled && iter.err != nil {
+		if gocqlDebug && iter.err != nil {
 			c.session.logger.Printf("control: error executing %q: %v\n", qry.stmt, iter.err)
 		}
 
@@ -565,7 +534,6 @@ func (c *controlConn) runQuery(qry *Query) (iter *Iter) {
 		if iter.err == nil || !c.retry.Attempt(qry) {
 			break
 		}
-		iter.finalize(true)
 	}
 
 	return

@@ -26,18 +26,14 @@ package gocql
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"runtime"
-	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
-
-	frm "github.com/gocql/gocql/internal/frame"
 )
 
 type unsetColumn struct{}
@@ -52,12 +48,12 @@ type unsetColumn struct{}
 var UnsetValue = unsetColumn{}
 
 type namedValue struct {
-	value any
 	name  string
+	value interface{}
 }
 
 // NamedValue produce a value which will bind to the named parameter in a query
-func NamedValue(name string, value any) any {
+func NamedValue(name string, value interface{}) interface{} {
 	return &namedValue{
 		name:  name,
 		value: value,
@@ -74,6 +70,124 @@ const (
 	protoVersion5      = 0x05
 
 	maxFrameSize = 256 * 1024 * 1024
+)
+
+type protoVersion byte
+
+func (p protoVersion) request() bool {
+	return p&protoDirectionMask == 0x00
+}
+
+func (p protoVersion) response() bool {
+	return p&protoDirectionMask == 0x80
+}
+
+func (p protoVersion) version() byte {
+	return byte(p) & protoVersionMask
+}
+
+func (p protoVersion) String() string {
+	dir := "REQ"
+	if p.response() {
+		dir = "RESP"
+	}
+
+	return fmt.Sprintf("[version=%d direction=%s]", p.version(), dir)
+}
+
+type frameOp byte
+
+const (
+	// header ops
+	opError         frameOp = 0x00
+	opStartup       frameOp = 0x01
+	opReady         frameOp = 0x02
+	opAuthenticate  frameOp = 0x03
+	opOptions       frameOp = 0x05
+	opSupported     frameOp = 0x06
+	opQuery         frameOp = 0x07
+	opResult        frameOp = 0x08
+	opPrepare       frameOp = 0x09
+	opExecute       frameOp = 0x0A
+	opRegister      frameOp = 0x0B
+	opEvent         frameOp = 0x0C
+	opBatch         frameOp = 0x0D
+	opAuthChallenge frameOp = 0x0E
+	opAuthResponse  frameOp = 0x0F
+	opAuthSuccess   frameOp = 0x10
+)
+
+func (f frameOp) String() string {
+	switch f {
+	case opError:
+		return "ERROR"
+	case opStartup:
+		return "STARTUP"
+	case opReady:
+		return "READY"
+	case opAuthenticate:
+		return "AUTHENTICATE"
+	case opOptions:
+		return "OPTIONS"
+	case opSupported:
+		return "SUPPORTED"
+	case opQuery:
+		return "QUERY"
+	case opResult:
+		return "RESULT"
+	case opPrepare:
+		return "PREPARE"
+	case opExecute:
+		return "EXECUTE"
+	case opRegister:
+		return "REGISTER"
+	case opEvent:
+		return "EVENT"
+	case opBatch:
+		return "BATCH"
+	case opAuthChallenge:
+		return "AUTH_CHALLENGE"
+	case opAuthResponse:
+		return "AUTH_RESPONSE"
+	case opAuthSuccess:
+		return "AUTH_SUCCESS"
+	default:
+		return fmt.Sprintf("UNKNOWN_OP_%d", f)
+	}
+}
+
+const (
+	// result kind
+	resultKindVoid          = 1
+	resultKindRows          = 2
+	resultKindKeyspace      = 3
+	resultKindPrepared      = 4
+	resultKindSchemaChanged = 5
+
+	// rows flags
+	flagGlobalTableSpec int = 0x01
+	flagHasMorePages    int = 0x02
+	flagNoMetaData      int = 0x04
+
+	// query flags
+	flagValues                byte = 0x01
+	flagSkipMetaData          byte = 0x02
+	flagPageSize              byte = 0x04
+	flagWithPagingState       byte = 0x08
+	flagWithSerialConsistency byte = 0x10
+	flagDefaultTimestamp      byte = 0x20
+	flagWithNameValues        byte = 0x40
+	flagWithKeyspace          byte = 0x80
+
+	// prepare flags
+	flagWithPreparedKeyspace uint32 = 0x01
+
+	// header flags
+	flagCompress      byte = 0x01
+	flagTracing       byte = 0x02
+	flagCustomPayload byte = 0x04
+	flagWarning       byte = 0x08
+	flagBetaProtocol  byte = 0x10
 )
 
 // DEPRECATED use Consistency type, SerialConsistency is now an alias for backwards compatibility.
@@ -186,23 +300,42 @@ var (
 )
 
 func readInt(p []byte) int32 {
-	return int32(binary.BigEndian.Uint32(p[:4]))
+	return int32(p[0])<<24 | int32(p[1])<<16 | int32(p[2])<<8 | int32(p[3])
+}
+
+type frameHeader struct {
+	version  protoVersion
+	flags    byte
+	stream   int
+	op       frameOp
+	length   int
+	warnings []string
+}
+
+func (f frameHeader) String() string {
+	return fmt.Sprintf("[header version=%s flags=0x%x stream=%d op=%s length=%d]", f.version, f.flags, f.stream, f.op, f.length)
+}
+
+func (f frameHeader) Header() frameHeader {
+	return f
 }
 
 const defaultBufSize = 128
 
 type ObservedFrameHeader struct {
+	Version protoVersion
+	Flags   byte
+	Stream  int16
+	Opcode  frameOp
+	Length  int32
+
 	// StartHeader is the time we started reading the frame header off the network connection.
 	Start time.Time
 	// EndHeader is the time we finished reading the frame header off the network connection.
 	End time.Time
+
 	// Host is Host of the connection the frame header was read from.
-	Host    *HostInfo
-	Length  int32
-	Stream  int16
-	Version frm.ProtoVersion
-	Flags   byte
-	Opcode  frm.Op
+	Host *HostInfo
 }
 
 func (f ObservedFrameHeader) String() string {
@@ -217,43 +350,37 @@ type FrameHeaderObserver interface {
 	ObserveFrameHeader(context.Context, ObservedFrameHeader)
 }
 
-// framerInterface represents a frame reader/writer for the CQL protocol.
-//
-// Framers are pooled and reused. Any byte slices returned from frame parsing
-// methods may be backed by pooled buffers that are reused after Release() is
-// called. If data must outlive the framer, use readBytesCopy() instead of
-// readBytes() when implementing parseFrame(), or copy returned byte slices
-// before calling Release().
-//
-// After Release() is called, the framer and any slices derived from its
-// buffers must not be accessed.
 type framerInterface interface {
 	ReadBytesInternal() ([]byte, error)
 	GetCustomPayload() map[string][]byte
 	GetHeaderWarnings() []string
-	// Release returns the framer to its pool (if pooled).
-	// Must be called when the framer is no longer needed.
-	// Safe to call multiple times; subsequent calls are no-ops.
-	Release()
 }
 
 const headSize = 9
 
 // a framer is responsible for reading, writing and parsing frames on a single stream
 type framer struct {
-	compressor            Compressor
-	header                *frm.FrameHeader
-	customPayload         map[string][]byte
-	release               func()
-	traceID               []byte
-	readBuffer            []byte
-	buf                   []byte
+	proto byte
+	// flags are for outgoing flags, enabling compression and tracing etc
+	flags   byte
+	compres Compressor
+	// if this frame was read then the header will be here
+	header *frameHeader
+
+	// if tracing flag is set this is not nil
+	traceID []byte
+
+	// holds a ref to the whole byte slice for buf so that it can be reset to
+	// 0 after a read.
+	readBuffer []byte
+
+	buf []byte
+
+	customPayload map[string][]byte
+
 	flagLWT               int
 	rateLimitingErrorCode int
-	flags                 byte
-	proto                 byte
 	tabletsRoutingV1      bool
-	released              atomic.Bool
 }
 
 func newFramer(compressor Compressor, version byte) *framer {
@@ -264,14 +391,14 @@ func newFramer(compressor Compressor, version byte) *framer {
 	}
 	var flags byte
 	if compressor != nil {
-		flags |= frm.FlagCompress
+		flags |= flagCompress
 	}
 	if version == protoVersion5 {
-		flags |= frm.FlagBetaProtocol
+		flags |= flagBetaProtocol
 	}
 
 	version &= protoVersionMask
-	f.compressor = compressor
+	f.compres = compressor
 	f.proto = version
 	f.flags = flags
 	f.header = nil
@@ -280,17 +407,6 @@ func newFramer(compressor Compressor, version byte) *framer {
 	f.tabletsRoutingV1 = false
 
 	return f
-}
-
-// Release returns the framer to its pool. If the framer was not obtained
-// from a pool (release is nil), this is a no-op.
-//
-// Conn.releaseFramer owns the released-state guard, so this method delegates
-// directly to the release closure.
-func (f *framer) Release() {
-	if f.release != nil {
-		f.release()
-	}
 }
 
 func newFramerWithExts(compressor Compressor, version byte, cqlProtoExts []cqlProtocolExtension, logger StdLogger) *framer {
@@ -334,73 +450,84 @@ func newFramerWithExts(compressor Compressor, version byte, cqlProtoExts []cqlPr
 }
 
 type frame interface {
-	Header() frm.FrameHeader
+	Header() frameHeader
 }
 
-func readHeader(r io.Reader, p []byte) (head frm.FrameHeader, err error) {
-	_, err = io.ReadFull(r, p[:headSize])
+func readHeader(r io.Reader, p []byte) (head frameHeader, err error) {
+	_, err = io.ReadFull(r, p[:1])
 	if err != nil {
-		return frm.FrameHeader{}, err
+		return frameHeader{}, err
 	}
 
-	head.Version = frm.ProtoVersion(p[0])
-	version := head.Version.Version()
+	version := p[0] & protoVersionMask
 
 	if version < protoVersion3 || version > protoVersion5 {
-		return frm.FrameHeader{}, fmt.Errorf("gocql: unsupported protocol response version: %d", version)
+		return frameHeader{}, fmt.Errorf("gocql: unsupported protocol response version: %d", version)
 	}
 
-	head.Flags = p[1]
+	_, err = io.ReadFull(r, p[1:headSize])
+	if err != nil {
+		return frameHeader{}, err
+	}
 
-	head.Stream = int(int16(binary.BigEndian.Uint16(p[2:4])))
-	head.Op = frm.Op(p[4])
-	head.Length = int(readInt(p[5:]))
+	p = p[:headSize]
+
+	head.version = protoVersion(p[0])
+	head.flags = p[1]
+
+	if len(p) != 9 {
+		return frameHeader{}, fmt.Errorf("not enough bytes to read header require 9 got: %d", len(p))
+	}
+
+	head.stream = int(int16(p[2])<<8 | int16(p[3]))
+	head.op = frameOp(p[4])
+	head.length = int(readInt(p[5:]))
 
 	return head, nil
 }
 
 // explicitly enables tracing for the framers outgoing requests
 func (f *framer) trace() {
-	f.flags |= frm.FlagTracing
+	f.flags |= flagTracing
 }
 
 // explicitly enables the custom payload flag
 func (f *framer) payload() {
-	f.flags |= frm.FlagCustomPayload
+	f.flags |= flagCustomPayload
 }
 
 // reads a frame form the wire into the framers buffer
-func (f *framer) readFrame(r io.Reader, head *frm.FrameHeader) error {
-	if head.Length < 0 {
-		return fmt.Errorf("frame body length can not be less than 0: %d", head.Length)
-	} else if head.Length > maxFrameSize {
+func (f *framer) readFrame(r io.Reader, head *frameHeader) error {
+	if head.length < 0 {
+		return fmt.Errorf("frame body length can not be less than 0: %d", head.length)
+	} else if head.length > maxFrameSize {
 		// need to free up the connection to be used again
-		_, err := io.CopyN(io.Discard, r, int64(head.Length))
+		_, err := io.CopyN(ioutil.Discard, r, int64(head.length))
 		if err != nil {
 			return fmt.Errorf("error whilst trying to discard frame with invalid length: %v", err)
 		}
 		return ErrFrameTooBig
 	}
 
-	if cap(f.readBuffer) >= head.Length {
-		f.buf = f.readBuffer[:head.Length]
+	if cap(f.readBuffer) >= head.length {
+		f.buf = f.readBuffer[:head.length]
 	} else {
-		f.readBuffer = make([]byte, head.Length)
+		f.readBuffer = make([]byte, head.length)
 		f.buf = f.readBuffer
 	}
 
 	// assume the underlying reader takes care of timeouts and retries
 	n, err := io.ReadFull(r, f.buf)
 	if err != nil {
-		return fmt.Errorf("unable to read frame body: read %d/%d bytes: %v", n, head.Length, err)
+		return fmt.Errorf("unable to read frame body: read %d/%d bytes: %v", n, head.length, err)
 	}
 
-	if head.Flags&frm.FlagCompress == frm.FlagCompress {
-		if f.compressor == nil {
+	if head.flags&flagCompress == flagCompress {
+		if f.compres == nil {
 			return NewErrProtocol("no compressor available with compressed frame body")
 		}
 
-		f.buf, err = f.compressor.Decode(f.buf)
+		f.buf, err = f.compres.Decode(f.buf)
 		if err != nil {
 			return err
 		}
@@ -420,42 +547,42 @@ func (f *framer) parseFrame() (frame frame, err error) {
 		}
 	}()
 
-	if f.header.Version.Request() {
-		return nil, NewErrProtocol("got a request frame from server: %v", f.header.Version)
+	if f.header.version.request() {
+		return nil, NewErrProtocol("got a request frame from server: %v", f.header.version)
 	}
 
-	if f.header.Flags&frm.FlagTracing == frm.FlagTracing {
+	if f.header.flags&flagTracing == flagTracing {
 		f.readTrace()
 	}
 
-	if f.header.Flags&frm.FlagWarning == frm.FlagWarning {
-		f.header.Warnings = f.readStringList()
+	if f.header.flags&flagWarning == flagWarning {
+		f.header.warnings = f.readStringList()
 	}
 
-	if f.header.Flags&frm.FlagCustomPayload == frm.FlagCustomPayload {
+	if f.header.flags&flagCustomPayload == flagCustomPayload {
 		f.customPayload = f.readBytesMap()
 	}
 
 	// assumes that the frame body has been read into rbuf
-	switch f.header.Op {
-	case frm.OpError:
+	switch f.header.op {
+	case opError:
 		frame = f.parseErrorFrame()
-	case frm.OpReady:
+	case opReady:
 		frame = f.parseReadyFrame()
-	case frm.OpResult:
+	case opResult:
 		frame, err = f.parseResultFrame()
-	case frm.OpSupported:
+	case opSupported:
 		frame = f.parseSupportedFrame()
-	case frm.OpAuthenticate:
+	case opAuthenticate:
 		frame = f.parseAuthenticateFrame()
-	case frm.OpAuthChallenge:
+	case opAuthChallenge:
 		frame = f.parseAuthChallengeFrame()
-	case frm.OpAuthSuccess:
+	case opAuthSuccess:
 		frame = f.parseAuthSuccessFrame()
-	case frm.OpEvent:
+	case opEvent:
 		frame = f.parseEventFrame()
 	default:
-		return nil, NewErrProtocol("unknown op in frame header: %s", f.header.Op)
+		return nil, NewErrProtocol("unknown op in frame header: %s", f.header.op)
 	}
 
 	return
@@ -465,10 +592,10 @@ func (f *framer) parseErrorFrame() frame {
 	code := f.readInt()
 	msg := f.readString()
 
-	errD := frm.ErrorFrame{
-		FrameHeader: *f.header,
-		Code:        code,
-		Message:     msg,
+	errD := errorFrame{
+		frameHeader: *f.header,
+		code:        code,
+		message:     msg,
 	}
 
 	switch code {
@@ -477,7 +604,7 @@ func (f *framer) parseErrorFrame() frame {
 		required := f.readInt()
 		alive := f.readInt()
 		return &RequestErrUnavailable{
-			ErrorFrame:  errD,
+			errorFrame:  errD,
 			Consistency: cl,
 			Required:    required,
 			Alive:       alive,
@@ -488,7 +615,7 @@ func (f *framer) parseErrorFrame() frame {
 		blockfor := f.readInt()
 		writeType := f.readString()
 		return &RequestErrWriteTimeout{
-			ErrorFrame:  errD,
+			errorFrame:  errD,
 			Consistency: cl,
 			Received:    received,
 			BlockFor:    blockfor,
@@ -500,7 +627,7 @@ func (f *framer) parseErrorFrame() frame {
 		blockfor := f.readInt()
 		dataPresent := f.readByte()
 		return &RequestErrReadTimeout{
-			ErrorFrame:  errD,
+			errorFrame:  errD,
 			Consistency: cl,
 			Received:    received,
 			BlockFor:    blockfor,
@@ -510,18 +637,19 @@ func (f *framer) parseErrorFrame() frame {
 		ks := f.readString()
 		table := f.readString()
 		return &RequestErrAlreadyExists{
-			ErrorFrame: errD,
+			errorFrame: errD,
 			Keyspace:   ks,
 			Table:      table,
 		}
 	case ErrCodeUnprepared:
+		stmtId := f.readShortBytes()
 		return &RequestErrUnprepared{
-			ErrorFrame:  errD,
-			StatementId: f.readShortBytesCopy(),
+			errorFrame:  errD,
+			StatementId: copyBytes(stmtId), // defensively copy
 		}
 	case ErrCodeReadFailure:
 		res := &RequestErrReadFailure{
-			ErrorFrame: errD,
+			errorFrame: errD,
 		}
 		res.Consistency = f.readConsistency()
 		res.Received = f.readInt()
@@ -537,7 +665,7 @@ func (f *framer) parseErrorFrame() frame {
 		return res
 	case ErrCodeWriteFailure:
 		res := &RequestErrWriteFailure{
-			ErrorFrame: errD,
+			errorFrame: errD,
 		}
 		res.Consistency = f.readConsistency()
 		res.Received = f.readInt()
@@ -552,7 +680,7 @@ func (f *framer) parseErrorFrame() frame {
 		return res
 	case ErrCodeFunctionFailure:
 		res := &RequestErrFunctionFailure{
-			ErrorFrame: errD,
+			errorFrame: errD,
 		}
 		res.Keyspace = f.readString()
 		res.Function = f.readString()
@@ -561,12 +689,12 @@ func (f *framer) parseErrorFrame() frame {
 
 	case ErrCodeCDCWriteFailure:
 		res := &RequestErrCDCWriteFailure{
-			ErrorFrame: errD,
+			errorFrame: errD,
 		}
 		return res
 	case ErrCodeCASWriteUnknown:
 		res := &RequestErrCASWriteUnknown{
-			ErrorFrame: errD,
+			errorFrame: errD,
 		}
 		res.Consistency = f.readConsistency()
 		res.Received = f.readInt()
@@ -579,14 +707,14 @@ func (f *framer) parseErrorFrame() frame {
 	default:
 		if f.rateLimitingErrorCode != 0 && code == f.rateLimitingErrorCode {
 			res := &RequestErrRateLimitReached{
-				ErrorFrame: errD,
+				errorFrame: errD,
 			}
 			res.OpType = OpType(f.readByte())
 			res.RejectedByCoordinator = f.readByte() != 0
 			return res
 		} else {
 			return &UnknownServerError{
-				ErrorFrame: errD,
+				errorFrame: errD,
 			}
 		}
 	}
@@ -602,7 +730,7 @@ func (f *framer) readErrorMap() (errMap ErrorMap) {
 	return
 }
 
-func (f *framer) writeHeader(flags byte, op frm.Op, stream int) {
+func (f *framer) writeHeader(flags byte, op frameOp, stream int) {
 	f.buf = append(f.buf[:0],
 		f.proto, flags, byte(stream>>8), byte(stream),
 		// pad out length
@@ -625,13 +753,13 @@ func (f *framer) finish() error {
 		return ErrFrameTooBig
 	}
 
-	if f.buf[1]&frm.FlagCompress == frm.FlagCompress {
-		if f.compressor == nil {
+	if f.buf[1]&flagCompress == flagCompress {
+		if f.compres == nil {
 			panic("compress flag set with no compressor")
 		}
 
 		// TODO: only compress frames which are big enough
-		compressed, err := f.compressor.Encode(f.buf[headSize:])
+		compressed, err := f.compres.Encode(f.buf[headSize:])
 		if err != nil {
 			return err
 		}
@@ -661,19 +789,29 @@ func (f *framer) readTrace() {
 	f.buf = f.buf[16:]
 }
 
+type readyFrame struct {
+	frameHeader
+}
+
 func (f *framer) parseReadyFrame() frame {
-	return &frm.ReadyFrame{
-		FrameHeader: *f.header,
+	return &readyFrame{
+		frameHeader: *f.header,
 	}
+}
+
+type supportedFrame struct {
+	frameHeader
+
+	supported map[string][]string
 }
 
 // TODO: if we move the body buffer onto the frameHeader then we only need a single
 // framer, and can move the methods onto the header.
 func (f *framer) parseSupportedFrame() frame {
-	return &frm.SupportedFrame{
-		FrameHeader: *f.header,
+	return &supportedFrame{
+		frameHeader: *f.header,
 
-		Supported: f.readStringMultiMap(),
+		supported: f.readStringMultiMap(),
 	}
 }
 
@@ -686,30 +824,30 @@ func (w writeStartupFrame) String() string {
 }
 
 func (w *writeStartupFrame) buildFrame(f *framer, streamID int) error {
-	f.writeHeader(f.flags&^frm.FlagCompress, frm.OpStartup, streamID)
+	f.writeHeader(f.flags&^flagCompress, opStartup, streamID)
 	f.writeStringMap(w.opts)
 
 	return f.finish()
 }
 
 type writePrepareFrame struct {
-	customPayload map[string][]byte
 	statement     string
 	keyspace      string
+	customPayload map[string][]byte
 }
 
 func (w *writePrepareFrame) buildFrame(f *framer, streamID int) error {
 	if len(w.customPayload) > 0 {
 		f.payload()
 	}
-	f.writeHeader(f.flags, frm.OpPrepare, streamID)
+	f.writeHeader(f.flags, opPrepare, streamID)
 	f.writeCustomPayload(&w.customPayload)
 	f.writeLongString(w.statement)
 
 	var flags uint32 = 0
 	if w.keyspace != "" {
 		if f.proto > protoVersion4 {
-			flags |= frm.FlagWithPreparedKeyspace
+			flags |= flagWithPreparedKeyspace
 		} else {
 			panic(fmt.Errorf("the keyspace can only be set with protocol 5 or higher"))
 		}
@@ -732,11 +870,6 @@ func (f *framer) readTypeInfo() TypeInfo {
 	simple := NativeType{
 		proto: f.proto,
 		typ:   Type(id),
-	}
-
-	// Fast path for simple native types (through TypeDuration).
-	if id > 0 && id <= uint16(TypeDuration) {
-		return simple
 	}
 
 	if simple.typ == TypeCustom {
@@ -788,36 +921,23 @@ func (f *framer) readTypeInfo() TypeInfo {
 		collection.Elem = f.readTypeInfo()
 
 		return collection
-	case TypeCustom:
-		vectorTypePrefix := apacheCassandraTypePrefix + "VectorType"
-		if strings.HasPrefix(simple.custom, vectorTypePrefix) {
-			spec := strings.TrimPrefix(simple.custom, vectorTypePrefix)
-			spec = spec[1 : len(spec)-1] // remove parenthesis
-			idx := strings.LastIndex(spec, ",")
-			typeStr := spec[:idx]
-			dimStr := spec[idx+1:]
-			subType := getCassandraLongType(strings.TrimSpace(typeStr), f.proto, nopLogger{})
-			dim, _ := strconv.Atoi(strings.TrimSpace(dimStr))
-			vector := VectorType{
-				NativeType: simple,
-				SubType:    subType,
-				Dimensions: dim,
-			}
-			return vector
-		}
 	}
 
 	return simple
 }
 
 type preparedMetadata struct {
-	keyspace string
-	table    string
-	// proto v4+
-	pkeyColumns []int
 	resultMetadata
+
 	// LWT query detected
 	lwt bool
+
+	// proto v4+
+	pkeyColumns []int
+
+	keyspace string
+
+	table string
 }
 
 func (r preparedMetadata) String() string {
@@ -847,49 +967,35 @@ func (f *framer) parsePreparedMetadata() preparedMetadata {
 
 	meta.lwt = meta.flags&f.flagLWT == f.flagLWT
 
-	if meta.flags&frm.FlagHasMorePages == frm.FlagHasMorePages {
+	if meta.flags&flagHasMorePages == flagHasMorePages {
 		meta.pagingState = f.readBytesCopy()
 	}
 
-	if meta.flags&frm.FlagNoMetaData == frm.FlagNoMetaData {
+	if meta.flags&flagNoMetaData == flagNoMetaData {
 		return meta
 	}
 
-	globalSpec := meta.flags&frm.FlagGlobalTableSpec == frm.FlagGlobalTableSpec
+	globalSpec := meta.flags&flagGlobalTableSpec == flagGlobalTableSpec
 	if globalSpec {
 		meta.keyspace = f.readString()
 		meta.table = f.readString()
 	}
 
 	var cols []ColumnInfo
-	readPerColumnSpec := !globalSpec
-	var tracker keyspaceTableTracker
 	if meta.colCount < 1000 {
 		// preallocate columninfo to avoid excess copying
 		cols = make([]ColumnInfo, meta.colCount)
 		for i := 0; i < meta.colCount; i++ {
-			col := &cols[i]
-			keyspace, table := f.readColWithSpec(col, &meta.resultMetadata, globalSpec, meta.keyspace, meta.table, i, readPerColumnSpec)
-			if readPerColumnSpec {
-				tracker.track(i, keyspace, table)
-			}
+			f.readCol(&cols[i], &meta.resultMetadata, globalSpec, meta.keyspace, meta.table)
 		}
 	} else {
 		// use append, huge number of columns usually indicates a corrupt frame or
 		// just a huge row.
 		for i := 0; i < meta.colCount; i++ {
 			var col ColumnInfo
-			keyspace, table := f.readColWithSpec(&col, &meta.resultMetadata, globalSpec, meta.keyspace, meta.table, i, readPerColumnSpec)
-			if readPerColumnSpec {
-				tracker.track(i, keyspace, table)
-			}
+			f.readCol(&col, &meta.resultMetadata, globalSpec, meta.keyspace, meta.table)
 			cols = append(cols, col)
 		}
-	}
-
-	if !globalSpec && meta.colCount > 0 && tracker.allSame {
-		meta.keyspace = tracker.keyspace
-		meta.table = tracker.table
 	}
 
 	meta.columns = cols
@@ -898,64 +1004,45 @@ func (f *framer) parsePreparedMetadata() preparedMetadata {
 }
 
 type resultMetadata struct {
+	flags int
+
+	// only if flagPageState
 	pagingState []byte
+
+	columns  []ColumnInfo
+	colCount int
+
 	// this is a count of the total number of columns which can be scanned,
 	// it is at minimum len(columns) but may be larger, for instance when a column
 	// is a UDT or tuple.
-	columns        []ColumnInfo
-	flags          int
-	colCount       int
 	actualColCount int
 }
 
 func (r *resultMetadata) morePages() bool {
-	return r.flags&frm.FlagHasMorePages == frm.FlagHasMorePages
+	return r.flags&flagHasMorePages == flagHasMorePages
 }
 
 func (r resultMetadata) String() string {
 	return fmt.Sprintf("[metadata flags=0x%x paging_state=% X columns=%v]", r.flags, r.pagingState, r.columns)
 }
 
-// keyspaceTableTracker tracks whether all columns share the same keyspace/table.
-type keyspaceTableTracker struct {
-	keyspace string
-	table    string
-	allSame  bool
-}
-
-func (t *keyspaceTableTracker) track(colIndex int, keyspace, table string) {
-	if colIndex == 0 {
-		t.keyspace = keyspace
-		t.table = table
-		t.allSame = true
-	} else if t.allSame && (keyspace != t.keyspace || table != t.table) {
-		t.allSame = false
-	}
-}
-
-func (f *framer) readColWithSpec(col *ColumnInfo, meta *resultMetadata, globalSpec bool, keyspace, table string, colIndex int, readPerColumnSpec bool) (string, string) {
-	if readPerColumnSpec {
-		// Per-column table spec encoding: read keyspace/table for this column.
+func (f *framer) readCol(col *ColumnInfo, meta *resultMetadata, globalSpec bool, keyspace, table string) {
+	if !globalSpec {
 		col.Keyspace = f.readString()
 		col.Table = f.readString()
 	} else {
-		if !globalSpec && colIndex != 0 {
-			// Skip per-column keyspace/table already read from column 0.
-			f.skipString()
-			f.skipString()
-		}
 		col.Keyspace = keyspace
 		col.Table = table
 	}
 
 	col.Name = f.readString()
 	col.TypeInfo = f.readTypeInfo()
-	if tuple, ok := col.TypeInfo.(TupleTypeInfo); ok {
+	switch v := col.TypeInfo.(type) {
+	// maybe also UDT
+	case TupleTypeInfo:
 		// -1 because we already included the tuple column
-		meta.actualColCount += len(tuple.Elems) - 1
+		meta.actualColCount += len(v.Elems) - 1
 	}
-
-	return col.Keyspace, col.Table
 }
 
 func (f *framer) parseResultMetadata() resultMetadata {
@@ -968,21 +1055,17 @@ func (f *framer) parseResultMetadata() resultMetadata {
 	}
 	meta.actualColCount = meta.colCount
 
-	if meta.flags&frm.FlagHasMorePages == frm.FlagHasMorePages {
+	if meta.flags&flagHasMorePages == flagHasMorePages {
 		meta.pagingState = f.readBytesCopy()
 	}
 
-	if meta.flags&frm.FlagNoMetaData == frm.FlagNoMetaData {
+	if meta.flags&flagNoMetaData == flagNoMetaData {
 		return meta
 	}
 
-	globalSpec := meta.flags&frm.FlagGlobalTableSpec == frm.FlagGlobalTableSpec
-
-	// Read keyspace/table once and reuse for all columns. ROWS results are
-	// always single-table; when !globalSpec this consumes column 0's wire
-	// values and readColWithSpec skips the rest via skipString().
 	var keyspace, table string
-	if globalSpec || meta.colCount > 0 {
+	globalSpec := meta.flags&flagGlobalTableSpec == flagGlobalTableSpec
+	if globalSpec {
 		keyspace = f.readString()
 		table = f.readString()
 	}
@@ -992,7 +1075,7 @@ func (f *framer) parseResultMetadata() resultMetadata {
 		// preallocate columninfo to avoid excess copying
 		cols = make([]ColumnInfo, meta.colCount)
 		for i := 0; i < meta.colCount; i++ {
-			f.readColWithSpec(&cols[i], &meta, globalSpec, keyspace, table, i, false)
+			f.readCol(&cols[i], &meta, globalSpec, keyspace, table)
 		}
 
 	} else {
@@ -1000,7 +1083,7 @@ func (f *framer) parseResultMetadata() resultMetadata {
 		// just a huge row.
 		for i := 0; i < meta.colCount; i++ {
 			var col ColumnInfo
-			f.readColWithSpec(&col, &meta, globalSpec, keyspace, table, i, false)
+			f.readCol(&col, &meta, globalSpec, keyspace, table)
 			cols = append(cols, col)
 		}
 	}
@@ -1011,7 +1094,7 @@ func (f *framer) parseResultMetadata() resultMetadata {
 }
 
 type resultVoidFrame struct {
-	frm.FrameHeader
+	frameHeader
 }
 
 func (f *resultVoidFrame) String() string {
@@ -1022,15 +1105,15 @@ func (f *framer) parseResultFrame() (frame, error) {
 	kind := f.readInt()
 
 	switch kind {
-	case frm.ResultKindVoid:
-		return &resultVoidFrame{FrameHeader: *f.header}, nil
-	case frm.ResultKindRows:
+	case resultKindVoid:
+		return &resultVoidFrame{frameHeader: *f.header}, nil
+	case resultKindRows:
 		return f.parseResultRows(), nil
-	case frm.ResultKindKeyspace:
+	case resultKindKeyspace:
 		return f.parseResultSetKeyspace(), nil
-	case frm.ResultKindPrepared:
+	case resultKindPrepared:
 		return f.parseResultPrepared(), nil
-	case frm.ResultKindSchemaChanged:
+	case resultKindSchemaChanged:
 		return f.parseResultSchemaChange(), nil
 	}
 
@@ -1038,7 +1121,7 @@ func (f *framer) parseResultFrame() (frame, error) {
 }
 
 type resultRowsFrame struct {
-	frm.FrameHeader
+	frameHeader
 
 	meta resultMetadata
 	// dont parse the rows here as we only need to do it once
@@ -1062,8 +1145,8 @@ func (f *framer) parseResultRows() frame {
 }
 
 type resultKeyspaceFrame struct {
+	frameHeader
 	keyspace string
-	frm.FrameHeader
 }
 
 func (r *resultKeyspaceFrame) String() string {
@@ -1072,28 +1155,78 @@ func (r *resultKeyspaceFrame) String() string {
 
 func (f *framer) parseResultSetKeyspace() frame {
 	return &resultKeyspaceFrame{
-		FrameHeader: *f.header,
+		frameHeader: *f.header,
 		keyspace:    f.readString(),
 	}
 }
 
 type resultPreparedFrame struct {
+	frameHeader
+
 	preparedID []byte
+	reqMeta    preparedMetadata
 	respMeta   resultMetadata
-	frm.FrameHeader
-	reqMeta preparedMetadata
 }
 
 func (f *framer) parseResultPrepared() frame {
 	frame := &resultPreparedFrame{
-		FrameHeader: *f.header,
-		preparedID:  f.readShortBytesCopy(),
+		frameHeader: *f.header,
+		preparedID:  f.readShortBytes(),
 		reqMeta:     f.parsePreparedMetadata(),
 	}
 
 	frame.respMeta = f.parseResultMetadata()
 
 	return frame
+}
+
+type schemaChangeKeyspace struct {
+	frameHeader
+
+	change   string
+	keyspace string
+}
+
+func (f schemaChangeKeyspace) String() string {
+	return fmt.Sprintf("[event schema_change_keyspace change=%q keyspace=%q]", f.change, f.keyspace)
+}
+
+type schemaChangeTable struct {
+	frameHeader
+
+	change   string
+	keyspace string
+	object   string
+}
+
+func (f schemaChangeTable) String() string {
+	return fmt.Sprintf("[event schema_change change=%q keyspace=%q object=%q]", f.change, f.keyspace, f.object)
+}
+
+type schemaChangeType struct {
+	frameHeader
+
+	change   string
+	keyspace string
+	object   string
+}
+
+type schemaChangeFunction struct {
+	frameHeader
+
+	change   string
+	keyspace string
+	name     string
+	args     []string
+}
+
+type schemaChangeAggregate struct {
+	frameHeader
+
+	change   string
+	keyspace string
+	name     string
+	args     []string
 }
 
 func (f *framer) parseResultSchemaChange() frame {
@@ -1103,65 +1236,136 @@ func (f *framer) parseResultSchemaChange() frame {
 	// TODO: could just use a separate type for each target
 	switch target {
 	case "KEYSPACE":
-		return &frm.SchemaChangeKeyspace{
-			FrameHeader: *f.header,
-			Change:      change,
-			Keyspace:    f.readString(),
+		frame := &schemaChangeKeyspace{
+			frameHeader: *f.header,
+			change:      change,
 		}
+
+		frame.keyspace = f.readString()
+
+		return frame
 	case "TABLE":
-		return &frm.SchemaChangeTable{
-			FrameHeader: *f.header,
-			Change:      change,
-			Keyspace:    f.readString(),
-			Object:      f.readString(),
+		frame := &schemaChangeTable{
+			frameHeader: *f.header,
+			change:      change,
 		}
+
+		frame.keyspace = f.readString()
+		frame.object = f.readString()
+
+		return frame
 	case "TYPE":
-		return &frm.SchemaChangeType{
-			FrameHeader: *f.header,
-			Change:      change,
-			Keyspace:    f.readString(),
-			Object:      f.readString(),
+		frame := &schemaChangeType{
+			frameHeader: *f.header,
+			change:      change,
 		}
+
+		frame.keyspace = f.readString()
+		frame.object = f.readString()
+
+		return frame
 	case "FUNCTION":
-		return &frm.SchemaChangeFunction{
-			FrameHeader: *f.header,
-			Change:      change,
-			Keyspace:    f.readString(),
-			Name:        f.readString(),
-			Args:        f.readStringList(),
+		frame := &schemaChangeFunction{
+			frameHeader: *f.header,
+			change:      change,
 		}
+
+		frame.keyspace = f.readString()
+		frame.name = f.readString()
+		frame.args = f.readStringList()
+
+		return frame
 	case "AGGREGATE":
-		return &frm.SchemaChangeAggregate{
-			FrameHeader: *f.header,
-			Change:      change,
-			Keyspace:    f.readString(),
-			Name:        f.readString(),
-			Args:        f.readStringList(),
+		frame := &schemaChangeAggregate{
+			frameHeader: *f.header,
+			change:      change,
 		}
+
+		frame.keyspace = f.readString()
+		frame.name = f.readString()
+		frame.args = f.readStringList()
+
+		return frame
 	default:
 		panic(fmt.Errorf("gocql: unknown SCHEMA_CHANGE target: %q change: %q", target, change))
 	}
+
+}
+
+type authenticateFrame struct {
+	frameHeader
+
+	class string
+}
+
+func (a *authenticateFrame) String() string {
+	return fmt.Sprintf("[authenticate class=%q]", a.class)
 }
 
 func (f *framer) parseAuthenticateFrame() frame {
-	return &frm.AuthenticateFrame{
-		FrameHeader: *f.header,
-		Class:       f.readString(),
+	return &authenticateFrame{
+		frameHeader: *f.header,
+		class:       f.readString(),
 	}
+}
+
+type authSuccessFrame struct {
+	frameHeader
+
+	data []byte
+}
+
+func (a *authSuccessFrame) String() string {
+	return fmt.Sprintf("[auth_success data=%q]", a.data)
 }
 
 func (f *framer) parseAuthSuccessFrame() frame {
-	return &frm.AuthSuccessFrame{
-		FrameHeader: *f.header,
-		Data:        f.readBytesCopy(),
+	return &authSuccessFrame{
+		frameHeader: *f.header,
+		data:        f.readBytes(),
 	}
 }
 
+type authChallengeFrame struct {
+	frameHeader
+
+	data []byte
+}
+
+func (a *authChallengeFrame) String() string {
+	return fmt.Sprintf("[auth_challenge data=%q]", a.data)
+}
+
 func (f *framer) parseAuthChallengeFrame() frame {
-	return &frm.AuthChallengeFrame{
-		FrameHeader: *f.header,
-		Data:        f.readBytesCopy(),
+	return &authChallengeFrame{
+		frameHeader: *f.header,
+		data:        f.readBytes(),
 	}
+}
+
+type statusChangeEventFrame struct {
+	frameHeader
+
+	change string
+	host   net.IP
+	port   int
+}
+
+func (t statusChangeEventFrame) String() string {
+	return fmt.Sprintf("[status_change change=%s host=%v port=%v]", t.change, t.host, t.port)
+}
+
+// essentially the same as statusChange
+type topologyChangeEventFrame struct {
+	frameHeader
+
+	change string
+	host   net.IP
+	port   int
+}
+
+func (t topologyChangeEventFrame) String() string {
+	return fmt.Sprintf("[topology_change change=%s host=%v port=%v]", t.change, t.host, t.port)
 }
 
 func (f *framer) parseEventFrame() frame {
@@ -1169,27 +1373,20 @@ func (f *framer) parseEventFrame() frame {
 
 	switch eventType {
 	case "TOPOLOGY_CHANGE":
-		frame := &frm.TopologyChangeEventFrame{FrameHeader: *f.header}
-		frame.Change = f.readString()
-		frame.Host, frame.Port = f.readInet()
+		frame := &topologyChangeEventFrame{frameHeader: *f.header}
+		frame.change = f.readString()
+		frame.host, frame.port = f.readInet()
 
 		return frame
 	case "STATUS_CHANGE":
-		frame := &frm.StatusChangeEventFrame{FrameHeader: *f.header}
-		frame.Change = f.readString()
-		frame.Host, frame.Port = f.readInet()
+		frame := &statusChangeEventFrame{frameHeader: *f.header}
+		frame.change = f.readString()
+		frame.host, frame.port = f.readInet()
 
 		return frame
 	case "SCHEMA_CHANGE":
 		// this should work for all versions
 		return f.parseResultSchemaChange()
-	case "CLIENT_ROUTES_CHANGE":
-		return &frm.ClientRoutesChanged{
-			FrameHeader:   *f.header,
-			ChangeType:    f.readString(),
-			ConnectionIDs: f.readStringList(),
-			HostIDs:       f.readStringList(),
-		}
 	default:
 		panic(fmt.Errorf("gocql: unknown event type: %q", eventType))
 	}
@@ -1209,27 +1406,32 @@ func (a *writeAuthResponseFrame) buildFrame(framer *framer, streamID int) error 
 }
 
 func (f *framer) writeAuthResponseFrame(streamID int, data []byte) error {
-	f.writeHeader(f.flags, frm.OpAuthResponse, streamID)
+	f.writeHeader(f.flags, opAuthResponse, streamID)
 	f.writeBytes(data)
 	return f.finish()
 }
 
 type queryValues struct {
+	value []byte
+
+	// optional name, will set With names for values flag
 	name    string
-	value   []byte
 	isUnset bool
 }
 
 type queryParams struct {
-	keyspace              string
-	values                []queryValues
-	pagingState           []byte
-	pageSize              int
-	defaultTimestampValue int64
-	consistency           Consistency
-	serialConsistency     Consistency
-	skipMeta              bool
+	consistency Consistency
+	// v2+
+	skipMeta          bool
+	values            []queryValues
+	pageSize          int
+	pagingState       []byte
+	serialConsistency Consistency
+	// v3+
 	defaultTimestamp      bool
+	defaultTimestampValue int64
+	// v5+
+	keyspace string
 }
 
 func (q queryParams) String() string {
@@ -1242,36 +1444,36 @@ func (f *framer) writeQueryParams(opts *queryParams) {
 
 	var flags byte
 	if len(opts.values) > 0 {
-		flags |= frm.FlagValues
+		flags |= flagValues
 	}
 	if opts.skipMeta {
-		flags |= frm.FlagSkipMetaData
+		flags |= flagSkipMetaData
 	}
 	if opts.pageSize > 0 {
-		flags |= frm.FlagPageSize
+		flags |= flagPageSize
 	}
 	if len(opts.pagingState) > 0 {
-		flags |= frm.FlagWithPagingState
+		flags |= flagWithPagingState
 	}
 	if opts.serialConsistency > 0 {
-		flags |= frm.FlagWithSerialConsistency
+		flags |= flagWithSerialConsistency
 	}
 
 	names := false
 
 	// protoV3 specific things
 	if opts.defaultTimestamp {
-		flags |= frm.FlagDefaultTimestamp
+		flags |= flagDefaultTimestamp
 	}
 
 	if len(opts.values) > 0 && opts.values[0].name != "" {
-		flags |= frm.FlagWithNameValues
+		flags |= flagWithNameValues
 		names = true
 	}
 
 	if opts.keyspace != "" {
 		if f.proto > protoVersion4 {
-			flags |= frm.FlagWithKeyspace
+			flags |= flagWithKeyspace
 		} else {
 			panic(fmt.Errorf("the keyspace can only be set with protocol 5 or higher"))
 		}
@@ -1327,9 +1529,11 @@ func (f *framer) writeQueryParams(opts *queryParams) {
 }
 
 type writeQueryFrame struct {
+	statement string
+	params    queryParams
+
+	// v4+
 	customPayload map[string][]byte
-	statement     string
-	params        queryParams
 }
 
 func (w *writeQueryFrame) String() string {
@@ -1344,7 +1548,7 @@ func (f *framer) writeQueryFrame(streamID int, statement string, params *queryPa
 	if len(customPayload) > 0 {
 		f.payload()
 	}
-	f.writeHeader(f.flags, frm.OpQuery, streamID)
+	f.writeHeader(f.flags, opQuery, streamID)
 	f.writeCustomPayload(&customPayload)
 	f.writeLongString(statement)
 	f.writeQueryParams(params)
@@ -1363,9 +1567,11 @@ func (f frameWriterFunc) buildFrame(framer *framer, streamID int) error {
 }
 
 type writeExecuteFrame struct {
+	preparedID []byte
+	params     queryParams
+
+	// v4+
 	customPayload map[string][]byte
-	preparedID    []byte
-	params        queryParams
 }
 
 func (e *writeExecuteFrame) String() string {
@@ -1380,7 +1586,7 @@ func (f *framer) writeExecuteFrame(streamID int, preparedID []byte, params *quer
 	if len(*customPayload) > 0 {
 		f.payload()
 	}
-	f.writeHeader(f.flags, frm.OpExecute, streamID)
+	f.writeHeader(f.flags, opExecute, streamID)
 	f.writeCustomPayload(customPayload)
 	f.writeShortBytes(preparedID)
 	f.writeQueryParams(params)
@@ -1397,13 +1603,17 @@ type batchStatment struct {
 }
 
 type writeBatchFrame struct {
-	customPayload         map[string][]byte
-	statements            []batchStatment
-	defaultTimestampValue int64
-	consistency           Consistency
+	typ         BatchType
+	statements  []batchStatment
+	consistency Consistency
+
+	// v3+
 	serialConsistency     Consistency
-	typ                   BatchType
 	defaultTimestamp      bool
+	defaultTimestampValue int64
+
+	//v4+
+	customPayload map[string][]byte
 }
 
 func (w *writeBatchFrame) buildFrame(framer *framer, streamID int) error {
@@ -1414,7 +1624,7 @@ func (f *framer) writeBatchFrame(streamID int, w *writeBatchFrame, customPayload
 	if len(customPayload) > 0 {
 		f.payload()
 	}
-	f.writeHeader(f.flags, frm.OpBatch, streamID)
+	f.writeHeader(f.flags, opBatch, streamID)
 	f.writeCustomPayload(&customPayload)
 	f.writeByte(byte(w.typ))
 
@@ -1442,7 +1652,7 @@ func (f *framer) writeBatchFrame(streamID int, w *writeBatchFrame, customPayload
 				if f.proto <= protoVersion5 {
 					return fmt.Errorf("gocql: named query values are not supported in batches, please see https://issues.apache.org/jira/browse/CASSANDRA-10246")
 				}
-				flags |= frm.FlagWithNameValues
+				flags |= flagWithNameValues
 				f.writeString(col.name)
 			}
 			if col.isUnset {
@@ -1456,10 +1666,10 @@ func (f *framer) writeBatchFrame(streamID int, w *writeBatchFrame, customPayload
 	f.writeConsistency(w.consistency)
 
 	if w.serialConsistency > 0 {
-		flags |= frm.FlagWithSerialConsistency
+		flags |= flagWithSerialConsistency
 	}
 	if w.defaultTimestamp {
-		flags |= frm.FlagDefaultTimestamp
+		flags |= flagDefaultTimestamp
 	}
 
 	if f.proto > protoVersion4 {
@@ -1492,7 +1702,7 @@ func (w *writeOptionsFrame) buildFrame(framer *framer, streamID int) error {
 }
 
 func (f *framer) writeOptionsFrame(stream int, _ *writeOptionsFrame) error {
-	f.writeHeader(f.flags&^frm.FlagCompress, frm.OpOptions, stream)
+	f.writeHeader(f.flags&^flagCompress, opOptions, stream)
 	return f.finish()
 }
 
@@ -1505,7 +1715,7 @@ func (w *writeRegisterFrame) buildFrame(framer *framer, streamID int) error {
 }
 
 func (f *framer) writeRegisterFrame(streamID int, w *writeRegisterFrame) error {
-	f.writeHeader(f.flags, frm.OpRegister, streamID)
+	f.writeHeader(f.flags, opRegister, streamID)
 	f.writeStringList(w.events)
 
 	return f.finish()
@@ -1526,7 +1736,7 @@ func (f *framer) readInt() (n int) {
 		panic(fmt.Errorf("not enough bytes in buffer to read int require 4 got: %d", len(f.buf)))
 	}
 
-	n = int(int32(binary.BigEndian.Uint32(f.buf[:4])))
+	n = int(int32(f.buf[0])<<24 | int32(f.buf[1])<<16 | int32(f.buf[2])<<8 | int32(f.buf[3]))
 	f.buf = f.buf[4:]
 	return
 }
@@ -1535,7 +1745,7 @@ func (f *framer) readShort() (n uint16) {
 	if len(f.buf) < 2 {
 		panic(fmt.Errorf("not enough bytes in buffer to read short require 2 got: %d", len(f.buf)))
 	}
-	n = binary.BigEndian.Uint16(f.buf[:2])
+	n = uint16(f.buf[0])<<8 | uint16(f.buf[1])
 	f.buf = f.buf[2:]
 	return
 }
@@ -1550,17 +1760,6 @@ func (f *framer) readString() (s string) {
 	s = string(f.buf[:size])
 	f.buf = f.buf[size:]
 	return
-}
-
-// skipString advances past a string without allocating.
-func (f *framer) skipString() {
-	size := f.readShort()
-
-	if len(f.buf) < int(size) {
-		panic(fmt.Errorf("not enough bytes in buffer to skip string, requires %d got %d", size, len(f.buf)))
-	}
-
-	f.buf = f.buf[size:]
 }
 
 func (f *framer) readLongString() (s string) {
@@ -1602,6 +1801,22 @@ func (f *framer) ReadBytesInternal() ([]byte, error) {
 	return l, nil
 }
 
+func (f *framer) readBytes() []byte {
+	size := f.readInt()
+	if size < 0 {
+		return nil
+	}
+
+	if len(f.buf) < size {
+		panic(fmt.Errorf("not enough bytes in buffer to read bytes require %d got: %d", size, len(f.buf)))
+	}
+
+	l := f.buf[:size]
+	f.buf = f.buf[size:]
+
+	return l
+}
+
 func (f *framer) readBytesCopy() []byte {
 	size := f.readInt()
 	if size < 0 {
@@ -1618,17 +1833,16 @@ func (f *framer) readBytesCopy() []byte {
 	return out
 }
 
-func (f *framer) readShortBytesCopy() []byte {
+func (f *framer) readShortBytes() []byte {
 	size := f.readShort()
 	if len(f.buf) < int(size) {
 		panic(fmt.Errorf("not enough bytes in buffer to read short bytes: require %d got %d", size, len(f.buf)))
 	}
 
-	out := make([]byte, size)
-	copy(out, f.buf[:size])
+	l := f.buf[:size]
 	f.buf = f.buf[size:]
 
-	return out
+	return l
 }
 
 func (f *framer) readInetAdressOnly() net.IP {
@@ -1750,7 +1964,7 @@ func (f *framer) GetCustomPayload() map[string][]byte {
 }
 
 func (f *framer) GetHeaderWarnings() []string {
-	return f.header.Warnings
+	return f.header.warnings
 }
 
 // these are protocol level binary types

@@ -354,14 +354,10 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gocql/gocql v1.6.0 => github.com/scylladb/gocql v1.18.0
-## explicit; go 1.25.0
+# github.com/gocql/gocql v1.6.0 => github.com/scylladb/gocql v1.15.3
+## explicit; go 1.13
 github.com/gocql/gocql
 github.com/gocql/gocql/debounce
-github.com/gocql/gocql/events
-github.com/gocql/gocql/internal/debug
-github.com/gocql/gocql/internal/eventbus
-github.com/gocql/gocql/internal/frame
 github.com/gocql/gocql/internal/lru
 github.com/gocql/gocql/internal/murmur
 github.com/gocql/gocql/internal/streams
@@ -884,7 +880,6 @@ golang.org/x/oauth2/jwt
 ## explicit; go 1.25.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-golang.org/x/sync/singleflight
 # golang.org/x/sys v0.43.0
 ## explicit; go 1.25.0
 golang.org/x/sys/cpu
@@ -1172,6 +1167,6 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# github.com/gocql/gocql => github.com/scylladb/gocql v1.18.0
+# github.com/gocql/gocql => github.com/scylladb/gocql v1.15.3
 # github.com/rclone/rclone => github.com/scylladb/rclone v1.54.0-patched-1
 # google.golang.org/api => github.com/scylladb/google-api-go-client v0.277.0-patched

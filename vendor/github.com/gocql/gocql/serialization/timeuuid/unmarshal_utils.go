@@ -18,7 +18,7 @@ var (
 	errWrongDataLen = fmt.Errorf("failed to unmarshal timeuuid: the length of the data should be 0 or 16")
 )
 
-func errNilReference(v any) error {
+func errNilReference(v interface{}) error {
 	return fmt.Errorf("failed to unmarshal timeuuid: can not unmarshal into nil reference(%T)(%[1]v)", v)
 }
 
