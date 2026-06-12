@@ -1165,6 +1165,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: status is StatusStopped")
 		h.assertStopped(shortWait)
+
+		Print("And: there are no active repairs")
+		active, err := h.Client.ActiveRepairs(t.Context(), ManagedClusterHosts())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(active) > 0 {
+			t.Fatalf("Expected no active repairs after repair task was paused, found %d", len(active))
+		}
 	})
 
 	t.Run("repair restart", func(t *testing.T) {
