@@ -342,22 +342,13 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	defer cancel()
 
 	// Create worker pool
-	workers := workerpool.New[*worker, job, jobResult](gracefulCtx, func(_ context.Context, i int) *worker {
-		return &worker{
-			config:     s.config,
-			target:     target,
-			client:     client,
-			apiSupport: p.apiSupport,
-			stopTrying: make(map[string]struct{}),
-			progress:   pm,
-			logger:     s.logger.Named(fmt.Sprintf("worker %d", i)),
-		}
-	}, chanSize)
+	workers, workersCleanup := s.newWorkerPool(gracefulCtx, target, client, p.apiSupport, pm)
+	defer workersCleanup()
 
 	// Give intensity handler the ability to set pool size
-	ih, cleanup := s.newIntensityHandler(ctx, clusterID, taskID, runID,
+	ih, ihCleanup := s.newIntensityHandler(ctx, clusterID, taskID, runID,
 		p.MaxHostIntensity, p.MaxParallel, workers)
-	defer cleanup()
+	defer ihCleanup()
 
 	// Set controlled parameters
 	ih.SetParallel(ctx, run.Parallel)
@@ -395,10 +386,24 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		return errors.Wrap(err, "ensure no active repairs")
 	}
 
-	if err = gen.Run(gracefulCtx); (err != nil && target.FailFast) || ctx.Err() != nil {
+	// Start generator which in turn feeds tasks to worker pool.
+	err = gen.Run(gracefulCtx)
+	// When generator returned, either all repair jobs has already finished,
+	// or the graceful ctx was canceled. Either way, we no longer need the
+	// worker pool, so it should be cleaned up before we potentially try
+	// to kill any ongoing repair jobs.
+	workersCleanup()
+	// When both generator and worker pool has returned, graceful ctx
+	// is no longer needed and can be cleaned up.
+	close(done)
+	// When worker pool has returned, no new repair jobs are going
+	// to be scheduled, so the ongoing repair jobs can be cleaned
+	// up if needed. This aims mostly at vnode repair jobs, as tablet
+	// repair tasks should be aborted on ctx err
+	// via the task manager (scylla service).
+	if (err != nil && target.FailFast) || ctx.Err() != nil {
 		s.killAllRepairs(ctx, client, p.Hosts)
 	}
-	close(done)
 
 	// Check if repair has ended successfully
 	if err == nil && ctx.Err() == nil {
@@ -469,6 +474,44 @@ func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Clien
 	if err := client.KillAllRepairs(killCtx, hosts...); err != nil {
 		s.logger.Error(killCtx, "Failed to kill repairs", "hosts", hosts, "error", err)
 	}
+}
+
+// newWorkerPool initialized workers used for performing repair jobs.
+// Returned cleanup function is idempotent and ensures that the worker
+// pool is closed and tries to wait for all workers to exit the pool.
+// In the rare case where workers don't exit the pool even after a short
+// time after the pool was closed and their context was canceled,
+// it logs an error and proceeds without making the caller hang.
+func (s *Service) newWorkerPool(ctx context.Context, target Target, client *scyllaclient.Client, apiSupport apiSupport, pm ProgressManager,
+) (wp *workerpool.Pool[*worker, job, jobResult], cleanup func()) {
+	workers := workerpool.New[*worker, job, jobResult](ctx, func(_ context.Context, i int) *worker {
+		return &worker{
+			config:     s.config,
+			target:     target,
+			client:     client,
+			apiSupport: apiSupport,
+			stopTrying: make(map[string]struct{}),
+			progress:   pm,
+			logger:     s.logger.Named(fmt.Sprintf("worker %d", i)),
+		}
+	}, chanSize)
+	return workers, sync.OnceFunc(func() {
+		workers.Close()
+		done := make(chan struct{})
+		go func() {
+			workers.Wait()
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+			select {
+			case <-done:
+			case <-time.After(min(s.config.GracefulStopTimeout, 5*time.Second)):
+				s.logger.Error(ctx, "Failed to wait for worker pool cleanup even after graceful ctx cancel")
+			}
+		}
+	})
 }
 
 func (s *Service) newIntensityHandler(ctx context.Context, clusterID, taskID, runID uuid.UUID,

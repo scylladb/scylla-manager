@@ -53,7 +53,6 @@ type generatorTools struct {
 type submitter[T, R any] interface {
 	Submit(task T)
 	Results() chan R
-	Close()
 }
 
 // jobType describes how worker should handle given repair job.
@@ -157,7 +156,6 @@ func (g *generator) Run(ctx context.Context) (err error) {
 	}
 
 	g.logger.Info(ctx, "Close generator")
-	g.submitter.Close() // Free workers waiting on next
 	return errors.Wrap(genErr, "see more errors in logs")
 }
 
