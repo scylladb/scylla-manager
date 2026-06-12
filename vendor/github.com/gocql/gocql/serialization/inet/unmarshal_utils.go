@@ -14,7 +14,7 @@ var (
 	digits = getDigits()
 )
 
-func errNilReference(v any) error {
+func errNilReference(v interface{}) error {
 	return fmt.Errorf("failed to unmarshal inet: can not unmarshal into nil reference(%T)(%[1]v)", v)
 }
 

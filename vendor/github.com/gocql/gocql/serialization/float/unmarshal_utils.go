@@ -8,7 +8,7 @@ import (
 
 var errWrongDataLen = fmt.Errorf("failed to unmarshal float: the length of the data should be 0 or 4")
 
-func errNilReference(v any) error {
+func errNilReference(v interface{}) error {
 	return fmt.Errorf("failed to unmarshal float: can not unmarshal into nil reference(%T)(%[1]v)", v)
 }
 
@@ -118,8 +118,7 @@ func uint32ToFloat(v uint32) float32 {
 }
 
 func uint32ToFloatR(v uint32) *float32 {
-	f := *(*float32)(unsafe.Pointer(&v))
-	return &f
+	return (*float32)(unsafe.Pointer(&v))
 }
 
 func decUint32(p []byte) uint32 {

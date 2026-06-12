@@ -16,63 +16,63 @@ import (
 // ToCQL returns a CQL query that ca be used to recreate keyspace with all
 // user defined types, tables, indexes, functions, aggregates and views associated
 // with this keyspace.
-func (ks *KeyspaceMetadata) ToCQL() (string, error) {
+func (km *KeyspaceMetadata) ToCQL() (string, error) {
 	// Be aware that `CreateStmts` is not only a cache for ToCQL,
 	// but it also can be populated from response to `DESCRIBE KEYSPACE %s WITH INTERNALS`
-	if len(ks.CreateStmts) != 0 {
-		return ks.CreateStmts, nil
+	if len(km.CreateStmts) != 0 {
+		return km.CreateStmts, nil
 	}
 
 	var sb strings.Builder
 
-	if err := ks.keyspaceToCQL(&sb); err != nil {
+	if err := km.keyspaceToCQL(&sb); err != nil {
 		return "", err
 	}
 
-	sortedTypes := ks.typesSortedTopologically()
+	sortedTypes := km.typesSortedTopologically()
 	for _, tm := range sortedTypes {
-		if err := ks.userTypeToCQL(&sb, tm); err != nil {
+		if err := km.userTypeToCQL(&sb, tm); err != nil {
 			return "", err
 		}
 	}
 
-	for _, tm := range ks.Tables {
-		if err := ks.tableToCQL(&sb, ks.Name, tm); err != nil {
+	for _, tm := range km.Tables {
+		if err := km.tableToCQL(&sb, km.Name, tm); err != nil {
 			return "", err
 		}
 	}
 
-	for _, im := range ks.Indexes {
-		if err := ks.indexToCQL(&sb, im); err != nil {
+	for _, im := range km.Indexes {
+		if err := km.indexToCQL(&sb, im); err != nil {
 			return "", err
 		}
 	}
 
-	for _, fm := range ks.Functions {
-		if err := ks.functionToCQL(&sb, ks.Name, fm); err != nil {
+	for _, fm := range km.Functions {
+		if err := km.functionToCQL(&sb, km.Name, fm); err != nil {
 			return "", err
 		}
 	}
 
-	for _, am := range ks.Aggregates {
-		if err := ks.aggregateToCQL(&sb, am); err != nil {
+	for _, am := range km.Aggregates {
+		if err := km.aggregateToCQL(&sb, am); err != nil {
 			return "", err
 		}
 	}
 
-	for _, vm := range ks.Views {
-		if err := ks.viewToCQL(&sb, vm); err != nil {
+	for _, vm := range km.Views {
+		if err := km.viewToCQL(&sb, vm); err != nil {
 			return "", err
 		}
 	}
 
-	ks.CreateStmts = sb.String()
-	return ks.CreateStmts, nil
+	km.CreateStmts = sb.String()
+	return km.CreateStmts, nil
 }
 
-func (ks *KeyspaceMetadata) typesSortedTopologically() []*TypeMetadata {
-	sortedTypes := make([]*TypeMetadata, 0, len(ks.Types))
-	for _, tm := range ks.Types {
+func (km *KeyspaceMetadata) typesSortedTopologically() []*TypeMetadata {
+	sortedTypes := make([]*TypeMetadata, 0, len(km.Types))
+	for _, tm := range km.Types {
 		sortedTypes = append(sortedTypes, tm)
 	}
 	sort.Slice(sortedTypes, func(i, j int) bool {
@@ -87,7 +87,7 @@ func (ks *KeyspaceMetadata) typesSortedTopologically() []*TypeMetadata {
 }
 
 var tableCQLTemplate = template.Must(template.New("table").
-	Funcs(map[string]any{
+	Funcs(map[string]interface{}{
 		"escape":               cqlHelpers.escape,
 		"tableColumnToCQL":     cqlHelpers.tableColumnToCQL,
 		"tablePropertiesToCQL": cqlHelpers.tablePropertiesToCQL,
@@ -95,11 +95,11 @@ var tableCQLTemplate = template.Must(template.New("table").
 	Parse(`
 CREATE TABLE {{ .KeyspaceName }}.{{ .Tm.Name }} (
     {{ tableColumnToCQL .Tm }}
-) WITH {{ tablePropertiesToCQL .Tm.ClusteringColumns .Tm.Options .Tm.Extensions }};
+) WITH {{ tablePropertiesToCQL .Tm.ClusteringColumns .Tm.Options .Tm.Flags .Tm.Extensions }};
 `))
 
-func (ks *KeyspaceMetadata) tableToCQL(w io.Writer, kn string, tm *TableMetadata) error {
-	if err := tableCQLTemplate.Execute(w, map[string]any{
+func (km *KeyspaceMetadata) tableToCQL(w io.Writer, kn string, tm *TableMetadata) error {
+	if err := tableCQLTemplate.Execute(w, map[string]interface{}{
 		"Tm":           tm,
 		"KeyspaceName": kn,
 	}); err != nil {
@@ -109,7 +109,7 @@ func (ks *KeyspaceMetadata) tableToCQL(w io.Writer, kn string, tm *TableMetadata
 }
 
 var functionTemplate = template.Must(template.New("functions").
-	Funcs(map[string]any{
+	Funcs(map[string]interface{}{
 		"escape":      cqlHelpers.escape,
 		"zip":         cqlHelpers.zip,
 		"stripFrozen": cqlHelpers.stripFrozen,
@@ -127,8 +127,8 @@ CREATE FUNCTION {{ .keyspaceName }}.{{ .fm.Name }} (
     AS $${{ .fm.Body }}$$;
 `))
 
-func (ks *KeyspaceMetadata) functionToCQL(w io.Writer, keyspaceName string, fm *FunctionMetadata) error {
-	if err := functionTemplate.Execute(w, map[string]any{
+func (km *KeyspaceMetadata) functionToCQL(w io.Writer, keyspaceName string, fm *FunctionMetadata) error {
+	if err := functionTemplate.Execute(w, map[string]interface{}{
 		"fm":           fm,
 		"keyspaceName": keyspaceName,
 	}); err != nil {
@@ -138,7 +138,7 @@ func (ks *KeyspaceMetadata) functionToCQL(w io.Writer, keyspaceName string, fm *
 }
 
 var viewTemplate = template.Must(template.New("views").
-	Funcs(map[string]any{
+	Funcs(map[string]interface{}{
 		"zip":                  cqlHelpers.zip,
 		"partitionKeyString":   cqlHelpers.partitionKeyString,
 		"tablePropertiesToCQL": cqlHelpers.tablePropertiesToCQL,
@@ -154,12 +154,13 @@ CREATE MATERIALIZED VIEW {{ .vm.KeyspaceName }}.{{ .vm.ViewName }} AS
     FROM {{ .vm.KeyspaceName }}.{{ .vm.BaseTableName }}
     WHERE {{ .vm.WhereClause }}
     PRIMARY KEY ({{ partitionKeyString .vm.PartitionKey .vm.ClusteringColumns }})
-    WITH {{ tablePropertiesToCQL .vm.ClusteringColumns .vm.Options .vm.Extensions }};
+    WITH {{ tablePropertiesToCQL .vm.ClusteringColumns .vm.Options .flags .vm.Extensions }};
 `))
 
-func (ks *KeyspaceMetadata) viewToCQL(w io.Writer, vm *ViewMetadata) error {
-	if err := viewTemplate.Execute(w, map[string]any{
-		"vm": vm,
+func (km *KeyspaceMetadata) viewToCQL(w io.Writer, vm *ViewMetadata) error {
+	if err := viewTemplate.Execute(w, map[string]interface{}{
+		"vm":    vm,
+		"flags": []string{},
 	}); err != nil {
 		return err
 	}
@@ -167,7 +168,7 @@ func (ks *KeyspaceMetadata) viewToCQL(w io.Writer, vm *ViewMetadata) error {
 }
 
 var aggregatesTemplate = template.Must(template.New("aggregate").
-	Funcs(map[string]any{
+	Funcs(map[string]interface{}{
 		"stripFrozen": cqlHelpers.stripFrozen,
 	}).
 	Parse(`
@@ -187,7 +188,7 @@ CREATE AGGREGATE {{ .Keyspace }}.{{ .Name }}(
 ;
 `))
 
-func (ks *KeyspaceMetadata) aggregateToCQL(w io.Writer, am *AggregateMetadata) error {
+func (km *KeyspaceMetadata) aggregateToCQL(w io.Writer, am *AggregateMetadata) error {
 	if err := aggregatesTemplate.Execute(w, am); err != nil {
 		return err
 	}
@@ -195,7 +196,7 @@ func (ks *KeyspaceMetadata) aggregateToCQL(w io.Writer, am *AggregateMetadata) e
 }
 
 var typeCQLTemplate = template.Must(template.New("types").
-	Funcs(map[string]any{
+	Funcs(map[string]interface{}{
 		"zip": cqlHelpers.zip,
 	}).
 	Parse(`
@@ -206,14 +207,14 @@ CREATE TYPE {{ .Keyspace }}.{{ .Name }} (
 );
 `))
 
-func (ks *KeyspaceMetadata) userTypeToCQL(w io.Writer, tm *TypeMetadata) error {
+func (km *KeyspaceMetadata) userTypeToCQL(w io.Writer, tm *TypeMetadata) error {
 	if err := typeCQLTemplate.Execute(w, tm); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (ks *KeyspaceMetadata) indexToCQL(w io.Writer, im *IndexMetadata) error {
+func (km *KeyspaceMetadata) indexToCQL(w io.Writer, im *IndexMetadata) error {
 	// Scylla doesn't support any custom indexes
 	if im.Kind == IndexKindCustom {
 		return nil
@@ -249,7 +250,7 @@ func (ks *KeyspaceMetadata) indexToCQL(w io.Writer, im *IndexMetadata) error {
 }
 
 var keyspaceCQLTemplate = template.Must(template.New("keyspace").
-	Funcs(map[string]any{
+	Funcs(map[string]interface{}{
 		"escape":      cqlHelpers.escape,
 		"fixStrategy": cqlHelpers.fixStrategy,
 	}).
@@ -261,8 +262,8 @@ var keyspaceCQLTemplate = template.Must(template.New("keyspace").
 }{{ if not .DurableWrites }} AND durable_writes = 'false'{{ end }};
 `))
 
-func (ks *KeyspaceMetadata) keyspaceToCQL(w io.Writer) error {
-	if err := keyspaceCQLTemplate.Execute(w, ks); err != nil {
+func (km *KeyspaceMetadata) keyspaceToCQL(w io.Writer) error {
+	if err := keyspaceCQLTemplate.Execute(w, km); err != nil {
 		return err
 	}
 	return nil
@@ -289,7 +290,7 @@ func (h toCQLHelpers) zip(a []string, b []string) [][]string {
 	return m
 }
 
-func (h toCQLHelpers) escape(e any) string {
+func (h toCQLHelpers) escape(e interface{}) string {
 	switch v := e.(type) {
 	case int, float64:
 		return fmt.Sprint(v)
@@ -318,7 +319,7 @@ func (h toCQLHelpers) fixQuote(v string) string {
 }
 
 func (h toCQLHelpers) tableOptionsToCQL(ops TableMetadataOptions) ([]string, error) {
-	opts := map[string]any{
+	opts := map[string]interface{}{
 		"bloom_filter_fp_chance":      ops.BloomFilterFpChance,
 		"comment":                     ops.Comment,
 		"crc_check_chance":            ops.CrcCheckChance,
@@ -368,8 +369,8 @@ func (h toCQLHelpers) tableOptionsToCQL(ops TableMetadataOptions) ([]string, err
 	return out, nil
 }
 
-func (h toCQLHelpers) tableExtensionsToCQL(extensions map[string]any) ([]string, error) {
-	exts := map[string]any{}
+func (h toCQLHelpers) tableExtensionsToCQL(extensions map[string]interface{}) ([]string, error) {
+	exts := map[string]interface{}{}
 
 	if blob, ok := extensions["scylla_encryption_options"]; ok {
 		encOpts := &scyllaEncryptionOptions{}
@@ -395,10 +396,18 @@ func (h toCQLHelpers) tableExtensionsToCQL(extensions map[string]any) ([]string,
 }
 
 func (h toCQLHelpers) tablePropertiesToCQL(cks []*ColumnMetadata, opts TableMetadataOptions,
-	extensions map[string]any) (string, error) {
+	flags []string, extensions map[string]interface{}) (string, error) {
 	var sb strings.Builder
 
 	var properties []string
+
+	compactStorage := len(flags) > 0 && (contains(flags, TableFlagDense) ||
+		contains(flags, TableFlagSuper) ||
+		!contains(flags, TableFlagCompound))
+
+	if compactStorage {
+		properties = append(properties, "COMPACT STORAGE")
+	}
 
 	if len(cks) > 0 {
 		var inner []string
@@ -482,9 +491,9 @@ func (h toCQLHelpers) partitionKeyString(pks, cks []*ColumnMetadata) string {
 
 type scyllaEncryptionOptions struct {
 	CipherAlgorithm   string `json:"cipher_algorithm"`
+	SecretKeyStrength int    `json:"secret_key_strength"`
 	KeyProvider       string `json:"key_provider"`
 	SecretKeyFile     string `json:"secret_key_file"`
-	SecretKeyStrength int    `json:"secret_key_strength"`
 }
 
 // UnmarshalBinary deserializes blob into scyllaEncryptionOptions.
