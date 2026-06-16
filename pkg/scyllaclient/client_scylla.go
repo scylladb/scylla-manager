@@ -784,6 +784,11 @@ func (c *Client) ActiveRepairs(ctx context.Context, hosts []string) ([]*models.T
 	return c.activeScyllaTasks(ctx, ScyllaTaskModuleRepair, ScyllaTaskTypeRepair, hosts)
 }
 
+// ActiveTabletRepairs returns scheduled or running ScyllaTaskTypeUserRepair tasks.
+func (c *Client) ActiveTabletRepairs(ctx context.Context) ([]*models.TaskStats, error) {
+	return c.activeScyllaTasks(ctx, ScyllaTaskModuleTablets, ScyllaTaskTypeUserRepair, nil)
+}
+
 func (c *Client) activeScyllaTasks(ctx context.Context, module ScyllaTaskModule, taskType ScyllaTaskType, hosts []string) ([]*models.TaskStats, error) {
 	if len(hosts) == 0 {
 		hosts = []string{""}
@@ -817,6 +822,14 @@ func (c *Client) activeScyllaTasks(ctx context.Context, module ScyllaTaskModule,
 // It ignores abort errors, as they might mean that task finished naturally.
 func (c *Client) KillAllRepairs(ctx context.Context, hosts ...string) error {
 	return c.abortActiveScyllaTasks(ctx, ScyllaTaskModuleRepair, ScyllaTaskTypeRepair, hosts...)
+}
+
+// KillAllTabletRepairs forces a termination of all ScyllaTaskTypeUserRepair tasks.
+// It ignores abort errors, as they might mean that task finished naturally.
+// Note that ScyllaTaskTypeUserRepair should be killed before ScyllaTaskTypeRepair,
+// as ScyllaTaskTypeUserRepair could respawn ScyllaTaskTypeRepair.
+func (c *Client) KillAllTabletRepairs(ctx context.Context) error {
+	return c.abortActiveScyllaTasks(ctx, ScyllaTaskModuleTablets, ScyllaTaskTypeUserRepair)
 }
 
 func (c *Client) abortActiveScyllaTasks(ctx context.Context, module ScyllaTaskModule, taskType ScyllaTaskType, hosts ...string) error {
