@@ -1167,6 +1167,22 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("Then: status is StatusStopped")
 		h.assertStopped(shortWait)
+
+		Print("And: there are no active repairs")
+		active, err := h.Client.ActiveTabletRepairs(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(active) > 0 {
+			t.Fatalf("Expected no active tablet repairs after repair task was paused, found %d", len(active))
+		}
+		active, err = h.Client.ActiveRepairs(t.Context(), ManagedClusterHosts())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(active) > 0 {
+			t.Fatalf("Expected no active repairs after repair task was paused, found %d", len(active))
+		}
 	})
 
 	t.Run("repair restart", func(t *testing.T) {
@@ -1193,7 +1209,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: run repair")
 		ctx, cancel = context.WithCancel(context.Background())
 		defer cancel()
-		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, ctx, 0))
 		h.runRepair(ctx, multipleUnits(nil))
 
 		Print("Then: repair is running")
@@ -1269,7 +1285,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		Print("And: resume repair")
 		ctx = context.Background()
 		holdCtx, holdCancel := context.WithCancel(ctx)
-		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 1))
+		h.Hrt.SetInterceptor(repairMockAndBlockInterceptor(t, holdCtx, 0))
 		h.runRepair(ctx, props)
 
 		Print("Then: resumed repair is running")
