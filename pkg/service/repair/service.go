@@ -455,6 +455,9 @@ func (s *Service) ensureNoActiveRepairs(ctx context.Context, client *scyllaclien
 func (s *Service) killAllRepairs(ctx context.Context, client *scyllaclient.Client, hosts []string) {
 	killCtx := log.CopyTraceID(context.Background(), ctx)
 	killCtx = scyllaclient.Interactive(killCtx)
+	if err := client.KillAllTabletRepairs(killCtx); err != nil {
+		s.logger.Error(killCtx, "Failed to kill tablet repairs", "error", err)
+	}
 	if err := client.KillAllRepairs(killCtx, hosts...); err != nil {
 		s.logger.Error(killCtx, "Failed to kill repairs", "hosts", hosts, "error", err)
 	}
