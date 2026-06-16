@@ -1608,12 +1608,8 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 			h := newRepairTestHelper(t, session, defaultConfig())
 			Print("When: run repair")
-			var killRepairCalled int32
 			i, running := repairRunningInterceptor()
-			h.Hrt.SetInterceptor(combineInterceptors(
-				countInterceptor(&killRepairCalled, isForceTerminateRepairReq),
-				i,
-			))
+			h.Hrt.SetInterceptor(i)
 			h.runRepair(ctx, props)
 
 			Print("When: repair is running")
@@ -1623,9 +1619,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 			cancel()
 			h.assertError(shortWait)
 
-			Print("Then: repairs on all hosts are killed")
-			if int(killRepairCalled) != len(ManagedClusterHosts()) {
-				t.Errorf("not all repairs were killed")
+			Print("Then: there are no active repairs")
+			active, err := h.Client.ActiveRepairs(t.Context(), ManagedClusterHosts())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(active) > 0 {
+				t.Fatalf("Expected no active repairs after repair task was paused, found %d", len(active))
 			}
 		})
 
@@ -1637,19 +1637,41 @@ func TestServiceRepairIntegration(t *testing.T) {
 			props["fail_fast"] = true
 
 			Print("When: run repair")
-			var killRepairCalled int32
+			// Combination of those interceptors allows us to wait for moment
+			// of repair execution after the active repairs have already been
+			// checked by the actual repairs haven't started yet.
+			i, running := repairRunningInterceptor()
+			holdCtx, holdCancel := context.WithCancel(ctx)
+			h.Hrt.SetInterceptor(combineInterceptors(i, repairMockAndBlockInterceptor(t, holdCtx, 0)))
+			h.runRepair(ctx, props)
+
+			Print("When: repair is running")
+			chanClosedWithin(t, running, shortWait)
+
+			var listRepairCalled, abortRepairCalled int32
 			h.Hrt.SetInterceptor(combineInterceptors(
-				countInterceptor(&killRepairCalled, isForceTerminateRepairReq),
+				// Count interceptors
+				countInterceptor(&listRepairCalled, func(req *http.Request) bool {
+					return isListModuleTasksReq(req, scyllaclient.ScyllaTaskModuleRepair)
+				}),
+				countInterceptor(&abortRepairCalled, isAbortTaskReq),
+				// Mock list/kill active repairs interceptors
+				listModuleTasksMockInterceptor(t, scyllaclient.ScyllaTaskModuleRepair, scyllaclient.ScyllaTaskTypeRepair),
+				abortTaskMockInterceptor(),
+				// Mock repair failure interceptor
 				repairMockInterceptor(t, repairStatusFailed),
 			))
-			h.runRepair(ctx, props)
+			holdCancel()
 
 			Print("Then: repair finish with error")
 			h.assertError(longWait)
 
-			Print("Then: repairs on all hosts are killed")
-			if int(killRepairCalled) != len(ManagedClusterHosts()) {
-				t.Errorf("not all repairs were killed")
+			Print("Then: active repairs were listed and killed")
+			if int(listRepairCalled) != len(ManagedClusterHosts()) {
+				t.Errorf("repairs were listed %d times, expected %d", listRepairCalled, len(ManagedClusterHosts()))
+			}
+			if int(abortRepairCalled) != len(ManagedClusterHosts()) {
+				t.Errorf("repairs were killed %d times, expected %d", abortRepairCalled, len(ManagedClusterHosts())+1)
 			}
 		})
 	})

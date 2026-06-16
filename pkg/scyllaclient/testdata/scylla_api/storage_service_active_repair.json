@@ -1,5 +1,22 @@
 [
-  1,
-  2,
-  3
+  {
+    "type": "repair",
+    "task_id": "e91bc9fa-d14e-11ee-b5c8-0242ac120002",
+    "state": "created"
+  },
+  {
+    "type": "repair",
+    "task_id": "ef4a7cb4-d14e-11ee-b5c8-0242ac120002",
+    "state": "running"
+  },
+  {
+    "type": "repair",
+    "task_id": "f33c9620-d14e-11ee-b5c8-0242ac120002",
+    "state": "done"
+  },
+  {
+    "type": "upload",
+    "task_id": "f87da416-d14e-11ee-b5c8-0242ac120002",
+    "state": "running"
+  }
 ]
