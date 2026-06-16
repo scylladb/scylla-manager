@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -138,12 +139,13 @@ const (
 )
 
 const (
-	repairAsyncEndpoint          = "/storage_service/repair_async"
-	repairStatusEndpoint         = "/storage_service/repair_status"
-	tabletRepairEndpoint         = "/storage_service/tablets/repair"
-	waitTaskEndpoint             = "/task_manager/wait_task"
-	forceTerminateRepairEndpoint = "/storage_service/force_terminate_repair"
-	tabletBalancingEndpoint      = "/storage_service/tablets/balancing"
+	repairAsyncEndpoint     = "/storage_service/repair_async"
+	repairStatusEndpoint    = "/storage_service/repair_status"
+	tabletRepairEndpoint    = "/storage_service/tablets/repair"
+	waitTaskEndpoint        = "/task_manager/wait_task"
+	tabletBalancingEndpoint = "/storage_service/tablets/balancing"
+	listModuleTasksEndpoint = "/task_manager/list_module_tasks"
+	abortTaskEndpoint       = "/task_manager/abort_task"
 )
 
 func isRepairAsyncReq(req *http.Request) bool {
@@ -170,8 +172,12 @@ func isRepairStatusReq(req *http.Request) bool {
 	return isRepairAsyncStatusReq(req) || isTabletRepairStatusReq(req)
 }
 
-func isForceTerminateRepairReq(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, forceTerminateRepairEndpoint) && req.Method == http.MethodPost
+func isListModuleTasksReq(req *http.Request, module scyllaclient.ScyllaTaskModule) bool {
+	return strings.HasPrefix(req.URL.Path, listModuleTasksEndpoint+"/"+string(module)) && req.Method == http.MethodGet
+}
+
+func isAbortTaskReq(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, abortTaskEndpoint) && req.Method == http.MethodPost
 }
 
 func isTabletBalancingReq(req *http.Request) bool {
@@ -606,16 +612,46 @@ func repairMockAndBlockInterceptor(t *testing.T, ctx context.Context, blockAfter
 
 func repairRunningInterceptor() (http.RoundTripper, chan struct{}) {
 	done := make(chan struct{})
+	closeDone := sync.OnceFunc(func() {
+		close(done)
+	})
 	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if isRepairReq(req) {
-			select {
-			case <-done:
-			default:
-				close(done)
-			}
+			closeDone()
 		}
 		return nil, nil
 	}), done
+}
+
+func listModuleTasksMockInterceptor(t *testing.T, module scyllaclient.ScyllaTaskModule, taskType scyllaclient.ScyllaTaskType) http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if !isListModuleTasksReq(req, module) {
+			return nil, nil
+		}
+
+		tasks := []*models.TaskStats{{
+			TaskID: uuid.MustRandom().String(),
+			Type:   string(taskType),
+			State:  string(scyllaclient.ScyllaTaskStateRunning),
+		}}
+		body, err := json.Marshal(tasks)
+		if err != nil {
+			t.Error(err)
+			return nil, err
+		}
+		resp := httpx.MakeResponse(req, http.StatusOK)
+		resp.Body = io.NopCloser(bytes.NewBuffer(body))
+		return resp, nil
+	})
+}
+
+func abortTaskMockInterceptor() http.RoundTripper {
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if !isAbortTaskReq(req) {
+			return nil, nil
+		}
+		return httpx.MakeResponse(req, http.StatusOK), nil
+	})
 }
 
 func repairReqAssertHostInterceptor(t *testing.T, host netip.Addr) http.RoundTripper {

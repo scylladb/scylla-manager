@@ -14,6 +14,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
 	agentModels "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
 func TestClientClusterName(t *testing.T) {
@@ -291,8 +292,12 @@ func TestClientActiveRepairs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(v, []string{scyllaclienttest.TestHost}); diff != "" {
-		t.Fatal(v)
+	golden := []*models.TaskStats{
+		{Type: string(scyllaclient.ScyllaTaskTypeRepair), TaskID: "e91bc9fa-d14e-11ee-b5c8-0242ac120002", State: string(scyllaclient.ScyllaTaskStateCreated)},
+		{Type: string(scyllaclient.ScyllaTaskTypeRepair), TaskID: "ef4a7cb4-d14e-11ee-b5c8-0242ac120002", State: string(scyllaclient.ScyllaTaskStateRunning)},
+	}
+	if diff := cmp.Diff(v, golden); diff != "" {
+		t.Fatal(diff)
 	}
 }
 
