@@ -33,7 +33,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 	"go.uber.org/atomic"
 	"go.uber.org/multierr"
-	"golang.org/x/sync/errgroup"
 )
 
 // Service orchestrates cluster repairs.
@@ -431,43 +430,24 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 // To check that, SM uses newer scylla API providing information
 // about listed repair tasks keyspace scope.
 func (s *Service) ensureNoActiveRepairs(ctx context.Context, client *scyllaclient.Client, p *plan, ksRep scyllaclient.KeyspaceReplication) error {
-	if ksRep != scyllaclient.ReplicationVnode {
-		if active, err := client.ActiveRepairs(ctx, p.Hosts); err != nil {
-			s.logger.Error(ctx, "Active repair check failed", "error", err)
-		} else if len(active) > 0 {
-			taskIDs := slices2.Map(active, func(t *models.TaskStats) string {
-				return t.TaskID
-			})
-			return errors.Errorf("cluster is currently being repaired by tasks: %s", strings.Join(taskIDs, ", "))
-		}
+	tasks, err := client.ActiveRepairs(ctx, p.Hosts)
+	if err != nil {
+		s.logger.Error(ctx, "Active repair check failed, skipping", "error", err)
 		return nil
 	}
 
-	rd := scyllaclient.NewRingDescriber(ctx, client)
-	eg, egCtx := errgroup.WithContext(ctx)
-	for _, host := range p.Hosts {
-		eg.Go(func() error {
-			tasks, err := client.ScyllaListTasks(egCtx, host, scyllaclient.ScyllaTaskModuleRepair)
-			if err != nil {
-				s.logger.Error(ctx, "Active repair check failed, skipping", "host", host, "error", err)
-				return nil
-			}
-			for _, task := range tasks {
-				if task == nil || scyllaclient.ScyllaTaskType(task.Type) != scyllaclient.ScyllaTaskTypeRepair ||
-					scyllaclient.ScyllaTaskState(task.State) == scyllaclient.ScyllaTaskStateDone ||
-					scyllaclient.ScyllaTaskState(task.State) == scyllaclient.ScyllaTaskStateFailed {
-					continue
-				}
-				if !rd.IsTabletKeyspace(task.Keyspace) {
-					return errors.Errorf("vnode keyspace %q is already repaired with task %v on host %s", task.Keyspace, task.TaskID, host)
-				}
-			}
-			return nil
+	if ksRep != scyllaclient.ReplicationVnode && len(tasks) > 0 {
+		taskIDs := slices2.Map(tasks, func(t *models.TaskStats) string {
+			return t.TaskID
 		})
+		return errors.Errorf("cluster is currently being repaired by tasks: %s", strings.Join(taskIDs, ", "))
 	}
 
-	if err := eg.Wait(); err != nil {
-		return errors.Wrap(err, "check active repairs")
+	rd := scyllaclient.NewRingDescriber(ctx, client)
+	for _, task := range tasks {
+		if !rd.IsTabletKeyspace(task.Keyspace) {
+			return errors.Errorf("vnode keyspace %q is already repaired with task %v", task.Keyspace, task.TaskID)
+		}
 	}
 	return nil
 }
