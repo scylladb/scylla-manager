@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
@@ -29,6 +30,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 	"go.uber.org/multierr"
+	"golang.org/x/sync/errgroup"
 )
 
 // ErrHostInvalidResponse is to indicate that one of the root-causes is the invalid response from scylla-server.
@@ -777,88 +779,86 @@ func (c *Client) longPollingTimeout(waitSeconds int) time.Duration {
 	return time.Second*time.Duration(waitSeconds) + c.config.Timeout
 }
 
-// ActiveRepairs returns a subset of hosts that are coordinators of a repair.
-func (c *Client) ActiveRepairs(ctx context.Context, hosts []string) ([]string, error) {
-	type hostError struct {
-		host   string
-		active bool
-		err    error
-	}
-	out := make(chan hostError, runtime.NumCPU()+1)
+// ActiveRepairs returns scheduled or running ScyllaTaskTypeRepair tasks.
+func (c *Client) ActiveRepairs(ctx context.Context, hosts []string) ([]*models.TaskStats, error) {
+	return c.activeScyllaTasks(ctx, ScyllaTaskModuleRepair, ScyllaTaskTypeRepair, hosts)
+}
 
-	for _, h := range hosts {
-		go func() {
-			a, err := c.hasActiveRepair(ctx, h)
-			out <- hostError{
-				host:   h,
-				active: a,
-				err:    errors.Wrapf(err, "host %s", h),
+func (c *Client) activeScyllaTasks(ctx context.Context, module ScyllaTaskModule, taskType ScyllaTaskType, hosts []string) ([]*models.TaskStats, error) {
+	if len(hosts) == 0 {
+		hosts = []string{""}
+	}
+	out := make([]*models.TaskStats, 0)
+	mu := sync.Mutex{}
+
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(runtime.NumCPU())
+	for _, host := range hosts {
+		eg.Go(func() error {
+			tasks, err := c.ScyllaListTasks(egCtx, host, module)
+			if err != nil {
+				return errors.Wrapf(err, "%s: list repair module tasks", host)
 			}
-		}()
-	}
+			tasks = filterActiveScyllaTasks(tasks, taskType)
 
-	var (
-		active []string
-		errs   error
-	)
-	for range hosts {
-		v := <-out
-		if v.err != nil {
-			errs = multierr.Append(errs, v.err)
-		}
-		if v.active {
-			active = append(active, v.host)
-		}
-	}
-	return active, errs
-}
-
-func (c *Client) hasActiveRepair(ctx context.Context, host string) (bool, error) {
-	const wait = 50 * time.Millisecond
-	for range 10 {
-		resp, err := c.scyllaOps.StorageServiceActiveRepairGet(&operations.StorageServiceActiveRepairGetParams{
-			Context: forceHost(ctx, host),
+			mu.Lock()
+			out = append(out, tasks...)
+			mu.Unlock()
+			return nil
 		})
-		if err != nil {
-			return false, err
-		}
-		if len(resp.Payload) > 0 {
-			return true, nil
-		}
-		// wait before trying again
-		t := time.NewTimer(wait)
-		select {
-		case <-ctx.Done():
-			t.Stop()
-			return false, ctx.Err()
-		case <-t.C:
-		}
 	}
-	return false, nil
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
-// KillAllRepairs forces a termination of all repairs running on a host, the
-// operation is not retried to avoid side effects of a deferred kill.
+// KillAllRepairs forces a termination of all ScyllaTaskTypeRepair tasks.
+// It ignores abort errors, as they might mean that task finished naturally.
 func (c *Client) KillAllRepairs(ctx context.Context, hosts ...string) error {
-	ctx = noRetry(ctx)
+	return c.abortActiveScyllaTasks(ctx, ScyllaTaskModuleRepair, ScyllaTaskTypeRepair, hosts...)
+}
 
-	f := func(i int) error {
-		host := hosts[i]
-		_, err := c.scyllaOps.StorageServiceForceTerminateRepairPost(&operations.StorageServiceForceTerminateRepairPostParams{
-			Context: forceHost(ctx, host),
+func (c *Client) abortActiveScyllaTasks(ctx context.Context, module ScyllaTaskModule, taskType ScyllaTaskType, hosts ...string) error {
+	if len(hosts) == 0 {
+		hosts = []string{""}
+	}
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(runtime.NumCPU())
+	for _, host := range hosts {
+		eg.Go(func() error {
+			tasks, err := c.ScyllaListTasks(egCtx, host, module)
+			if err != nil {
+				return errors.Wrapf(err, "%s: list repair module tasks", host)
+			}
+			tasks = filterActiveScyllaTasks(tasks, taskType)
+
+			for _, task := range tasks {
+				if err := c.ScyllaAbortTask(egCtx, host, task.TaskID); err != nil {
+					c.client.logger.Error(egCtx, "Failed to abort task",
+						"host", host,
+						"task_id", task.TaskID,
+						"error", err,
+					)
+				}
+			}
+			return nil
 		})
-		return err
 	}
+	return eg.Wait()
+}
 
-	notify := func(i int, err error) {
-		host := hosts[i]
-		c.logger.Error(ctx, "Failed to terminate repair",
-			"host", host,
-			"error", err,
-		)
+func filterActiveScyllaTasks(tasks []*models.TaskStats, taskType ScyllaTaskType) []*models.TaskStats {
+	out := make([]*models.TaskStats, 0, len(tasks))
+	for _, task := range tasks {
+		if task == nil || ScyllaTaskType(task.Type) != taskType ||
+			ScyllaTaskState(task.State) == ScyllaTaskStateDone ||
+			ScyllaTaskState(task.State) == ScyllaTaskStateFailed {
+			continue
+		}
+		out = append(out, task)
 	}
-
-	return parallel.Run(len(hosts), parallel.NoLimit, f, notify)
+	return out
 }
 
 const snapshotTimeout = 30 * time.Minute
