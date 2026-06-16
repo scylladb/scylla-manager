@@ -1622,7 +1622,14 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h.assertError(shortWait)
 
 			Print("Then: there are no active repairs")
-			active, err := h.Client.ActiveRepairs(t.Context(), ManagedClusterHosts())
+			active, err := h.Client.ActiveTabletRepairs(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(active) > 0 {
+				t.Fatalf("Expected no active tablet repairs after repair task was paused, found %d", len(active))
+			}
+			active, err = h.Client.ActiveRepairs(t.Context(), ManagedClusterHosts())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1650,15 +1657,19 @@ func TestServiceRepairIntegration(t *testing.T) {
 			Print("When: repair is running")
 			chanClosedWithin(t, running, shortWait)
 
-			var listRepairCalled, abortRepairCalled int32
+			var listRepairCalled, listTabletRepairCalled, abortRepairCalled int32
 			h.Hrt.SetInterceptor(combineInterceptors(
 				// Count interceptors
 				countInterceptor(&listRepairCalled, func(req *http.Request) bool {
 					return isListModuleTasksReq(req, scyllaclient.ScyllaTaskModuleRepair)
 				}),
+				countInterceptor(&listTabletRepairCalled, func(req *http.Request) bool {
+					return isListModuleTasksReq(req, scyllaclient.ScyllaTaskModuleTablets)
+				}),
 				countInterceptor(&abortRepairCalled, isAbortTaskReq),
 				// Mock list/kill active repairs interceptors
 				listModuleTasksMockInterceptor(t, scyllaclient.ScyllaTaskModuleRepair, scyllaclient.ScyllaTaskTypeRepair),
+				listModuleTasksMockInterceptor(t, scyllaclient.ScyllaTaskModuleTablets, scyllaclient.ScyllaTaskTypeUserRepair),
 				abortTaskMockInterceptor(),
 				// Mock repair failure interceptor
 				repairMockInterceptor(t, repairStatusFailed),
@@ -1669,10 +1680,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 			h.assertError(longWait)
 
 			Print("Then: active repairs were listed and killed")
+			if int(listTabletRepairCalled) != 1 {
+				t.Errorf("tablet repairs were listed %d times, expected 1", listTabletRepairCalled)
+			}
 			if int(listRepairCalled) != len(ManagedClusterHosts()) {
 				t.Errorf("repairs were listed %d times, expected %d", listRepairCalled, len(ManagedClusterHosts()))
 			}
-			if int(abortRepairCalled) != len(ManagedClusterHosts()) {
+			if int(abortRepairCalled) != len(ManagedClusterHosts())+1 {
 				t.Errorf("repairs were killed %d times, expected %d", abortRepairCalled, len(ManagedClusterHosts())+1)
 			}
 		})
