@@ -30,6 +30,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/workerpool"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 	"go.uber.org/atomic"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
@@ -434,7 +435,10 @@ func (s *Service) ensureNoActiveRepairs(ctx context.Context, client *scyllaclien
 		if active, err := client.ActiveRepairs(ctx, p.Hosts); err != nil {
 			s.logger.Error(ctx, "Active repair check failed", "error", err)
 		} else if len(active) > 0 {
-			return errors.Errorf("%s are repairing", strings.Join(active, ", "))
+			taskIDs := slices2.Map(active, func(t *models.TaskStats) string {
+				return t.TaskID
+			})
+			return errors.Errorf("cluster is currently being repaired by tasks: %s", strings.Join(taskIDs, ", "))
 		}
 		return nil
 	}
