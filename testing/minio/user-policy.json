@@ -4,6 +4,8 @@
     {
       "Effect": "Allow",
       "Action": [
+        "s3:CreateBucket",
+        "s3:DeleteBucket",
         "s3:GetBucketLocation",
         "s3:ListBucket",
         "s3:ListBucketMultipartUploads"
@@ -24,7 +26,7 @@
         "s3:ListMultipartUploadParts"
       ],
       "Resource": [
-        "arn:aws:s3:::*"
+        "arn:aws:s3:::*/*"
       ]
     }
   ]
