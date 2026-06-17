@@ -103,7 +103,7 @@ endif
 	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'cluster_name' 'Managed Other Cluster'
 
 	@echo "==> Starting containers"
-	mkdir -p $(MINIO_DATA_DIR)
+	mkdir -p ./minio/data
 	mkdir -p ./fake-gcs/data
 	mkdir -p ./localstorage/data
 
@@ -143,7 +143,7 @@ endif
 	@docker cp scylla/cqlshrc $$(docker ps -qf name=scylla-manager-db):/root/.cassandra/cqlshrc
 
 	@echo "==> Adding Minio user"
-	./minio/add_user.sh || true
+	./minio/add_user.sh
 	@echo "==> Adding cassandra superuser"
 	# Starting from scylla 2026.2, cassandra superuser is no longer created by default on cluster startup.
 	# It is recommended to configure it manually via the maintenance socket.
