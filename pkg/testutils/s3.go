@@ -8,6 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	_ "github.com/aws/aws-sdk-go-v2/aws"
+	_ "github.com/aws/aws-sdk-go-v2/service/s3"
+	_ "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	_ "github.com/aws/smithy-go"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 )
