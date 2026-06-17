@@ -214,7 +214,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - type: bind
-        source: ${MINIO_DATA_DIR}
+        source: ./minio/data
         target: /data
       - type: bind
         source: ${MINIO_CERT_DIR}
