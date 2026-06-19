@@ -8,7 +8,7 @@ endif
 
 ifeq ($(PUBLISH),0)
 publish = --skip=publish
-VERSION_NAME := $(VERSION)-$(RELEASE)
+VERSION_NAME := $(VERSION).$(RELEASE)
 else
 VERSION_NAME := v$(VERSION)
 endif

@@ -16,7 +16,7 @@ changelog:
       - '^testing:'
 
 snapshot:
-    version_template: '{{ .Version }}-SNAPSHOT'
+    version_template: '{{ .Version }}.SNAPSHOT'
 
 builds:
   - id: server
