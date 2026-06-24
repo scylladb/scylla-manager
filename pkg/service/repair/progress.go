@@ -181,8 +181,16 @@ func (pm *dbProgressManager) initProgress(plan *plan) error {
 			}
 			cp := *rp
 			cp.RunID = pm.run.ID
-			cp.DurationStartedAt = nil // Reset duration counter from previous run
 			cp.Error = 0               // Failed ranges will be retried
+			cp.DurationStartedAt = nil // Reset duration counter from previous run
+			// AggregateProgress calculates duration from min StartedAt and max CompletedAt,
+			// so don't carry previous run timestamps into resumed run progress.
+			cp.StartedAt = &pm.run.StartTime
+			if cp.Completed() {
+				cp.CompletedAt = &pm.run.StartTime
+			} else {
+				cp.CompletedAt = nil
+			}
 			pm.progress[pk] = &cp
 		})
 		if err != nil {
