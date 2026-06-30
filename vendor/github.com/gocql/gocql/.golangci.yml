@@ -1,8 +1,5 @@
 version: "2"
 
-issues:
-  max-same-issues: 50
-
 formatters:
   enable:
     - goimports
@@ -17,6 +14,13 @@ formatters:
       max-len: 120
 
 linters:
+  exclusions:
+    rules:
+      - path: '(.+)_test\.go'
+        text: "fieldalignment"
+        linters:
+          - govet
+
   default: none
   enable:
     - nolintlint
@@ -26,9 +30,13 @@ linters:
       enable-all: true
       disable:
         - shadow
-        - fieldalignment
 
     nolintlint:
       allow-no-explanation: [ golines ]
       require-explanation: true
       require-specific: true
+
+run:
+  build-tags:
+    - integration
+    - unit
