@@ -115,7 +115,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
-	github.com/klauspost/compress v1.18.5 // indirect
+	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/lnquy/cron v1.1.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -166,7 +166,7 @@ require (
 )
 
 replace (
-	github.com/gocql/gocql => github.com/scylladb/gocql v1.15.3
+	github.com/gocql/gocql => github.com/scylladb/gocql v1.18.3
 	github.com/rclone/rclone => github.com/scylladb/rclone v1.54.0-patched-1
 	google.golang.org/api => github.com/scylladb/google-api-go-client v0.277.0-patched
 )
