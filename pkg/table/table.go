@@ -27,6 +27,7 @@ var LWTSystemTable = CQLTable{
 // from SM backup/restore procedures.
 var ScyllaBackupTables = []CQLTable{
 	{Keyspace: "system_distributed", Name: "snapshot_sstables"},
+	{Keyspace: "system_distributed", Name: "snapshot_remote_locations"},
 }
 
 // AuditKeyspace stores audit data. It lacks "system" prefix
