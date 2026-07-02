@@ -324,7 +324,7 @@ func TestAggregateProgressIntegration(t *testing.T) {
 }
 
 func getProgress(run *Run, session gocqlx.Session) []RunProgress {
-	var rp = make([]RunProgress, 0)
+	rp := make([]RunProgress, 0)
 
 	if err := table.RepairRunProgress.SelectQuery(session).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
@@ -349,7 +349,7 @@ func saveProgress(rps []*RunProgress, session gocqlx.Session) {
 }
 
 func getState(run *Run, session gocqlx.Session) []*RunState {
-	var rs = make([]*RunState, 0)
+	rs := make([]*RunState, 0)
 
 	if err := table.RepairRunState.SelectQuery(session).BindMap(qb.M{
 		"cluster_id": run.ClusterID,
@@ -360,4 +360,218 @@ func getState(run *Run, session gocqlx.Session) []*RunState {
 	}
 
 	return rs
+}
+
+// TestProgressManagerDurationAfterResumeIntegration verifies that per-table
+// repair duration reported by AggregateProgress is not inflated when a repair
+// run is resumed from a previous one.
+//
+// On resume, initProgress copies RunProgress rows (including StartedAt) from
+// the previous run. For tables that are still in progress, recalculateDuration
+// computes now-StartedAt spanning across run boundaries, producing durations
+// far larger than the current run's actual wall-clock time.
+func TestProgressManagerDurationAfterResumeIntegration(t *testing.T) {
+	const (
+		ks             = "k1"
+		tblIncomplete  = "t1"
+		tblCompleted   = "t2"
+		tokenRanges    = 10
+		prevRunAge     = 7 * 24 * time.Hour // simulate previous run started 7 days ago
+		prevH1Ranges   = 5                  // h1 completed 5/10 ranges in prev run
+		prevH2Ranges   = 3                  // h2 completed 3/10 ranges in prev run, did NOT finish
+		oldRunDuration = 2 * time.Hour
+	)
+
+	var (
+		h1 = netip.MustParseAddr("192.168.100.11")
+		h2 = netip.MustParseAddr("192.168.100.12")
+	)
+
+	session := CreateScyllaManagerDBSession(t)
+	ctx := context.Background()
+
+	// Timestamps: oldStart simulates the previous run having started 7 days ago;
+	// oldEnd marks when h1 finished its share in that run.
+	oldStart := timeutc.Now().Add(-prevRunAge)
+	oldEnd := oldStart.Add(oldRunDuration)
+
+	prevRun := &Run{
+		ClusterID: uuid.NewTime(),
+		TaskID:    uuid.NewTime(),
+		ID:        uuid.NewTime(),
+		StartTime: oldStart,
+	}
+	run := &Run{
+		ClusterID: prevRun.ClusterID,
+		TaskID:    prevRun.TaskID,
+		ID:        uuid.NewTime(),
+		StartTime: timeutc.Now(),
+	}
+
+	p := &plan{
+		Hosts: []string{h1.String(), h2.String()},
+		Stats: map[scyllaclient.HostKeyspaceTable]tableStats{
+			newHostKsTable(h1.String(), ks, tblIncomplete): {Ranges: tokenRanges, Size: 100},
+			newHostKsTable(h2.String(), ks, tblIncomplete): {Ranges: tokenRanges, Size: 100},
+			newHostKsTable(h1.String(), ks, tblCompleted):  {Ranges: tokenRanges, Size: 100},
+			newHostKsTable(h2.String(), ks, tblCompleted):  {Ranges: tokenRanges, Size: 100},
+		},
+		Keyspaces: []keyspacePlan{{
+			Keyspace: ks,
+			Tables: []tablePlan{
+				{Table: tblIncomplete, RangesCnt: tokenRanges},
+				{Table: tblCompleted, RangesCnt: tokenRanges},
+			},
+		}},
+	}
+
+	Print("When: a previous run has partial progress with old StartedAt timestamps")
+
+	// Insert the previous run row so GetPrevRun can find it.
+	if err := table.RepairRun.InsertQuery(session).BindStruct(prevRun).Exec(); err != nil {
+		t.Fatal(err)
+	}
+	// Insert state with some completed ranges so that initState is non-empty
+	// and initProgress resumes from the previous run (see emptyState check).
+	doneRanges := make([]scyllaclient.TokenRange, prevH1Ranges)
+	for i := range doneRanges {
+		doneRanges[i] = scyllaclient.TokenRange{StartToken: int64(i * 10), EndToken: int64(i*10 + 9)}
+	}
+	if err := table.RepairRunState.InsertQuery(session).BindStruct(&RunState{
+		ClusterID:     prevRun.ClusterID,
+		TaskID:        prevRun.TaskID,
+		RunID:         prevRun.ID,
+		Keyspace:      ks,
+		Table:         tblIncomplete,
+		SuccessRanges: doneRanges,
+	}).ExecRelease(); err != nil {
+		t.Fatal(err)
+	}
+	completedRanges := make([]scyllaclient.TokenRange, tokenRanges)
+	for i := range completedRanges {
+		completedRanges[i] = scyllaclient.TokenRange{StartToken: int64(i * 10), EndToken: int64(i*10 + 9)}
+	}
+	if err := table.RepairRunState.InsertQuery(session).BindStruct(&RunState{
+		ClusterID:     prevRun.ClusterID,
+		TaskID:        prevRun.TaskID,
+		RunID:         prevRun.ID,
+		Keyspace:      ks,
+		Table:         tblCompleted,
+		SuccessRanges: completedRanges,
+	}).ExecRelease(); err != nil {
+		t.Fatal(err)
+	}
+	// h1: completed its share in the previous run (CompletedAt is set).
+	if err := table.RepairRunProgress.InsertQuery(session).BindStruct(&RunProgress{
+		ClusterID:   prevRun.ClusterID,
+		TaskID:      prevRun.TaskID,
+		RunID:       prevRun.ID,
+		Host:        h1.String(),
+		Keyspace:    ks,
+		Table:       tblIncomplete,
+		TokenRanges: tokenRanges,
+		Success:     prevH1Ranges,
+		StartedAt:   &oldStart,
+		CompletedAt: &oldEnd,
+	}).ExecRelease(); err != nil {
+		t.Fatal(err)
+	}
+	// h2: started but did NOT complete in the previous run (CompletedAt is nil).
+	if err := table.RepairRunProgress.InsertQuery(session).BindStruct(&RunProgress{
+		ClusterID:   prevRun.ClusterID,
+		TaskID:      prevRun.TaskID,
+		RunID:       prevRun.ID,
+		Host:        h2.String(),
+		Keyspace:    ks,
+		Table:       tblIncomplete,
+		TokenRanges: tokenRanges,
+		Success:     prevH2Ranges,
+		StartedAt:   &oldStart,
+		CompletedAt: nil,
+	}).ExecRelease(); err != nil {
+		t.Fatal(err)
+	}
+	// t2: both hosts completed in the previous run. These timestamps should remain consistent after resume.
+	for _, h := range []netip.Addr{h1, h2} {
+		if err := table.RepairRunProgress.InsertQuery(session).BindStruct(&RunProgress{
+			ClusterID:   prevRun.ClusterID,
+			TaskID:      prevRun.TaskID,
+			RunID:       prevRun.ID,
+			Host:        h.String(),
+			Keyspace:    ks,
+			Table:       tblCompleted,
+			TokenRanges: tokenRanges,
+			Success:     tokenRanges,
+			StartedAt:   &oldStart,
+			CompletedAt: &oldEnd,
+		}).ExecRelease(); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	Print("And: the current run resumes from the previous one")
+
+	// repair_run for the current run: required by the server's GetProgress path.
+	if err := table.RepairRun.InsertQuery(session).BindStruct(run).Exec(); err != nil {
+		t.Fatal(err)
+	}
+
+	pm := NewDBProgressManager(run, session, metrics.NewRepairMetrics(), log.NewDevelopment())
+	prevID := uuid.Nil
+	if prev := pm.GetPrevRun(ctx, 0); prev != nil {
+		prevID = prev.ID
+	}
+	if err := pm.Init(p, prevID); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: per-table and overall durations must not exceed the current run wall-clock time")
+
+	res, err := pm.AggregateProgress()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Allow a generous tolerance on top of the current run's elapsed time so
+	// that slow CI machines don't produce flaky results.
+	const tolerance = time.Minute
+	runElapsed := timeutc.Since(run.StartTime)
+	maxAllowed := (runElapsed + tolerance).Milliseconds()
+
+	var completedTableFound bool
+	for _, tp := range res.Tables {
+		if tp.Duration < 0 {
+			t.Errorf("table %s.%s: duration is negative: %s", tp.Keyspace, tp.Table, time.Duration(tp.Duration)*time.Millisecond)
+		}
+		if tp.Table == tblIncomplete && tp.Duration > maxAllowed {
+			t.Errorf("table %s.%s: duration %s exceeds run elapsed time %s + tolerance; "+
+				"StartedAt was carried over from previous run started %s ago",
+				tp.Keyspace, tp.Table,
+				time.Duration(tp.Duration)*time.Millisecond,
+				runElapsed.Truncate(time.Second),
+				prevRunAge,
+			)
+		}
+		if tp.Table == tblCompleted {
+			completedTableFound = true
+			if tp.Duration != 0 {
+				t.Errorf("table %s.%s: duration %s, expected 0s",
+					tp.Keyspace, tp.Table,
+					time.Duration(tp.Duration)*time.Millisecond,
+				)
+			}
+		}
+	}
+	if !completedTableFound {
+		t.Errorf("table %s.%s not found", ks, tblCompleted)
+	}
+	if res.Duration > maxAllowed {
+		t.Errorf("overall duration %s exceeds run elapsed time %s + tolerance",
+			time.Duration(res.Duration)*time.Millisecond,
+			runElapsed.Truncate(time.Second),
+		)
+	}
+	if res.Duration < 0 {
+		t.Errorf("overall duration is negative: %s", time.Duration(res.Duration)*time.Millisecond)
+	}
 }
