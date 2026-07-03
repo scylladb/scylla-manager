@@ -529,6 +529,7 @@ func ExtractRetention(properties json.RawMessage) (RetentionPolicy, error) {
 }
 
 // tabFilter checks if table should be backed.
+// All filters should return true for a table to be backed up.
 type tabFilter interface {
 	filter(ks, tab string, ring scyllaclient.Ring) bool
 }
@@ -596,6 +597,20 @@ func (sf scyllaBackupFilter) filter(ks, tab string, _ scyllaclient.Ring) bool {
 		Name:     tab,
 	}
 	return !slices.Contains(table.ScyllaBackupTables, t)
+}
+
+// Filter out CDC tables.
+type cdcFilter struct {
+	keyspaces map[scyllaclient.KeyspaceType][]string
+}
+
+func (cf cdcFilter) filter(ks, tab string, _ scyllaclient.Ring) bool {
+	// Check for system CDC table
+	if !slices.Contains(cf.keyspaces[scyllaclient.KeyspaceTypeUser], ks) {
+		return !table.IsCDCSystemTable(tab)
+	}
+	// Check for user CDC table
+	return !strings.HasSuffix(tab, table.CDCTableSuffix)
 }
 
 // tableValidator checks if it's safe to back up table.

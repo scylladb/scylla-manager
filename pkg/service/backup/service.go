@@ -211,6 +211,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 		localDataFilter{keyspaces: ks},
 		lwtFilter{},
 		scyllaBackupFilter{},
+		cdcFilter{keyspaces: ks},
 	}
 
 	// Try to add view filter - possible only when credentials are set

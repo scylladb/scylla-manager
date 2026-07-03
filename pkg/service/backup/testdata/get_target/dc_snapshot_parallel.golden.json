@@ -14,16 +14,7 @@
       "keyspace": "system_distributed",
       "tables": [
         "view_build_status",
-        "service_levels",
-        "cdc_streams_descriptions_v2",
-        "cdc_generation_timestamps"
-      ],
-      "all_tables": true
-    },
-    {
-      "keyspace": "system_distributed_everywhere",
-      "tables": [
-        "cdc_generation_descriptions_v2"
+        "service_levels"
       ],
       "all_tables": true
     },

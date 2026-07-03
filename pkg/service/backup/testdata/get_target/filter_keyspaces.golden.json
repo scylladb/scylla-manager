@@ -3,9 +3,7 @@
     {
       "keyspace": "system_distributed",
       "tables": [
-        "view_build_status",
-        "cdc_generation_timestamps",
-        "cdc_streams_descriptions_v2"
+        "view_build_status"
       ],
       "all_tables": true
     },
