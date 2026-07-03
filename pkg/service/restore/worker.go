@@ -330,7 +330,6 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 	skip = append(skip, "system_auth", "system_distributed.service_levels")
 
 	// Skip system cdc tables
-	systemCDCTableRegex := regexp.MustCompile(`(^|_)cdc(_|$)`)
 	for ks, tabs := range tables {
 		// Local keyspaces were already excluded
 		if !slices.Contains(keyspaces[scyllaclient.KeyspaceTypeNonLocal], ks) {
@@ -341,14 +340,14 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 			continue
 		}
 		for _, t := range tabs {
-			if systemCDCTableRegex.MatchString(t) {
+			if scyllaTable.IsCDCSystemTable(t) {
 				skip = append(skip, ks+"."+t)
 			}
 		}
 	}
 
-	skip = append(skip, "*.*_scylla_cdc_log", // Skip user cdc tables
-		"system.paxos", "*.*"+scyllaTable.LWTStateTableSuffix) // Skip LWT state tables (#4732)
+	skip = append(skip, "*.*"+scyllaTable.CDCTableSuffix, // Skip user cdc tables
+		scyllaTable.LWTSystemTable.String(), "*.*"+scyllaTable.LWTStateTableSuffix) // Skip LWT state tables (#4732)
 
 	// Skip views
 	views, err := query.GetAllViews(session)
