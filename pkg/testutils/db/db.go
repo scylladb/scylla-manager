@@ -728,3 +728,19 @@ func ExecuteLWTAlternatorQuery(t *testing.T, client *dynamodb.Client, table stri
 		t.Fatal(err)
 	}
 }
+
+// EnableAlternatorStreams enables alternator streams (based on CDC) on a given table.
+func EnableAlternatorStreams(t *testing.T, client *dynamodb.Client, table string) {
+	t.Helper()
+
+	_, err := client.UpdateTable(t.Context(), &dynamodb.UpdateTableInput{
+		TableName: aws.String(table),
+		StreamSpecification: &types.StreamSpecification{
+			StreamEnabled:  aws.Bool(true),
+			StreamViewType: types.StreamViewTypeNewAndOldImages,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
