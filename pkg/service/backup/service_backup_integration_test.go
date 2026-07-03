@@ -2805,6 +2805,151 @@ func TestBackupLWTIntegration(t *testing.T) {
 	}
 }
 
+func TestBackupCDCIntegration(t *testing.T) {
+	// This test verifies that CDC tables are skipped during backup
+	location := testBackupLocation("backuptest-cdc")
+	config := defaultConfig()
+
+	var (
+		session                      = CreateScyllaManagerDBSession(t)
+		h                            = newBackupTestHelper(t, session, config, location, nil)
+		ctx                          = context.Background()
+		clusterSession               = CreateSessionAndDropAllKeyspaces(t, h.Client)
+		accessKeyID, secretAccessKey = GetAlternatorCreds(t, clusterSession, "")
+		altClient                    = CreateAlternatorClient(t, h.Client, ManagedClusterHost(), accessKeyID, secretAccessKey)
+	)
+	ni, err := h.Client.AnyNodeInfo(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected []backup.Unit
+
+	{
+		Print("Given: CQL vnode table with CDC enabled")
+		const (
+			cqlVnodeKs  = "cql_cdc_vnode_ks"
+			cqlVnodeTab = "cql_cdc_vnode_tab"
+		)
+		expected = append(expected,
+			backup.Unit{
+				Keyspace: cqlVnodeKs,
+				Tables:   []string{cqlVnodeTab},
+			},
+		)
+		ExecStmt(t, clusterSession, fmt.Sprintf("CREATE KEYSPACE IF NOT EXISTS %q WITH "+
+			"replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 3} AND "+
+			"tablets = {'enabled': 'false'}", cqlVnodeKs))
+		WriteData(t, clusterSession, cqlVnodeKs, 1, cqlVnodeTab)
+		ExecStmt(t, clusterSession, fmt.Sprintf("ALTER TABLE %q.%q WITH cdc = {'enabled': 'true', 'preimage': 'true'}", cqlVnodeKs, cqlVnodeTab))
+	}
+
+	// CDC on tablets is supported starting from 2025.4
+	if CheckConstraint(t, ni.ScyllaVersion, ">= 2025.4") {
+		Print("Given: CQL tablet table with CDC enabled")
+		const (
+			cqlTabletKs  = "cql_cdc_tablet_ks"
+			cqlTabletTab = "cql_cdc_tablet_tab"
+		)
+		expected = append(expected,
+			backup.Unit{
+				Keyspace: cqlTabletKs,
+				Tables:   []string{cqlTabletTab},
+			},
+		)
+		ExecStmt(t, clusterSession, fmt.Sprintf("CREATE KEYSPACE IF NOT EXISTS %q WITH "+
+			"replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 3} AND "+
+			"tablets = {'enabled': 'true'}", cqlTabletKs))
+		WriteData(t, clusterSession, cqlTabletKs, 1, cqlTabletTab)
+		ExecStmt(t, clusterSession, fmt.Sprintf("ALTER TABLE %q.%q WITH cdc = {'enabled': 'true', 'preimage': 'true'}", cqlTabletKs, cqlTabletTab))
+	}
+
+	// Alternator streams are supported starting from 2026.2
+	if CheckConstraint(t, ni.ScyllaVersion, ">= 2026.2") {
+		Print("Given: alternator vnode table with streams enabled")
+		const (
+			altVnodeTab = "alt_cdc_vnode_tab"
+			altVnodeKs  = "alternator_" + altVnodeTab
+		)
+		expected = append(expected,
+			backup.Unit{
+				Keyspace: altVnodeKs,
+				Tables:   []string{altVnodeTab},
+			},
+		)
+		CreateAlternatorTable(t, altClient, ni, "none", 0, 0, altVnodeTab)
+		InsertAlternatorTableData(t, altClient, 100, altVnodeTab)
+		EnableAlternatorStreams(t, altClient, altVnodeTab)
+	}
+
+	if CheckConstraint(t, ni.ScyllaVersion, ">= 2026.2") {
+		Print("And: alternator tablet table with streams enabled")
+		const (
+			altTabletTab = "alt_cdc_tablet_tab"
+			altTabletKs  = "alternator_" + altTabletTab
+		)
+		expected = append(expected,
+			backup.Unit{
+				Keyspace: altTabletKs,
+				Tables:   []string{altTabletTab},
+			},
+		)
+		CreateAlternatorTable(t, altClient, ni, "8", 0, 0, altTabletTab)
+		InsertAlternatorTableData(t, altClient, 100, altTabletTab)
+		EnableAlternatorStreams(t, altClient, altTabletTab)
+	}
+
+	Print("When: create backup target")
+	props := defaultTestProperties(location, "")
+	props["keyspace"] = []string{"*cdc*.*", "*.*cdc*"} // Target any ks/tab with cdc substring
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: target contains just the base tables and system_schema")
+	if diff := cmp.Diff(target.Units, expected,
+		cmpopts.IgnoreFields(backup.Unit{}, "AllTables"),
+		cmpopts.SortSlices(func(a, b backup.Unit) bool { return a.Keyspace < b.Keyspace }),
+		cmpopts.SortSlices(func(a, b string) bool { return a < b }),
+		cmpopts.IgnoreSliceElements(func(u backup.Unit) bool { return u.Keyspace == "system_schema" }),
+	); diff != "" {
+		t.Fatal(diff)
+	}
+
+	Print("When: run backup with generated target")
+	if err = h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: backup files contain just the base tables and system_schema")
+	filesInfo, err := h.service.ListFiles(ctx, h.ClusterID, []backupspec.Location{location}, backup.ListFilter{ClusterID: h.ClusterID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fi := range filesInfo {
+		for _, fm := range fi.Files {
+			if fm.Keyspace == "system_schema" {
+				continue
+			}
+			ok := false
+			for _, u := range expected {
+				for _, tab := range u.Tables {
+					if fm.Keyspace == u.Keyspace && fm.Table == tab {
+						ok = true
+					}
+				}
+			}
+			if !ok {
+				t.Fatalf("Unexpected table %q.%q found in backed up files", fm.Keyspace, fm.Table)
+			}
+		}
+	}
+}
+
 func TestBackupSkipSchemaIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-skip-schema"
