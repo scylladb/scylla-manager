@@ -494,7 +494,7 @@ func TestGetTargetIntegration(t *testing.T) {
 				cmpopts.IgnoreUnexported(backup.Target{}),
 				cmpopts.IgnoreFields(backup.Unit{}, "AllTables"),
 				cmpopts.IgnoreSliceElements(func(u backup.Unit) bool {
-					return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" || u.Keyspace == "system_distributed_everywhere"
+					return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth"
 				}),
 				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" || t == "service_levels" })); diff != "" {
 				t.Fatal(diff)

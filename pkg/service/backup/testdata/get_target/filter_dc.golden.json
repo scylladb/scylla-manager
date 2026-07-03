@@ -11,13 +11,6 @@
       "all_tables": true
     },
     {
-      "keyspace": "system_distributed_everywhere",
-      "tables": [
-        "cdc_generation_descriptions_v2"
-      ],
-      "all_tables": true
-    },
-    {
       "keyspace": "system_schema",
       "tables": [
         "scylla_tables",
