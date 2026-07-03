@@ -2,10 +2,18 @@
 
 package table
 
+import (
+	"regexp"
+)
+
 // CQLTable describe CQL representation of a table.
 type CQLTable struct {
 	Keyspace string
 	Name     string
+}
+
+func (t CQLTable) String() string {
+	return t.Keyspace + "." + t.Name
 }
 
 // LWTStateTableSuffix describes a suffix of the colocated table storing LWT state.
@@ -45,4 +53,16 @@ var AuditTable = CQLTable{
 // returns the name of the materialized view backing the index.
 func MaterializedViewBackingIndex(indexName string) string {
 	return indexName + "_index"
+}
+
+// CDCTableSuffix describes a suffix of the table storing CDC log entries.
+// CDC table lives in the same user keyspace as its parent table.
+const CDCTableSuffix = "_scylla_cdc_log"
+
+var systemCDCTableRegex = regexp.MustCompile(`(^|_)cdc(_|$)`)
+
+// IsCDCSystemTable checks if table living in internal
+// scylla keyspace is a system CDC table.
+func IsCDCSystemTable(name string) bool {
+	return systemCDCTableRegex.MatchString(name)
 }

@@ -5,7 +5,6 @@ package one2onerestore
 import (
 	"context"
 	"encoding/json"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -312,7 +311,6 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 		"system_auth", "system_distributed.service_levels") // Skip no longer used tables that might be still present after upgrade.
 
 	// Skip system cdc tables
-	systemCDCTableRegex := regexp.MustCompile(`(^|_)cdc(_|$)`)
 	for ks, tabs := range tables {
 		// Local keyspaces were already excluded
 		if !slices.Contains(keyspaces[scyllaclient.KeyspaceTypeNonLocal], ks) {
@@ -323,13 +321,13 @@ func skipRestorePatterns(ctx context.Context, client *scyllaclient.Client, sessi
 			continue
 		}
 		for _, t := range tabs {
-			if systemCDCTableRegex.MatchString(t) {
+			if cqlTable.IsCDCSystemTable(t) {
 				skip = append(skip, ks+"."+t)
 			}
 		}
 	}
 
-	skip = append(skip, "*.*_scylla_cdc_log", // Skip user cdc tables
+	skip = append(skip, "*.*"+cqlTable.CDCTableSuffix, // Skip user cdc tables
 		"system.paxos", "*.*"+cqlTable.LWTStateTableSuffix) // Skip LWT state tables (#4732)
 
 	// Skip views
