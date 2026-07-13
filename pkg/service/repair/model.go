@@ -126,31 +126,18 @@ type RunProgress struct {
 	Success     int64
 	Error       int64
 
-	StartedAt         *time.Time
-	CompletedAt       *time.Time
+	StartedAt   *time.Time
+	CompletedAt *time.Time
+	// Duration is a legacy field kept for DB backward compatibility.
+	// It is no longer used for progress calculation - wall-clock time
+	// from StartedAt/CompletedAt is used instead.
 	Duration          time.Duration
 	DurationStartedAt *time.Time
-	runningJobCount   int
 }
 
 // Completed returns true if all token rages are processed.
 func (rp *RunProgress) Completed() bool {
 	return rp.TokenRanges == rp.Success+rp.Error
-}
-
-// CurrentDuration returns duration which includes elapsed time for uncompleted jobs.
-// now parameter is used as reference point.
-func (rp *RunProgress) CurrentDuration(now time.Time) time.Duration {
-	if isTimeSet(rp.StartedAt) && isTimeSet(rp.DurationStartedAt) {
-		return rp.Duration + now.Sub(*rp.DurationStartedAt)
-	}
-	return rp.Duration
-}
-
-// AddDuration resets running jobs timer and sums up running duration stats.
-func (rp *RunProgress) AddDuration(end time.Time) {
-	rp.Duration += end.Sub(*rp.DurationStartedAt)
-	rp.DurationStartedAt = nil
 }
 
 // RunState represents state of the repair.

@@ -181,7 +181,10 @@ func (pm *dbProgressManager) initProgress(plan *plan) error {
 			}
 			cp := *rp
 			cp.RunID = pm.run.ID
+			cp.StartedAt = nil         // Reset so duration reflects current run only
+			cp.CompletedAt = nil       // Will be set when completed in this run
 			cp.DurationStartedAt = nil // Reset duration counter from previous run
+			cp.Duration = 0            // Don't inherit duration from previous runs
 			cp.Error = 0               // Failed ranges will be retried
 			pm.progress[pk] = &cp
 		})
@@ -279,12 +282,8 @@ func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
 		pm.mu.Lock()
 		rp := pm.progress[pk]
 
-		rp.runningJobCount++
 		if rp.StartedAt == nil {
 			rp.StartedAt = &start
-		}
-		if rp.DurationStartedAt == nil {
-			rp.DurationStartedAt = &start
 		}
 
 		q.BindStruct(rp)
@@ -319,11 +318,6 @@ func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobRes
 			rp.Success += int64(len(result.ranges))
 		} else {
 			rp.Error += int64(len(result.ranges))
-		}
-
-		rp.runningJobCount--
-		if rp.runningJobCount == 0 {
-			rp.AddDuration(end)
 		}
 
 		if rp.Completed() {
@@ -438,7 +432,7 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 			}
 		}
 		host.Tables = append(host.Tables, tp)
-		host.progress = mergeProgress(host.progress, prog)
+		host.progress = mergeProgress(host.progress, prog, now)
 		perHost[rp.Host] = host
 
 		tk := tableKey{keyspace: rp.Keyspace, table: rp.Table}
@@ -452,7 +446,7 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 				Table:    rp.Table,
 			}
 		}
-		tab.progress = mergeProgress(tab.progress, prog)
+		tab.progress = mergeProgress(tab.progress, prog, now)
 		perTable[tk] = tab
 	})
 	if err != nil {
@@ -473,7 +467,7 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 			return t1.Keyspace+t1.Table < t2.Keyspace+t2.Table
 		})
 
-		p.progress = mergeProgress(p.progress, hp.progress)
+		p.progress = mergeProgress(p.progress, hp.progress, now)
 		p.Hosts = append(p.Hosts, hp)
 	}
 	sort.Slice(p.Hosts, func(i, j int) bool {
@@ -481,7 +475,6 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 	})
 
 	for _, tp := range perTable {
-		tp.Duration = recalculateDuration(tp.progress, now)
 		p.Tables = append(p.Tables, tp)
 	}
 	sort.Slice(p.Tables, func(i, j int) bool {
@@ -493,7 +486,6 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 	if p.CompletedAt == &ancient {
 		p.CompletedAt = nil
 	}
-	p.Duration = recalculateDuration(p.progress, now)
 
 	if p.TokenRanges == 0 {
 		p.SuccessPercentage = -1
@@ -550,25 +542,27 @@ func recalculateDuration(pr progress, now time.Time) int64 {
 }
 
 func extractProgress(rp *RunProgress, now time.Time) progress {
-	return progress{
+	pr := progress{
 		Success:     rp.Success,
 		Error:       rp.Error,
 		TokenRanges: rp.TokenRanges,
 		StartedAt:   rp.StartedAt,
 		CompletedAt: rp.CompletedAt,
-		Duration:    rp.CurrentDuration(now).Milliseconds(),
 	}
+	pr.Duration = recalculateDuration(pr, now)
+	return pr
 }
 
-func mergeProgress(pr1, pr2 progress) progress {
-	return progress{
+func mergeProgress(pr1, pr2 progress, now time.Time) progress {
+	pr := progress{
 		TokenRanges: pr1.TokenRanges + pr2.TokenRanges,
 		Success:     pr1.Success + pr2.Success,
 		Error:       pr1.Error + pr2.Error,
 		StartedAt:   chooseStartedAt(pr1.StartedAt, pr2.StartedAt),
 		CompletedAt: chooseCompletedAt(pr1.CompletedAt, pr2.CompletedAt),
-		Duration:    pr1.Duration + pr2.Duration,
 	}
+	pr.Duration = recalculateDuration(pr, now)
+	return pr
 }
 
 // chooseStartedAt returns earlier time or nil if each is unset.
