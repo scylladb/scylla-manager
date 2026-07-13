@@ -181,7 +181,10 @@ func (pm *dbProgressManager) initProgress(plan *plan) error {
 			}
 			cp := *rp
 			cp.RunID = pm.run.ID
+			cp.StartedAt = nil         // Reset so duration reflects current run only
+			cp.CompletedAt = nil       // Will be set when completed in this run
 			cp.DurationStartedAt = nil // Reset duration counter from previous run
+			cp.Duration = 0            // Don't inherit duration from previous runs
 			cp.Error = 0               // Failed ranges will be retried
 			pm.progress[pk] = &cp
 		})
@@ -279,12 +282,8 @@ func (pm *dbProgressManager) OnJobStart(ctx context.Context, j job) {
 		pm.mu.Lock()
 		rp := pm.progress[pk]
 
-		rp.runningJobCount++
 		if rp.StartedAt == nil {
 			rp.StartedAt = &start
-		}
-		if rp.DurationStartedAt == nil {
-			rp.DurationStartedAt = &start
 		}
 
 		q.BindStruct(rp)
@@ -319,11 +318,6 @@ func (pm *dbProgressManager) onJobEndProgress(ctx context.Context, result jobRes
 			rp.Success += int64(len(result.ranges))
 		} else {
 			rp.Error += int64(len(result.ranges))
-		}
-
-		rp.runningJobCount--
-		if rp.runningJobCount == 0 {
-			rp.AddDuration(end)
 		}
 
 		if rp.Completed() {
@@ -473,6 +467,7 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 			return t1.Keyspace+t1.Table < t2.Keyspace+t2.Table
 		})
 
+		hp.Duration = recalculateDuration(hp.progress, now)
 		p.progress = mergeProgress(p.progress, hp.progress)
 		p.Hosts = append(p.Hosts, hp)
 	}
@@ -550,14 +545,15 @@ func recalculateDuration(pr progress, now time.Time) int64 {
 }
 
 func extractProgress(rp *RunProgress, now time.Time) progress {
-	return progress{
+	pr := progress{
 		Success:     rp.Success,
 		Error:       rp.Error,
 		TokenRanges: rp.TokenRanges,
 		StartedAt:   rp.StartedAt,
 		CompletedAt: rp.CompletedAt,
-		Duration:    rp.CurrentDuration(now).Milliseconds(),
 	}
+	pr.Duration = recalculateDuration(pr, now)
+	return pr
 }
 
 func mergeProgress(pr1, pr2 progress) progress {
@@ -567,7 +563,6 @@ func mergeProgress(pr1, pr2 progress) progress {
 		Error:       pr1.Error + pr2.Error,
 		StartedAt:   chooseStartedAt(pr1.StartedAt, pr2.StartedAt),
 		CompletedAt: chooseCompletedAt(pr1.CompletedAt, pr2.CompletedAt),
-		Duration:    pr1.Duration + pr2.Duration,
 	}
 }
 
