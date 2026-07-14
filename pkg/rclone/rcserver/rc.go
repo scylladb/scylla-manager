@@ -283,6 +283,21 @@ func rcFileInfo(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 		"modTime": o.ModTime(ctx),
 		"size":    o.Size(),
 	}
+	if ri, ok := o.(fs.ObjectRetentionInfoer); ok {
+		info, err := ri.ObjectRetentionInfo(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out["retentionMode"] = info.Mode
+		out["retainUntil"] = info.RetainUntil
+	}
+	if eh, ok := o.(fs.EventBasedHolder); ok {
+		hold, err := eh.EventBasedHold(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out["eventBasedHold"] = hold
+	}
 	return
 }
 
