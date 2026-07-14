@@ -36,6 +36,11 @@ var LWTSystemTable = CQLTable{
 var ScyllaBackupTables = []CQLTable{
 	{Keyspace: "system_distributed", Name: "snapshot_sstables"},
 	{Keyspace: "system_distributed", Name: "snapshot_remote_locations"},
+	{Keyspace: "system_distributed", Name: "snapshots"},
+	{Keyspace: "system_distributed", Name: "snapshot_nodes"},
+	{Keyspace: "system_distributed", Name: "snapshot_keyspaces"},
+	{Keyspace: "system_distributed", Name: "snapshot_tables"},
+	{Keyspace: "system_distributed", Name: "snapshot_tablets"},
 }
 
 // AuditKeyspace stores audit data. It lacks "system" prefix
