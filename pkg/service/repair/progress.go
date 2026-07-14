@@ -157,6 +157,10 @@ func (pm *dbProgressManager) initProgress(plan *plan) error {
 		for _, tp := range kp.Tables {
 			for _, h := range plan.Hosts {
 				pk := newHostKsTable(h, kp.Keyspace, tp.Table)
+				// Skip progress entries for tables with no ranges to repair.
+				if _, ok := plan.Stats[pk]; !ok {
+					continue
+				}
 				pm.progress[newHostKsTable(h, kp.Keyspace, tp.Table)] = &RunProgress{
 					ClusterID:   pm.run.ClusterID,
 					TaskID:      pm.run.TaskID,
@@ -177,6 +181,10 @@ func (pm *dbProgressManager) initProgress(plan *plan) error {
 		err := pm.ForEachPrevRunProgress(func(rp *RunProgress) {
 			pk := newHostKsTable(rp.Host, rp.Keyspace, rp.Table)
 			if _, ok := pm.progress[pk]; !ok {
+				return
+			}
+			// Skip progress entries for tables with no ranges to repair.
+			if rp.TokenRanges == 0 {
 				return
 			}
 			cp := *rp
@@ -407,6 +415,15 @@ func (pm *dbProgressManager) AggregateProgress() (Progress, error) {
 	)
 
 	err := pm.ForEachRunProgress(func(rp *RunProgress) {
+		// Skip rows with no work from progress merging.
+		// Hosts with TokenRanges == 0 have nil StartedAt/CompletedAt,
+		// which would incorrectly make the merged CompletedAt nil
+		// (interpreted as "still in progress"), causing ever-growing
+		// duration for stopped/completed runs.
+		if rp.TokenRanges == 0 {
+			return
+		}
+
 		tableSize[tableKey{
 			keyspace: rp.Keyspace,
 			table:    rp.Table,
