@@ -29,6 +29,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
+	scyllatable "github.com/scylladb/scylla-manager/v3/pkg/table"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util"
@@ -449,6 +450,11 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			var golden repair.Target
 			LoadGoldenJSONFile(t, &golden)
 
+			ignoredTables := []string{"dicts", "service_levels"}
+			for _, tab := range scyllatable.ScyllaBackupTables {
+				ignoredTables = append(ignoredTables, tab.Name)
+			}
+
 			if diff := cmp.Diff(golden, v,
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),
 				cmpopts.SortSlices(func(u1, u2 repair.Unit) bool { return u1.Keyspace < u2.Keyspace }),
@@ -457,7 +463,7 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 					return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth" || u.Keyspace == "system_distributed_everywhere"
 				}),
 				cmpopts.IgnoreSliceElements(func(t string) bool {
-					return t == "dicts" || t == "service_levels" || t == "snapshot_sstables" || t == "snapshot_remote_locations"
+					return slices.Contains(ignoredTables, t)
 				}),
 				cmpopts.IgnoreFields(repair.Target{}, "Host")); diff != "" {
 				t.Fatal(diff)
