@@ -193,6 +193,7 @@
           "x-nullable": true
         },
         "duration_ms": {
+          "description": "Wall-clock duration in milliseconds for the current task run.",
           "type": "integer"
         },
         "dcs": {
@@ -266,6 +267,7 @@
           "x-nullable": true
         },
         "duration_ms": {
+          "description": "Wall-clock duration in milliseconds for the current task run. A value of 0 with full progress indicates that the repair was completed in a previous run.",
           "type": "integer"
         },
         "keyspace": {
