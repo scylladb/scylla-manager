@@ -176,7 +176,7 @@ func (w *worker) batchLock(ctx context.Context, host, remoteDir string,
 func (w *worker) lockAndAwait(ctx context.Context, host, remoteDir string,
 	paths []string, cfg retentionLockConfig, keyspace, table string,
 ) error {
-	jobID, err := w.Client.RcloneRetentionLock(ctx, host, remoteDir, paths, cfg.mode, cfg.until, cfg.override)
+	jobID, err := w.Client.RcloneBatchRetentionLock(ctx, host, remoteDir, paths, cfg.mode, cfg.until, cfg.override)
 	if err != nil {
 		return errors.Wrap(err, "schedule retention lock job")
 	}

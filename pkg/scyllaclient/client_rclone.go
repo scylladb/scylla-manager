@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -557,6 +558,12 @@ type RcloneListDirOpts struct {
 	NewestOnly bool
 	// Show only older versions of files in the listing (snapshot tag suffix attached)
 	VersionedOnly bool
+	// Read the retention info.
+	// For some rclone backends, this requires additional per object request.
+	ShowRetentionInfo bool
+	// Read the event based hold state.
+	// For some rclone backends, this requires additional per object request.
+	ShowEventBasedHold bool
 	// PropagateNotFound causes 404 errors (directory not found) to be returned as errors.
 	// When false (default), 404 errors are suppressed and an empty list is returned instead.
 	// This allows to align the behavior of listing non-existent directory on cloud (empty list)
@@ -573,11 +580,13 @@ func (opts *RcloneListDirOpts) asModelOpts() *models.ListOptionsOpt {
 	}
 
 	return &models.ListOptionsOpt{
-		DirsOnly:   opts.DirsOnly,
-		FilesOnly:  opts.FilesOnly,
-		Recurse:    opts.Recurse,
-		NoModTime:  !opts.ShowModTime,
-		NoMimeType: true,
+		DirsOnly:           opts.DirsOnly,
+		FilesOnly:          opts.FilesOnly,
+		Recurse:            opts.Recurse,
+		NoModTime:          !opts.ShowModTime,
+		NoMimeType:         true,
+		ShowRetentionInfo:  opts.ShowRetentionInfo,
+		ShowEventBasedHold: opts.ShowEventBasedHold,
 	}
 }
 
@@ -731,6 +740,8 @@ type PermissionCheckOpts struct {
 	CheckRetention RetentionLockMode
 	// CheckOverrideRetentionLock controls if the permission to override unlocked retention lock is granted.
 	CheckOverrideRetentionLock bool
+	// CheckEventBasedHold takes event based hold and default bucket retention policy into account when checking permissions.
+	CheckEventBasedHold bool
 }
 
 // RcloneCheckPermissions checks if location is available for listing, getting,
@@ -755,6 +766,7 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 			Remote:           remote,
 			RetentionMode:    modeParam,
 			OverrideUnlocked: opts.CheckOverrideRetentionLock,
+			EventBasedHold:   opts.CheckEventBasedHold,
 		},
 	}
 	_, err = c.agentOps.OperationsCheckPermissions(&p)
@@ -821,10 +833,10 @@ func retentionLockModeToParam(mode RetentionLockMode) (string, error) {
 	}
 }
 
-// RcloneRetentionLock sets object retention locks on the specified paths.
+// RcloneBatchRetentionLock sets object retention locks on the specified paths.
 // The remoteDir param format is "provider:bucket/path".
 // Specified paths are relative to remoteDir.
-func (c *Client) RcloneRetentionLock(ctx context.Context, host, remoteDir string, paths []string, mode RetentionLockMode, until time.Time, overrideLock bool) (int64, error) {
+func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir string, paths []string, mode RetentionLockMode, until time.Time, overrideLock bool) (int64, error) {
 	fs, remote, err := rcloneSplitRemotePath(remoteDir)
 	if err != nil {
 		return 0, err
@@ -856,6 +868,89 @@ func (c *Client) RcloneRetentionLock(ctx context.Context, host, remoteDir string
 	}
 
 	return resp.Payload.Jobid, nil
+}
+
+// RcloneRetentionLock synchronously sets retention lock on the specified object.
+// The remotePath param format is "provider:bucket/path".
+func (c *Client) RcloneRetentionLock(ctx context.Context, host, remotePath string, mode RetentionLockMode, until time.Time, overrideLock bool) error {
+	fs, remote, err := rcloneSplitRemotePath(remotePath)
+	if err != nil {
+		return err
+	}
+	modeParam, err := retentionLockModeToParam(mode)
+	if err != nil {
+		return err
+	}
+
+	p := operations.OperationsRetentionLockParams{
+		Context: forceHost(ctx, host),
+		Options: &models.RetentionLockOptions{
+			Fs:               fs,
+			Remote:           path.Dir(remote),
+			Paths:            []string{path.Base(remote)},
+			RetentionMode:    modeParam,
+			RetainUntil:      strfmt.DateTime(until),
+			OverrideUnlocked: overrideLock,
+		},
+		Async: false,
+	}
+
+	_, err = c.agentOps.OperationsRetentionLock(&p)
+	return err
+}
+
+// RcloneBatchEventBasedHold sets or clears event based hold on the specified paths.
+// The remoteDir param format is "provider:bucket/path".
+// Specified paths are relative to remoteDir.
+func (c *Client) RcloneBatchEventBasedHold(ctx context.Context, host, remoteDir string, paths []string, hold bool) (int64, error) {
+	fs, remote, err := rcloneSplitRemotePath(remoteDir)
+	if err != nil {
+		return 0, err
+	}
+	if paths == nil {
+		paths = make([]string, 0)
+	}
+
+	p := operations.OperationsEventBasedHoldParams{
+		Context: forceHost(ctx, host),
+		Options: &models.EventBasedHoldOptions{
+			Fs:             fs,
+			Remote:         remote,
+			Paths:          paths,
+			EventBasedHold: hold,
+		},
+		Async: true,
+	}
+
+	resp, err := c.agentOps.OperationsEventBasedHold(&p)
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.Payload.Jobid, nil
+}
+
+// RcloneEventBasedHold synchronously sets or clears event based hold on the specified object.
+// The remotePath param format is "provider:bucket/path".
+func (c *Client) RcloneEventBasedHold(ctx context.Context, host, remotePath string, hold bool) error {
+	fs, remote, err := rcloneSplitRemotePath(remotePath)
+	if err != nil {
+		return err
+	}
+
+	p := operations.OperationsEventBasedHoldParams{
+		Context: forceHost(ctx, host),
+		Options: &models.EventBasedHoldOptions{
+			Fs:             fs,
+			Remote:         path.Dir(remote),
+			Paths:          []string{path.Base(remote)},
+			EventBasedHold: hold,
+		},
+		Async: false,
+	}
+
+	_, err = c.agentOps.OperationsEventBasedHold(&p)
+	return err
 }
 
 // rcloneSplitRemotePath splits string path into file system and file path.
