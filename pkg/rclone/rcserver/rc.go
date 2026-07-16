@@ -641,10 +641,70 @@ func setGuardedConfig(in rc.Params) error {
 	return nil
 }
 
-// rcRetentionLock sets object retention lock on multiple paths in parallel.
+// objectFn describes function called on remote object.
+type objectFn func(ctx context.Context, remote string) error
+
+// runObjectFnInParallel calls f for all paths with parallelism equal to 2 * cpu_cnt.
 // Progress is reported via the accounting transfer mechanism, where each
 // object is represented as a 1-byte transfer. This allows reusing the
 // existing job/progress endpoint to track per-object completion.
+func runObjectFnInParallel(ctx context.Context, remote string, paths []string, f objectFn) error {
+	stats := accounting.Stats(ctx)
+	workerCnt := min(2*runtime.NumCPU(), len(paths))
+	jobCh := make(chan string, workerCnt)
+	// We do best effort approach, where we proceed with calling
+	// f even if we encountered errors for some paths.
+	// To not overclutter returned error we return only the first encountered one.
+	var (
+		wg       stdsync.WaitGroup
+		firstErr error
+		once     stdsync.Once
+	)
+	setErr := func(err error) {
+		once.Do(func() { firstErr = err })
+	}
+
+	for range workerCnt {
+		wg.Go(func() {
+			for p := range jobCh {
+				if ctx.Err() != nil {
+					setErr(ctx.Err())
+					break
+				}
+				tr := stats.NewTransferRemoteSize(p, 1)
+				acc := tr.Account(ctx, nil)
+				err := f(ctx, path.Join(remote, p))
+				if err == nil {
+					acc.DryRun(1)
+				} else {
+					setErr(err)
+				}
+				tr.Done(ctx, err)
+			}
+		})
+	}
+
+	for _, p := range paths {
+		select {
+		case <-ctx.Done():
+		case jobCh <- p:
+		}
+		if ctx.Err() != nil {
+			setErr(ctx.Err())
+			break
+		}
+	}
+	close(jobCh)
+	wg.Wait()
+
+	if firstErr != nil {
+		return errors.Wrapf(firstErr, "failed to run f on %d out of %d objects",
+			stats.Aggregated().Failed, len(paths))
+	}
+	return nil
+}
+
+// rcRetentionLock sets object retention lock on multiple paths.
 func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	f, remote, err := rc.GetFsAndRemote(ctx, in)
 	if err != nil {
@@ -697,59 +757,11 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 		RetainUntil: retainUntil,
 		Mode:        mode,
 	}
-
-	stats := accounting.Stats(ctx)
-	workerCnt := min(2*runtime.NumCPU(), len(paths))
-	jobCh := make(chan string, workerCnt)
-	// We do best effort approach, where we proceed with setting
-	// retention locks even if we encountered errors for some paths,
-	// similar to how upload works. To not overclutter returned error
-	// we return only the first encountered one.
-	var (
-		wg       stdsync.WaitGroup
-		firstErr error
-		once     stdsync.Once
-	)
-	setErr := func(err error) {
-		once.Do(func() { firstErr = err })
-	}
-
-	for range workerCnt {
-		wg.Go(func() {
-			for p := range jobCh {
-				if ctx.Err() != nil {
-					setErr(ctx.Err())
-					break
-				}
-				tr := stats.NewTransferRemoteSize(p, 1)
-				acc := tr.Account(ctx, nil)
-				err := rs.SetObjectRetention(ctx, path.Join(remote, p), info, overrideUnlocked)
-				if err == nil {
-					acc.DryRun(1)
-				} else {
-					setErr(err)
-				}
-				tr.Done(ctx, err)
-			}
-		})
-	}
-
-	for _, p := range paths {
-		select {
-		case <-ctx.Done():
-		case jobCh <- p:
-		}
-		if ctx.Err() != nil {
-			setErr(ctx.Err())
-			break
-		}
-	}
-	close(jobCh)
-	wg.Wait()
-
-	if firstErr != nil {
-		return nil, errors.Wrapf(firstErr, "failed to set retention lock on %d out of %d objects",
-			stats.Aggregated().Failed, len(paths))
+	err = runObjectFnInParallel(ctx, remote, paths, func(ctx context.Context, p string) error {
+		return rs.SetObjectRetention(ctx, p, info, overrideUnlocked)
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to set retention lock")
 	}
 	return make(rc.Params), nil
 }
