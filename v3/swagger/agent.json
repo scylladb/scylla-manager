@@ -615,6 +615,58 @@
         "security": []
       }
     },
+    "/rclone/operations/event-based-hold": {
+      "post": {
+        "description": "Set event based hold on provided list of paths",
+        "summary": "Event based hold",
+        "operationId": "OperationsEventBasedHold",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_async",
+            "description": "Async request",
+            "type": "boolean",
+            "required": true,
+            "default": true
+          },
+          {
+            "in": "query",
+            "name": "_group",
+            "description": "Place this operation under this stat group",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "Options",
+            "description": "Options",
+            "schema": {
+              "$ref": "#/definitions/EventBasedHoldOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job ID",
+            "schema": {
+              "$ref": "#/definitions/Jobid"
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
     "/rclone/operations/deletefile": {
       "post": {
         "description": "Remove the single file pointed to",
@@ -1200,6 +1252,10 @@
         "overrideUnlocked": {
           "description": "Allows overriding 'unlocked' retention policy",
           "type": "boolean"
+        },
+        "EventBasedHold": {
+          "description": "Whether the object is under event based hold",
+          "type": "boolean"
         }
       }
     },
@@ -1231,6 +1287,19 @@
         "size": {
           "description": "Size in bytes",
           "type": "integer"
+        },
+        "retentionMode": {
+          "description": "Retention mode, can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)",
+          "type": "string"
+        },
+        "retainUntil": {
+          "description": "Timestamp until which the object is retained",
+          "type": "string",
+          "format": "date-time"
+        },
+        "eventBasedHold": {
+          "description": "Whether the object is under event based hold",
+          "type": "boolean"
         }
       }
     },
@@ -1285,6 +1354,14 @@
             },
             "showHash": {
               "description": "Include hashes in the output (may take longer)",
+              "type": "boolean"
+            },
+            "showRetentionInfo": {
+              "description": "Include object retentionMode and retainUntil in the output (may require per object request)",
+              "type": "boolean"
+            },
+            "showEventBasedHold": {
+              "description": "Include object eventBasedHold state in the output (may require per object request)",
               "type": "boolean"
             },
             "dirsOnly": {
@@ -1350,6 +1427,19 @@
         "Size": {
           "description": "Size in bytes",
           "type": "integer"
+        },
+        "RetentionMode": {
+          "description": "Retention mode, can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)",
+          "type": "string"
+        },
+        "RetainUntil": {
+          "description": "Timestamp until which the object is retained",
+          "type": "string",
+          "format": "date-time"
+        },
+        "EventBasedHold": {
+          "description": "Whether the object is under event based hold",
+          "type": "boolean"
         }
       }
     },
@@ -1441,6 +1531,31 @@
             "type": "string",
             "description": "path"
           }
+        }
+      }
+    },
+    "EventBasedHoldOptions": {
+      "type": "object",
+      "properties": {
+        "fs": {
+          "description": "File system e.g. s3: or gcs:",
+          "type": "string"
+        },
+        "remote": {
+          "description": "A directory within that remote eg. files/",
+          "type": "string"
+        },
+        "paths": {
+          "description": "Paths relative to remote eg. file.txt",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "path"
+          }
+        },
+        "eventBasedHold": {
+          "description": "Whether to set or clear event based hold",
+          "type": "boolean"
         }
       }
     },

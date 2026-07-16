@@ -17,9 +17,19 @@ import (
 // swagger:model FileInfo
 type FileInfo struct {
 
+	// Whether the object is under event based hold
+	EventBasedHold bool `json:"eventBasedHold,omitempty"`
+
 	// Modification time
 	// Format: date-time
 	ModTime strfmt.DateTime `json:"modTime,omitempty"`
+
+	// Timestamp until which the object is retained
+	// Format: date-time
+	RetainUntil strfmt.DateTime `json:"retainUntil,omitempty"`
+
+	// Retention mode, can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)
+	RetentionMode string `json:"retentionMode,omitempty"`
 
 	// Size in bytes
 	Size int64 `json:"size,omitempty"`
@@ -30,6 +40,10 @@ func (m *FileInfo) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateModTime(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRetainUntil(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -46,6 +60,19 @@ func (m *FileInfo) validateModTime(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("modTime", "body", "date-time", m.ModTime.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *FileInfo) validateRetainUntil(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RetainUntil) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("retainUntil", "body", "date-time", m.RetainUntil.String(), formats); err != nil {
 		return err
 	}
 
