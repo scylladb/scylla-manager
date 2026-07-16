@@ -788,13 +788,22 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, body *b
 	return nil
 }
 
+// RetentionLockMode describes the object retention lock mode for backup files.
+type RetentionLockMode string
+
+const (
+	// RetentionLockDisabled means that no retention lock is applied to backup files.
+	RetentionLockDisabled RetentionLockMode = "disabled"
+	// RetentionLockUnlocked means that retention lock is applied but can be overridden with special permissions.
+	RetentionLockUnlocked RetentionLockMode = "unlocked"
+	// RetentionLockLocked means that retention lock is applied and cannot be overridden.
+	RetentionLockLocked RetentionLockMode = "locked"
+)
+
 // RcloneRetentionLock sets object retention locks on the specified paths.
 // The remoteDir param format is "provider:bucket/path".
 // Specified paths are relative to remoteDir.
-// If locked is true, retention locks cannot be overridden in the future.
-// The until param specifies the retention lock deadline.
-// If overrideLock is true, unlocked retention locks will be overridden.
-func (c *Client) RcloneRetentionLock(ctx context.Context, host, remoteDir string, paths []string, locked bool, until time.Time, overrideLock bool) (int64, error) {
+func (c *Client) RcloneRetentionLock(ctx context.Context, host, remoteDir string, paths []string, mode RetentionLockMode, until time.Time, overrideLock bool) (int64, error) {
 	fs, remote, err := rcloneSplitRemotePath(remoteDir)
 	if err != nil {
 		return 0, err
@@ -809,7 +818,7 @@ func (c *Client) RcloneRetentionLock(ctx context.Context, host, remoteDir string
 			Fs:           fs,
 			Remote:       remote,
 			Paths:        paths,
-			Locked:       locked,
+			Locked:       mode == RetentionLockLocked,
 			Until:        strfmt.DateTime(until),
 			OverrideLock: overrideLock,
 		},

@@ -181,7 +181,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 		return Target{}, err
 	}
 	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, p.Location,
-		clusterID, p.RetentionLockMode != RetentionLockDisabled, p.OverrideRetentionLock,
+		clusterID, p.RetentionLockMode != scyllaclient.RetentionLockDisabled, p.OverrideRetentionLock,
 	); err != nil {
 		if strings.Contains(err.Error(), "NoSuchBucket") {
 			return Target{}, errors.New("specified bucket does not exist")
@@ -909,7 +909,10 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.MoveManifest(ctx, hi)
 		},
 		StageRetentionLock: func() error {
-			if slices.Contains([]RetentionLockMode{RetentionLockUnlocked, RetentionLockLocked}, target.RetentionLockMode) {
+			if slices.Contains([]scyllaclient.RetentionLockMode{
+				scyllaclient.RetentionLockUnlocked,
+				scyllaclient.RetentionLockLocked,
+			}, target.RetentionLockMode) {
 				return w.RetentionLock(ctx, hi, target)
 			}
 			return nil

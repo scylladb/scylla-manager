@@ -17,7 +17,7 @@ import (
 // retentionLockConfig holds retention lock parameters.
 type retentionLockConfig struct {
 	until    time.Time
-	locked   bool
+	mode     scyllaclient.RetentionLockMode
 	override bool
 }
 
@@ -31,7 +31,7 @@ func (w *worker) RetentionLock(egCtx context.Context, hosts []hostInfo, target T
 	}
 	cfg := retentionLockConfig{
 		until:    lockUntil,
-		locked:   target.RetentionLockMode == RetentionLockLocked,
+		mode:     target.RetentionLockMode,
 		override: target.OverrideRetentionLock,
 	}
 
@@ -176,7 +176,7 @@ func (w *worker) batchLock(ctx context.Context, host, remoteDir string,
 func (w *worker) lockAndAwait(ctx context.Context, host, remoteDir string,
 	paths []string, cfg retentionLockConfig, keyspace, table string,
 ) error {
-	jobID, err := w.Client.RcloneRetentionLock(ctx, host, remoteDir, paths, cfg.locked, cfg.until, cfg.override)
+	jobID, err := w.Client.RcloneRetentionLock(ctx, host, remoteDir, paths, cfg.mode, cfg.until, cfg.override)
 	if err != nil {
 		return errors.Wrap(err, "schedule retention lock job")
 	}
