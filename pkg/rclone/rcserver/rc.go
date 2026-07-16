@@ -766,6 +766,42 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 	return make(rc.Params), nil
 }
 
+// rcEventBasedHold sets event based hold on multiple paths.
+func rcEventBasedHold(ctx context.Context, in rc.Params) (out rc.Params, err error) {
+	f, remote, err := rc.GetFsAndRemote(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	hs, ok := f.(fs.EventBasedHoldSetter)
+	if !ok {
+		return nil, errors.Errorf("backend %q does not support event based hold", f.Name())
+	}
+
+	paths, err := getStringSlice(in, "paths")
+	if err != nil {
+		return nil, err
+	}
+	if len(paths) == 0 {
+		return nil, errors.New("empty paths")
+	}
+
+	hold, err := in.GetBool("eventBasedHold")
+	if err != nil {
+		if rc.NotErrParamNotFound(err) {
+			return nil, err
+		}
+		hold = false
+	}
+
+	err = runObjectFnInParallel(ctx, remote, paths, func(ctx context.Context, p string) error {
+		return hs.SetEventBasedHold(ctx, p, hold)
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to set event based hold")
+	}
+	return make(rc.Params), nil
+}
+
 // rcDeletePaths returns rc function that deletes paths from remote.
 func rcDeletePaths(ctx context.Context, in rc.Params) (out rc.Params, err error) {
 	f, remote, err := rc.GetFsAndRemote(ctx, in)
@@ -849,7 +885,7 @@ func getFsAndRemoteNamed(ctx context.Context, in rc.Params, fsName, remoteName s
 	return
 }
 
-func getStringSlice(in rc.Params, key string) ([]string, error) {
+func getStringSlice(in rc.Params, key string) ([]string, error) { // nolint: unparam
 	value, err := in.Get(key)
 	if err != nil {
 		return nil, err
@@ -938,6 +974,19 @@ func init() {
 - retentionMode - can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)
 - retainUntil - RFC3339 timestamp until which the objects are retained
 - overrideUnlocked - allows overriding 'unlocked' retention policy`,
+	})
+
+	rc.Add(rc.Call{
+		Path:         "operations/event-based-hold",
+		AuthRequired: true,
+		Fn:           rcEventBasedHold,
+		Title:        "Set event based hold on multiple paths",
+		Help: `This takes the following parameters:
+
+- fs - a remote name string eg "gcs:"
+- remote - a directory path within that remote
+- paths - slice of paths to set event based hold on
+- eventBasedHold - whether to set or clear event based hold`,
 	})
 }
 
