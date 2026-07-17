@@ -1193,12 +1193,12 @@
           "description": "A path within that remote eg. dir",
           "type": "string"
         },
-        "locked": {
-          "description": "Locked (true) means the retention cannot be overridden, unlocked (false) means the retention can be overridden with special permissions",
-          "type": "boolean"
+        "retentionMode": {
+          "description": "Retention mode, can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)",
+          "type": "string"
         },
-        "override_lock": {
-          "description": "Allows overriding existing retention policy",
+        "overrideUnlocked": {
+          "description": "Allows overriding 'unlocked' retention policy",
           "type": "boolean"
         }
       }
@@ -1463,17 +1463,17 @@
             "description": "path"
           }
         },
-        "locked": {
-          "description": "Locked (true) means the retention cannot be overridden, unlocked (false) means the retention can be overridden with special permissions",
-          "type": "boolean"
+        "retentionMode": {
+          "description": "Retention mode, can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)",
+          "type": "string"
         },
-        "until": {
+        "retainUntil": {
           "description": "Timestamp until which the object is retained",
           "type": "string",
           "format": "date-time"
         },
-        "override_lock": {
-          "description": "Allows overriding existing retention policy",
+        "overrideUnlocked": {
+          "description": "Allows overriding 'unlocked' retention policy",
           "type": "boolean"
         }
       }
