@@ -14,19 +14,22 @@ import (
 
 // ListJSONItem in the struct which gets marshalled for each line
 type ListJSONItem struct {
-	Path          string
-	Name          string
-	EncryptedPath string `json:",omitempty"`
-	Encrypted     string `json:",omitempty"`
-	Size          int64
-	MimeType      string    `json:",omitempty"`
-	ModTime       Timestamp //`json:",omitempty"`
-	IsDir         bool
-	Hashes        map[string]string `json:",omitempty"`
-	ID            string            `json:",omitempty"`
-	OrigID        string            `json:",omitempty"`
-	Tier          string            `json:",omitempty"`
-	IsBucket      bool              `json:",omitempty"`
+	Path           string
+	Name           string
+	EncryptedPath  string `json:",omitempty"`
+	Encrypted      string `json:",omitempty"`
+	Size           int64
+	MimeType       string    `json:",omitempty"`
+	ModTime        Timestamp //`json:",omitempty"`
+	IsDir          bool
+	Hashes         map[string]string `json:",omitempty"`
+	RetentionMode  string            `json:",omitempty"`
+	RetainUntil    *time.Time        `json:",omitempty"`
+	EventBasedHold bool              `json:",omitempty"`
+	ID             string            `json:",omitempty"`
+	OrigID         string            `json:",omitempty"`
+	Tier           string            `json:",omitempty"`
+	IsBucket       bool              `json:",omitempty"`
 }
 
 // Timestamp a time in the provided format
@@ -70,15 +73,17 @@ func formatForPrecision(precision time.Duration) string {
 
 // ListJSONOpt describes the options for ListJSON
 type ListJSONOpt struct {
-	Recurse       bool     `json:"recurse"`
-	NoModTime     bool     `json:"noModTime"`
-	NoMimeType    bool     `json:"noMimeType"`
-	ShowEncrypted bool     `json:"showEncrypted"`
-	ShowOrigIDs   bool     `json:"showOrigIDs"`
-	ShowHash      bool     `json:"showHash"`
-	DirsOnly      bool     `json:"dirsOnly"`
-	FilesOnly     bool     `json:"filesOnly"`
-	HashTypes     []string `json:"hashTypes"` // hash types to show if ShowHash is set, e.g. "MD5", "SHA-1"
+	Recurse            bool     `json:"recurse"`
+	NoModTime          bool     `json:"noModTime"`
+	NoMimeType         bool     `json:"noMimeType"`
+	ShowEncrypted      bool     `json:"showEncrypted"`
+	ShowOrigIDs        bool     `json:"showOrigIDs"`
+	ShowHash           bool     `json:"showHash"`
+	ShowRetentionInfo  bool     `json:"showRetentionInfo"`
+	ShowEventBasedHold bool     `json:"showEventBasedHold"`
+	DirsOnly           bool     `json:"dirsOnly"`
+	FilesOnly          bool     `json:"filesOnly"`
+	HashTypes          []string `json:"hashTypes"` // hash types to show if ShowHash is set, e.g. "MD5", "SHA-1"
 }
 
 // ListJSON lists fsrc using the options in opt calling callback for each item
@@ -159,6 +164,31 @@ func ListJSON(ctx context.Context, fsrc fs.Fs, remote string, opt *ListJSONOpt, 
 				if do, ok := fs.UnWrapObject(o).(fs.IDer); ok {
 					item.OrigID = do.ID()
 				}
+			}
+			if _, ok := entry.(fs.Object); opt.ShowRetentionInfo && ok {
+				ri, ok := entry.(fs.ObjectRetentionInfoer)
+				if !ok {
+					return errors.Errorf("%T does not support object retention info", entry)
+				}
+				info, err := ri.ObjectRetentionInfo(ctx)
+				if err != nil {
+					return errors.Wrapf(err, "failed to read object retention info for %q", entry.Remote())
+				}
+				item.RetentionMode = string(info.Mode)
+				if !info.RetainUntil.IsZero() {
+					item.RetainUntil = &info.RetainUntil
+				}
+			}
+			if _, ok := entry.(fs.Object); opt.ShowEventBasedHold && ok {
+				eh, ok := entry.(fs.EventBasedHolder)
+				if !ok {
+					return errors.Errorf("%T does not support event based hold", entry)
+				}
+				hold, err := eh.EventBasedHold(ctx)
+				if err != nil {
+					return errors.Wrapf(err, "failed to read event based hold for %q", entry.Remote())
+				}
+				item.EventBasedHold = hold
 			}
 			switch x := entry.(type) {
 			case fs.Directory:

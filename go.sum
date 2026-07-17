@@ -340,8 +340,8 @@ github.com/scylladb/gocqlx/v2 v2.8.0 h1:f/oIgoEPjKDKd+RIoeHqexsIQVIbalVmT+axwvUq
 github.com/scylladb/gocqlx/v2 v2.8.0/go.mod h1:4/+cga34PVqjhgSoo5Nr2fX1MQIqZB5eCE5DK4xeDig=
 github.com/scylladb/google-api-go-client v0.277.0-patched h1:TLf3ViOvLnnygprH943bxt0KZz8XL6PtnhUJrkWLKXU=
 github.com/scylladb/google-api-go-client v0.277.0-patched/go.mod h1:B9TqLBwJqVjp1mtt7WeoQwWRwvu/400y5lETOql+giQ=
-github.com/scylladb/rclone v1.54.0-patched-1 h1:5V0DTfVzxeeKs2XLOBaM62i5C/ba+u0MQyY0e1Y+820=
-github.com/scylladb/rclone v1.54.0-patched-1/go.mod h1:zD5R3V3oc9XCuQ91jP5G7kwp6PWHNuH9f7tPvJDJttk=
+github.com/scylladb/rclone v1.54.0-patched-2 h1:QA3xAiaDlP+KKaN+/wk/9I/1x2x+Dm0vLQSXs50qR30=
+github.com/scylladb/rclone v1.54.0-patched-2/go.mod h1:zD5R3V3oc9XCuQ91jP5G7kwp6PWHNuH9f7tPvJDJttk=
 github.com/scylladb/scylla-manager/backupspec v1.0.3-0.20260407094300-c4d92171ff7c h1:fDDwLj/GSc8DgiaLTGhSfDlfkrLhxiatGdLYAwrHQYE=
 github.com/scylladb/scylla-manager/backupspec v1.0.3-0.20260407094300-c4d92171ff7c/go.mod h1:q6WQ90LXFM+69NXr9jZertopfiPjJfCTsR3/Fg5/200=
 github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20260527104540-b3e9f76ffdee h1:9GNZOVrqceICpr+ZfCqB6A2r9CtOrNANvUpN19dmAsE=
