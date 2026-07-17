@@ -633,7 +633,7 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 	if err != nil {
 		return nil, err
 	}
-	rl, ok := f.(fs.RetentionLocker)
+	rs, ok := f.(fs.ObjectRetentionSetter)
 	if !ok {
 		return nil, errors.Errorf("backend %q does not support retention lock", f.Name())
 	}
@@ -667,6 +667,13 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 		}
 		overrideLock = false
 	}
+	info := fs.ObjectRetentionInfo{
+		RetainUntil: until,
+		Mode:        fs.RetentionModeUnlocked,
+	}
+	if locked {
+		info.Mode = fs.RetentionModeLocked
+	}
 
 	stats := accounting.Stats(ctx)
 	workerCnt := min(2*runtime.NumCPU(), len(paths))
@@ -693,7 +700,7 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 				}
 				tr := stats.NewTransferRemoteSize(p, 1)
 				acc := tr.Account(ctx, nil)
-				err := rl.RetentionLock(ctx, path.Join(remote, p), locked, until, overrideLock)
+				err := rs.SetObjectRetention(ctx, path.Join(remote, p), info, overrideLock)
 				if err == nil {
 					acc.DryRun(1)
 				} else {

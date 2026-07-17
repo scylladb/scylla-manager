@@ -349,13 +349,15 @@ type Fs struct {
 //
 // Will definitely have info but maybe not meta
 type Object struct {
-	fs       *Fs       // what this object is part of
-	remote   string    // The remote path
-	url      string    // download path
-	md5sum   string    // The MD5Sum of the object
-	bytes    int64     // Bytes in the object
-	modTime  time.Time // Modified time of the object
-	mimeType string
+	fs             *Fs       // what this object is part of
+	remote         string    // The remote path
+	url            string    // download path
+	md5sum         string    // The MD5Sum of the object
+	bytes          int64     // Bytes in the object
+	modTime        time.Time // Modified time of the object
+	mimeType       string
+	retentionInfo  fs.ObjectRetentionInfo // Object retention info returned with object metadata
+	eventBasedHold bool                   // Whether object has event based hold applied
 }
 
 // ------------------------------------------------------------
@@ -572,7 +574,7 @@ type listFn func(remote string, object *storage.Object, isDirectory bool) error
 //
 // dir is the starting directory, "" for root
 //
-// Set recurse to read sub directories
+// # Set recurse to read sub directories
 //
 // The remote has prefix removed from it and if addBucket is set
 // then it adds the bucket to the start.
@@ -790,7 +792,7 @@ func (f *Fs) ListR(ctx context.Context, dir string, callback fs.ListRCallback) (
 
 // Put the object into the bucket
 //
-// Copy the reader in to the new object which is returned
+// # Copy the reader in to the new object which is returned
 //
 // The new object may have been created if an error is returned
 func (f *Fs) Put(ctx context.Context, in io.Reader, src fs.ObjectInfo, options ...fs.OpenOption) (fs.Object, error) {
@@ -887,9 +889,9 @@ func (f *Fs) Precision() time.Duration {
 
 // Copy src to this remote using server-side copy operations.
 //
-// This is stored with the remote path given
+// # This is stored with the remote path given
 //
-// It returns the destination Object and a possible error
+// # It returns the destination Object and a possible error
 //
 // Will only be called if src.Fs().Name() == f.Name()
 //
@@ -942,21 +944,30 @@ func (f *Fs) Hashes() hash.Set {
 	return hash.Set(hash.MD5)
 }
 
-// RetentionLock sets object retention lock on the specified remote using Objects.Patch.
-func (f *Fs) RetentionLock(ctx context.Context, remote string, locked bool, until time.Time, overrideLock bool) error {
+// ObjectRetentionInfo returns cached object retention state.
+func (o *Object) ObjectRetentionInfo(_ context.Context) (fs.ObjectRetentionInfo, error) {
+	return o.retentionInfo, nil
+}
+
+// SetObjectRetention sets object retention lock on the specified remote using Objects.Patch.
+func (f *Fs) SetObjectRetention(ctx context.Context, remote string, info fs.ObjectRetentionInfo, overrideLock bool) error {
 	bucket, bucketPath := f.split(remote)
-	mode := "Unlocked"
-	if locked {
-		mode = "Locked"
+	gcsMode, err := gcsRetentionMode(info.Mode)
+	if err != nil {
+		return err
 	}
 	obj := &storage.Object{
 		Retention: &storage.ObjectRetention{
-			Mode:            mode,
-			RetainUntilTime: until.Format(time.RFC3339),
+			Mode:            gcsMode,
+			RetainUntilTime: info.RetainUntil.Format(time.RFC3339),
 		},
 	}
+	if info.Mode == fs.RetentionModeNone {
+		obj.Retention = nil
+		obj.NullFields = []string{"Retention"}
+	}
 	var result *storage.Object
-	err := f.pacer.Call(func() (bool, error) {
+	err = f.pacer.Call(func() (bool, error) {
 		var err error
 		result, err = f.svc.Objects.Patch(bucket, bucketPath, obj).
 			OverrideUnlockedRetention(overrideLock).
@@ -966,22 +977,75 @@ func (f *Fs) RetentionLock(ctx context.Context, remote string, locked bool, unti
 		return shouldRetry(err)
 	})
 	if err != nil {
-		return errors.Wrapf(err, "lock remote %q with mode %q, until %v, overrideLock %v ", remote, mode, until, overrideLock)
+		return errors.Wrapf(err, "lock remote %q with mode %q, until %v, overrideLock %v ", remote, gcsMode, info.RetainUntil, overrideLock)
+	}
+	if info.Mode == fs.RetentionModeNone {
+		if result.Retention == nil || result.Retention.Mode == "" {
+			return nil
+		}
+		return errors.Errorf("requested mode %q but server returned %q", gcsMode, result.Retention.Mode)
 	}
 	if result.Retention == nil {
 		return errors.New("server returned no retention configuration")
 	}
-	if result.Retention.Mode != mode {
-		return errors.Errorf(" requested mode %q but server returned %q", mode, result.Retention.Mode)
-	}
-	returnedUntil, err := time.Parse(time.RFC3339, result.Retention.RetainUntilTime)
-	if err != nil {
-		return errors.Errorf("could not parse server retainUntilTime %q: %v", result.Retention.RetainUntilTime, err)
-	}
-	if !returnedUntil.Equal(until) {
-		return errors.Errorf("requested retainUntilTime %q but server returned %q", until.Format(time.RFC3339), result.Retention.RetainUntilTime)
+	if result.Retention.Mode != gcsMode {
+		return errors.Errorf("requested mode %q but server returned %q", gcsMode, result.Retention.Mode)
 	}
 	return nil
+}
+
+// EventBasedHold returns cached event based hold state.
+func (o *Object) EventBasedHold(_ context.Context) (bool, error) {
+	return o.eventBasedHold, nil
+}
+
+// SetEventBasedHold sets or clears event based hold on the specified remote using Objects.Patch.
+func (f *Fs) SetEventBasedHold(ctx context.Context, remote string, hold bool) error {
+	bucket, bucketPath := f.split(remote)
+	obj := &storage.Object{
+		EventBasedHold: hold,
+		ForceSendFields: []string{
+			"EventBasedHold", // To ensure that clearing event based hold goes through
+		},
+	}
+	err := f.pacer.Call(func() (bool, error) {
+		var err error
+		_, err = f.svc.Objects.Patch(bucket, bucketPath, obj).
+			Fields("eventBasedHold"). // Just to limit server response size
+			Context(ctx).
+			Do()
+		return shouldRetry(err)
+	})
+	if err != nil {
+		return errors.Wrapf(err, "set event based hold on remote %q to %v", remote, hold)
+	}
+	return nil
+}
+
+func gcsRetentionMode(mode fs.RetentionMode) (string, error) {
+	switch mode {
+	case fs.RetentionModeNone:
+		return "", nil
+	case fs.RetentionModeUnlocked:
+		return "Unlocked", nil
+	case fs.RetentionModeLocked:
+		return "Locked", nil
+	default:
+		return "", errors.Errorf("unsupported fs retention mode %q", mode)
+	}
+}
+
+func fsRetentionMode(mode string) (fs.RetentionMode, error) {
+	switch mode {
+	case "":
+		return fs.RetentionModeNone, nil
+	case "Unlocked":
+		return fs.RetentionModeUnlocked, nil
+	case "Locked":
+		return fs.RetentionModeLocked, nil
+	default:
+		return "", errors.Errorf("unsupported gcs retention mode %q", mode)
+	}
 }
 
 // ------------------------------------------------------------
@@ -1023,6 +1087,11 @@ func (o *Object) setMetaData(info *storage.Object) {
 	o.bytes = int64(info.Size)
 	o.mimeType = info.ContentType
 
+	// Set retention info
+	o.setRetentionMetaData(info)
+	// Set event based hold info
+	o.eventBasedHold = info.EventBasedHold
+
 	// Read md5sum
 	md5sumData, err := base64.StdEncoding.DecodeString(info.Md5Hash)
 	if err != nil {
@@ -1048,6 +1117,40 @@ func (o *Object) setMetaData(info *storage.Object) {
 		fs.Logf(o, "Bad time decode: %v", err)
 	} else {
 		o.modTime = modTime
+	}
+}
+
+func (o *Object) setRetentionMetaData(info *storage.Object) {
+	o.retentionInfo = fs.ObjectRetentionInfo{}
+	// Check common/bucket retention period
+	if info.RetentionExpirationTime != "" {
+		retainUntil, err := time.Parse(time.RFC3339, info.RetentionExpirationTime)
+		if err != nil {
+			fs.Logf(o, "Can't decode retentionExpirationTime %v: %v", info.RetentionExpirationTime, err)
+			return
+		}
+		o.retentionInfo.RetainUntil = retainUntil
+		// Retention lock coming from bucket level configuration can't be overridden.
+		// Assume that it comes from bucket configuration and check object configuration in the next step.
+		o.retentionInfo.Mode = fs.RetentionModeLocked
+	}
+	// Check object retention period
+	if info.Retention != nil && info.Retention.RetainUntilTime != "" && info.Retention.Mode != "" {
+		objectRetainUntil, err := time.Parse(time.RFC3339, info.Retention.RetainUntilTime)
+		if err != nil {
+			fs.Logf(o, "Can't decode retainUntilTime %v: %v", info.Retention.RetainUntilTime, err)
+			return
+		}
+		// Check if the object configuration is the dominating one
+		if !objectRetainUntil.Before(o.retentionInfo.RetainUntil) {
+			o.retentionInfo.RetainUntil = objectRetainUntil
+			mode, err := fsRetentionMode(info.Retention.Mode)
+			if err != nil {
+				fs.Logf(o, "Can't decode mode %v: %v", info.Retention.Mode, err)
+				return
+			}
+			o.retentionInfo.Mode = mode
+		}
 	}
 }
 
@@ -1261,11 +1364,14 @@ func (o *Object) MimeType(ctx context.Context) string {
 
 // Check the interfaces are satisfied
 var (
-	_ fs.Fs              = &Fs{}
-	_ fs.Copier          = &Fs{}
-	_ fs.PutStreamer     = &Fs{}
-	_ fs.ListRer         = &Fs{}
-	_ fs.RetentionLocker = &Fs{}
-	_ fs.Object          = &Object{}
-	_ fs.MimeTyper       = &Object{}
+	_ fs.Fs                    = &Fs{}
+	_ fs.Copier                = &Fs{}
+	_ fs.PutStreamer           = &Fs{}
+	_ fs.ListRer               = &Fs{}
+	_ fs.ObjectRetentionSetter = &Fs{}
+	_ fs.EventBasedHoldSetter  = &Fs{}
+	_ fs.Object                = &Object{}
+	_ fs.ObjectRetentionInfoer = &Object{}
+	_ fs.EventBasedHolder      = &Object{}
+	_ fs.MimeTyper             = &Object{}
 )

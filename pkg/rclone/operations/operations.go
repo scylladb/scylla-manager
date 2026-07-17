@@ -151,7 +151,7 @@ func CheckPermissions(ctx context.Context, l fs.Fs, remote string, locked, overr
 // checkRetentionLock verifies retention lock and optional override lock
 // permissions by re-copying the test file and applying retention policies.
 func checkRetentionLock(ctx context.Context, l, localFs fs.Fs, remote string, overrideLock bool) error {
-	rl, ok := l.(fs.RetentionLocker)
+	rs, ok := l.(fs.ObjectRetentionSetter)
 	if !ok {
 		return asOperationError("retention-lock", l, errors.Errorf("backend %q does not support retention lock", l.Name()))
 	}
@@ -164,14 +164,19 @@ func checkRetentionLock(ctx context.Context, l, localFs fs.Fs, remote string, ov
 	// Apply retention lock (unlocked, now+1m).
 	// Time is rounded as retention periods are calculated according to
 	// snapshot tags, which have a second level precision.
-	retainUntil := timeutc.Now().Round(time.Second).Add(time.Minute)
-	if err := rl.RetentionLock(ctx, remote, false, retainUntil, false); err != nil {
+	info := fs.ObjectRetentionInfo{
+		RetainUntil: timeutc.Now().Round(time.Second).Add(time.Minute),
+		Mode:        fs.RetentionModeUnlocked,
+	}
+
+	if err := rs.SetObjectRetention(ctx, remote, info, false); err != nil {
 		return asOperationError("retention-lock", l, err)
 	}
 
 	// Override retention lock (locked).
+	info.Mode = fs.RetentionModeLocked
 	if overrideLock {
-		if err := rl.RetentionLock(ctx, remote, true, retainUntil, true); err != nil {
+		if err := rs.SetObjectRetention(ctx, remote, info, true); err != nil {
 			return asOperationError("override-lock", l, err)
 		}
 	}

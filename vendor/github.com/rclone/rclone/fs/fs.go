@@ -1045,15 +1045,47 @@ type ListRer interface {
 	ListR(ctx context.Context, dir string, callback ListRCallback) error
 }
 
-// RetentionLocker is an optional interface for Fs
-type RetentionLocker interface {
-	// RetentionLock sets object retention lock on the specified remote.
-	// locked=true means the retention cannot be overridden (e.g., Locked mode),
-	// locked=false means the retention can be overridden with special
-	// permissions (e.g., Unlocked mode).
-	// until is the timestamp until which the object is retained.
-	// overrideLock allows overriding existing retention policy (e.g., OverrideUnlockedRetention).
-	RetentionLock(ctx context.Context, remote string, locked bool, until time.Time, overrideLock bool) error
+// RetentionMode describes object retention mode.
+type RetentionMode string
+
+const (
+	// RetentionModeNone means no retention is set.
+	RetentionModeNone RetentionMode = ""
+	// RetentionModeUnlocked means retention can be overridden with special permissions.
+	RetentionModeUnlocked RetentionMode = "unlocked"
+	// RetentionModeLocked means retention cannot be overridden.
+	RetentionModeLocked RetentionMode = "locked"
+)
+
+// ObjectRetentionInfo describes object retention state.
+type ObjectRetentionInfo struct {
+	RetainUntil time.Time
+	Mode        RetentionMode
+}
+
+// ObjectRetentionInfoer is an optional interface for Object.
+type ObjectRetentionInfoer interface {
+	// ObjectRetentionInfo returns object retention state.
+	ObjectRetentionInfo(ctx context.Context) (ObjectRetentionInfo, error)
+}
+
+// ObjectRetentionSetter is an optional interface for Fs.
+type ObjectRetentionSetter interface {
+	// SetObjectRetention sets object retention on the specified remote.
+	// overrideLock allows overriding RetentionModeUnlocked.
+	SetObjectRetention(ctx context.Context, remote string, info ObjectRetentionInfo, overrideLock bool) error
+}
+
+// EventBasedHolder is an optional interface for Object.
+type EventBasedHolder interface {
+	// EventBasedHold returns whether the object is under event based hold.
+	EventBasedHold(ctx context.Context) (bool, error)
+}
+
+// EventBasedHoldSetter is an optional interface for Fs.
+type EventBasedHoldSetter interface {
+	// SetEventBasedHold sets or clears event based hold.
+	SetEventBasedHold(ctx context.Context, remote string, hold bool) error
 }
 
 // RangeSeeker is the interface that wraps the RangeSeek method.
