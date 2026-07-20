@@ -1,16 +1,12 @@
-// Copyright (C) 2023 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package sstable
 
 import (
-	"regexp"
 	"strconv"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/uuid"
 	"go.uber.org/atomic"
 )
 
@@ -56,6 +52,14 @@ func TestSExtractID(t *testing.T) {
 		{
 			in:       "keyspace1-standard1-ka-1-CRC.db",
 			expected: "1",
+		},
+		{
+			in:       "nb-3h24_11zl_0kkqo2r5456gdvpkmz-big-CompressionInfo.db",
+			expected: "3h24_11zl_0kkqo2r5456gdvpkmz",
+		},
+		{
+			in:       "me-WRONGKNOWNFORMAT-big-CRC.db",
+			expected: "WRONGKNOWNFORMAT",
 		},
 	}
 
@@ -108,6 +112,14 @@ func TestReplaceID(t *testing.T) {
 		{
 			in:       "keyspace1-standard1-ka-7-CRC.db",
 			expected: "keyspace1-standard1-ka-1-CRC.db",
+		},
+		{
+			in:       "nb-3h24_11zl_0kkqo2r5456gdvpkmz-big-CompressionInfo.db",
+			expected: "nb-1-big-CompressionInfo.db",
+		},
+		{
+			in:       "me-WRONGKNOWNFORMAT-big-CRC.db",
+			expected: "me-1-big-CRC.db",
 		},
 	}
 
@@ -199,52 +211,37 @@ func TestRenameSStables(t *testing.T) {
 	}
 }
 
-func decodeBase36(input string, t *testing.T) uint64 {
-	if len(input) > 13 {
-		t.Fatalf("out of range: %s", input)
+func TestExtractAnySSTableUUID(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "valid",
+			input:    "nb-3h24_11zl_0kkqo2r5456gdvpkmz-big-CompressionInfo.db",
+			expected: "3h24_11zl_0kkqo2r5456gdvpkmz",
+		},
+		{
+			name:  "bad format",
+			input: "nb-3g7k-098r-4wtqo2asamoc1i8h9n-big-TOC.txt",
+		},
+		{
+			name:  "bad alphabet",
+			input: "nb-3g7k_098r_4wtqO2asamoc1i8h9n-big-TOC.txt",
+		},
 	}
-	output := uint64(0)
-	for _, v := range input {
-		output *= uint64(len(alphabet))
-		index := strings.IndexByte(alphabet, byte(v))
-		if index < 0 {
-			t.Fatalf("malformatted base36 string: %s", input)
-		}
-		output += uint64(index)
-	}
-	return output
-}
 
-const Decimicrosecond = 100 * time.Nanosecond
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-func decodeUUID(input string, t *testing.T) (uuid.Time, uint64) {
-	re := regexp.MustCompile(`(?P<days>\w{4})_(?P<seconds>\w{4})_(?P<decimicrosecs>\w{5})(?P<msb>\w{13})`)
-	matches := re.FindStringSubmatch(input)
-	if matches == nil {
-		t.Errorf("RandomSSTableUUID generated value '%s' that does not match regexp", input)
-	}
-	days := decodeBase36(matches[re.SubexpIndex("days")], t)
-	seconds := decodeBase36(matches[re.SubexpIndex("seconds")], t)
-	decimicrosecs := decodeBase36(matches[re.SubexpIndex("decimicrosecs")], t)
-	msb := decodeBase36(matches[re.SubexpIndex("msb")], t)
-
-	timestamp := (time.Duration(days*24)*time.Hour +
-		time.Duration(seconds)*time.Second +
-		time.Duration(decimicrosecs)*Decimicrosecond)
-	return uuid.Time(timestamp.Nanoseconds() / 100), msb
-}
-
-func TestRandomSSTableUUID(t *testing.T) {
-	val1 := RandomSSTableUUID()
-	timestamp1, _ := decodeUUID(val1, t)
-
-	val2 := RandomSSTableUUID()
-	timestamp2, _ := decodeUUID(val2, t)
-
-	// Assume it does not take more than 1 second to generate and decode a UUID
-	elapsed_ns100 := timestamp2 - timestamp1
-	elapsed := time.Duration(elapsed_ns100) * Decimicrosecond
-	if elapsed.Seconds() < 0 || elapsed.Seconds() > 1 {
-		t.Fatal("time screw?")
+			if got := extractAnySSTableUUID(tc.input); got != tc.expected {
+				t.Fatalf("Expected: %s, got: %s", tc.expected, got)
+			}
+		})
 	}
 }

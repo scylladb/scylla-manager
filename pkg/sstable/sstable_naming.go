@@ -1,23 +1,19 @@
-// Copyright (C) 2023 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package sstable
 
 import (
-	"encoding/binary"
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"go.uber.org/atomic"
 )
 
 var (
 	regexNewLaMx = regexp.MustCompile(`(la|m[cdest])-([^-]+)-(\w+)-(.*)`)
 	regexLaMx    = regexp.MustCompile(`(la|m[cdest])-(\d+)-(\w+)-(.*)`)
+	regexAnyLaMx = regexp.MustCompile(`([A-Za-z]{2})-((?P<days>[0-9a-z]{4})_(?P<seconds>[0-9a-z]{4})_(?P<decimicrosecs>[0-9a-z]{5})(?P<msb>[0-9a-z]{13}))-(\w+)-(.*)`)
 	regexKa      = regexp.MustCompile(`(\w+)-(\w+)-ka-(\d+)-(.*)`)
 )
 
@@ -30,13 +26,17 @@ const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
 // Scylla code validating SSTable format can be found here:
 // https://github.com/scylladb/scylladb/blob/decbc841b749d8dd3e2ddd4be4817c57d905eff2/sstables/sstables.cc#L2115-L2117
 func ExtractID(sstable string) (string, error) {
-	parts := strings.Split(sstable, "-")
-
-	if regexLaMx.MatchString(sstable) || regexNewLaMx.MatchString(sstable) {
-		return parts[1], nil
+	if matches := regexNewLaMx.FindStringSubmatch(sstable); matches != nil {
+		return matches[2], nil
 	}
-	if regexKa.MatchString(sstable) {
-		return parts[3], nil
+	if matches := regexLaMx.FindStringSubmatch(sstable); matches != nil {
+		return matches[2], nil
+	}
+	if matches := regexKa.FindStringSubmatch(sstable); matches != nil {
+		return matches[3], nil
+	}
+	if id := extractAnySSTableUUID(sstable); id != "" {
+		return id, nil
 	}
 
 	return "", unknownSSTableError(sstable)
@@ -46,7 +46,7 @@ func replaceID(sstable, newID string) string {
 	parts := strings.Split(sstable, "-")
 
 	switch {
-	case regexLaMx.MatchString(sstable) || regexNewLaMx.MatchString(sstable):
+	case regexLaMx.MatchString(sstable), regexNewLaMx.MatchString(sstable), extractAnySSTableUUID(sstable) != "":
 		parts[1] = newID
 	case regexKa.MatchString(sstable):
 		parts[3] = newID
@@ -59,23 +59,6 @@ func replaceID(sstable, newID string) string {
 
 func unknownSSTableError(sstable string) error {
 	return errors.Errorf("unknown SSTable format version: %s. Supported versions are: 'mc', 'md', 'me', 'ms', 'mt', 'la', 'ka'", sstable)
-}
-
-// RenameToIDs reformat sstables ids to ID format keeping id consistency and uniqueness.
-func RenameToIDs(sstables []string, globalCounter *atomic.Int64) map[string]string {
-	return RenameSStables(sstables, func(_ string) string {
-		return strconv.Itoa(int(globalCounter.Inc()))
-	})
-}
-
-// RenameToUUIDs reformat sstables ids to UUID format keeping id consistency.
-func RenameToUUIDs(sstables []string) map[string]string {
-	return RenameSStables(sstables, func(id string) string {
-		if !regexLaMx.MatchString(id) && regexNewLaMx.MatchString(id) {
-			return id
-		}
-		return RandomSSTableUUID()
-	})
 }
 
 // RenameSStables resolves sstable file name conflicts replacing id in the names with unique id value.
@@ -102,42 +85,34 @@ func RenameSStables(sstables []string, nameGen func(id string) string) map[strin
 	return out
 }
 
-func encodeBase36(input uint64) string {
-	// math.Log(math.MaxUint64) / math.Log(36) < 16, so we are safe
-	var output [16]byte
-	var i int
-	for i = len(output) - 1; ; i-- {
-		output[i] = alphabet[input%36]
-		input /= 36
-		if input == 0 {
-			break
+func extractAnySSTableUUID(sstable string) string {
+	matches := regexAnyLaMx.FindStringSubmatch(sstable)
+	if matches == nil {
+		return ""
+	}
+	for _, name := range []string{"days", "seconds", "decimicrosecs", "msb"} {
+		if _, err := decodeBase36(matches[regexAnyLaMx.SubexpIndex(name)]); err != nil {
+			return ""
 		}
 	}
-	return string(output[i:])
+	return matches[2]
 }
 
-// RandomSSTableUUID generates random sstable uuid in a form of `497z_213k_3zpaqrwk2na921344z`.
-func RandomSSTableUUID() string {
-	// "time" package does not define Day, so..
-	const Day = 24 * time.Hour
-	// sstable uses UUID v1
-	uuidv1 := uuid.Must(uuid.NewUUID())
+func decodeBase36(input string) (uint64, error) {
+	if len(input) > 13 {
+		return 0, errors.Errorf("out of range: %s", input)
+	}
+	output := uint64(0)
+	for _, v := range input {
+		output *= uint64(len(alphabet))
+		index := strings.IndexByte(alphabet, byte(v))
+		if index < 0 {
+			return 0, errors.Errorf("malformatted base36 string: %s", input)
+		}
+		output += uint64(index)
+	}
 
-	secs, nsecs := uuidv1.Time().UnixTime()
-	seconds := time.Duration(secs) * time.Second
-	days := seconds.Truncate(Day)
-	seconds -= days
-	// Cassandra's UUID representation encodes the higher 8 bytes as a single
-	// 64-bit number, so let's keep this way.
-	msb := binary.BigEndian.Uint64(uuidv1[8:])
-	// related scylla code, that does thvle same is here:
-	// https://github.com/scylladb/scylladb/blob/f014ccf36962135889a84cff15b0478d711b2306/sstables/generation_type.hh#L258-L262
-	return fmt.Sprintf("%04s_%04s_%05s%013s",
-		encodeBase36(uint64(days.Hours()/24)),
-		encodeBase36(uint64(seconds.Seconds())),
-		// the timestamp of UUID v1 is measured in units of 100 nanoseconds
-		encodeBase36(uint64(nsecs/100)),
-		encodeBase36(msb))
+	return output, nil
 }
 
 // ComponentSuffix defines SSTable components by their suffixes.
