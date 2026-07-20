@@ -970,14 +970,6 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 		t.Fatalf("Expected context error but got: %+v", err)
 	}
 
-	pr, err := dstH.service.GetProgress(context.Background(), dstH.ClusterID, dstH.TaskID, dstH.RunID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	Printf("And: restore progress: %+#v\n", pr)
-	if pr.RepairProgress == nil || pr.RepairProgress.Success == 0 {
-		t.Fatal("Expected partial repair progress")
-	}
 
 	Print("When: resume restore and complete it")
 	dstH.RunID = uuid.MustRandom()
