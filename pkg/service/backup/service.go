@@ -310,7 +310,7 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 			l = dcl[""]
 		}
 
-		s.cleanupPermissionCheckFiles(ctx, client, n.Addr, l.RemotePath(permissionCheckBasePath))
+		s.cleanupPermissionCheckFiles(ctx, client, n.Addr, l, permissionCheckBasePath)
 	}
 
 	f := func(i int) error {
@@ -339,33 +339,56 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 	return util.ErrValidate(parallel.Run(len(nodes), parallel.NoLimit, f, notify))
 }
 
-func (s *Service) cleanupPermissionCheckFiles(ctx context.Context, client *scyllaclient.Client, host, remotePath string) {
+func (s *Service) cleanupPermissionCheckFiles(ctx context.Context, client *scyllaclient.Client, host string, l backupspec.Location, p string) {
 	if s.config.PermissionCheckFilesTTL == 0 {
 		// Cleanup is disabled, nothing to do
 		return
 	}
+	remotePath := l.RemotePath(p)
 
 	opts := &scyllaclient.RcloneListDirOpts{
 		Recurse:   true,
 		FilesOnly: true,
 	}
+	if l.Provider == backupspec.GCS {
+		opts.ShowEventBasedHold = true
+		opts.ShowRetentionInfo = true
+	}
+
 	err := client.RcloneListDirIter(ctx, host, remotePath, opts, func(item *scyllaclient.RcloneListDirItem) {
+		retainUntil := time.Time(item.RetainUntil)
+		if !retainUntil.IsZero() && retainUntil.After(timeutc.Now()) {
+			return
+		}
+
+		file := path.Join(remotePath, item.Path)
+		if item.EventBasedHold {
+			if err := client.RcloneEventBasedHold(ctx, host, file, false); err != nil {
+				s.logger.Info(ctx, "Failed to remove event based hold from permission check file, skipping",
+					"host", host,
+					"file", file,
+					"error", err,
+				)
+			}
+			return
+		}
+
 		rawTimeUUID, _, _ := strings.Cut(item.Path, "/")
 		id, err := gocql.ParseUUID(rawTimeUUID)
 		if err != nil {
 			s.logger.Error(ctx, "Failed to extract permission check file timestamp, skipping",
 				"host", host,
-				"file", path.Join(remotePath, item.Path),
+				"file", file,
 				"error", err,
 			)
 			return
 		}
 
 		if timeutc.Since(id.Time()) > s.config.PermissionCheckFilesTTL {
-			if err := client.RcloneDeleteFile(ctx, host, path.Join(remotePath, item.Path)); err != nil {
+			if err := client.RcloneDeleteFile(ctx, host, file); err != nil {
 				s.logger.Info(ctx, "Failed to cleanup stale permission check file, skipping",
 					"host", host,
-					"file", path.Join(remotePath, item.Path),
+					"file", file,
 					"error", err,
 				)
 			}
