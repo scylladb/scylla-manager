@@ -454,7 +454,15 @@ func rcCheckPermissions(ctx context.Context, in rc.Params) (out rc.Params, err e
 		overrideUnlocked = false
 	}
 
-	if err := operations.CheckPermissions(ctx, l, remote, retentionMode != "", overrideUnlocked); err != nil {
+	eventBasedHold, err := in.GetBool("eventBasedHold")
+	if err != nil {
+		if rc.NotErrParamNotFound(err) {
+			return nil, err
+		}
+		eventBasedHold = false
+	}
+
+	if err := operations.CheckPermissions(ctx, l, remote, retentionMode, overrideUnlocked, eventBasedHold); err != nil {
 		fs.Errorf(nil, "Location check: error=%s", err)
 		return nil, err
 	}
@@ -476,6 +484,7 @@ func init() {
 - retentionMode - check permissions related to given retention mode, can be empty (no retention),
   'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)
 - overrideUnlocked - check permissions related to overriding 'unlocked' retention policy
+- eventBasedHold - check permissions related to event based holds
 
 `,
 	})
