@@ -20,11 +20,8 @@ type RetentionLockOptions struct {
 	// File system e.g. s3: or gcs:
 	Fs string `json:"fs,omitempty"`
 
-	// Locked (true) means the retention cannot be overridden, unlocked (false) means the retention can be overridden with special permissions
-	Locked bool `json:"locked,omitempty"`
-
-	// Allows overriding existing retention policy
-	OverrideLock bool `json:"override_lock,omitempty"`
+	// Allows overriding 'unlocked' retention policy
+	OverrideUnlocked bool `json:"overrideUnlocked,omitempty"`
 
 	// Paths relative to remote eg. file.txt
 	Paths []string `json:"paths"`
@@ -34,14 +31,17 @@ type RetentionLockOptions struct {
 
 	// Timestamp until which the object is retained
 	// Format: date-time
-	Until strfmt.DateTime `json:"until,omitempty"`
+	RetainUntil strfmt.DateTime `json:"retainUntil,omitempty"`
+
+	// Retention mode, can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)
+	RetentionMode string `json:"retentionMode,omitempty"`
 }
 
 // Validate validates this retention lock options
 func (m *RetentionLockOptions) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateUntil(formats); err != nil {
+	if err := m.validateRetainUntil(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -51,13 +51,13 @@ func (m *RetentionLockOptions) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *RetentionLockOptions) validateUntil(formats strfmt.Registry) error {
+func (m *RetentionLockOptions) validateRetainUntil(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Until) { // not required
+	if swag.IsZero(m.RetainUntil) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("until", "body", "date-time", m.Until.String(), formats); err != nil {
+	if err := validate.FormatOf("retainUntil", "body", "date-time", m.RetainUntil.String(), formats); err != nil {
 		return err
 	}
 

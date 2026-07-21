@@ -422,22 +422,24 @@ func rcCheckPermissions(ctx context.Context, in rc.Params) (out rc.Params, err e
 		}
 		remote = ""
 	}
-	locked, err := in.GetBool("locked")
+
+	retentionMode, err := in.GetString("retentionMode")
 	if err != nil {
 		if rc.NotErrParamNotFound(err) {
 			return nil, err
 		}
-		locked = false
-	}
-	overrideLock, err := in.GetBool("override_lock")
-	if err != nil {
-		if rc.NotErrParamNotFound(err) {
-			return nil, err
-		}
-		overrideLock = false
+		retentionMode = ""
 	}
 
-	if err := operations.CheckPermissions(ctx, l, remote, locked, overrideLock); err != nil {
+	overrideUnlocked, err := in.GetBool("overrideUnlocked")
+	if err != nil {
+		if rc.NotErrParamNotFound(err) {
+			return nil, err
+		}
+		overrideUnlocked = false
+	}
+
+	if err := operations.CheckPermissions(ctx, l, remote, retentionMode != "", overrideUnlocked); err != nil {
 		fs.Errorf(nil, "Location check: error=%s", err)
 		return nil, err
 	}
@@ -456,8 +458,9 @@ func init() {
 
 - fs - a remote name string eg "s3:repository"
 - remote - a path within that remote
-- locked - check retention lock permissions
-- override_lock - check override lock permissions
+- retentionMode - check permissions related to given retention mode, can be empty (no retention),
+  'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)
+- overrideUnlocked - check permissions related to overriding 'unlocked' retention policy
 
 `,
 	})
@@ -628,7 +631,6 @@ func setGuardedConfig(in rc.Params) error {
 // object is represented as a 1-byte transfer. This allows reusing the
 // existing job/progress endpoint to track per-object completion.
 func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	// Parse input
 	f, remote, err := rc.GetFsAndRemote(ctx, in)
 	if err != nil {
 		return nil, err
@@ -637,6 +639,7 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 	if !ok {
 		return nil, errors.Errorf("backend %q does not support retention lock", f.Name())
 	}
+
 	paths, err := getStringSlice(in, "paths")
 	if err != nil {
 		return nil, err
@@ -644,35 +647,40 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 	if len(paths) == 0 {
 		return nil, errors.New("empty paths")
 	}
-	locked, err := in.GetBool("locked")
+
+	modeStr, err := in.GetString("retentionMode")
 	if err != nil {
 		if rc.NotErrParamNotFound(err) {
 			return nil, err
 		}
-		locked = false
+		modeStr = ""
 	}
-	untilStr, err := in.GetString("until")
-	if err != nil {
-		return nil, err
+	mode := fs.RetentionMode(modeStr)
+
+	var retainUntil time.Time
+	if mode != fs.RetentionModeNone {
+		untilStr, err := in.GetString("retainUntil")
+		if err != nil {
+			return nil, err
+		}
+		untilDT, err := strfmt.ParseDateTime(untilStr)
+		if err != nil {
+			return nil, errors.Wrap(err, "parse retainUntil timestamp")
+		}
+		retainUntil = time.Time(untilDT)
 	}
-	untilDt, err := strfmt.ParseDateTime(untilStr)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse until timestamp")
-	}
-	until := time.Time(untilDt)
-	overrideLock, err := in.GetBool("override_lock")
+
+	overrideUnlocked, err := in.GetBool("overrideUnlocked")
 	if err != nil {
 		if rc.NotErrParamNotFound(err) {
 			return nil, err
 		}
-		overrideLock = false
+		overrideUnlocked = false
 	}
+
 	info := fs.ObjectRetentionInfo{
-		RetainUntil: until,
-		Mode:        fs.RetentionModeUnlocked,
-	}
-	if locked {
-		info.Mode = fs.RetentionModeLocked
+		RetainUntil: retainUntil,
+		Mode:        mode,
 	}
 
 	stats := accounting.Stats(ctx)
@@ -700,7 +708,7 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 				}
 				tr := stats.NewTransferRemoteSize(p, 1)
 				acc := tr.Account(ctx, nil)
-				err := rs.SetObjectRetention(ctx, path.Join(remote, p), info, overrideLock)
+				err := rs.SetObjectRetention(ctx, path.Join(remote, p), info, overrideUnlocked)
 				if err == nil {
 					acc.DryRun(1)
 				} else {
@@ -900,9 +908,9 @@ func init() {
 - fs - a remote name string eg "gcs:"
 - remote - a directory path within that remote
 - paths - slice of paths to set retention lock on
-- locked - true for locked mode (cannot be overridden), false for unlocked mode
-- until - RFC3339 timestamp until which the objects are retained
-- override_lock - whether to override existing retention policy`,
+- retentionMode - can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)
+- retainUntil - RFC3339 timestamp until which the objects are retained
+- overrideUnlocked - allows overriding 'unlocked' retention policy`,
 	})
 }
 

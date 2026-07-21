@@ -726,8 +726,9 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 
 // PermissionCheckOpts describes permission check options.
 type PermissionCheckOpts struct {
-	// CheckRetentionLock controls if the permission to set retention lock on existing object is granted.
-	CheckRetentionLock bool
+	// CheckRetention controls if the permission related to given retention mode is granted.
+	// Empty value is translated to RetentionLockDisabled.
+	CheckRetention RetentionLockMode
 	// CheckOverrideRetentionLock controls if the permission to override unlocked retention lock is granted.
 	CheckOverrideRetentionLock bool
 }
@@ -739,14 +740,21 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 	if err != nil {
 		return err
 	}
+	if opts.CheckRetention == "" {
+		opts.CheckRetention = RetentionLockDisabled
+	}
+	modeParam, err := retentionLockModeToParam(opts.CheckRetention)
+	if err != nil {
+		return err
+	}
 
 	p := operations.OperationsCheckPermissionsParams{
 		Context: forceHost(ctx, host),
 		Options: &models.CheckPermissionsOptions{
-			Fs:           fs,
-			Remote:       remote,
-			Locked:       opts.CheckRetentionLock,
-			OverrideLock: opts.CheckOverrideRetentionLock,
+			Fs:               fs,
+			Remote:           remote,
+			RetentionMode:    modeParam,
+			OverrideUnlocked: opts.CheckOverrideRetentionLock,
 		},
 	}
 	_, err = c.agentOps.OperationsCheckPermissions(&p)
@@ -800,6 +808,19 @@ const (
 	RetentionLockLocked RetentionLockMode = "locked"
 )
 
+func retentionLockModeToParam(mode RetentionLockMode) (string, error) {
+	switch mode {
+	case RetentionLockDisabled:
+		return "", nil
+	case RetentionLockUnlocked:
+		return "unlocked", nil
+	case RetentionLockLocked:
+		return "locked", nil
+	default:
+		return "", errors.Errorf("unknown retention lock mode: %s", mode)
+	}
+}
+
 // RcloneRetentionLock sets object retention locks on the specified paths.
 // The remoteDir param format is "provider:bucket/path".
 // Specified paths are relative to remoteDir.
@@ -811,16 +832,20 @@ func (c *Client) RcloneRetentionLock(ctx context.Context, host, remoteDir string
 	if paths == nil {
 		paths = make([]string, 0)
 	}
+	modeParam, err := retentionLockModeToParam(mode)
+	if err != nil {
+		return 0, err
+	}
 
 	p := operations.OperationsRetentionLockParams{
 		Context: forceHost(ctx, host),
 		Options: &models.RetentionLockOptions{
-			Fs:           fs,
-			Remote:       remote,
-			Paths:        paths,
-			Locked:       mode == RetentionLockLocked,
-			Until:        strfmt.DateTime(until),
-			OverrideLock: overrideLock,
+			Fs:               fs,
+			Remote:           remote,
+			Paths:            paths,
+			RetentionMode:    modeParam,
+			RetainUntil:      strfmt.DateTime(until),
+			OverrideUnlocked: overrideLock,
 		},
 		Async: true,
 	}
