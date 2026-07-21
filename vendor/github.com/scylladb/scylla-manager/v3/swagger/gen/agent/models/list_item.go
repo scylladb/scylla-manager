@@ -20,6 +20,9 @@ type ListItem struct {
 	// Encrypted name
 	Encrypted string `json:"Encrypted,omitempty"`
 
+	// Whether the object is under event based hold
+	EventBasedHold bool `json:"EventBasedHold,omitempty"`
+
 	// Hash of the item
 	Hashes interface{} `json:"Hashes,omitempty"`
 
@@ -45,6 +48,13 @@ type ListItem struct {
 	// Path of the item
 	Path string `json:"Path,omitempty"`
 
+	// Timestamp until which the object is retained
+	// Format: date-time
+	RetainUntil strfmt.DateTime `json:"RetainUntil,omitempty"`
+
+	// Retention mode, can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)
+	RetentionMode string `json:"RetentionMode,omitempty"`
+
 	// Size in bytes
 	Size int64 `json:"Size,omitempty"`
 }
@@ -54,6 +64,10 @@ func (m *ListItem) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateModTime(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRetainUntil(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -70,6 +84,19 @@ func (m *ListItem) validateModTime(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("ModTime", "body", "date-time", m.ModTime.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ListItem) validateRetainUntil(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.RetainUntil) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("RetainUntil", "body", "date-time", m.RetainUntil.String(), formats); err != nil {
 		return err
 	}
 
