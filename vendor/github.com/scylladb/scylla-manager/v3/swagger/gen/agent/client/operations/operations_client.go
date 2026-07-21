@@ -57,6 +57,8 @@ type ClientService interface {
 
 	OperationsDeletepaths(params *OperationsDeletepathsParams) (*OperationsDeletepathsOK, error)
 
+	OperationsEventBasedHold(params *OperationsEventBasedHoldParams) (*OperationsEventBasedHoldOK, error)
+
 	OperationsFileInfo(params *OperationsFileInfoParams) (*OperationsFileInfoOK, error)
 
 	OperationsList(params *OperationsListParams) (*OperationsListOK, error)
@@ -639,6 +641,41 @@ func (a *Client) OperationsDeletepaths(params *OperationsDeletepathsParams) (*Op
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*OperationsDeletepathsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+OperationsEventBasedHold events based hold
+
+Set event based hold on provided list of paths
+*/
+func (a *Client) OperationsEventBasedHold(params *OperationsEventBasedHoldParams) (*OperationsEventBasedHoldOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewOperationsEventBasedHoldParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "OperationsEventBasedHold",
+		Method:             "POST",
+		PathPattern:        "/rclone/operations/event-based-hold",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &OperationsEventBasedHoldReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*OperationsEventBasedHoldOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*OperationsEventBasedHoldDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 

@@ -134,11 +134,17 @@ type ListOptionsOpt struct {
 	// Show the encrypted names
 	ShowEncrypted bool `json:"showEncrypted,omitempty"`
 
+	// Include object eventBasedHold state in the output (may require per object request)
+	ShowEventBasedHold bool `json:"showEventBasedHold,omitempty"`
+
 	// Include hashes in the output (may take longer)
 	ShowHash bool `json:"showHash,omitempty"`
 
 	// Show the ID of the underlying Object
 	ShowOrigIDs bool `json:"showOrigIDs,omitempty"`
+
+	// Include object retentionMode and retainUntil in the output (may require per object request)
+	ShowRetentionInfo bool `json:"showRetentionInfo,omitempty"`
 }
 
 // Validate validates this list options opt
