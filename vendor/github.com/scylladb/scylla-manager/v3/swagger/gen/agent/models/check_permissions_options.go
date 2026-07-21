@@ -18,14 +18,14 @@ type CheckPermissionsOptions struct {
 	// A remote name string eg. drive:
 	Fs string `json:"fs,omitempty"`
 
-	// Locked (true) means the retention cannot be overridden, unlocked (false) means the retention can be overridden with special permissions
-	Locked bool `json:"locked,omitempty"`
-
-	// Allows overriding existing retention policy
-	OverrideLock bool `json:"override_lock,omitempty"`
+	// Allows overriding 'unlocked' retention policy
+	OverrideUnlocked bool `json:"overrideUnlocked,omitempty"`
 
 	// A path within that remote eg. dir
 	Remote string `json:"remote,omitempty"`
+
+	// Retention mode, can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)
+	RetentionMode string `json:"retentionMode,omitempty"`
 }
 
 // Validate validates this check permissions options

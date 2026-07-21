@@ -181,7 +181,7 @@ func (s *Service) targetFromProperties(ctx context.Context, clusterID uuid.UUID,
 		return Target{}, err
 	}
 	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, p.Location,
-		clusterID, p.RetentionLockMode != scyllaclient.RetentionLockDisabled, p.OverrideRetentionLock,
+		clusterID, p.RetentionLockMode, p.OverrideRetentionLock,
 	); err != nil {
 		if strings.Contains(err.Error(), "NoSuchBucket") {
 			return Target{}, errors.New("specified bucket does not exist")
@@ -272,7 +272,7 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 // checkLocationsAvailableFromNodes checks if each node has access location for its datacenter.
 func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *scyllaclient.Client,
 	nodes scyllaclient.NodeStatusInfoSlice, locations []backupspec.Location,
-	clusterID uuid.UUID, locked, overrideLock bool,
+	clusterID uuid.UUID, retentionMode scyllaclient.RetentionLockMode, overrideLock bool,
 ) error {
 	s.logger.Info(ctx, "Checking accessibility of remote locations")
 	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
@@ -319,7 +319,7 @@ func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *
 		if !ok {
 			l = dcl[""]
 		}
-		return s.checkHostLocation(ctx, client, n.Addr, l, permissionCheckPath, locked, overrideLock)
+		return s.checkHostLocation(ctx, client, n.Addr, l, permissionCheckPath, retentionMode, overrideLock)
 	}
 
 	notify := func(i int, err error) {
@@ -382,10 +382,10 @@ func (s *Service) cleanupPermissionCheckFiles(ctx context.Context, client *scyll
 }
 
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client,
-	h string, l backupspec.Location, path string, locked, overrideLock bool,
+	h string, l backupspec.Location, path string, retentionMode scyllaclient.RetentionLockMode, overrideLock bool,
 ) error {
 	err := client.RcloneCheckPermissions(ctx, h, l.RemotePath(path), scyllaclient.PermissionCheckOpts{
-		CheckRetentionLock:         locked,
+		CheckRetention:             retentionMode,
 		CheckOverrideRetentionLock: overrideLock,
 	})
 	if err != nil {
