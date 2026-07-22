@@ -1,7 +1,5 @@
 pipeline {
-	agent {
-		label 'builders_x86'
-	}
+	agent none
 
 	options {
 		disableConcurrentBuilds()
@@ -15,7 +13,7 @@ pipeline {
 	stages {
 		stage('Build Packages') {
 			steps {
-				build job: 'manager-master/manager-build', wait: true
+				build job: 'manager-build', wait: true
 			}
 		}
 
@@ -23,13 +21,13 @@ pipeline {
 			parallel {
 				stage('Sanity Tests') {
 					steps {
-						build job: 'manager-master/ubuntu24-sanity-test', wait: false, parameters: [
+						build job: 'ubuntu24-sanity-test', wait: false, parameters: [
 							string(name: 'provision_type', value: 'on_demand')
 						]
-						build job: 'manager-master/ubuntu24-sanity-ipv6-test', wait: false, parameters: [
+						build job: 'ubuntu24-sanity-ipv6-test', wait: false, parameters: [
 							string(name: 'provision_type', value: 'on_demand')
 						]
-						build job: 'manager-master/ubuntu24-vnodes-tablets-enterprise-sanity-test', wait: false, parameters: [
+						build job: 'ubuntu24-vnodes-tablets-enterprise-sanity-test', wait: false, parameters: [
 							string(name: 'provision_type', value: 'on_demand')
 						]
 					}
@@ -37,13 +35,13 @@ pipeline {
 
 				stage('Installation Tests') {
 					steps {
-						build job: 'manager-master/rocky9-installation-test', wait: false, parameters: [
+						build job: 'rocky9-installation-test', wait: false, parameters: [
 							string(name: 'provision_type', value: 'on_demand')
 						]
-						build job: 'manager-master/ubuntu22-installation-test', wait: false, parameters: [
+						build job: 'ubuntu22-installation-test', wait: false, parameters: [
 							string(name: 'provision_type', value: 'on_demand')
 						]
-						build job: 'manager-master/debian12-installation-test', wait: false, parameters: [
+						build job: 'debian12-installation-test', wait: false, parameters: [
 							string(name: 'provision_type', value: 'on_demand')
 						]
 					}
@@ -51,13 +49,13 @@ pipeline {
 
 				stage('Backup Tests') {
 					steps {
-						build job: 'manager-master/sct-feature-test-backup', wait: false, parameters: [
+						build job: 'sct-feature-test-backup', wait: false, parameters: [
 							string(name: 'provision_type', value: 'on_demand')
 						]
-						build job: 'manager-master/sct-feature-test-backup-gce', wait: false, parameters: [
+						build job: 'sct-feature-test-backup-gce', wait: false, parameters: [
 							string(name: 'provision_type', value: 'on_demand')
 						]
-						build job: 'manager-master/sct-feature-test-backup-azure', wait: false, parameters: [
+						build job: 'sct-feature-test-backup-azure', wait: false, parameters: [
 							string(name: 'provision_type', value: 'on_demand')
 						]
 					}
@@ -65,8 +63,8 @@ pipeline {
 
 				stage('Dtests') {
 					steps {
-						build job: 'manager-master/dtest-manager-no-tablets', wait: false
-						build job: 'manager-master/dtest-manager-with-tablets', wait: false
+						build job: 'dtest-manager-no-tablets', wait: false
+						build job: 'dtest-manager-with-tablets', wait: false
 					}
 				}
 			}
