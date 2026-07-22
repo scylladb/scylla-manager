@@ -740,8 +740,6 @@ type PermissionCheckOpts struct {
 	CheckRetention RetentionLockMode
 	// CheckOverrideRetentionLock controls if the permission to override unlocked retention lock is granted.
 	CheckOverrideRetentionLock bool
-	// CheckEventBasedHold takes event based hold and default bucket retention policy into account when checking permissions.
-	CheckEventBasedHold bool
 }
 
 // RcloneCheckPermissions checks if location is available for listing, getting,
@@ -754,7 +752,7 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 	if opts.CheckRetention == "" {
 		opts.CheckRetention = RetentionLockDisabled
 	}
-	modeParam, err := retentionLockModeToParam(opts.CheckRetention)
+	modeParam, holdParam, err := retentionLockModeToParam(opts.CheckRetention)
 	if err != nil {
 		return err
 	}
@@ -766,7 +764,7 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 			Remote:           remote,
 			RetentionMode:    modeParam,
 			OverrideUnlocked: opts.CheckOverrideRetentionLock,
-			EventBasedHold:   opts.CheckEventBasedHold,
+			EventBasedHold:   holdParam,
 		},
 	}
 	_, err = c.agentOps.OperationsCheckPermissions(&p)
@@ -818,18 +816,24 @@ const (
 	RetentionLockUnlocked RetentionLockMode = "unlocked"
 	// RetentionLockLocked means that retention lock is applied and cannot be overridden.
 	RetentionLockLocked RetentionLockMode = "locked"
+	// RetentionLockEventBasedHold means that backup files are protected with default
+	// event based hold and bucket retention policy. SM is responsible for clearing
+	// the hold when it's no longer needed which starts bucket retention timer.
+	RetentionLockEventBasedHold RetentionLockMode = "event-based-hold"
 )
 
-func retentionLockModeToParam(mode RetentionLockMode) (string, error) {
+func retentionLockModeToParam(mode RetentionLockMode) (modeParam string, holdParam bool, err error) {
 	switch mode {
 	case RetentionLockDisabled:
-		return "", nil
+		return "", false, nil
 	case RetentionLockUnlocked:
-		return "unlocked", nil
+		return "unlocked", false, nil
 	case RetentionLockLocked:
-		return "locked", nil
+		return "locked", false, nil
+	case RetentionLockEventBasedHold:
+		return "", true, nil
 	default:
-		return "", errors.Errorf("unknown retention lock mode: %s", mode)
+		return "", false, errors.Errorf("unknown retention lock mode: %s", mode)
 	}
 }
 
@@ -844,9 +848,12 @@ func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir s
 	if paths == nil {
 		paths = make([]string, 0)
 	}
-	modeParam, err := retentionLockModeToParam(mode)
+	modeParam, holdParam, err := retentionLockModeToParam(mode)
 	if err != nil {
 		return 0, err
+	}
+	if holdParam {
+		return 0, errors.New("event based hold should be applied with dedicated method")
 	}
 
 	p := operations.OperationsRetentionLockParams{
@@ -877,9 +884,12 @@ func (c *Client) RcloneRetentionLock(ctx context.Context, host, remotePath strin
 	if err != nil {
 		return err
 	}
-	modeParam, err := retentionLockModeToParam(mode)
+	modeParam, holdParam, err := retentionLockModeToParam(mode)
 	if err != nil {
 		return err
+	}
+	if holdParam {
+		return errors.New("event based hold should be applied with dedicated method")
 	}
 
 	p := operations.OperationsRetentionLockParams{
