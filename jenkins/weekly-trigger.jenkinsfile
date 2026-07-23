@@ -3,7 +3,6 @@ pipeline {
 
 	options {
 		disableConcurrentBuilds()
-		timeout(time: 360, unit: 'MINUTES')
 	}
 
 	triggers {
@@ -11,69 +10,14 @@ pipeline {
 	}
 
 	stages {
-		stage('Build Packages') {
+		stage('Build & Test') {
 			steps {
-				build job: 'manager-build', wait: true
+				build job: 'manager-build', wait: false, parameters: [
+					booleanParam(name: 'RUN_MANAGER_SCT', value: true),
+					booleanParam(name: 'RUN_MANAGER_DTEST', value: true),
+					string(name: 'SCT_TESTS_PRIORITY', value: 'P2')
+				]
 			}
-		}
-
-		stage('Trigger Tests') {
-			parallel {
-				stage('Sanity Tests') {
-					steps {
-						build job: 'ubuntu24-sanity-test', wait: false, parameters: [
-							string(name: 'provision_type', value: 'on_demand')
-						]
-						build job: 'ubuntu24-sanity-ipv6-test', wait: false, parameters: [
-							string(name: 'provision_type', value: 'on_demand')
-						]
-						build job: 'ubuntu24-vnodes-tablets-enterprise-sanity-test', wait: false, parameters: [
-							string(name: 'provision_type', value: 'on_demand')
-						]
-					}
-				}
-
-				stage('Installation Tests') {
-					steps {
-						build job: 'rocky9-installation-test', wait: false, parameters: [
-							string(name: 'provision_type', value: 'on_demand')
-						]
-						build job: 'ubuntu22-installation-test', wait: false, parameters: [
-							string(name: 'provision_type', value: 'on_demand')
-						]
-						build job: 'debian12-installation-test', wait: false, parameters: [
-							string(name: 'provision_type', value: 'on_demand')
-						]
-					}
-				}
-
-				stage('Backup Tests') {
-					steps {
-						build job: 'sct-feature-test-backup', wait: false, parameters: [
-							string(name: 'provision_type', value: 'on_demand')
-						]
-						build job: 'sct-feature-test-backup-gce', wait: false, parameters: [
-							string(name: 'provision_type', value: 'on_demand')
-						]
-						build job: 'sct-feature-test-backup-azure', wait: false, parameters: [
-							string(name: 'provision_type', value: 'on_demand')
-						]
-					}
-				}
-
-				stage('Dtests') {
-					steps {
-						build job: 'dtest-manager-no-tablets', wait: false
-						build job: 'dtest-manager-with-tablets', wait: false
-					}
-				}
-			}
-		}
-	}
-
-	post {
-		failure {
-			echo "Weekly trigger pipeline failed"
 		}
 	}
 }
