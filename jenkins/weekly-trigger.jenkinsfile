@@ -1,0 +1,23 @@
+pipeline {
+	agent none
+
+	options {
+		disableConcurrentBuilds()
+	}
+
+	triggers {
+		cron('TZ=Israel\nH 0 * * 6')
+	}
+
+	stages {
+		stage('Build & Test') {
+			steps {
+				build job: 'manager-build', wait: false, parameters: [
+					booleanParam(name: 'RUN_MANAGER_SCT', value: true),
+					booleanParam(name: 'RUN_MANAGER_DTEST', value: true),
+					string(name: 'SCT_TESTS_PRIORITY', value: 'P2')
+				]
+			}
+		}
+	}
+}
