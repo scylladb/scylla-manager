@@ -72,6 +72,8 @@ type workerTools struct {
 	Config      Config
 	Client      *scyllaclient.Client
 	Logger      log.Logger
+
+	RetentionLockMode scyllaclient.RetentionLockMode
 }
 
 // worker is responsible for coordinating backup procedure.
