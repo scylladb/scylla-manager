@@ -5,6 +5,7 @@ package backup
 import (
 	"bytes"
 	"context"
+	stdErr "errors"
 	"path"
 	"slices"
 	"strconv"
@@ -61,12 +62,34 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		d := &dirs[i]
 		dataDst := h.Location.RemotePath(w.remoteSSTableDir(h, *d))
 
+		applyHolds := w.RetentionLockMode == scyllaclient.RetentionLockEventBasedHold
+		var holdHandler *eventBasedHoldHandler
+		if applyHolds {
+			// Initialize holdHandler
+			apply := func(ctx context.Context, paths []string, hold bool) error {
+				return w.holdAndWait(ctx, h.IP, dataDst, paths, hold, d.Keyspace, d.Table)
+			}
+			holdHandler = newEventBasedHoldHandler(apply, eventBasedHoldBatchSize)
+			// Feed local files
+			for _, file := range d.Progress.files {
+				holdHandler.addLocal(file.Name)
+			}
+			for _, name := range d.ScyllaManifests {
+				holdHandler.addLocal(renameScyllaManifest(w.SnapshotTag, h.ID, name))
+			}
+			holdHandler.finalizeLocal()
+		}
+
 		remoteSSTableBundles := newSSTableBundlesByID()
 		listOpts := &scyllaclient.RcloneListDirOpts{
-			FilesOnly: true,
-			Recurse:   true,
+			FilesOnly:          true,
+			Recurse:            true,
+			ShowEventBasedHold: applyHolds,
 		}
-		if err := w.Client.RcloneListDirIter(ctx, h.IP, dataDst, listOpts, func(f *scyllaclient.RcloneListDirItem) {
+		listErr := w.Client.RcloneListDirIter(ctx, h.IP, dataDst, listOpts, func(f *scyllaclient.RcloneListDirItem) {
+			if applyHolds {
+				holdHandler.addRemote(ctx, f.Name, f.EventBasedHold)
+			}
 			// Skip scylla manifests
 			if strings.HasSuffix(f.Name, backupspec.ScyllaManifest) {
 				return
@@ -74,8 +97,16 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 			if err := remoteSSTableBundles.add(f.Name, f.Size); err != nil {
 				w.Logger.Error(ctx, "Couldn't create remote sstable bundle info", "file", f.Name, "error", err)
 			}
-		}); err != nil {
-			return errors.Wrapf(err, "host %s: listing all files from %s", h.IP, dataDst)
+		})
+		var finalizeErr error
+		if applyHolds {
+			finalizeErr = holdHandler.finalize(ctx)
+		}
+		if err := stdErr.Join(
+			errors.Wrapf(listErr, "host %s: listing all files from %s", h.IP, dataDst),
+			errors.Wrap(finalizeErr, "finalize event based holds"),
+		); err != nil {
+			return err
 		}
 
 		localSSTableBundles := newSSTableBundlesByID()

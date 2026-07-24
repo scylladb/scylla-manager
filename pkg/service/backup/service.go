@@ -873,6 +873,8 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			Method:      target.Method,
 			Config:      s.config,
 			Client:      client,
+
+			RetentionLockMode: target.RetentionLockMode,
 		},
 		PrevStage:            run.Stage,
 		Metrics:              s.metrics,
@@ -935,6 +937,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			if slices.Contains([]scyllaclient.RetentionLockMode{
 				scyllaclient.RetentionLockUnlocked,
 				scyllaclient.RetentionLockLocked,
+				scyllaclient.RetentionLockEventBasedHold,
 			}, target.RetentionLockMode) {
 				return w.RetentionLock(ctx, hi, target)
 			}
