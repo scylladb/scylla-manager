@@ -120,7 +120,8 @@ func NewFs(rootDir string) func(ctx context.Context, name, root string, m config
 			return nil, errors.Wrap(fs.ErrorObjectNotFound, "accessing path outside of root")
 		}
 		var path string
-		if strings.HasPrefix(p, rootDir) {
+		rel, err := filepath.Rel(rootDir, p)
+		if err == nil && !strings.HasPrefix(rel, "..") {
 			path = p
 		} else {
 			path = filepath.Join(rootDir, p)

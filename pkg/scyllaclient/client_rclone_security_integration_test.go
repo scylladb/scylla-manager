@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -58,7 +59,7 @@ func TestRcloneLocaldirPrefixCollisionIntegration(t *testing.T) {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
 		},
 	}
-	agentBaseURL := fmt.Sprintf("https://%s:10001/agent/rclone", testHost)
+	agentBaseURL := fmt.Sprintf("https://%s/agent/rclone", net.JoinHostPort(testHost, "10001"))
 	authToken := AgentAuthToken()
 
 	// Helper for making authenticated POST requests to the agent rclone API.
@@ -95,6 +96,12 @@ func TestRcloneLocaldirPrefixCollisionIntegration(t *testing.T) {
 		cleanupCmd := strings.Join([]string{
 			"rm -rf " + scyllaDataDir + "/security_test_src",
 			"rm -rf " + siblingDir,
+			// Clean up any jailed rewrites that may have been created inside
+			// the data directory to avoid confusing Scylla's table scanner.
+			// With the fix applied, paths like /var/lib/scylla/data-security-test
+			// get rewritten to /var/lib/scylla/data/var/lib/scylla/data-security-test.
+			"rm -rf " + scyllaDataDir + "/var",
+			"rm -rf " + scyllaDataDir + "/tmp",
 		}, " && ")
 		_, _, _ = ExecOnHost(testHost, cleanupCmd)
 	}()
@@ -170,6 +177,9 @@ func TestRcloneLocaldirPrefixCollisionIntegration(t *testing.T) {
 			t.Fatal("cleanup failed:", err)
 		}
 		defer func() { _, _, _ = ExecOnHost(testHost, cleanCmd) }()
+		// Also clean up inside the jail where the path gets rewritten to.
+		jailedPath := scyllaDataDir + unrelatedDir
+		defer func() { _, _, _ = ExecOnHost(testHost, "rm -rf "+jailedPath) }()
 
 		agentPost(t, "operations/copyfile", map[string]interface{}{
 			"srcFs":     "data:",
