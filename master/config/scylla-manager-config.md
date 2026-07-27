@@ -1,0 +1,187 @@
+<a id="configuration-file"></a>
+
+# ScyllaDB Manager Config
+
+ScyllaDB Manager configuration file `/etc/scylla-manager/scylla-manager.yaml`.
+
+```yaml
+# Scylla Manager config YAML
+
+# Bind REST API to the specified TCP address using HTTP protocol.
+http: 127.0.0.1:5080
+
+# Bind REST API to the specified TCP address using HTTPS protocol.
+#https: 127.0.0.1:5443
+
+# Version of TLS protocol and cipher suites to use with HTTPS.
+# The supported versions are: TLSv1.3, TLSv1.2, TLSv1.0.
+# The TLSv1.2 is restricted to the following cipher suites:
+# ECDHE-ECDSA-WITH-AES-128-GCM-SHA256, ECDHE-RSA-WITH-AES-128-GCM-SHA256,
+# ECDHE-ECDSA-WITH-AES-256-GCM-SHA384, ECDHE-RSA-WITH-AES-256-GCM-SHA384,
+# ECDHE-ECDSA-WITH-CHACHA20-POLY1305, ECDHE-RSA-WITH-CHACHA20-POLY1305.
+# The TLSv1.0 should never be used as it's deprecated.
+#tls_mode: TLSv1.2
+
+# TLS certificate and key files to use with HTTPS. The files must contain PEM
+# encoded data. If not set a self-signed certificate will be generated,
+# the certificate is valid for 1 year after start and uses EC P256 private key.
+#tls_cert_file:
+#tls_key_file:
+#
+# CA to validate client certificates, if set client must present a certificate
+# signed by the CA.
+#tls_ca_file:
+
+# Bind prometheus API to the specified TCP address using HTTP protocol.
+# By default it binds to all network interfaces but you can restrict it
+# by specifying it like this 127:0.0.1:5090 or any other combination
+# of ip and port.
+#prometheus: ':5090'
+
+# Debug server that allows to run pporf profiling on demand on a live system.
+#debug: 127.0.0.1:5112
+
+# Set the validity timeout for Scylla Manager Agent API clients cached by Scylla Manager.
+# Use 0 to disable the cache.
+#client_cache_timeout: 15m
+
+# Logging configuration.
+#logger:
+# Where to print logs, stderr or stdout.
+#  mode: stderr
+# How much logs to print, available levels are: error, info, debug.
+#  level: info
+# Sampling reduces number of logs by not printing duplicated log entries within
+# a second. The first N (initial) entries with a given level and message are
+# printed. If more entries with the same level and message are seen during
+# the same interval, every Mth (thereafter) message is logged and the rest is
+# dropped.
+#  sampling:
+#    initial:
+#    thereafter:
+
+# Scylla Manager database, used to store management data.
+#database:
+#  hosts:
+#    - 127.0.0.1
+#
+# Override default 9042 CQL port
+#  port: 5555
+#
+# Enable or disable client/server encryption.
+#  ssl: false
+#
+# Database credentials.
+#  user: user
+#  password: password
+#
+# Local datacenter name, specify if using a remote, multi-dc cluster.
+#  local_dc:
+#
+# Keyspace for management data.
+# It will be created automatically on ScyllaDB Manager server startup if it does not already exist.
+# In such case, it will use NetworkTopologyStrategy and have replication factor equal to the amount
+# of racks in each data center. In case where this setup could lead to reduced availability
+# (total replication factor smaller than 3), replication factor will be increased up to 3
+# (depending on node count) regardless of the rack count.
+# In case different keyspace replication is required, it should be created manually
+# before starting ScyllaDB Manager server (this action is recommended for non default
+# ScyllaDB Manager database deployments - especially multi datacenter ones).
+#  keyspace: scylla_manager
+#
+# Query timeout.
+#  timeout: 1s
+#
+# Should we use a token aware driver, this would make manager access appropriate
+# host and shard to execute a request eliminating request routing.
+#  token_aware: true
+
+# Optional custom client/server encryption options.
+#ssl:
+# CA certificate used to validate server cert. If not set will use host's root CA set.
+#  cert_file:
+#
+# Verify the hostname and server cert.
+#  validate: true
+#
+# Client certificate and key in PEM format. It has to be provided when
+# client_encryption_options.require_client_auth=true is set on server.
+#  user_cert_file:
+#  user_key_file
+
+# Health-check service configuration.
+#healthcheck:
+# max_timeout specifies ping timeout for all ping types (CQL, REST, Alternator).
+#  max_timeout: 1s
+#
+# node_info_ttl specifies how long node info should be cached. Caching node info improves
+# healthcheck reliability on heavy loaded clusters, but it may cause transitional issues
+# on node configuration changes.
+#  node_info_ttl: 5m
+#
+# cql_ping_cron specifies cron expression for scheduling CQL ping.
+#  cql_ping_cron: '* * * * *'
+#
+# rest_ping_cron specifies cron expression for scheduling REST ping.
+#  rest_ping_cron: '* * * * *'
+#
+# alternator_ping_cron specifies cron expression for scheduling Alternator ping.
+#  alternator_ping_cron: '* * * * *'
+
+# Backup service configuration.
+#backup:
+# Minimal amount of free disk space required to take a snapshot.
+#  disk_space_free_min_percent: 10
+#
+# Maximal time for backup run to be considered fresh and can be continued from
+# the same snapshot. If exceeded, new run with new snapshot will be created.
+# Zero means no limit.
+#  age_max: 24h
+#
+# Frequency with which Scylla Manager polls upload status.
+#  long_polling_timeout_seconds: 10
+
+# Restore service configuration.
+#restore:
+# Minimal amount of free disk space required for node to be used in restore process.
+#  disk_space_free_min_percent: 10
+#
+# Frequency with which Scylla Manager polls download status.
+#  long_polling_timeout_seconds: 10
+
+# Repair service configuration.
+#repair:
+# Timeout on querying repair status of vnode replicated table. Zero means no timeout.
+# Use only if you observe that Scylla Manager hangs indefinitely when querying vnode repair status.
+#  status_timeout: 0
+#
+# Maximal time a paused repair is considered fresh and can be continued,
+# if exceeded repair will start from the beginning. Zero means no limit.
+#  age_max: 0
+#
+# Specifies how long repair will wait until all ongoing repair requests finish
+# when repair task is stopped. After this time, task will be interrupted.
+#  graceful_stop_timeout: 30s
+
+# Connection configuration to Scylla Agent.
+#  agent_client:
+#
+# Timeouts configuration.
+#    timeout: 30s
+#    max_timeout: 1h
+#    list_timeout: 5m
+#
+# Connection backoff configuration.
+#    backoff:
+#      wait_min: 1s
+#      wait_max: 30s
+#      max_retries: 9
+#      multiplier: 2
+#      jitter: 0.2
+#    interactive_backoff:
+#      wait_min: 1s
+#      max_retries: 1
+#
+# Time window to measure average request time in host pool.
+#    pool_decay_duration: 30m
+```

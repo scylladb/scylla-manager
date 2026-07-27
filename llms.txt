@@ -1,0 +1,62 @@
+# Scylla Manager
+
+> Scylla Manager  documentation
+
+
+2026, ScyllaDB. All rights reserved.
+
+## Pages
+
+- [ScyllaDB Manager](https://manager.docs.scylladb.com/stable/index.md): ![image](images/header.png)
+- [Repair](https://manager.docs.scylladb.com/stable/repair/index.md): > * [Tablet repair](#tablet-repair)
+- [Restore](https://manager.docs.scylladb.com/stable/restore/index.md): > * [Restore types](#restore-types)
+- [Docker](https://manager.docs.scylladb.com/stable/docker/index.md): ScyllaDB Manager docker images can be downloaded from Docker hub:
+- [CLI sctool](https://manager.docs.scylladb.com/stable/sctool/index.md): `sctool` is a Command Line Interface (CLI) for the ScyllaDB Manager server.
+- [Backup](https://manager.docs.scylladb.com/stable/backup/index.md): > * [Features](#features)
+- [Swagger File](https://manager.docs.scylladb.com/stable/swagger/index.md): ScyllaDB Manager Server ships with Swagger UI that is served under `/ui/` URL path.
+- [ScyllaDB Manager Upgrade](https://manager.docs.scylladb.com/stable/upgrade/index.md): This document describes the upgrade process between two versions of ScyllaDB Manager.
+- [Configuration Files](https://manager.docs.scylladb.com/stable/config/index.md): This page is where you will find information on ScyllaDB Manager and ScyllaDB Manager Agent configur...
+- [Add a Cluster](https://manager.docs.scylladb.com/stable/add-a-cluster.md): **Prerequisites**
+- [Backup](https://manager.docs.scylladb.com/stable/sctool/backup.md): The backup commands allow you to: create and update a backup (ad-hoc or scheduled), list the content...
+- [Cluster](https://manager.docs.scylladb.com/stable/sctool/cluster.md): The cluster commands allow you to add, delete, list, and update clusters.
+- [Compatibility Matrix](https://manager.docs.scylladb.com/stable/compatibility-matrix.md): The following table shows which version of ScyllaDB Manager supports which versions of ScyllaDB.
+- [Completion](https://manager.docs.scylladb.com/stable/sctool/completion.md): help for completion
+- [Download files](https://manager.docs.scylladb.com/stable/sctool/download-files.md): ScyllaDB Manager Agent comes with a download-files subcommand that given a backup location can be us...
+- [Examples](https://manager.docs.scylladb.com/stable/repair/examples.md): > * [Schedule a repair](#schedule-a-repair)
+- [Examples](https://manager.docs.scylladb.com/stable/restore/examples.md): > * [Prerequisites](#prerequisites)
+- [Examples](https://manager.docs.scylladb.com/stable/backup/examples.md): > * [Create a scheduled backup](#create-a-scheduled-backup)
+- [Environment variables](https://manager.docs.scylladb.com/stable/sctool/global-flags-and-variables.md): The variables presented in this section can be used with any sctool command.
+- [Health Check](https://manager.docs.scylladb.com/stable/health-check.md): ScyllaDB Manager automatically adds three health check tasks when the cluster is added to the Scylla...
+- [Info](https://manager.docs.scylladb.com/stable/sctool/info.md): This command shows a details about task run history for a given task.
+- [Install ScyllaDB Manager Agent](https://manager.docs.scylladb.com/stable/install-scylla-manager-agent.md): ScyllaDB Manager Agent is a daemon, that needs to be **installed and started on each ScyllaDB node**...
+- [Install ScyllaDB Manager](https://manager.docs.scylladb.com/stable/install-scylla-manager.md): > * [System requirements](#system-requirements)
+- [Native Backup](https://manager.docs.scylladb.com/stable/backup/native-backup.md): ScyllaDB Manager uses ScyllaDB Manager Agents deployed on each ScyllaDB node to coordinate backups.
+- [Native Restore](https://manager.docs.scylladb.com/stable/restore/native-restore.md): Native restore is an optimization similar to [native backup](https://manager.docs.scylladb.com/stabl...
+- [Progress](https://manager.docs.scylladb.com/stable/sctool/progress.md): This command shows details of the latest run (or still running) task.
+- [Repair faster](https://manager.docs.scylladb.com/stable/repair/repair-faster.md): By default ScyllaDB Manager runs repairs with full parallelism, the way to make repairs faster is by...
+- [Repair slower](https://manager.docs.scylladb.com/stable/repair/repair-slower.md): You can make repair run slower by changing the level of parallelism or intensity.
+- [Repair](https://manager.docs.scylladb.com/stable/sctool/repair.md): The repair commands allow you to: create and update a repair (ad-hoc or scheduled), and change selec...
+- [Restore schema](https://manager.docs.scylladb.com/stable/restore/restore-schema.md): Currently, ScyllaDB Manager supports only entire schema restoration, so `--keyspace` flag is not all...
+- [Restore tables](https://manager.docs.scylladb.com/stable/restore/restore-tables.md): ScyllaDB Manager does not support restoring content of [CDC log tables](https://docs.scylladb.com/ma...
+- [Restore](https://manager.docs.scylladb.com/stable/sctool/restore.md): The restore commands allow you to create and update a restore (ad-hoc or scheduled).
+- [Retention Lock](https://manager.docs.scylladb.com/stable/backup/retention-lock.md): ScyllaDB Manager can protect snapshot files from accidental or malicious deletion
+- [ScyllaDB Manager Agent Config](https://manager.docs.scylladb.com/stable/config/scylla-manager-agent-config.md): ScyllaDB Manager Agent configuration file `/etc/scylla-manager-agent/scylla-manager-agent.yaml`.
+- [ScyllaDB Manager Config](https://manager.docs.scylladb.com/stable/config/scylla-manager-config.md): ScyllaDB Manager configuration file `/etc/scylla-manager/scylla-manager.yaml`.
+- [ScyllaDB Monitoring](https://manager.docs.scylladb.com/stable/scylla-monitoring.md): ScyllaDB Manager provides Consul’s Service Catalog API that is used by Prometheus to dynamically get...
+- [Setup Amazon S3](https://manager.docs.scylladb.com/stable/backup/setup-amazon-s3.md): > * [Create a bucket](#create-a-bucket)
+- [Setup Azure Blob Storage](https://manager.docs.scylladb.com/stable/backup/setup-azure-blobstorage.md): > * [Create a container](#create-a-container)
+- [Setup Google Cloud Storage](https://manager.docs.scylladb.com/stable/backup/setup-gcs.md): > * [Create a bucket](#create-a-bucket)
+- [Setup Local Storage](https://manager.docs.scylladb.com/stable/backup/setup-local-storage.md): > * [Prerequisites](#prerequisites)
+- [Setup S3 compatible storage](https://manager.docs.scylladb.com/stable/backup/setup-s3-compatible-storage.md): > * [Create a bucket](#create-a-bucket)
+- [Specification](https://manager.docs.scylladb.com/stable/backup/specification.md): > * [Directory Layout](#directory-layout)
+- [Start](https://manager.docs.scylladb.com/stable/sctool/start.md): This command starts a specified task.
+- [Status](https://manager.docs.scylladb.com/stable/sctool/status.md): The status command allows you to view information about your cluster.
+- [Stop](https://manager.docs.scylladb.com/stable/sctool/stop.md): This command stops a specified task, stopping an already stopped task has no effect.
+- [Suspend & Resume](https://manager.docs.scylladb.com/stable/sctool/suspend-resume.md): The suspend command stops execution of **all** tasks that are running on a cluster.
+- [Tasks](https://manager.docs.scylladb.com/stable/sctool/task.md): This command shows all of the scheduled tasks for the specified cluster.
+- [Troubleshooting](https://manager.docs.scylladb.com/stable/troubleshooting.md): > * [Use custom port for ScyllaDB Manager Agent](#use-custom-port-for-scylladb-manager-agent)
+- [Version](https://manager.docs.scylladb.com/stable/sctool/version.md): This command shows the currently installed sctool version and the Scylla Manager server version.
+
+---
+
+For more comprehensive documentation, see [llms-full.txt](https://manager.docs.scylladb.com/stable/llms-full.txt)
