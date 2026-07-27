@@ -261,12 +261,14 @@ Please find below the contents of the manifest file of the node shown in the sst
 
    {
      "version": "v2",
+     "scylla_version": "2026.2.0",
      "cluster_name": "test_cluster",
      "ip": "192.168.100.13",
      "index": [
        {
          "keyspace": "backuptest_data",
          "table": "big_table",
+         "replication_type": "tablets",
          "version": "f34b6ff0f8f711eb9fcf000000000000",
          "files": [
            "mc-3ggs_0xmx_3261s2qpoyoxpg4min-big-CompressionInfo.db",
@@ -287,6 +289,9 @@ Please find below the contents of the manifest file of the node shown in the sst
            "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Statistics.db",
            "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-Summary.db",
            "mc-3ggs_0xmx_3nlnl24aeuqnqzxgxr-big-TOC.txt"
+         ],
+         "scylla_manifests": [
+           "tag_sm_20210809095541UTC_node_01c9349e-89e6-4ceb-a727-4f27f9f2acce_manifest.json"
          ],
          "size": 1256031
        }
@@ -323,9 +328,17 @@ Please find below the contents of the manifest file of the node shown in the sst
 The manifest contains the following information.
 
 * version          - the version of the manifest
+* scylla_version   - ScyllaDB version of the node
 * cluster_name     - name of the cluster as registered in ScyllaDB Manager
 * ip               - public IP address of the node
-* index            - list of tables, each table holds a list of file names
+* index            - list of tables included in the backup
+   * keyspace          - keyspace name
+   * table             - table name
+   * replication_type  - replication type of the keyspace, either ``vnodes`` or ``tablets``
+   * version           - table version
+   * files             - list of SSTable component file names
+   * scylla_manifests  - list of ScyllaDB manifest files created for the table snapshot. They are stored alongside the table SSTables and their names are prefixed with ``tag_<snapshot tag>_node_<node ID>_`` to avoid name collisions
+   * size              - total size of table files in bytes
 * size             - total size of files in index
 * tokens           - tokens owned by node, they allow to recreate the cluster topology
 * schema           - path to schema file
