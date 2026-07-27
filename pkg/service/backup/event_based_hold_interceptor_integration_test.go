@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -19,11 +20,14 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
@@ -320,6 +324,129 @@ func TestBackupRetentionLockCRUDIntegration(t *testing.T) {
 
 	Print("Then: file has locked retention")
 	assertObjectMetadata(t, h.Client, host, remoteFile, false, string(scyllaclient.RetentionLockLocked), until)
+}
+
+func TestBackupEventBasedHoldIntegration(t *testing.T) {
+	// This test verifies basic event based hold backup flow:
+	// - newly uploaded files (manifests, schema files, sstables) have hold
+	// - deduplicated files have hold
+	// - files from non-current snapshot don't have hold
+	// - files with hold manually changed are adjusted
+	const (
+		testBucket   = "backuptest-event-based-hold"
+		testKeyspace = "backuptest_event_based_hold"
+	)
+	host := ManagedClusterHost()
+	policy := 24 * time.Hour
+	// To avoid precision error on round trip comparisons
+	baseTime := timeutc.Now().Truncate(time.Millisecond)
+
+	location := backupspec.Location{Provider: backupspec.GCS, Path: testBucket}
+	GCSInitBucket(t, testBucket)
+	h := newBackupTestHelper(t, CreateSessionWithoutMigration(t), defaultConfig(), location, nil)
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
+
+	interceptor := newEventBasedHoldInterceptor(t, h.Hrt)
+	interceptor.defaultBucketRetentionPolicy = policy
+	interceptor.defaultEventBasedHold = true
+	interceptor.now = func() time.Time { return baseTime }
+
+	nextID := RawWriteData(t, clusterSession, testKeyspace, 0, 1, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", false)
+
+	Print("Given: backup target with event based hold")
+	props := defaultTestProperties(location, testKeyspace)
+	props["dc"] = []string{"dc1"}
+	props["retention"] = 0
+	props["retention_days"] = 2
+	props["method"] = backup.MethodAuto
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := h.service.GetTarget(t.Context(), h.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target.RetentionLockMode = scyllaclient.RetentionLockEventBasedHold
+	// To skip not interesting schema sstables
+	target.Units = []backup.Unit{{Keyspace: testKeyspace}}
+
+	Print("When: first backup is executed")
+	runID := uuid.NewTime()
+	if err := h.service.Backup(t.Context(), h.ClusterID, h.TaskID, runID, target); err != nil {
+		t.Fatal(err)
+	}
+	tagA, err := h.service.GetProgress(t.Context(), h.ClusterID, h.TaskID, runID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: all files from the snapshot have event based hold")
+	tagAFiles := listSnapshotFiles(t, h, tagA.SnapshotTag)
+	assertObjectMetadataAll(t, h.Client, host, location, tagAFiles, true, "", time.Time{})
+
+	tagATOCFiles := make([]string, 0)
+	for _, file := range tagAFiles {
+		if strings.HasSuffix(file, string(sstable.ComponentTOC)) {
+			tagATOCFiles = append(tagATOCFiles, file)
+		}
+	}
+	if len(tagATOCFiles) == 0 {
+		t.Fatal("Expected TOC components")
+	}
+
+	// Clearing hold only from TOC components creates inconsistent remote sstables,
+	// as all sstable components should have the same hold state.
+	// Deduplicated sstables need hold re-applied on TOC components,
+	// while non-current sstables need hold removed from the remaining components.
+	Print("When: event based hold is manually removed from every TOC component")
+	for _, file := range tagATOCFiles {
+		if err := h.Client.RcloneEventBasedHold(t.Context(), host, location.RemotePath(file), false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	assertObjectMetadataAll(t, h.Client, host, location, tagATOCFiles, false, string(scyllaclient.RetentionLockLocked), baseTime.Add(policy))
+
+	// The second backup should contain both deduplicated and new sstables
+	Print("And: small amount of new data is inserted")
+	RawWriteData(t, clusterSession, testKeyspace, nextID, 1, "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}", false)
+
+	Print("And: second backup is executed")
+	runID = uuid.NewTime()
+	if err := h.service.Backup(t.Context(), h.ClusterID, h.TaskID, runID, target); err != nil {
+		t.Fatal(err)
+	}
+	tagB, err := h.service.GetProgress(t.Context(), h.ClusterID, h.TaskID, runID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Print("Then: all files from the current snapshot have event based hold")
+	tagBFiles := listSnapshotFiles(t, h, tagB.SnapshotTag)
+	assertObjectMetadataAll(t, h.Client, host, location, tagBFiles, true, "", time.Time{})
+
+	tagBFilesSet := make(map[string]struct{}, len(tagBFiles))
+	for _, file := range tagBFiles {
+		tagBFilesSet[file] = struct{}{}
+	}
+	var tagAOnlyFiles []string
+	for _, file := range tagAFiles {
+		if _, ok := tagBFilesSet[file]; !ok {
+			tagAOnlyFiles = append(tagAOnlyFiles, file)
+		}
+	}
+	if len(tagAOnlyFiles) == 0 {
+		t.Fatal("Expected some files to be present only in the first snapshot")
+	}
+
+	Print("And: files from non-current snapshots don't have event based hold")
+	assertObjectMetadataAll(t, h.Client, host, location, tagAOnlyFiles, false, string(scyllaclient.RetentionLockLocked), baseTime.Add(policy))
+}
+
+func assertObjectMetadataAll(t *testing.T, client *scyllaclient.Client, host string, location backupspec.Location, files []string, hold bool, retentionMode string, retainUntil time.Time) {
+	for _, file := range files {
+		assertObjectMetadata(t, client, host, location.RemotePath(file), hold, retentionMode, retainUntil)
+	}
 }
 
 func assertObjectMetadata(t *testing.T, client *scyllaclient.Client, host, objectPath string, hold bool, retentionMode string, retainUntil time.Time) {
