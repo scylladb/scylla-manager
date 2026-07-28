@@ -121,6 +121,17 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		if err != nil {
 			return errors.Wrap(err, "deduplication based on .crc32 content")
 		}
+		if applyHolds && willCreateVersioned {
+			// Creation of versioned sstable happens by copying old sstable version with appended version
+			// suffix, then removing the original old version, then uploading the new version.
+			// This is not compatible with event based hold backup, where default backup retention policy
+			// is expected to prevent files from being deleted.
+			return errors.Errorf("host %s: table %s.%s: snapshot contains sstables with integer based IDs which upload would result in creation of versioned files. "+
+				"Upload of such snapshot is not compatible with event based hold backup. "+
+				"To proceed, make sure that new sstables use UUID based IDs and compact the integer based sstables away. "+
+				"Then, start the backup task from scratch.", h.IP, d.Keyspace, d.Table)
+		}
+
 		d.willCreateVersioned = willCreateVersioned
 		deduplicated := make([]string, 0, len(deduplicatedUUIDSSTables)+len(deduplicatedIntSSTables))
 
