@@ -36,6 +36,23 @@ func TestAvailableCPUs(t *testing.T) {
 	}
 }
 
+func TestAvailableCPUsAllBusy(t *testing.T) {
+	t.Parallel()
+
+	var cpus unix.CPUSet
+	if err := unix.SchedGetaffinity(0, &cpus); err != nil {
+		t.Fatal(err)
+	}
+
+	a, err := AvailableCPUs(cpulist(&cpus))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(a) != 0 {
+		t.Fatalf("expected no available CPUs, got %d", len(a))
+	}
+}
+
 func TestSchedSetAffinity(t *testing.T) {
 	var cpus unix.CPUSet
 	if err := unix.SchedGetaffinity(0, &cpus); err != nil {
