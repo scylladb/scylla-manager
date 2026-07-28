@@ -9,18 +9,52 @@ import (
 	"sync"
 	"time"
 
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
-// listManifestsInAllLocations returns manifests for all nodes of a in all
-// locations specified in hosts.
+type remoteManifestInfo struct {
+	*backupspec.ManifestInfo
+
+	RetentionMode  scyllaclient.RetentionLockMode
+	RetainUntil    time.Time
+	EventBasedHold bool
+}
+
+func (m remoteManifestInfo) Protected(now time.Time) bool {
+	return m.EventBasedHold || m.RetainUntil.After(now)
+}
+
+func protectedTags(manifests []remoteManifestInfo) *strset.Set {
+	tags := strset.New()
+	now := timeutc.Now()
+	for _, m := range manifests {
+		if m.Protected(now) {
+			tags.Add(m.SnapshotTag)
+		}
+	}
+	return tags
+}
+
+// listManifestsInAllLocations is a type wrapper for listRemoteManifestsInAllLocations.
 func listManifestsInAllLocations(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo, clusterID uuid.UUID) ([]*backupspec.ManifestInfo, error) {
+	manifests, err := listRemoteManifestsInAllLocations(ctx, client, hosts, clusterID)
+	if err != nil {
+		return nil, err
+	}
+	return manifestInfos(manifests), nil
+}
+
+// listRemoteManifestsInAllLocations returns remote manifests for locations specified in hosts.
+func listRemoteManifestsInAllLocations(ctx context.Context, client *scyllaclient.Client, hosts []hostInfo, clusterID uuid.UUID) ([]remoteManifestInfo, error) {
 	var (
 		locations = make(map[backupspec.Location]struct{})
-		manifests []*backupspec.ManifestInfo
+		manifests []remoteManifestInfo
 	)
 
 	for i := range hosts {
@@ -29,7 +63,7 @@ func listManifestsInAllLocations(ctx context.Context, client *scyllaclient.Clien
 		}
 		locations[hosts[i].Location] = struct{}{}
 
-		lm, err := listManifests(ctx, client, hosts[i].IP, hosts[i].Location, clusterID)
+		lm, err := listRemoteManifests(ctx, client, hosts[i].IP, hosts[i].Location, clusterID)
 		if err != nil {
 			return nil, err
 		}
@@ -39,10 +73,19 @@ func listManifestsInAllLocations(ctx context.Context, client *scyllaclient.Clien
 	return manifests, nil
 }
 
-// listManifests returns manifests for all nodes of a given cluster in the location.
+// listManifests is a type wrapper for listRemoteManifests.
+func listManifests(ctx context.Context, client *scyllaclient.Client, host string, location backupspec.Location, clusterID uuid.UUID) ([]*backupspec.ManifestInfo, error) {
+	manifests, err := listRemoteManifests(ctx, client, host, location, clusterID)
+	if err != nil {
+		return nil, err
+	}
+	return manifestInfos(manifests), nil
+}
+
+// listRemoteManifests returns remote manifests for all nodes of a given cluster in the location.
 // Manifests are sorted deterministically by their ClusterID, TaskID, SnapshotTag and NodeID.
 // If cluster is uuid.Nil then it returns manifests for all clusters it can find.
-func listManifests(ctx context.Context, client *scyllaclient.Client, host string, location backupspec.Location, clusterID uuid.UUID) ([]*backupspec.ManifestInfo, error) {
+func listRemoteManifests(ctx context.Context, client *scyllaclient.Client, host string, location backupspec.Location, clusterID uuid.UUID) ([]remoteManifestInfo, error) {
 	baseDir := backupspec.RemoteMetaClusterDCDir(clusterID)
 	if clusterID == uuid.Nil {
 		baseDir = path.Join("backup", string(backupspec.MetaDirKind))
@@ -52,11 +95,20 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 		FilesOnly: true,
 		Recurse:   true,
 	}
+	if location.Provider == backupspec.GCS {
+		opts.ShowRetentionInfo = true
+		opts.ShowEventBasedHold = true
+	}
 
-	var manifests []*backupspec.ManifestInfo
+	var manifests []remoteManifestInfo
 	err := client.RcloneListDirIter(ctx, host, location.RemotePath(baseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
 		p := path.Join(baseDir, f.Path)
-		m := &backupspec.ManifestInfo{}
+		m := remoteManifestInfo{
+			ManifestInfo:   &backupspec.ManifestInfo{},
+			RetentionMode:  scyllaclient.RetentionLockMode(f.RetentionMode),
+			RetainUntil:    time.Time(f.RetainUntil),
+			EventBasedHold: f.EventBasedHold,
+		}
 		if err := m.ParsePath(p); err != nil {
 			return
 		}
@@ -81,6 +133,12 @@ func listManifests(ctx context.Context, client *scyllaclient.Client, host string
 	})
 
 	return manifests, nil
+}
+
+func manifestInfos(manifests []remoteManifestInfo) []*backupspec.ManifestInfo {
+	return slices.Map(manifests, func(m remoteManifestInfo) *backupspec.ManifestInfo {
+		return m.ManifestInfo
+	})
 }
 
 // ListFilter specifies manifest listing criteria.

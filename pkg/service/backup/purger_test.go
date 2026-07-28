@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/backupspec"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
@@ -106,5 +107,80 @@ func TestStaleTags(t *testing.T) {
 
 	if diff := cmp.Diff(tags.List(), golden, cmpopts.SortSlices(func(a, b string) bool { return a < b })); diff != "" {
 		t.Fatalf("staleTags() = %s, diff:\n%s", tags.List(), diff)
+	}
+}
+
+func TestRemoteManifestInfoProtected(t *testing.T) {
+	t.Parallel()
+	now := timeutc.Now()
+
+	tests := []struct {
+		name     string
+		manifest remoteManifestInfo
+		expected bool
+	}{
+		{
+			name: "not protected",
+		},
+		{
+			name: "event based hold",
+			manifest: remoteManifestInfo{
+				EventBasedHold: true,
+			},
+			expected: true,
+		},
+		{
+			name: "future retention",
+			manifest: remoteManifestInfo{
+				RetainUntil: now.Add(time.Hour),
+			},
+			expected: true,
+		},
+		{
+			name: "expired retention",
+			manifest: remoteManifestInfo{
+				RetainUntil: now.Add(-time.Hour),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			if got := test.manifest.Protected(now); got != test.expected {
+				t.Fatalf("Protected() = %v, expected %v", got, test.expected)
+			}
+		})
+	}
+}
+
+func TestProtectedTags(t *testing.T) {
+	t.Parallel()
+
+	manifests := []remoteManifestInfo{
+		{
+			ManifestInfo: &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000000UTC"},
+		},
+		{
+			ManifestInfo: &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000001UTC"},
+			RetainUntil:  timeutc.Now().Add(time.Hour),
+		},
+		{
+			ManifestInfo:   &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000002UTC"},
+			EventBasedHold: true,
+		},
+		{
+			ManifestInfo: &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000003UTC"},
+			RetainUntil:  timeutc.Now().Add(-time.Hour),
+		},
+		{
+			ManifestInfo:   &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000001UTC"},
+			EventBasedHold: true,
+		},
+	}
+
+	expected := strset.New("sm_19700101000001UTC", "sm_19700101000002UTC")
+	if got := protectedTags(manifests); !got.IsEqual(expected) {
+		t.Fatalf("protectedTags() = %s, expected %s", got.List(), expected.List())
 	}
 }
