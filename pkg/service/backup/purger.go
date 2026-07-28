@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -26,10 +26,8 @@ import (
 // - manifests over task days retention days policy,
 // - manifests over task retention policy,
 // - manifests older than threshold if retention policy is unknown.
-// Moreover, it returns the oldest snapshot tag time that remains undeleted by retention policy.
-func staleTags(manifests []*backupspec.ManifestInfo, retentionMap RetentionMap) (*strset.Set, time.Time, error) {
+func staleTags(manifests []*backupspec.ManifestInfo, retentionMap RetentionMap) (*strset.Set, error) {
 	tags := strset.New()
-	var oldest time.Time
 
 	for taskID, taskManifests := range groupManifestsByTask(manifests) {
 		taskPolicy := GetRetention(taskID, retentionMap)
@@ -37,7 +35,7 @@ func staleTags(manifests []*backupspec.ManifestInfo, retentionMap RetentionMap) 
 		for _, m := range taskManifests {
 			t, err := backupspec.SnapshotTagTime(m.SnapshotTag)
 			if err != nil {
-				return nil, time.Time{}, errors.Wrapf(err, "parse manifest snapshot tag time")
+				return nil, errors.Wrapf(err, "parse manifest snapshot tag time")
 			}
 
 			switch {
@@ -48,8 +46,6 @@ func staleTags(manifests []*backupspec.ManifestInfo, retentionMap RetentionMap) 
 				tags.Add(m.SnapshotTag)
 			case taskPolicy.Retention > 0:
 				taskTags.Add(m.SnapshotTag)
-			case t.Before(oldest) || oldest.IsZero():
-				oldest = t
 			}
 		}
 
@@ -58,18 +54,30 @@ func staleTags(manifests []*backupspec.ManifestInfo, retentionMap RetentionMap) 
 			sort.Strings(l)
 			cut := len(l) - taskPolicy.Retention
 			tags.Add(l[:cut]...)
-
-			t, err := backupspec.SnapshotTagTime(l[cut])
-			if err != nil {
-				return nil, time.Time{}, err
-			}
-			if t.Before(oldest) || oldest.IsZero() {
-				oldest = t
-			}
 		}
 	}
 
-	return tags, oldest, nil
+	return tags, nil
+}
+
+// oldestKeptTag returns the time of the oldest snapshot tag that remains
+// after removing all manifests matching the given tags.
+func oldestKeptTag(manifests []*backupspec.ManifestInfo, staleTags *strset.Set) (time.Time, error) {
+	var oldest time.Time
+	for _, m := range manifests {
+		if staleTags.Has(m.SnapshotTag) {
+			continue
+		}
+
+		t, err := backupspec.SnapshotTagTime(m.SnapshotTag)
+		if err != nil {
+			return time.Time{}, errors.Wrapf(err, "parse manifest snapshot tag time")
+		}
+		if t.Before(oldest) || oldest.IsZero() {
+			oldest = t
+		}
+	}
+	return oldest, nil
 }
 
 type purger struct {
