@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -72,12 +72,17 @@ func TestStaleTags(t *testing.T) {
 	x.Temporary = true
 	manifests = append(manifests, x)
 
-	tags, oldest, err := staleTags(manifests, RetentionMap{
+	tags, err := staleTags(manifests, RetentionMap{
 		task0: {Retention: 3, RetentionDays: 0},
 		task1: {Retention: 2, RetentionDays: 0},
 		task3: {Retention: 2, RetentionDays: 10},
 		task4: {Retention: 1, RetentionDays: 10},
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	oldest, err := oldestKeptTag(manifests, tags)
 	if err != nil {
 		t.Fatal(err)
 	}

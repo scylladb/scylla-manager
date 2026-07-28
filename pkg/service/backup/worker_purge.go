@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package backup
 
@@ -18,9 +18,13 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 		return errors.Wrap(err, "list manifests")
 	}
 	// Get a list of stale tags
-	tags, oldest, err := staleTags(manifests, retentionMap)
+	tags, err := staleTags(manifests, retentionMap)
 	if err != nil {
 		return errors.Wrap(err, "get stale snapshot tags")
+	}
+	oldest, err := oldestKeptTag(manifests, tags)
+	if err != nil {
+		return errors.Wrap(err, "get oldest kept snapshot")
 	}
 	// Get a nodeID manifests popping function
 	pop := popNodeIDManifestsForLocation(manifests)

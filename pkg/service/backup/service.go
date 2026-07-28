@@ -1271,19 +1271,9 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 		p := newPurger(client, h.IP, s.logger)
 
 		tagS := strset.New(snapshotTags...)
-		var oldest time.Time
-		for _, m := range manifests {
-			if tagS.Has(m.SnapshotTag) {
-				continue
-			}
-
-			t, err := backupspec.SnapshotTagTime(m.SnapshotTag)
-			if err != nil {
-				return err
-			}
-			if t.Before(oldest) || oldest.IsZero() {
-				oldest = t
-			}
+		oldest, err := oldestKeptTag(manifests, tagS)
+		if err != nil {
+			return errors.Wrap(err, "get oldest kept snapshot")
 		}
 
 		n, err := p.PurgeSnapshotTags(ctx, manifests, tagS, oldest)
