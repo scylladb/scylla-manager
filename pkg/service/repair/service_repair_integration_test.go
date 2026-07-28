@@ -1238,6 +1238,9 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		Print("And: repair of all nodes continues")
 		h.assertProgress(100, longWait)
+
+		Print("And: wait for repair to fully stop")
+		h.assertDone(shortWait)
 	})
 
 	t.Run("repair restart respect repair control", func(t *testing.T) {
