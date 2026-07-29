@@ -25,13 +25,14 @@ func TestListManifests(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("one cluster", func(t *testing.T) {
-		manifests, error := listManifests(ctx, client, scyllaclienttest.TestHost,
+		remoteManifests, error := listRemoteManifests(ctx, client, scyllaclienttest.TestHost,
 			backupspec.Location{Provider: "testdata", Path: "list"},
 			uuid.MustParse("2e4ac82f-a7b5-4b6d-ab5e-0a1553a50a21"),
 		)
 		if error != nil {
 			t.Fatal("listManifests() error", error)
 		}
+		manifests := manifestInfos(remoteManifests)
 		testutils.SaveGoldenJSONFileIfNeeded(t, manifests)
 		var golden []*backupspec.ManifestInfo
 		testutils.LoadGoldenJSONFile(t, &golden)

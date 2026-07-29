@@ -73,15 +73,6 @@ func listRemoteManifestsInAllLocations(ctx context.Context, client *scyllaclient
 	return manifests, nil
 }
 
-// listManifests is a type wrapper for listRemoteManifests.
-func listManifests(ctx context.Context, client *scyllaclient.Client, host string, location backupspec.Location, clusterID uuid.UUID) ([]*backupspec.ManifestInfo, error) {
-	manifests, err := listRemoteManifests(ctx, client, host, location, clusterID)
-	if err != nil {
-		return nil, err
-	}
-	return manifestInfos(manifests), nil
-}
-
 // listRemoteManifests returns remote manifests for all nodes of a given cluster in the location.
 // Manifests are sorted deterministically by their ClusterID, TaskID, SnapshotTag and NodeID.
 // If cluster is uuid.Nil then it returns manifests for all clusters it can find.
@@ -251,6 +242,14 @@ func groupManifestsByTask(manifests []*backupspec.ManifestInfo) map[uuid.UUID][]
 	v := map[uuid.UUID][]*backupspec.ManifestInfo{}
 	for _, m := range manifests {
 		v[m.TaskID] = append(v[m.TaskID], m)
+	}
+	return v
+}
+
+func groupManifestsByLocation(manifests []*backupspec.ManifestInfo) map[backupspec.Location][]*backupspec.ManifestInfo {
+	v := map[backupspec.Location][]*backupspec.ManifestInfo{}
+	for _, m := range manifests {
+		v[m.Location] = append(v[m.Location], m)
 	}
 	return v
 }
