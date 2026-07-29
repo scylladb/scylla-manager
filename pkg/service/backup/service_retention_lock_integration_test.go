@@ -15,11 +15,15 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
+	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	"go.uber.org/atomic"
@@ -370,6 +374,184 @@ func TestBackupResumeOnRetentionLockStageIntegration(t *testing.T) {
 	Print("Then: all objects have correct retention locks after resume")
 	expectedRetain := snapshotTagRetainUntil(t, tag, 1)
 	lockHandler.assertRetention("Unlocked", expectedRetain, listSnapshotFiles(t, h, tag)...)
+}
+
+func TestBackupProtectedManifestsIntegration(t *testing.T) {
+	// This test verifies that snapshots whose manifests are protected by a retention
+	// lock or an event based hold are not removed. It checks that:
+	// - purge skips them even when the retention policy marks them as stale
+	// - explicit snapshot deletion fails instead of removing them
+	// and that once protection is cleared, those methods can remove them.
+	testCases := []struct {
+		name              string
+		bucket            string
+		keyspace          string
+		retentionLockMode scyllaclient.RetentionLockMode
+		setupInterceptor  func(ctx context.Context, h *backupTestHelper) *eventBasedHoldInterceptor
+		clearProtection   func(ctx context.Context, h *backupTestHelper, i *eventBasedHoldInterceptor, remotePath string) error
+	}{
+		{
+			name:              "retention lock",
+			bucket:            "backuptest-purge-protected-lock",
+			keyspace:          "backuptest_purge_protected_lock",
+			retentionLockMode: scyllaclient.RetentionLockUnlocked,
+			clearProtection: func(ctx context.Context, h *backupTestHelper, _ *eventBasedHoldInterceptor, remotePath string) error {
+				// GCS mock used in test env does not support clearing retention policy,
+				// but it allows to override it and set it in the past.
+				return h.Client.RcloneRetentionLock(ctx, ManagedClusterHost(), remotePath,
+					scyllaclient.RetentionLockUnlocked, timeutc.Now().Add(-24*time.Hour), true)
+			},
+		},
+		{
+			name:              "event based hold",
+			bucket:            "backuptest-purge-protected-hold",
+			keyspace:          "backuptest_purge_protected_hold",
+			retentionLockMode: scyllaclient.RetentionLockEventBasedHold,
+			setupInterceptor: func(ctx context.Context, h *backupTestHelper) *eventBasedHoldInterceptor {
+				i := newEventBasedHoldInterceptor(t, h.Hrt)
+				i.defaultEventBasedHold = true
+				i.defaultBucketRetentionPolicy = 24 * time.Hour
+				return i
+			},
+			clearProtection: func(ctx context.Context, h *backupTestHelper, i *eventBasedHoldInterceptor, remotePath string) error {
+				// Simple hold removal triggers bucket retention policy, so we need to first
+				// remove it, apply the hold and only then remove it, so that it correctly
+				// handles objects with already started retention periods.
+				i.defaultBucketRetentionPolicy = 0
+				if err := h.Client.RcloneEventBasedHold(ctx, ManagedClusterHost(), remotePath, true); err != nil {
+					return err
+				}
+				return h.Client.RcloneEventBasedHold(ctx, ManagedClusterHost(), remotePath, false)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			location := backupspec.Location{Provider: backupspec.GCS, Path: tc.bucket}
+			GCSInitBucket(t, tc.bucket)
+
+			var (
+				session        = CreateScyllaManagerDBSession(t)
+				h              = newBackupTestHelper(t, session, defaultConfig(), location, nil)
+				ctx            = t.Context()
+				clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+			)
+
+			var i *eventBasedHoldInterceptor
+			if tc.setupInterceptor != nil {
+				i = tc.setupInterceptor(ctx, h)
+			}
+
+			const replication = "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
+			nextID := RawWriteData(t, clusterSession, tc.keyspace, 0, 1, replication, true)
+
+			props := defaultTestProperties(location, tc.keyspace)
+			// Just to satisfy retention lock validation.
+			// Different retention policy will be used for purge purposes.
+			props["retention_days"] = 1
+			// Tests forcing GCS provider need to use method auto to avoid
+			// CI workflows using scylla version without native backup
+			// support for gcs aimed to test native backup for s3.
+			props["method"] = backup.MethodAuto
+			rawProps, err := json.Marshal(props)
+			if err != nil {
+				t.Fatal(err)
+			}
+			target, err := h.service.GetTarget(ctx, h.ClusterID, rawProps)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Added here to bypass validation, as this method is not yet exposed
+			target.RetentionLockMode = tc.retentionLockMode
+			// Inject purge so that it keeps only the last snapshot
+			target.RetentionMap = backup.RetentionMap{h.TaskID: {Retention: 1}}
+			// To skip not interesting schema sstables
+			target.Units = []backup.Unit{{Keyspace: tc.keyspace}}
+
+			// runBackup executes a backup and returns its snapshot tag
+			runBackup := func(target backup.Target) string {
+				runID := uuid.NewTime()
+				if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, runID, target); err != nil {
+					t.Fatal(err)
+				}
+				pr, err := h.service.GetProgress(ctx, h.ClusterID, h.TaskID, runID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return pr.SnapshotTag
+			}
+
+			// assertSnapshotFiles verifies that the snapshot consists of exactly the expected set of files
+			assertSnapshotFiles := func(tag string, want *strset.Set) {
+				if got := strset.New(listSnapshotFiles(t, h, tag)...); !want.IsEqual(got) {
+					t.Fatalf("snapshot %s files changed, want: \n%v\n, got: \n%v\n", tag, want.List(), got.List())
+				}
+			}
+
+			Print("When: protected backup is executed")
+			tagA := runBackup(target)
+			tagAFiles := strset.New(listSnapshotFiles(t, h, tagA)...)
+
+			Print("Then: deleting protected snapshot fails")
+			if err := h.service.DeleteSnapshot(ctx, h.ClusterID, []backupspec.Location{location}, []string{tagA}); err == nil {
+				t.Fatalf("Expected protected snapshot %s deletion to fail", tagA)
+			}
+
+			Print("And: protected snapshot is still there")
+			assertSnapshotFiles(tagA, tagAFiles)
+
+			Print("When: new backup with new data is executed")
+			nextID = RawWriteData(t, clusterSession, tc.keyspace, nextID, 1, replication, true)
+			tagB := runBackup(target)
+			tagBFiles := strset.New(listSnapshotFiles(t, h, tagB)...)
+
+			Print("Then: first snapshot exists despite retention=1")
+			assertSnapshotFiles(tagA, tagAFiles)
+
+			Print("And: deleting any protected snapshot fails")
+			for _, tag := range []string{tagA, tagB} {
+				if err := h.service.DeleteSnapshot(ctx, h.ClusterID, []backupspec.Location{location}, []string{tag}); err == nil {
+					t.Fatalf("Expected protected snapshot %s deletion to fail", tag)
+				}
+			}
+
+			Print("And: both protected snapshots are still there")
+			assertSnapshotFiles(tagA, tagAFiles)
+			assertSnapshotFiles(tagB, tagBFiles)
+
+			Print("When: all protection is manually cleared")
+			strset.Union(tagAFiles, tagBFiles).Each(func(f string) bool {
+				if err := tc.clearProtection(ctx, h, i, h.location.RemotePath(f)); err != nil {
+					t.Fatal(err)
+				}
+				return true
+			})
+
+			Print("And: purge is executed")
+			purgeTarget := target
+			purgeTarget.PurgeOnly = true
+			runBackup(purgeTarget)
+
+			Print("Then: stale snapshot is purged")
+			if got := listSnapshotFiles(t, h, tagA); len(got) != 0 {
+				t.Fatalf("Expected stale snapshot %s to be purged", tagA)
+			}
+
+			Print("And: last snapshot is kept")
+			assertSnapshotFiles(tagB, tagBFiles)
+
+			Print("When: last snapshot is deleted")
+			if err := h.service.DeleteSnapshot(ctx, h.ClusterID, []backupspec.Location{location}, []string{tagB}); err != nil {
+				t.Fatal(err)
+			}
+
+			Print("Then: last snapshot is deleted")
+			if got := listSnapshotFiles(t, h, tagB); len(got) != 0 {
+				t.Fatalf("Expected last snapshot %s to be deleted", tagB)
+			}
+		})
+	}
 }
 
 func listSnapshotFiles(t *testing.T, h *backupTestHelper, snapshotTag string) []string {
