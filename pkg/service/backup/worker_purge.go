@@ -13,15 +13,21 @@ import (
 
 func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap RetentionMap) (err error) {
 	// List manifests in all locations
-	manifests, err := listManifestsInAllLocations(ctx, w.Client, hosts, w.ClusterID)
+	remoteManifests, err := listRemoteManifestsInAllLocations(ctx, w.Client, hosts, w.ClusterID)
 	if err != nil {
 		return errors.Wrap(err, "list manifests")
 	}
+	manifests := manifestInfos(remoteManifests)
 	// Get a list of stale tags
 	tags, err := staleTags(manifests, retentionMap)
 	if err != nil {
 		return errors.Wrap(err, "get stale snapshot tags")
 	}
+	protected := protectedTags(remoteManifests).List()
+	if len(protected) > 0 {
+		w.Logger.Info(ctx, "Skipping tags with manifests protected by retention lock or event based hold", "tags", protected)
+	}
+	tags.Remove(protected...)
 	oldest, err := oldestKeptTag(manifests, tags)
 	if err != nil {
 		return errors.Wrap(err, "get oldest kept snapshot")
