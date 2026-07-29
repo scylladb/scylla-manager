@@ -1259,24 +1259,31 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 		return errors.Wrap(err, "resolve hosts")
 	}
 
+	tags := strset.New(snapshotTags...)
+	remoteManifests, err := listRemoteManifestsInAllLocations(ctx, client, hosts, clusterID)
+	if err != nil {
+		return errors.Wrap(err, "list manifests")
+	}
+	manifests := manifestInfos(remoteManifests)
+
+	protected := protectedTags(remoteManifests)
+	if protectedRemoved := strset.Intersection(protected, tags); !protectedRemoved.IsEmpty() {
+		return errors.Errorf("snapshots protected by retention lock or event based hold cannot be deleted: %v", protectedRemoved.List())
+	}
+
+	oldest, err := oldestKeptTag(manifests, tags)
+	if err != nil {
+		return errors.Wrap(err, "get oldest kept snapshot")
+	}
+
+	manifestsByLocation := groupManifestsByLocation(manifests)
 	deletedManifests := atomic.NewInt32(0)
 
 	f := func(h hostInfo) error {
 		s.logger.Info(ctx, "Purging snapshot data on host", "host", h.IP)
 
-		manifests, err := listManifests(ctx, client, h.IP, h.Location, clusterID)
-		if err != nil {
-			return err
-		}
 		p := newPurger(client, h.IP, s.logger)
-
-		tagS := strset.New(snapshotTags...)
-		oldest, err := oldestKeptTag(manifests, tagS)
-		if err != nil {
-			return errors.Wrap(err, "get oldest kept snapshot")
-		}
-
-		n, err := p.PurgeSnapshotTags(ctx, manifests, tagS, oldest)
+		n, err := p.PurgeSnapshotTags(ctx, manifestsByLocation[h.Location], tags, oldest)
 		deletedManifests.Add(int32(n))
 
 		if err == nil {
