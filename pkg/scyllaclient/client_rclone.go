@@ -840,6 +840,7 @@ func retentionLockModeToParam(mode RetentionLockMode) (modeParam string, holdPar
 // RcloneBatchRetentionLock sets object retention locks on the specified paths.
 // The remoteDir param format is "provider:bucket/path".
 // Specified paths are relative to remoteDir.
+// The mode arg can't be set to RetentionLockEventBasedHold - in such case, use RcloneBatchEventBasedHold.
 func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir string, paths []string, mode RetentionLockMode, until time.Time, overrideLock bool) (int64, error) {
 	fs, remote, err := rcloneSplitRemotePath(remoteDir)
 	if err != nil {
@@ -848,12 +849,12 @@ func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir s
 	if paths == nil {
 		paths = make([]string, 0)
 	}
-	modeParam, holdParam, err := retentionLockModeToParam(mode)
+	if mode == RetentionLockEventBasedHold {
+		return 0, errors.New("event based hold should be applied with dedicated method")
+	}
+	modeParam, _, err := retentionLockModeToParam(mode)
 	if err != nil {
 		return 0, err
-	}
-	if holdParam {
-		return 0, errors.New("event based hold should be applied with dedicated method")
 	}
 
 	p := operations.OperationsRetentionLockParams{
@@ -879,17 +880,18 @@ func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir s
 
 // RcloneRetentionLock synchronously sets retention lock on the specified object.
 // The remotePath param format is "provider:bucket/path".
+// The mode arg can't be set to RetentionLockEventBasedHold - in such case, use RcloneEventBasedHold.
 func (c *Client) RcloneRetentionLock(ctx context.Context, host, remotePath string, mode RetentionLockMode, until time.Time, overrideLock bool) error {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
 	if err != nil {
 		return err
 	}
-	modeParam, holdParam, err := retentionLockModeToParam(mode)
+	if mode == RetentionLockEventBasedHold {
+		return errors.New("event based hold should be applied with dedicated method")
+	}
+	modeParam, _, err := retentionLockModeToParam(mode)
 	if err != nil {
 		return err
-	}
-	if holdParam {
-		return errors.New("event based hold should be applied with dedicated method")
 	}
 
 	p := operations.OperationsRetentionLockParams{
