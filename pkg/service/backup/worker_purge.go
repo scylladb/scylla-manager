@@ -17,16 +17,19 @@ func (w *worker) Purge(ctx context.Context, hosts []hostInfo, retentionMap Reten
 	if err != nil {
 		return errors.Wrap(err, "list manifests")
 	}
-	manifests := manifestInfos(remoteManifests)
+	// Look for protected tags first - temporary manifests can still protect the tag
+	protected := protectedTags(remoteManifests).List()
+	if len(protected) > 0 {
+		w.Logger.Info(ctx, "Skipping tags with manifests protected by retention lock or event based hold", "tags", protected)
+	}
+	// Filter out temporary manifests shadowed by regular ones
+	manifests := filterShadowedTemporaryManifests(manifestInfos(remoteManifests))
 	// Get a list of stale tags
 	tags, err := staleTags(manifests, retentionMap)
 	if err != nil {
 		return errors.Wrap(err, "get stale snapshot tags")
 	}
-	protected := protectedTags(remoteManifests).List()
-	if len(protected) > 0 {
-		w.Logger.Info(ctx, "Skipping tags with manifests protected by retention lock or event based hold", "tags", protected)
-	}
+	// Make sure that stale tags don't include protected ones
 	tags.Remove(protected...)
 	oldest, err := oldestKeptTag(manifests, tags)
 	if err != nil {

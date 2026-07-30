@@ -230,6 +230,32 @@ func filterManifests(manifests []*backupspec.ManifestInfo, filter ListFilter) []
 	return out
 }
 
+// filterShadowedTemporaryManifests filters out shadowed temporary manifests,
+// which are the temporary manifests that already have their regular counterpart.
+// This can happen when scyllaclient.RetentionLockEventBasedHold is used and
+// default retention policy is set on bucket's objects.
+func filterShadowedTemporaryManifests(manifests []*backupspec.ManifestInfo) []*backupspec.ManifestInfo {
+	regular := strset.New()
+	for _, m := range manifests {
+		if !m.Temporary {
+			regular.Add(m.Location.RemotePath(m.Path()))
+		}
+	}
+
+	var out []*backupspec.ManifestInfo
+	for _, m := range manifests {
+		if m.Temporary {
+			r := *m
+			r.Temporary = false
+			if regular.Has(r.Location.RemotePath(r.Path())) {
+				continue
+			}
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
 func groupManifestsByNode(manifests []*backupspec.ManifestInfo) map[string][]*backupspec.ManifestInfo {
 	v := map[string][]*backupspec.ManifestInfo{}
 	for _, m := range manifests {
