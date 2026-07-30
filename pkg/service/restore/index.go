@@ -104,7 +104,7 @@ func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Lo
 	var rawWorkload []RemoteDirWorkload
 	err := w.forEachManifest(ctx, location, func(m ManifestInfoWithContent) error {
 		return m.ForEachIndexIterWithError(nil, func(fm FilesMeta) error {
-			if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
+			if !unitsContainTable(w.run.Units, w.target.TargetKeyspace(fm.Keyspace), fm.Table) {
 				return nil
 			}
 
@@ -123,7 +123,7 @@ func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Lo
 				size += sst.Size
 			}
 			t := TableName{
-				Keyspace: fm.Keyspace,
+				Keyspace: w.target.TargetKeyspace(fm.Keyspace),
 				Table:    fm.Table,
 			}
 			workload := RemoteDirWorkload{

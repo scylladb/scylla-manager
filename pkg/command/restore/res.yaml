@@ -86,6 +86,19 @@ dc-mapping: |
   Only works with tables restoration (--restore-tables=true). 
   Note: Only DCs that are provided in mappings will be restored.
 
+keyspace-mapping: |
+  Specifies mapping between keyspaces from the backup and keyspaces in the restored(target) cluster.
+  This allows restoring data from a source keyspace into a different (renamed) keyspace.
+
+  The syntax is "source_ks1=target_ks1,source_ks2=target_ks2" where multiple mappings are separated by comma (,)
+  and source and target keyspaces are separated by equal (=).
+
+  Example: "ks1=ks_new" - data from keyspace ks1 in the backup will be restored to keyspace ks_new in the cluster.
+
+  Only works with tables restoration (--restore-tables=true).
+  The target keyspace must already exist in the cluster before starting the restore.
+  Use the '--keyspace' flag to filter which source keyspaces are restored; it still refers to source keyspace names.
+
 method: |
   Control native restore method (See https://manager.docs.scylladb.com/stable/restore/native-restore):
 
