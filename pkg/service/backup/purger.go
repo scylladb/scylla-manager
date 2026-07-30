@@ -204,6 +204,15 @@ func (p purger) PurgeSnapshotTags(ctx context.Context, manifests []*backupspec.M
 		if err := p.deleteFile(ctx, m.Location.RemotePath(alternatorPath)); err != nil {
 			p.logger.Info(ctx, "Remove alternator schema file", "path", alternatorPath, "error", err)
 		}
+		// Shadowed temporary manifests are not passed here,
+		// so we always want to double-check to remove temporary
+		// manifest when the regular one is deleted.
+		if !m.Temporary {
+			tempPath := backupspec.TempFile(m.Path())
+			if err := p.deleteFile(ctx, m.Location.RemotePath(tempPath)); err != nil {
+				p.logger.Info(ctx, "Failed to remove shadowed temporary manifest", "path", tempPath, "error", err)
+			}
+		}
 		if err := p.deleteFile(ctx, m.Location.RemotePath(m.Path())); err != nil {
 			p.logger.Info(ctx, "Failed to remove manifest", "path", m.Path(), "error", err)
 		} else {

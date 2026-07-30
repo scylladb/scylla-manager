@@ -269,6 +269,18 @@ func (h *backupTestHelper) listS3Files() (manifests, schemas, files, scyllaManif
 	return
 }
 
+// splitManifests divides manifest paths into the regular and the temporary ones.
+func splitManifests(manifests []string) (regular, temporary []string) {
+	for _, m := range manifests {
+		if strings.HasSuffix(m, backupspec.TempFileExt) {
+			temporary = append(temporary, m)
+		} else {
+			regular = append(regular, m)
+		}
+	}
+	return
+}
+
 func restartAgents(h *CommonTestHelper) {
 	execOnAllHosts(h, "supervisorctl restart scylla-manager-agent")
 }
@@ -1782,10 +1794,24 @@ func TestPurgeIntegration(t *testing.T) {
 		m.SnapshotTag = backupspec.SnapshotTagAt(now.AddDate(0, 0, -1))
 		return true
 	})
+	Print("And: temporary manifest shadowed by it - should NOT be removed")
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
+		m.TaskID = task2
+		m.SnapshotTag = backupspec.SnapshotTagAt(now.AddDate(0, 0, -1))
+		m.Temporary = true
+		return true
+	})
 	Print("And: add another manifest for task2 - should be removed")
 	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
 		m.TaskID = task2
 		m.SnapshotTag = backupspec.SnapshotTagAt(now.AddDate(0, 0, -2))
+		return true
+	})
+	Print("And: temporary manifest shadowed by it - should be removed with it")
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
+		m.TaskID = task2
+		m.SnapshotTag = backupspec.SnapshotTagAt(now.AddDate(0, 0, -2))
+		m.Temporary = true
 		return true
 	})
 	Print("And: add 2 hour old manifest for task 3 - should NOT be removed")
@@ -1827,9 +1853,14 @@ func TestPurgeIntegration(t *testing.T) {
 	}
 
 	Print("Then: there should be 3 + 4 manifests")
-	manifests, _, files, scyllaManifests := h.listS3Files()
+	allManifests, _, files, scyllaManifests := h.listS3Files()
+	manifests, temporaryManifests := splitManifests(allManifests)
 	if len(manifests) != 7 {
 		t.Fatalf("Expected 7 manifests (1 per each node) plus 4 generated, got %d %s", len(manifests), strings.Join(manifests, "\n"))
+	}
+	Print("And: only the temporary manifest shadowed by the kept manifest is left")
+	if len(temporaryManifests) != 1 {
+		t.Fatalf("Expected 1 temporary manifest, got %d %s", len(temporaryManifests), strings.Join(temporaryManifests, "\n"))
 	}
 
 	Print("And: old files (sstables and scylla manifests) are removed")
