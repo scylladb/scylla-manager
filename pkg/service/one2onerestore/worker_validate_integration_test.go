@@ -5,6 +5,7 @@
 package one2onerestore
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"math/rand/v2"
@@ -52,6 +53,15 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 	}
 
 	nodeMappings := getNodeMappings(t, w.client)
+
+	t.Run("temporary and shadowed manifests", func(t *testing.T) {
+		target := Target{
+			SourceClusterID: h.clusterID,
+			SnapshotTag:     snapshotTag,
+			Location:        []backupspec.Location{loc},
+		}
+		testTmpShadowedManifest(t, w, target)
+	})
 
 	testCases := []struct {
 		name                 string
@@ -236,6 +246,100 @@ func TestWorkerValidateClustersIntegration(t *testing.T) {
 			hrt.SetInterceptor(nil)
 		})
 	}
+}
+
+// testTmpShadowedManifest tests that 1-1-restore ignores shadowed temporary
+// manifests when listing. It also validates, that it fails validation
+// when not shadowed temporary manifest is encountered.
+// This test helper assumes that a backup was already executed.
+func testTmpShadowedManifest(t *testing.T, w *worker, target Target) {
+	t.Helper()
+
+	ctx := context.Background()
+	location := target.Location[0]
+	host := w.client.Config().Hosts[0]
+	manifests, _, _, _ := listBucketFiles(t, ctx, w.client, location)
+	// Find already uploaded manifest
+	var manifestInfo backupspec.ManifestInfo
+	for _, m := range manifests {
+		if !strings.Contains(m, target.SnapshotTag) {
+			continue
+		}
+		mi := backupspec.ManifestInfo{}
+		if err := mi.ParsePath(m); err != nil {
+			t.Fatal(err)
+		}
+		if mi.Temporary {
+			continue
+		}
+		mi.Location = location
+		manifestInfo = mi
+		break
+	}
+	if manifestInfo.SnapshotTag != target.SnapshotTag {
+		t.Fatalf("Manifest for snapshot tag %s not found", target.SnapshotTag)
+	}
+	// Inject unshadowed temporary manifest
+	temporaryManifest := manifestInfo
+	temporaryManifest.NodeID = uuid.MustRandom().String()
+	temporaryManifest.Temporary = true
+	if err := w.client.RclonePut(ctx, host, location.RemotePath(temporaryManifest.Path()), bytes.NewBufferString("broken manifest")); err != nil {
+		t.Fatal(err)
+	}
+	// Expect it to cause validation error
+	if _, _, err := w.getAllSnapshotManifestsAndTargetHosts(ctx, target); err == nil {
+		t.Fatal("Expected unshadowed temporary manifest to fail 1-1-restore target validation")
+	}
+	// Replace unshadowed temporary manifest with a shadowed one.
+	if err := w.client.RcloneDeleteFile(ctx, host, location.RemotePath(temporaryManifest.Path())); err != nil {
+		t.Fatal(err)
+	}
+	shadowed := manifestInfo
+	shadowed.Temporary = true
+	if err := w.client.RclonePut(ctx, host, location.RemotePath(shadowed.Path()), bytes.NewBufferString("broken manifest")); err != nil {
+		t.Fatal(err)
+	}
+	// Expect shadowed temporary manifest to not cause problems and not be returned
+	got, _, err := w.getAllSnapshotManifestsAndTargetHosts(ctx, target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range got {
+		if m.Temporary {
+			t.Fatalf("Expected shadowed temporary manifest not to be returned: %s", m.Path())
+		}
+	}
+}
+
+func listBucketFiles(t *testing.T, ctx context.Context, client *scyllaclient.Client, location backupspec.Location) (manifests, schemas, files, scyllaManifests []string) {
+	t.Helper()
+
+	host := client.Config().Hosts[0]
+	opts := &scyllaclient.RcloneListDirOpts{
+		Recurse:   true,
+		FilesOnly: true,
+	}
+	allFiles, err := client.RcloneListDir(ctx, host, location.RemotePath(""), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range allFiles {
+		switch {
+		case strings.HasPrefix(f.Path, ".permission-check"):
+			// Ignore permission check leftover.
+		case strings.HasPrefix(f.Path, "backup/meta"):
+			manifests = append(manifests, f.Path)
+		case strings.HasPrefix(f.Path, "backup/schema"):
+			schemas = append(schemas, f.Path)
+		case strings.HasPrefix(f.Path, "backup/sst") && strings.HasSuffix(f.Path, backupspec.ScyllaManifest):
+			scyllaManifests = append(scyllaManifests, f.Path)
+		case strings.HasPrefix(f.Path, "backup/sst"):
+			files = append(files, f.Path)
+		default:
+			t.Fatalf("Unexpected file type in backup dir: %s", f.Path)
+		}
+	}
+	return
 }
 
 func newTestWorker(t *testing.T, hosts []string) (*worker, *testutils.HackableRoundTripper) {
