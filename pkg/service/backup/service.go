@@ -1269,12 +1269,13 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	if err != nil {
 		return errors.Wrap(err, "list manifests")
 	}
-	manifests := manifestInfos(remoteManifests)
-
+	// Look for protected tags first - temporary manifests can still protect the tag
 	protected := protectedTags(remoteManifests)
 	if protectedRemoved := strset.Intersection(protected, tags); !protectedRemoved.IsEmpty() {
 		return errors.Errorf("snapshots protected by retention lock or event based hold cannot be deleted: %v", protectedRemoved.List())
 	}
+	// Filter out temporary manifests shadowed by regular ones
+	manifests := filterShadowedTemporaryManifests(manifestInfos(remoteManifests))
 
 	oldest, err := oldestKeptTag(manifests, tags)
 	if err != nil {

@@ -2011,6 +2011,20 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 		t.Fatal("Expected to have different scylla manifest files in both tasks")
 	}
 
+	Print("Given: shadowed temporary manifest")
+	manifests, _, _, _ := h.listS3Files()
+	var shadowedManifest string
+	for _, m := range manifests {
+		if strings.Contains(m, h.TaskID.String()) {
+			shadowedManifest = m
+			break
+		}
+	}
+	h.tamperWithManifest(ctx, shadowedManifest, func(m backupspec.ManifestInfoWithContent) bool {
+		m.Temporary = true
+		return true
+	})
+
 	Print("When: first task snapshot is deleted")
 	firstTaskTags := taskTags(t, ctx, h, h.TaskID)
 	if firstTaskTags.Size() != 1 {
@@ -2022,7 +2036,7 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	}
 
 	Print("Then: no sstables are removed")
-	_, _, files, scyllaManifests := h.listS3Files()
+	manifests, _, files, scyllaManifests := h.listS3Files()
 	if len(files) == 0 {
 		t.Fatal("Expected to have second task files in storage")
 	}
@@ -2035,6 +2049,11 @@ func TestDeleteSnapshotIntegration(t *testing.T) {
 	Print("And: scylla manifests from first task are removed")
 	if !strset.New(secondTaskScyllaManifestPaths...).IsEqual(strset.New(scyllaManifests...)) {
 		t.Fatal("First task scylla manifests were not removed during first task snapshot delete")
+	}
+
+	Print("And: shadowed temporary manifest is removed with its counterpart")
+	if _, temporaryManifests := splitManifests(manifests); len(temporaryManifests) != 0 {
+		t.Fatalf("Expected no temporary manifests, got %s", strings.Join(temporaryManifests, "\n"))
 	}
 
 	Print("When: last snapshot is removed")
