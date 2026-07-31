@@ -2270,6 +2270,12 @@ func TestValidateIntegration(t *testing.T) {
 		return true
 	})
 
+	Print("And: add shadowed temporary manifest - should be ignored")
+	h.tamperWithManifest(ctx, manifests[0], func(m backupspec.ManifestInfoWithContent) bool {
+		m.Temporary = true
+		return true
+	})
+
 	Print("And: add tampered manifest - should be reported as broken snapshot")
 	h.tamperWithManifest(ctx, manifests[1], func(m backupspec.ManifestInfoWithContent) bool {
 		m.SnapshotTag = tamperedSnapshotTag

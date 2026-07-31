@@ -171,6 +171,12 @@ func (s *Service) Validate(ctx context.Context, clusterID, taskID, runID uuid.UU
 	if err != nil {
 		return errors.Wrap(err, "list manifests")
 	}
+	// Pass only the not shadowed temporary manifests to validation logic.
+	// It's not strictly needed for correctness, as validation treats
+	// temporary manifests as ones coming from ongoing backup and ignores
+	// them, but it would still result in downloading and reading them,
+	// so it's better to filter them out.
+	manifests = filterShadowedTemporaryManifests(manifests)
 	// Get a nodeID manifests popping function
 	pop := popNodeIDManifestsForLocation(manifests)
 
