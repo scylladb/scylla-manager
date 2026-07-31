@@ -11,6 +11,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/backupspec"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
@@ -132,14 +133,22 @@ func TestRemoteManifestInfoProtected(t *testing.T) {
 		{
 			name: "future retention",
 			manifest: remoteManifestInfo{
-				RetainUntil: now.Add(time.Hour),
+				RetentionMode: scyllaclient.RetentionModeLocked,
+				RetainUntil:   now.Add(time.Hour),
 			},
 			expected: true,
 		},
 		{
+			name: "future retention without retention mode",
+			manifest: remoteManifestInfo{
+				RetainUntil: now.Add(time.Hour),
+			},
+		},
+		{
 			name: "expired retention",
 			manifest: remoteManifestInfo{
-				RetainUntil: now.Add(-time.Hour),
+				RetentionMode: scyllaclient.RetentionModeLocked,
+				RetainUntil:   now.Add(-time.Hour),
 			},
 		},
 	}
@@ -162,16 +171,22 @@ func TestProtectedTags(t *testing.T) {
 			ManifestInfo: &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000000UTC"},
 		},
 		{
-			ManifestInfo: &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000001UTC"},
-			RetainUntil:  timeutc.Now().Add(time.Hour),
+			ManifestInfo:  &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000001UTC"},
+			RetentionMode: scyllaclient.RetentionModeLocked,
+			RetainUntil:   timeutc.Now().Add(time.Hour),
 		},
 		{
 			ManifestInfo:   &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000002UTC"},
 			EventBasedHold: true,
 		},
 		{
-			ManifestInfo: &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000003UTC"},
-			RetainUntil:  timeutc.Now().Add(-time.Hour),
+			ManifestInfo:  &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000003UTC"},
+			RetentionMode: scyllaclient.RetentionModeLocked,
+			RetainUntil:   timeutc.Now().Add(-time.Hour),
+		},
+		{
+			ManifestInfo: &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000004UTC"},
+			RetainUntil:  timeutc.Now().Add(time.Hour),
 		},
 		{
 			ManifestInfo:   &backupspec.ManifestInfo{SnapshotTag: "sm_19700101000001UTC"},

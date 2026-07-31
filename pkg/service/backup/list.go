@@ -27,7 +27,7 @@ type remoteManifestInfo struct {
 }
 
 func (m remoteManifestInfo) Protected(now time.Time) bool {
-	return m.EventBasedHold || m.RetainUntil.After(now)
+	return m.EventBasedHold || (m.RetentionMode != scyllaclient.RetentionModeNone && m.RetainUntil.After(now))
 }
 
 func protectedTags(manifests []remoteManifestInfo) *strset.Set {
