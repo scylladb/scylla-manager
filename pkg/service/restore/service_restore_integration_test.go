@@ -728,6 +728,10 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 		target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 	}
 
+	t.Run("temporary and shadowed manifests", func(t *testing.T) {
+		srcH.testTmpShadowedManifest(t, ctx, dstH, target)
+	})
+
 	ni, err := dstH.Client.AnyNodeInfo(t.Context())
 	if err != nil {
 		t.Fatal(err)
@@ -969,7 +973,6 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	if !strings.Contains(err.Error(), "context") {
 		t.Fatalf("Expected context error but got: %+v", err)
 	}
-
 
 	Print("When: resume restore and complete it")
 	dstH.RunID = uuid.MustRandom()
@@ -1390,6 +1393,91 @@ func (h *restoreTestHelper) targetToProperties(target Target) json.RawMessage {
 		h.T.Fatal(err)
 	}
 	return props
+}
+
+// testTmpShadowedManifest tests that restore ignores shadowed temporary manifests
+// when creating restored units. It also validates, that it fails validation
+// when not shadowed temporary manifest is encountered.
+// This test helper assumes that a backup was already executed.
+func (h *restoreTestHelper) testTmpShadowedManifest(t *testing.T, ctx context.Context, dstH *restoreTestHelper, target Target) {
+	location := target.Location[0]
+	host := h.Client.Config().Hosts[0]
+	manifests, _, _, _ := h.listBucketFiles(ctx, location)
+	// Find already uploaded manifest
+	var manifestInfo backupspec.ManifestInfo
+	for _, m := range manifests {
+		if !strings.Contains(m, target.SnapshotTag) {
+			continue
+		}
+		mi := backupspec.ManifestInfo{}
+		if err := mi.ParsePath(m); err != nil {
+			t.Fatal(err)
+		}
+		if mi.Temporary {
+			continue
+		}
+		mi.Location = location
+		manifestInfo = mi
+		break
+	}
+	if manifestInfo.SnapshotTag != target.SnapshotTag {
+		t.Fatalf("Manifest for snapshot tag %s not found", target.SnapshotTag)
+	}
+	// Inject not shadowed temporary manifest
+	temporaryManifest := manifestInfo
+	temporaryManifest.NodeID = uuid.MustRandom().String()
+	temporaryManifest.Temporary = true
+	if err := h.Client.RclonePut(ctx, host, location.RemotePath(temporaryManifest.Path()), bytes.NewBufferString("broken manifest")); err != nil {
+		t.Fatal(err)
+	}
+	// Expect it to cause validation error
+	if _, _, _, err := dstH.service.GetTargetUnitsViews(ctx, dstH.ClusterID, dstH.targetToProperties(target)); err == nil {
+		t.Fatal("Expected unshadowed temporary manifest to fail restore target validation")
+	}
+	// Replace not shadowed temporary manifest with a shadowed one.
+	if err := h.Client.RcloneDeleteFile(ctx, host, location.RemotePath(temporaryManifest.Path())); err != nil {
+		t.Fatal(err)
+	}
+	shadowed := manifestInfo
+	shadowed.Temporary = true
+	if err := h.Client.RclonePut(ctx, host, location.RemotePath(shadowed.Path()), bytes.NewBufferString("broken manifest")); err != nil {
+		t.Fatal(err)
+	}
+	// Expect shadowed temporary manifest to not cause problems
+	if _, _, _, err := dstH.service.GetTargetUnitsViews(ctx, dstH.ClusterID, dstH.targetToProperties(target)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (h *restoreTestHelper) listBucketFiles(ctx context.Context, location backupspec.Location) (manifests, schemas, files, scyllaManifests []string) {
+	h.T.Helper()
+
+	host := h.Client.Config().Hosts[0]
+	opts := &scyllaclient.RcloneListDirOpts{
+		Recurse:   true,
+		FilesOnly: true,
+	}
+	allFiles, err := h.Client.RcloneListDir(ctx, host, location.RemotePath(""), opts)
+	if err != nil {
+		h.T.Fatal(err)
+	}
+	for _, f := range allFiles {
+		switch {
+		case strings.HasPrefix(f.Path, ".permission-check"):
+			// Ignore permission check leftover.
+		case strings.HasPrefix(f.Path, "backup/meta"):
+			manifests = append(manifests, f.Path)
+		case strings.HasPrefix(f.Path, "backup/schema"):
+			schemas = append(schemas, f.Path)
+		case strings.HasPrefix(f.Path, "backup/sst") && strings.HasSuffix(f.Path, backupspec.ScyllaManifest):
+			scyllaManifests = append(scyllaManifests, f.Path)
+		case strings.HasPrefix(f.Path, "backup/sst"):
+			files = append(files, f.Path)
+		default:
+			h.T.Fatalf("Unexpected file type in backup dir: %s", f.Path)
+		}
+	}
+	return
 }
 
 func (h *restoreTestHelper) validateRestoreSuccess(dstSession, srcSession gocqlx.Session, target Target, tables []table) {

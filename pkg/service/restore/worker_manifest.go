@@ -7,6 +7,7 @@ import (
 	"path"
 	"sort"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"go.uber.org/multierr"
@@ -47,24 +48,46 @@ func (w *worker) getManifestInfo(ctx context.Context, host string, location back
 		Recurse:   true,
 	}
 
-	var manifests []*backupspec.ManifestInfo
+	regular := map[backupspec.ManifestInfo]struct{}{}
+	tmp := map[backupspec.ManifestInfo]struct{}{}
 	err := w.client.RcloneListDirIter(ctx, host, location.RemotePath(baseDir), &opts, func(f *scyllaclient.RcloneListDirItem) {
 		m := new(backupspec.ManifestInfo)
 		if err := m.ParsePath(path.Join(baseDir, f.Path)); err != nil {
 			return
 		}
 		m.Location = location
-		if m.SnapshotTag == snapshotTag {
-			manifests = append(manifests, m)
+		if m.SnapshotTag != snapshotTag {
+			return
 		}
+		if m.Temporary {
+			tmp[*m] = struct{}{}
+			return
+		}
+		regular[*m] = struct{}{}
 	})
 	if err != nil {
 		return nil, err
 	}
-
+	// Validate that the only encountered temporary manifests
+	// are shadowed by regular ones - otherwise we are trying
+	// to restore partial backup.
+	for m := range tmp {
+		r := m
+		r.Temporary = false
+		if _, ok := regular[r]; !ok {
+			return nil, errors.Errorf("temporary manifest %s is not shadowed by regular manifest. "+
+				"This might mean that snapshot %s wasn't fully uploaded or that it was partially deleted. "+
+				"Validate snapshot correctness and remove/promote the temporary manifest before proceeding.", m.Path(), snapshotTag)
+		}
+	}
+	// Don't return shadowed temporary manifests
+	out := make([]*backupspec.ManifestInfo, 0, len(regular))
+	for m := range regular {
+		out = append(out, new(m))
+	}
 	// Ensure deterministic order
-	sort.Slice(manifests, func(i, j int) bool {
-		return manifests[i].NodeID < manifests[j].NodeID
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].NodeID < out[j].NodeID
 	})
-	return manifests, nil
+	return out, nil
 }
