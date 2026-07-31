@@ -17,7 +17,7 @@ import (
 // retentionLockConfig holds retention lock parameters.
 type retentionLockConfig struct {
 	until    time.Time
-	mode     scyllaclient.RetentionLockMode
+	mode     RetentionLockMode
 	override bool
 }
 
@@ -29,7 +29,7 @@ func (w *worker) RetentionLock(egCtx context.Context, hosts []hostInfo, target T
 		mode:     target.RetentionLockMode,
 		override: target.OverrideRetentionLock,
 	}
-	if cfg.mode == scyllaclient.RetentionLockUnlocked || cfg.mode == scyllaclient.RetentionLockLocked {
+	if cfg.mode == RetentionLockUnlocked || cfg.mode == RetentionLockLocked {
 		lockUntil, err := retentionLockUntil(w.SnapshotTag, target.RetentionDays)
 		if err != nil {
 			return err
@@ -81,11 +81,11 @@ func (w *worker) lockSchemaFiles(ctx context.Context, hosts []hostInfo, cfg rete
 		remoteSchemaDir := hosts[i].Location.RemotePath(path.Dir(cqlPath))
 
 		switch cfg.mode {
-		case scyllaclient.RetentionLockUnlocked, scyllaclient.RetentionLockLocked:
+		case RetentionLockUnlocked, RetentionLockLocked:
 			if err := w.batchLock(ctx, hosts[i].IP, remoteSchemaDir, paths, cfg, "", ""); err != nil {
 				return errors.Wrapf(err, "await retention lock with node %s", hosts[i].IP)
 			}
-		case scyllaclient.RetentionLockEventBasedHold:
+		case RetentionLockEventBasedHold:
 			// Initialize holdHandler
 			apply := func(ctx context.Context, paths []string, hold bool) error {
 				return w.holdAndWait(ctx, hosts[i].IP, remoteSchemaDir, paths, hold, "", "")
@@ -128,7 +128,7 @@ func (w *worker) lockHostFiles(ctx context.Context, h *hostInfo, cfg retentionLo
 	remoteManifestPath := h.Location.RemotePath(manifestPath)
 	remoteManifestDir := path.Dir(remoteManifestPath)
 	switch cfg.mode {
-	case scyllaclient.RetentionLockUnlocked, scyllaclient.RetentionLockLocked:
+	case RetentionLockUnlocked, RetentionLockLocked:
 		// As we want to make this stage resumable, to discover files that
 		// need to be locked, we need to download manifest from backup location.
 		r, err := w.Client.RcloneOpen(ctx, h.IP, remoteManifestPath)
@@ -157,7 +157,7 @@ func (w *worker) lockHostFiles(ctx context.Context, h *hostInfo, cfg retentionLo
 		if err := w.lockAndAwait(ctx, h.IP, remoteManifestDir, []string{path.Base(remoteManifestPath)}, cfg, "", ""); err != nil {
 			return errors.Wrap(err, "lock manifest")
 		}
-	case scyllaclient.RetentionLockEventBasedHold:
+	case RetentionLockEventBasedHold:
 		// Initialize holdHandler
 		apply := func(ctx context.Context, paths []string, hold bool) error {
 			return w.holdAndWait(ctx, h.IP, remoteManifestDir, paths, hold, "", "")
@@ -244,7 +244,11 @@ func (w *worker) batchLock(ctx context.Context, host, remoteDir string,
 func (w *worker) lockAndAwait(ctx context.Context, host, remoteDir string,
 	paths []string, cfg retentionLockConfig, keyspace, table string,
 ) error {
-	jobID, err := w.Client.RcloneBatchRetentionLock(ctx, host, remoteDir, paths, cfg.mode, cfg.until, cfg.override)
+	mode, err := cfg.mode.toRetentionMode()
+	if err != nil {
+		return err
+	}
+	jobID, err := w.Client.RcloneBatchRetentionLock(ctx, host, remoteDir, paths, mode, cfg.until, cfg.override)
 	if err != nil {
 		return errors.Wrap(err, "schedule retention lock job")
 	}
@@ -329,11 +333,11 @@ type eventBasedHoldRequest struct {
 // of per-object request count, as on every backup run, we need to prolong
 // retention periods on all objects being a part of current snapshot,
 // even if they were deduplicated.
-// Backup made with scyllaclient.RetentionLockEventBasedHold aims to improve
+// Backup made with RetentionLockEventBasedHold aims to improve
 // this by relying on event based holds which don't need to be reset for
 // deduplicated objects, but need to be separately released when we expect
 // that the object won't be a part of next snapshots.
-// When making backup with scyllaclient.RetentionLockEventBasedHold,
+// When making backup with RetentionLockEventBasedHold,
 // we rely on 2 bucket level configurations:
 // - default retention period - ensures WORM backup
 // - default event based hold - optional, saves on per-object requests

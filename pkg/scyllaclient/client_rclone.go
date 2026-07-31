@@ -736,10 +736,11 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 // PermissionCheckOpts describes permission check options.
 type PermissionCheckOpts struct {
 	// CheckRetention controls if the permission related to given retention mode is granted.
-	// Empty value is translated to RetentionLockDisabled.
-	CheckRetention RetentionLockMode
+	CheckRetention RetentionMode
 	// CheckOverrideRetentionLock controls if the permission to override unlocked retention lock is granted.
 	CheckOverrideRetentionLock bool
+	// CheckEventBasedHold controls if the permissions to set and clear event based hold are granted.
+	CheckEventBasedHold bool
 }
 
 // RcloneCheckPermissions checks if location is available for listing, getting,
@@ -749,11 +750,7 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 	if err != nil {
 		return err
 	}
-	if opts.CheckRetention == "" {
-		opts.CheckRetention = RetentionLockDisabled
-	}
-	modeParam, holdParam, err := retentionLockModeToParam(opts.CheckRetention)
-	if err != nil {
+	if err := opts.CheckRetention.validate(); err != nil {
 		return err
 	}
 
@@ -762,9 +759,9 @@ func (c *Client) RcloneCheckPermissions(ctx context.Context, host, remotePath st
 		Options: &models.CheckPermissionsOptions{
 			Fs:               fs,
 			Remote:           remote,
-			RetentionMode:    modeParam,
+			RetentionMode:    string(opts.CheckRetention),
 			OverrideUnlocked: opts.CheckOverrideRetentionLock,
-			EventBasedHold:   holdParam,
+			EventBasedHold:   opts.CheckEventBasedHold,
 		},
 	}
 	_, err = c.agentOps.OperationsCheckPermissions(&p)
@@ -806,42 +803,31 @@ func (c *Client) RclonePut(ctx context.Context, host, remotePath string, body *b
 	return nil
 }
 
-// RetentionLockMode describes the object retention lock mode for backup files.
-type RetentionLockMode string
+// RetentionMode describes the object retention lock mode.
+type RetentionMode string
 
 const (
-	// RetentionLockDisabled means that no retention lock is applied to backup files.
-	RetentionLockDisabled RetentionLockMode = "disabled"
-	// RetentionLockUnlocked means that retention lock is applied but can be overridden with special permissions.
-	RetentionLockUnlocked RetentionLockMode = "unlocked"
-	// RetentionLockLocked means that retention lock is applied and cannot be overridden.
-	RetentionLockLocked RetentionLockMode = "locked"
-	// RetentionLockEventBasedHold means that backup files are protected with default
-	// event based hold and bucket retention policy. SM is responsible for clearing
-	// the hold when it's no longer needed which starts bucket retention timer.
-	RetentionLockEventBasedHold RetentionLockMode = "event-based-hold"
+	// RetentionModeNone means that no retention lock is applied.
+	RetentionModeNone RetentionMode = ""
+	// RetentionModeUnlocked means that retention lock is applied but can be overridden with special permissions.
+	RetentionModeUnlocked RetentionMode = "unlocked"
+	// RetentionModeLocked means that retention lock is applied and cannot be overridden.
+	RetentionModeLocked RetentionMode = "locked"
 )
 
-func retentionLockModeToParam(mode RetentionLockMode) (modeParam string, holdParam bool, err error) {
-	switch mode {
-	case RetentionLockDisabled:
-		return "", false, nil
-	case RetentionLockUnlocked:
-		return "unlocked", false, nil
-	case RetentionLockLocked:
-		return "locked", false, nil
-	case RetentionLockEventBasedHold:
-		return "", true, nil
+func (m RetentionMode) validate() error {
+	switch m {
+	case RetentionModeNone, RetentionModeUnlocked, RetentionModeLocked:
+		return nil
 	default:
-		return "", false, errors.Errorf("unknown retention lock mode: %s", mode)
+		return errors.Errorf("unknown retention mode: %s", m)
 	}
 }
 
 // RcloneBatchRetentionLock sets object retention locks on the specified paths.
 // The remoteDir param format is "provider:bucket/path".
 // Specified paths are relative to remoteDir.
-// The mode arg can't be set to RetentionLockEventBasedHold - in such case, use RcloneBatchEventBasedHold.
-func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir string, paths []string, mode RetentionLockMode, until time.Time, overrideLock bool) (int64, error) {
+func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir string, paths []string, mode RetentionMode, until time.Time, overrideLock bool) (int64, error) {
 	fs, remote, err := rcloneSplitRemotePath(remoteDir)
 	if err != nil {
 		return 0, err
@@ -849,11 +835,7 @@ func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir s
 	if paths == nil {
 		paths = make([]string, 0)
 	}
-	if mode == RetentionLockEventBasedHold {
-		return 0, errors.New("event based hold should be applied with dedicated method")
-	}
-	modeParam, _, err := retentionLockModeToParam(mode)
-	if err != nil {
+	if err := mode.validate(); err != nil {
 		return 0, err
 	}
 
@@ -863,7 +845,7 @@ func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir s
 			Fs:               fs,
 			Remote:           remote,
 			Paths:            paths,
-			RetentionMode:    modeParam,
+			RetentionMode:    string(mode),
 			RetainUntil:      strfmt.DateTime(until),
 			OverrideUnlocked: overrideLock,
 		},
@@ -880,17 +862,12 @@ func (c *Client) RcloneBatchRetentionLock(ctx context.Context, host, remoteDir s
 
 // RcloneRetentionLock synchronously sets retention lock on the specified object.
 // The remotePath param format is "provider:bucket/path".
-// The mode arg can't be set to RetentionLockEventBasedHold - in such case, use RcloneEventBasedHold.
-func (c *Client) RcloneRetentionLock(ctx context.Context, host, remotePath string, mode RetentionLockMode, until time.Time, overrideLock bool) error {
+func (c *Client) RcloneRetentionLock(ctx context.Context, host, remotePath string, mode RetentionMode, until time.Time, overrideLock bool) error {
 	fs, remote, err := rcloneSplitRemotePath(remotePath)
 	if err != nil {
 		return err
 	}
-	if mode == RetentionLockEventBasedHold {
-		return errors.New("event based hold should be applied with dedicated method")
-	}
-	modeParam, _, err := retentionLockModeToParam(mode)
-	if err != nil {
+	if err := mode.validate(); err != nil {
 		return err
 	}
 
@@ -900,7 +877,7 @@ func (c *Client) RcloneRetentionLock(ctx context.Context, host, remotePath strin
 			Fs:               fs,
 			Remote:           path.Dir(remote),
 			Paths:            []string{path.Base(remote)},
-			RetentionMode:    modeParam,
+			RetentionMode:    string(mode),
 			RetainUntil:      strfmt.DateTime(until),
 			OverrideUnlocked: overrideLock,
 		},

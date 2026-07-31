@@ -541,7 +541,7 @@ func TestGetTargetInParallelIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	props["retention_days"] = 1
-	props["retention_lock_mode"] = scyllaclient.RetentionLockUnlocked
+	props["retention_lock_mode"] = backup.RetentionLockUnlocked
 	rawRetentionLockProps, err := json.Marshal(props)
 	if err != nil {
 		t.Fatal(err)

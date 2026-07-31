@@ -335,7 +335,7 @@ func (s *Service) checkValidationTarget(ctx context.Context, client *scyllaclien
 	if len(liveNodes) == 0 {
 		return nil, util.ErrValidate(errors.Errorf("wrong location"))
 	}
-	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, target.Location, clusterID, scyllaclient.RetentionLockDisabled, false); err != nil {
+	if err := s.checkLocationsAvailableFromNodes(ctx, client, liveNodes, target.Location, clusterID, RetentionLockDisabled, false); err != nil {
 		return nil, util.ErrValidate(errors.Wrap(err, "location is not accessible"))
 	}
 

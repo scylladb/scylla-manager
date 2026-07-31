@@ -386,7 +386,7 @@ func TestBackupProtectedManifestsIntegration(t *testing.T) {
 		name              string
 		bucket            string
 		keyspace          string
-		retentionLockMode scyllaclient.RetentionLockMode
+		retentionLockMode backup.RetentionLockMode
 		setupInterceptor  func(ctx context.Context, h *backupTestHelper) *eventBasedHoldInterceptor
 		clearProtection   func(ctx context.Context, h *backupTestHelper, i *eventBasedHoldInterceptor, remotePath string) error
 	}{
@@ -394,19 +394,19 @@ func TestBackupProtectedManifestsIntegration(t *testing.T) {
 			name:              "retention lock",
 			bucket:            "backuptest-purge-protected-lock",
 			keyspace:          "backuptest_purge_protected_lock",
-			retentionLockMode: scyllaclient.RetentionLockUnlocked,
+			retentionLockMode: backup.RetentionLockUnlocked,
 			clearProtection: func(ctx context.Context, h *backupTestHelper, _ *eventBasedHoldInterceptor, remotePath string) error {
 				// GCS mock used in test env does not support clearing retention policy,
 				// but it allows to override it and set it in the past.
 				return h.Client.RcloneRetentionLock(ctx, ManagedClusterHost(), remotePath,
-					scyllaclient.RetentionLockUnlocked, timeutc.Now().Add(-24*time.Hour), true)
+					scyllaclient.RetentionModeUnlocked, timeutc.Now().Add(-24*time.Hour), true)
 			},
 		},
 		{
 			name:              "event based hold",
 			bucket:            "backuptest-purge-protected-hold",
 			keyspace:          "backuptest_purge_protected_hold",
-			retentionLockMode: scyllaclient.RetentionLockEventBasedHold,
+			retentionLockMode: backup.RetentionLockEventBasedHold,
 			setupInterceptor: func(ctx context.Context, h *backupTestHelper) *eventBasedHoldInterceptor {
 				i := newEventBasedHoldInterceptor(t, h.Hrt)
 				i.defaultEventBasedHold = true

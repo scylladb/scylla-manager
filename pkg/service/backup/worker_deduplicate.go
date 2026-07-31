@@ -62,7 +62,7 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		d := &dirs[i]
 		dataDst := h.Location.RemotePath(w.remoteSSTableDir(h, *d))
 
-		applyHolds := w.RetentionLockMode == scyllaclient.RetentionLockEventBasedHold
+		applyHolds := w.RetentionLockMode == RetentionLockEventBasedHold
 		var holdHandler *eventBasedHoldHandler
 		if applyHolds {
 			// Initialize holdHandler

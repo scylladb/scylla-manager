@@ -271,7 +271,7 @@ func TestBackupEventBasedHoldInterceptorIntegration(t *testing.T) {
 	interceptor.now = func() time.Time { return baseTime.Add(10 * policy) }
 
 	Print("Then: file has retention lock and no event based hold")
-	assertObjectMetadata(t, h.Client, host, remoteFile, false, string(scyllaclient.RetentionLockLocked), baseTime.Add(policy))
+	assertObjectMetadata(t, h.Client, host, remoteFile, false, string(scyllaclient.RetentionModeLocked), baseTime.Add(policy))
 
 	Print("When: event based hold is re-applied")
 	if err := h.Client.RcloneEventBasedHold(t.Context(), host, remoteFile, true); err != nil {
@@ -310,20 +310,20 @@ func TestBackupRetentionLockCRUDIntegration(t *testing.T) {
 
 	Print("When: unlocked retention is applied")
 	until := timeutc.Now().Add(24 * time.Hour).Truncate(time.Second)
-	if err := h.Client.RcloneRetentionLock(t.Context(), host, remoteFile, scyllaclient.RetentionLockUnlocked, until, false); err != nil {
+	if err := h.Client.RcloneRetentionLock(t.Context(), host, remoteFile, scyllaclient.RetentionModeUnlocked, until, false); err != nil {
 		t.Fatal(err)
 	}
 
 	Print("Then: file has unlocked retention")
-	assertObjectMetadata(t, h.Client, host, remoteFile, false, string(scyllaclient.RetentionLockUnlocked), until)
+	assertObjectMetadata(t, h.Client, host, remoteFile, false, string(scyllaclient.RetentionModeUnlocked), until)
 
 	Print("When: retention is upgraded to locked")
-	if err := h.Client.RcloneRetentionLock(t.Context(), host, remoteFile, scyllaclient.RetentionLockLocked, until, true); err != nil {
+	if err := h.Client.RcloneRetentionLock(t.Context(), host, remoteFile, scyllaclient.RetentionModeLocked, until, true); err != nil {
 		t.Fatal(err)
 	}
 
 	Print("Then: file has locked retention")
-	assertObjectMetadata(t, h.Client, host, remoteFile, false, string(scyllaclient.RetentionLockLocked), until)
+	assertObjectMetadata(t, h.Client, host, remoteFile, false, string(scyllaclient.RetentionModeLocked), until)
 }
 
 func TestBackupEventBasedHoldIntegration(t *testing.T) {
@@ -367,7 +367,7 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target.RetentionLockMode = scyllaclient.RetentionLockEventBasedHold
+	target.RetentionLockMode = backup.RetentionLockEventBasedHold
 	// To skip not interesting schema sstables
 	target.Units = []backup.Unit{{Keyspace: testKeyspace}}
 
@@ -405,7 +405,7 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	assertObjectMetadataAll(t, h.Client, host, location, tagATOCFiles, false, string(scyllaclient.RetentionLockLocked), baseTime.Add(policy))
+	assertObjectMetadataAll(t, h.Client, host, location, tagATOCFiles, false, string(scyllaclient.RetentionModeLocked), baseTime.Add(policy))
 
 	// The second backup should contain both deduplicated and new sstables
 	Print("And: small amount of new data is inserted")
@@ -440,7 +440,7 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 	}
 
 	Print("And: files from non-current snapshots don't have event based hold")
-	assertObjectMetadataAll(t, h.Client, host, location, tagAOnlyFiles, false, string(scyllaclient.RetentionLockLocked), baseTime.Add(policy))
+	assertObjectMetadataAll(t, h.Client, host, location, tagAOnlyFiles, false, string(scyllaclient.RetentionModeLocked), baseTime.Add(policy))
 }
 
 func assertObjectMetadataAll(t *testing.T, client *scyllaclient.Client, host string, location backupspec.Location, files []string, hold bool, retentionMode string, retainUntil time.Time) {
