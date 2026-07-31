@@ -272,7 +272,7 @@ func (s *Service) getLiveNodes(ctx context.Context, client *scyllaclient.Client,
 // checkLocationsAvailableFromNodes checks if each node has access location for its datacenter.
 func (s *Service) checkLocationsAvailableFromNodes(ctx context.Context, client *scyllaclient.Client,
 	nodes scyllaclient.NodeStatusInfoSlice, locations []backupspec.Location,
-	clusterID uuid.UUID, retentionMode scyllaclient.RetentionLockMode, overrideLock bool,
+	clusterID uuid.UUID, retentionMode RetentionLockMode, overrideLock bool,
 ) error {
 	s.logger.Info(ctx, "Checking accessibility of remote locations")
 	defer s.logger.Info(ctx, "Done checking accessibility of remote locations")
@@ -405,11 +405,16 @@ func (s *Service) cleanupPermissionCheckFiles(ctx context.Context, client *scyll
 }
 
 func (s *Service) checkHostLocation(ctx context.Context, client *scyllaclient.Client,
-	h string, l backupspec.Location, path string, retentionMode scyllaclient.RetentionLockMode, overrideLock bool,
+	h string, l backupspec.Location, path string, retentionMode RetentionLockMode, overrideLock bool,
 ) error {
-	err := client.RcloneCheckPermissions(ctx, h, l.RemotePath(path), scyllaclient.PermissionCheckOpts{
-		CheckRetention:             retentionMode,
+	mode, hold, err := retentionMode.toRetentionParams()
+	if err != nil {
+		return err
+	}
+	err = client.RcloneCheckPermissions(ctx, h, l.RemotePath(path), scyllaclient.PermissionCheckOpts{
+		CheckRetention:             mode,
 		CheckOverrideRetentionLock: overrideLock,
+		CheckEventBasedHold:        hold,
 	})
 	if err != nil {
 		s.logger.Info(ctx, "Location check FAILED", "host", h, "location", l, "error", err)
@@ -934,10 +939,10 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			return w.MoveManifest(ctx, hi)
 		},
 		StageRetentionLock: func() error {
-			if slices.Contains([]scyllaclient.RetentionLockMode{
-				scyllaclient.RetentionLockUnlocked,
-				scyllaclient.RetentionLockLocked,
-				scyllaclient.RetentionLockEventBasedHold,
+			if slices.Contains([]RetentionLockMode{
+				RetentionLockUnlocked,
+				RetentionLockLocked,
+				RetentionLockEventBasedHold,
 			}, target.RetentionLockMode) {
 				return w.RetentionLock(ctx, hi, target)
 			}

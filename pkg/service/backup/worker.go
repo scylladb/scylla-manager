@@ -73,7 +73,7 @@ type workerTools struct {
 	Client      *scyllaclient.Client
 	Logger      log.Logger
 
-	RetentionLockMode scyllaclient.RetentionLockMode
+	RetentionLockMode RetentionLockMode
 }
 
 // worker is responsible for coordinating backup procedure.

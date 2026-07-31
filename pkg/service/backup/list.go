@@ -21,7 +21,7 @@ import (
 type remoteManifestInfo struct {
 	*backupspec.ManifestInfo
 
-	RetentionMode  scyllaclient.RetentionLockMode
+	RetentionMode  scyllaclient.RetentionMode
 	RetainUntil    time.Time
 	EventBasedHold bool
 }
@@ -96,7 +96,7 @@ func listRemoteManifests(ctx context.Context, client *scyllaclient.Client, host 
 		p := path.Join(baseDir, f.Path)
 		m := remoteManifestInfo{
 			ManifestInfo:   &backupspec.ManifestInfo{},
-			RetentionMode:  scyllaclient.RetentionLockMode(f.RetentionMode),
+			RetentionMode:  scyllaclient.RetentionMode(f.RetentionMode),
 			RetainUntil:    time.Time(f.RetainUntil),
 			EventBasedHold: f.EventBasedHold,
 		}
