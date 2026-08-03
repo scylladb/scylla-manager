@@ -7,6 +7,7 @@ package one2onerestore
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
@@ -117,6 +119,71 @@ func TestOne2OneRestoreServiceIntegration(t *testing.T) {
 		}
 		validateGetProgress(t, pr)
 	})
+}
+
+func TestOne2OneRestoreRetentionLockIntegration(t *testing.T) {
+	// This test validates that restore works with backups
+	// made with different WORM --retention-lock-mode values.
+	if tablets := os.Getenv("TABLETS"); tablets == "enabled" || tablets == "none" {
+		t.Skip("1-1-restore is available only for v-nodes")
+	}
+	h := newTestHelper(t, ManagedClusterHosts())
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.client)
+	loc := []backupspec.Location{testLocation("retention-lock", "")}
+	loc[0].Provider = backupspec.GCS
+	GCSInitBucket(t, loc[0].Path)
+
+	ks := "test_retention_lock"
+	WriteData(t, clusterSession, ks, 1)
+	srcRowCnt := rowCount(t, clusterSession, ks, BigTableName)
+	if srcRowCnt == 0 {
+		t.Fatalf("Unexpected row count in table: 0")
+	}
+	nodeMappings := getNodeMappings(t, h.client)
+
+	testCases := []struct {
+		name        string
+		backupProps map[string]any
+	}{
+		{
+			name: "retention lock",
+			backupProps: map[string]any{
+				"retention_days":      1,
+				"retention_lock_mode": backup.RetentionLockUnlocked,
+			},
+		},
+		{
+			name: "event based hold",
+			backupProps: map[string]any{
+				"retention_lock_mode": backup.RetentionLockEventBasedHold,
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			Print("When: WORM backup is executed")
+			backupProps := map[string]any{
+				"location": loc,
+				"keyspace": []string{ks},
+			}
+			maps.Copy(backupProps, tc.backupProps)
+			tag := h.runBackup(t, backupProps)
+
+			Print("And: restore target table is truncated")
+			truncateAllTablesInKeyspace(t, clusterSession, ks)
+
+			Print("Then: 1-1-restore succeeds")
+			h.runRestore(t, map[string]any{
+				"location":          loc,
+				"snapshot_tag":      tag,
+				"source_cluster_id": h.clusterID,
+				"nodes_mapping":     nodeMappings,
+			})
+			if dstRowCnt := rowCount(t, clusterSession, ks, BigTableName); srcRowCnt != dstRowCnt {
+				t.Fatalf("Expected row count in table %d, but got %d", srcRowCnt, dstRowCnt)
+			}
+		})
+	}
 }
 
 type testTable struct {

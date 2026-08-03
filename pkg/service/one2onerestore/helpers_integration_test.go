@@ -69,6 +69,11 @@ func (h *testHelper) runBackup(t *testing.T, props map[string]any) string {
 	taskID := uuid.NewTime()
 	runID := uuid.NewTime()
 
+	retMode, ok := props["retention_lock_mode"].(backup.RetentionLockMode)
+	if ok && retMode == backup.RetentionLockEventBasedHold {
+		delete(props, "retention_lock_mode")
+	}
+
 	rawProps, err := json.Marshal(props)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "marshal properties"))
@@ -77,6 +82,9 @@ func (h *testHelper) runBackup(t *testing.T, props map[string]any) string {
 	target, err := h.backupSvc.GetTarget(ctx, h.clusterID, rawProps)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "generate target"))
+	}
+	if ok && retMode == backup.RetentionLockEventBasedHold {
+		target.RetentionLockMode = backup.RetentionLockEventBasedHold
 	}
 
 	err = h.backupSvc.Backup(ctx, h.clusterID, taskID, runID, target)
