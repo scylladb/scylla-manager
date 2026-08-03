@@ -159,6 +159,69 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 	h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
 }
 
+func TestRestoreTablesRetentionLockIntegration(t *testing.T) {
+	// This test validates that restore works with backups
+	// made with different WORM --retention-lock-mode values.
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
+	loc := testLocation("retention-lock", "")
+	loc.Provider = backupspec.GCS
+	GCSInitBucket(t, loc.Path)
+
+	ks := randomizedName("worm_ks_")
+	tab := randomizedName("tab_")
+	Printf("Create %s.%s in both clusters", ks, tab)
+	ksStmt := fmt.Sprintf("CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2}", ks)
+	ExecStmt(t, h.srcCluster.rootSession, ksStmt)
+	ExecStmt(t, h.dstCluster.rootSession, ksStmt)
+	createTable(t, h.srcCluster.rootSession, ks, tab)
+	createTable(t, h.dstCluster.rootSession, ks, tab)
+
+	Print("Fill created table")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
+
+	ksFilter := []string{ks}
+	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+
+	testCases := []struct {
+		name        string
+		backupProps map[string]any
+	}{
+		{
+			name: "retention lock",
+			backupProps: map[string]any{
+				"retention_days":      1,
+				"retention_lock_mode": backup.RetentionLockUnlocked,
+				"method":              backup.MethodAuto,
+			},
+		},
+		{
+			name: "event based hold",
+			backupProps: map[string]any{
+				"retention_lock_mode": backup.RetentionLockEventBasedHold,
+				"method":              backup.MethodAuto,
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			Print("When: WORM backup is executed")
+			backupProps := defaultTestBackupProperties(loc, ks)
+			maps.Copy(backupProps, tc.backupProps)
+			tag := h.runBackup(t, backupProps)
+
+			Print("And: restore target table is truncated")
+			ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("TRUNCATE TABLE %q.%q", ks, tab))
+
+			Print("Then: restore succeeds")
+			h.dstCluster.TaskID = uuid.NewTime()
+			props := defaultTestProperties(loc, tag, true)
+			props["keyspace"] = ksFilter
+			h.runRestore(t, props)
+			h.validateIdenticalTables(t, []table{{ks: ks, tab: tab}})
+		})
+	}
+}
+
 func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	// Test scenario for both CQL and alternator schema:
 	// - create schema on src cluster
