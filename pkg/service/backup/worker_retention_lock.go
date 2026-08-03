@@ -165,7 +165,10 @@ func (w *worker) lockHostFiles(ctx context.Context, h *hostInfo, cfg retentionLo
 		holdHandler := newEventBasedHoldHandler(apply, eventBasedHoldBatchSize)
 		// Feed local files - even though manifests have already been uploaded,
 		// we still treat them as local for the purposes of applying/removing the hold.
+		// For consistency, we also treat shadowed temporary manifest as local,
+		// so that its hold cycle follows the regular manifest cycle.
 		holdHandler.addLocal(path.Base(remoteManifestPath))
+		holdHandler.addLocal(backupspec.TempFile(path.Base(remoteManifestPath)))
 		holdHandler.finalizeLocal()
 		// Feed remote files - limit to manifests coming from the same task ID,
 		// so that we reduce interference between multiple backup tasks.
