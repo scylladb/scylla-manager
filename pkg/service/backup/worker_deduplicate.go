@@ -121,13 +121,16 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		if err != nil {
 			return errors.Wrap(err, "deduplication based on .crc32 content")
 		}
-		if applyHolds && willCreateVersioned {
+		if willCreateVersioned && w.RetentionLockMode != RetentionLockDisabled {
 			// Creation of versioned sstable happens by copying old sstable version with appended version
 			// suffix, then removing the original old version, then uploading the new version.
 			// This is not compatible with event based hold backup, where default backup retention policy
-			// is expected to prevent files from being deleted.
+			// is expected to prevent files from being deleted. We could make it work for object retention
+			// lock backup, but since this is an edge-case that might not even exist with modern UUID based
+			// SSTables, we simply don't need to support it. This would add both implementation and performance
+			// implications, as it would require listing snapshot dirs in stage retention lock.
 			return errors.Errorf("host %s: table %s.%s: snapshot contains sstables with integer based IDs which upload would result in creation of versioned files. "+
-				"Upload of such snapshot is not compatible with event based hold backup. "+
+				"Upload of such snapshot is not compatible with --retention-lock-mode backup. "+
 				"To proceed, make sure that new sstables use UUID based IDs and compact the integer based sstables away. "+
 				"Then, start the backup task from scratch.", h.IP, d.Keyspace, d.Table)
 		}
