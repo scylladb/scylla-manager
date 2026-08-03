@@ -309,17 +309,19 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 		return errors.New("unknown Method: " + string(p.Method))
 	}
 	if !slices.Contains([]RetentionLockMode{
-		RetentionLockDisabled, RetentionLockUnlocked, RetentionLockLocked,
+		RetentionLockDisabled, RetentionLockUnlocked, RetentionLockLocked, RetentionLockEventBasedHold,
 	}, p.RetentionLockMode) {
 		return errors.New("unknown retention lock mode: " + string(p.RetentionLockMode))
 	}
-	if p.RetentionLockMode != RetentionLockDisabled {
+	if p.RetentionLockMode == RetentionLockUnlocked || p.RetentionLockMode == RetentionLockLocked {
 		if p.RetentionDays == nil || *p.RetentionDays <= 0 {
 			return util.ErrValidate(errors.New("retention days must be set when retention lock is enabled"))
 		}
 		if p.Retention != nil && *p.Retention > 0 {
 			return util.ErrValidate(errors.New("count-based retention mustn't be set when retention lock is enabled"))
 		}
+	}
+	if p.RetentionLockMode != RetentionLockDisabled {
 		for _, l := range p.Location {
 			if l.Provider != backupspec.GCS {
 				return util.ErrValidate(errors.Errorf(
@@ -328,8 +330,10 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 			}
 		}
 	}
-	if p.RetentionLockMode == RetentionLockDisabled && p.OverrideRetentionLock {
-		return util.ErrValidate(errors.New("retention lock cannot be overridden when it is disabled"))
+	if p.OverrideRetentionLock {
+		if p.RetentionLockMode == RetentionLockDisabled || p.RetentionLockMode == RetentionLockEventBasedHold {
+			return util.ErrValidate(errors.New("retention lock cannot be overridden when it is disabled or event based holds are used"))
+		}
 	}
 
 	// Validate location DCs

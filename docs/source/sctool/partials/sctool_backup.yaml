@@ -147,9 +147,9 @@ options:
         * 'disabled': No retention lock is applied to snapshot files (default).
         * 'unlocked': Retention lock is applied but can be shortened or removed with special permissions.
         * 'locked': Retention lock is applied and cannot be overridden.
+        * 'event-based-hold': Snapshot files are protected with default event based hold and bucket retention policy (it requires additional bucket configuration).
 
-        Requires '--retention-days' to be set to a positive value.
-        Count-based '--retention' mustn't be set when retention lock is enabled.
+        The 'unlocked' and 'locked' modes require '--retention-days' to be set to a positive value and count-based '--retention' to be disabled.
 
         Using retention lock requires additional configuration and has its own limitations,
         which are described in details in https://manager.docs.scylladb.com/stable/backup/retention-lock.
