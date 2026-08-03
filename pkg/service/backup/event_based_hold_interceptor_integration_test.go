@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
@@ -384,6 +385,7 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 	Print("Then: all files from the snapshot have event based hold")
 	tagAFiles := listSnapshotFiles(t, h, tagA.SnapshotTag)
 	assertObjectMetadataAll(t, h.Client, host, location, tagAFiles, true, "", time.Time{})
+	assertShadowedTemporaryManifests(t, h, tagA.SnapshotTag)
 
 	tagATOCFiles := make([]string, 0)
 	for _, file := range tagAFiles {
@@ -424,6 +426,7 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 	Print("Then: all files from the current snapshot have event based hold")
 	tagBFiles := listSnapshotFiles(t, h, tagB.SnapshotTag)
 	assertObjectMetadataAll(t, h.Client, host, location, tagBFiles, true, "", time.Time{})
+	assertShadowedTemporaryManifests(t, h, tagB.SnapshotTag)
 
 	tagBFilesSet := make(map[string]struct{}, len(tagBFiles))
 	for _, file := range tagBFiles {
@@ -441,6 +444,27 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 
 	Print("And: files from non-current snapshots don't have event based hold")
 	assertObjectMetadataAll(t, h.Client, host, location, tagAOnlyFiles, false, string(scyllaclient.RetentionModeLocked), baseTime.Add(policy))
+}
+
+func assertShadowedTemporaryManifests(t *testing.T, h *backupTestHelper, snapshotTag string) {
+	t.Helper()
+
+	manifests, _, _, _ := h.listS3Files()
+	manifestSet := strset.New(manifests...)
+	for _, m := range manifests {
+		if !strings.Contains(m, snapshotTag) {
+			continue
+		}
+		if strings.HasSuffix(m, backupspec.TempFileExt) {
+			if !manifestSet.Has(strings.TrimSuffix(m, backupspec.TempFileExt)) {
+				t.Fatalf("Expected temporary manifest %s to have regular shadowing copy", m)
+			}
+			continue
+		}
+		if !manifestSet.Has(backupspec.TempFile(m)) {
+			t.Fatalf("Expected manifest %s to have temporary shadowed copy", m)
+		}
+	}
 }
 
 func assertObjectMetadataAll(t *testing.T, client *scyllaclient.Client, host string, location backupspec.Location, files []string, hold bool, retentionMode string, retainUntil time.Time) {
