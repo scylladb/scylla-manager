@@ -191,6 +191,12 @@ func (w *worker) uploadScyllaManifests(ctx context.Context, h hostInfo, m backup
 }
 
 func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error) {
+	// When scyllaclient.RetentionLockEventBasedHold is used, objects can't be deleted
+	// from quickly deleted from backup bucket because default retention policy is used.
+	// This makes moving and rolling back temporary manifests impossible.
+	// In such case, they need to be copied and other places in the codebase
+	// needs to expect their existence.
+	copyInstead := w.RetentionLockMode == RetentionLockEventBasedHold
 	rollbacks := make([]func(context.Context) error, len(hosts))
 
 	f := func(i int) (hostErr error) {
@@ -199,9 +205,25 @@ func (w *worker) MoveManifest(ctx context.Context, hosts []hostInfo) (err error)
 			hostErr = errors.Wrap(hostErr, h.String())
 		}()
 
-		w.Logger.Info(ctx, "Moving manifest file on host", "host", h.IP)
 		dst := h.Location.RemotePath(backupspec.RemoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID))
 		src := backupspec.TempFile(dst)
+
+		if copyInstead {
+			w.Logger.Info(ctx, "Copying manifest file on host", "host", h.IP)
+
+			if err := w.Client.RcloneCopyFile(ctx, h.IP, dst, src); err != nil {
+				// Check if manifest has already been copied during the previous run
+				if fi, e := w.Client.RcloneFileInfo(ctx, h.IP, dst); e == nil && fi != nil {
+					w.Logger.Info(ctx, "Copied manifest was already in place", "host", h.IP)
+					return nil
+				}
+				return err
+			}
+			w.Logger.Info(ctx, "Done copying manifest file on host", "host", h.IP)
+			return nil
+		}
+
+		w.Logger.Info(ctx, "Moving manifest file on host", "host", h.IP)
 
 		// Register rollback
 		rollbacks[i] = func(ctx context.Context) error { return w.Client.RcloneMoveFile(ctx, h.IP, src, dst) }
