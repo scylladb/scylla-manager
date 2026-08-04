@@ -1,10 +1,12 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package testutils
 
 import (
 	"net/http"
 	"sync"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 )
 
 // HackableRoundTripper is a round tripper that allows for interceptor injection.
@@ -15,9 +17,12 @@ type HackableRoundTripper struct {
 	mu              sync.Mutex
 }
 
+// NewHackableRoundTripper creates HackableRoundTripper with the inner round
+// tripper wrapped with sequentialPermissionCheck. Requests handled fully by
+// the interceptor are not affected.
 func NewHackableRoundTripper(inner http.RoundTripper) *HackableRoundTripper {
 	return &HackableRoundTripper{
-		inner: inner,
+		inner: sequentialPermissionCheck(inner),
 	}
 }
 
@@ -67,4 +72,28 @@ func (h *HackableRoundTripper) RoundTrip(req *http.Request) (resp *http.Response
 		}
 	}
 	return
+}
+
+// sequentialPermissionCheck is a default interceptor ensuring that permission
+// check requests are executed sequentially. This is needed for our test env
+// as parallel permission checks operating on objects with common prefix are
+// not handled well by our MinIo container and result in test flakiness.
+// This problem is not observed in production or mock GCS server.
+func sequentialPermissionCheck(next http.RoundTripper) http.RoundTripper {
+	const permissionCheckPath = "/agent/rclone/operations/check-permissions"
+	permissionCheckSemaphore := make(chan struct{}, 1)
+	permissionCheckSemaphore <- struct{}{}
+	return httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.Path == permissionCheckPath {
+			select {
+			case <-permissionCheckSemaphore:
+				defer func() {
+					permissionCheckSemaphore <- struct{}{}
+				}()
+			case <-req.Context().Done():
+				return nil, req.Context().Err()
+			}
+		}
+		return next.RoundTrip(req)
+	})
 }
