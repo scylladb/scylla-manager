@@ -137,7 +137,7 @@ func (i *eventBasedHoldInterceptor) interceptReq(req *http.Request) (*http.Respo
 }
 
 func (i *eventBasedHoldInterceptor) interceptResp(resp *http.Response, err error) (*http.Response, error) {
-	if err != nil || resp == nil || resp.Request == nil {
+	if err != nil || resp == nil || resp.Request == nil || resp.StatusCode/100 != 2 {
 		return nil, nil
 	}
 
