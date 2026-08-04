@@ -20,9 +20,6 @@ type ListItem struct {
 	// Encrypted name
 	Encrypted string `json:"Encrypted,omitempty"`
 
-	// Whether the object is under event based hold
-	EventBasedHold bool `json:"EventBasedHold,omitempty"`
-
 	// Hash of the item
 	Hashes interface{} `json:"Hashes,omitempty"`
 
@@ -57,6 +54,9 @@ type ListItem struct {
 
 	// Size in bytes
 	Size int64 `json:"Size,omitempty"`
+
+	// Whether the object is under event based hold
+	EventBasedHold bool `json:"eventBasedHold,omitempty"`
 }
 
 // Validate validates this list item
