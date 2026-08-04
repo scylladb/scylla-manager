@@ -715,7 +715,7 @@ func runObjectFnInParallel(ctx context.Context, remote string, paths []string, f
 
 // rcRetentionLock sets object retention lock on multiple paths.
 func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	f, remote, err := rc.GetFsAndRemote(ctx, in)
+	f, remote, err := getFsAndRemoteNamed(ctx, in, "fs", "remote")
 	if err != nil {
 		return nil, err
 	}
@@ -777,7 +777,7 @@ func rcRetentionLock(ctx context.Context, in rc.Params) (out rc.Params, err erro
 
 // rcEventBasedHold sets event based hold on multiple paths.
 func rcEventBasedHold(ctx context.Context, in rc.Params) (out rc.Params, err error) {
-	f, remote, err := rc.GetFsAndRemote(ctx, in)
+	f, remote, err := getFsAndRemoteNamed(ctx, in, "fs", "remote")
 	if err != nil {
 		return nil, err
 	}
@@ -978,7 +978,7 @@ func init() {
 		Help: `This takes the following parameters:
 
 - fs - a remote name string eg "gcs:"
-- remote - a directory path within that remote
+- remote - an optional directory path within that remote
 - paths - slice of paths to set retention lock on
 - retentionMode - can be empty (no retention), 'unlocked' (retention can be overridden with special permissions) or 'locked' (retention cannot be overridden)
 - retainUntil - RFC3339 timestamp until which the objects are retained
@@ -993,7 +993,7 @@ func init() {
 		Help: `This takes the following parameters:
 
 - fs - a remote name string eg "gcs:"
-- remote - a directory path within that remote
+- remote - an optional directory path within that remote
 - paths - slice of paths to set event based hold on
 - eventBasedHold - whether to set or clear event based hold`,
 	})
