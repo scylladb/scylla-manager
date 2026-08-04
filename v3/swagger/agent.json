@@ -1253,7 +1253,7 @@
           "description": "Allows overriding 'unlocked' retention policy",
           "type": "boolean"
         },
-        "EventBasedHold": {
+        "eventBasedHold": {
           "description": "Whether the object is under event based hold",
           "type": "boolean"
         }
@@ -1437,7 +1437,7 @@
           "type": "string",
           "format": "date-time"
         },
-        "EventBasedHold": {
+        "eventBasedHold": {
           "description": "Whether the object is under event based hold",
           "type": "boolean"
         }
