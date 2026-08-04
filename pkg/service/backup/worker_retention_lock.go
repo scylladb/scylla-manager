@@ -14,27 +14,36 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// retentionLockConfig holds retention lock parameters.
-type retentionLockConfig struct {
+// RetentionLock is responsible for WORM backup protection according to used RetentionLockMode.
+// RetentionLock name comes from the --retention-lock-mode flag and StageRetentionLock stage names.
+// Initially, it ensured WORM backup protection with object retention locks (hence the name),
+// but it has also been extended with other modes like RetentionLockEventBasedHold.
+func (w *worker) RetentionLock(ctx context.Context, hosts []hostInfo, target Target) error {
+	if target.RetentionLockMode == RetentionLockEventBasedHold {
+		return w.eventBasedHoldSnapshot(ctx, hosts, target)
+	}
+	return w.retentionLockSnapshot(ctx, hosts, target)
+}
+
+// objectRetentionLockConfig holds object retention lock parameters.
+type objectRetentionLockConfig struct {
 	until    time.Time
 	mode     RetentionLockMode
 	override bool
 }
 
-// RetentionLock sets object retention locks on all backup files.
-// Schema files are locked first, then sstables and scylla manifests,
-// finalizing with SM manifests.
-func (w *worker) RetentionLock(egCtx context.Context, hosts []hostInfo, target Target) error {
-	cfg := retentionLockConfig{
+// retentionLockSnapshot handles StageRetentionLock for the object retention lock based modes.
+// It sets object retention locks on all snapshot files. Schema files are locked first,
+// then sstables and scylla manifests, finalizing with SM manifests.
+func (w *worker) retentionLockSnapshot(egCtx context.Context, hosts []hostInfo, target Target) error {
+	lockUntil, err := retentionLockUntil(w.SnapshotTag, target.RetentionDays)
+	if err != nil {
+		return err
+	}
+	cfg := objectRetentionLockConfig{
+		until:    lockUntil,
 		mode:     target.RetentionLockMode,
 		override: target.OverrideRetentionLock,
-	}
-	if cfg.mode == RetentionLockUnlocked || cfg.mode == RetentionLockLocked {
-		lockUntil, err := retentionLockUntil(w.SnapshotTag, target.RetentionDays)
-		if err != nil {
-			return err
-		}
-		cfg.until = lockUntil
 	}
 
 	// Lock schema files separately, as they are per location, not per host
@@ -63,8 +72,8 @@ func (w *worker) RetentionLock(egCtx context.Context, hosts []hostInfo, target T
 	return eg.Wait()
 }
 
-// lockSchemaFiles locks CQL and alternator schema files for all locations.
-func (w *worker) lockSchemaFiles(ctx context.Context, hosts []hostInfo, cfg retentionLockConfig) error {
+// lockSchemaFiles sets object retention locks on CQL and alternator schema files for all locations.
+func (w *worker) lockSchemaFiles(ctx context.Context, hosts []hostInfo, cfg objectRetentionLockConfig) error {
 	doneLocations := make(map[string]struct{})
 	for i := range hosts {
 		if _, ok := doneLocations[hosts[i].Location.StringWithoutDC()]; ok {
@@ -80,123 +89,54 @@ func (w *worker) lockSchemaFiles(ctx context.Context, hosts []hostInfo, cfg rete
 		}
 		remoteSchemaDir := hosts[i].Location.RemotePath(path.Dir(cqlPath))
 
-		switch cfg.mode {
-		case RetentionLockUnlocked, RetentionLockLocked:
-			if err := w.batchLock(ctx, hosts[i].IP, remoteSchemaDir, paths, cfg, "", ""); err != nil {
-				return errors.Wrapf(err, "await retention lock with node %s", hosts[i].IP)
-			}
-		case RetentionLockEventBasedHold:
-			// Initialize holdHandler
-			apply := func(ctx context.Context, paths []string, hold bool) error {
-				return w.holdAndWait(ctx, hosts[i].IP, remoteSchemaDir, paths, hold, "", "")
-			}
-			holdHandler := newEventBasedHoldHandler(apply, eventBasedHoldBatchSize)
-			// Feed local files - even though schema files have already been uploaded,
-			// we still treat them as local for the purposes of applying/removing the hold.
-			for _, p := range paths {
-				holdHandler.addLocal(p)
-			}
-			holdHandler.finalizeLocal()
-			// Feed remote files - limit to schema files coming from the same task ID,
-			// so that behavior is consistent with SM manifest holds.
-			opts := &scyllaclient.RcloneListDirOpts{
-				FilesOnly:          true,
-				ShowEventBasedHold: true,
-			}
-			listErr := w.Client.RcloneListDirIter(ctx, hosts[i].IP, remoteSchemaDir, opts, func(item *scyllaclient.RcloneListDirItem) {
-				taskID, _, err := ParseSchemaFileName(item.Name)
-				if err == nil && taskID == w.TaskID {
-					holdHandler.addRemote(ctx, item.Name, item.EventBasedHold)
-				}
-			})
-			if err := stdErr.Join(
-				errors.Wrap(listErr, "list schema files holds"),
-				errors.Wrap(holdHandler.finalize(ctx), "finalize remote schema files holds"),
-			); err != nil {
-				return err
-			}
+		if err := w.batchLock(ctx, hosts[i].IP, remoteSchemaDir, paths, cfg, "", ""); err != nil {
+			return errors.Wrapf(err, "await retention lock with node %s", hosts[i].IP)
 		}
 	}
 	return nil
 }
 
-// lockHostFiles locks sstables, scylla manifests, and SM manifest for given host.
-func (w *worker) lockHostFiles(ctx context.Context, h *hostInfo, cfg retentionLockConfig) (err error) {
+// lockHostFiles sets object retention locks on sstables, scylla manifests, and SM manifest for given host.
+func (w *worker) lockHostFiles(ctx context.Context, h *hostInfo, cfg objectRetentionLockConfig) (err error) {
 	w.Logger.Info(ctx, "Locking host files", "host", h.IP)
 
 	manifestPath := backupspec.RemoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID)
 	remoteManifestPath := h.Location.RemotePath(manifestPath)
 	remoteManifestDir := path.Dir(remoteManifestPath)
-	switch cfg.mode {
-	case RetentionLockUnlocked, RetentionLockLocked:
-		// As we want to make this stage resumable, to discover files that
-		// need to be locked, we need to download manifest from backup location.
-		r, err := w.Client.RcloneOpen(ctx, h.IP, remoteManifestPath)
-		if err != nil {
-			return errors.Wrap(err, "download manifest")
-		}
-		defer func() {
-			err = stdErr.Join(err, r.Close())
-		}()
+	// As we want to make this stage resumable, to discover files that
+	// need to be locked, we need to download manifest from backup location.
+	r, err := w.Client.RcloneOpen(ctx, h.IP, remoteManifestPath)
+	if err != nil {
+		return errors.Wrap(err, "download manifest")
+	}
+	defer func() {
+		err = stdErr.Join(err, r.Close())
+	}()
 
-		var manifest backupspec.ManifestContentWithIndex
-		if err := manifest.Read(r); err != nil {
-			return errors.Wrap(err, "read manifest")
-		}
+	var manifest backupspec.ManifestContentWithIndex
+	if err := manifest.Read(r); err != nil {
+		return errors.Wrap(err, "read manifest")
+	}
 
-		// Lock sstables and scylla manifests
-		err = manifest.ForEachIndexIterWithError(nil, func(fm backupspec.FilesMeta) error {
-			return errors.Wrapf(w.lockTableFiles(ctx, h, fm, cfg), "lock table %s.%s files", fm.Keyspace, fm.Table)
-		})
-		if err != nil {
-			return errors.Wrap(err, "lock index files")
-		}
+	// Lock sstables and scylla manifests
+	err = manifest.ForEachIndexIterWithError(nil, func(fm backupspec.FilesMeta) error {
+		return errors.Wrapf(w.lockTableFiles(ctx, h, fm, cfg), "lock table %s.%s files", fm.Keyspace, fm.Table)
+	})
+	if err != nil {
+		return errors.Wrap(err, "lock index files")
+	}
 
-		// Lock SM manifest
-		w.Logger.Info(ctx, "Locking manifest file", "host", h.IP)
-		if err := w.lockAndAwait(ctx, h.IP, remoteManifestDir, []string{path.Base(remoteManifestPath)}, cfg, "", ""); err != nil {
-			return errors.Wrap(err, "lock manifest")
-		}
-	case RetentionLockEventBasedHold:
-		// Initialize holdHandler
-		apply := func(ctx context.Context, paths []string, hold bool) error {
-			return w.holdAndWait(ctx, h.IP, remoteManifestDir, paths, hold, "", "")
-		}
-		holdHandler := newEventBasedHoldHandler(apply, eventBasedHoldBatchSize)
-		// Feed local files - even though manifests have already been uploaded,
-		// we still treat them as local for the purposes of applying/removing the hold.
-		// For consistency, we also treat shadowed temporary manifest as local,
-		// so that its hold cycle follows the regular manifest cycle.
-		holdHandler.addLocal(path.Base(remoteManifestPath))
-		holdHandler.addLocal(backupspec.TempFile(path.Base(remoteManifestPath)))
-		holdHandler.finalizeLocal()
-		// Feed remote files - limit to manifests coming from the same task ID,
-		// so that we reduce interference between multiple backup tasks.
-		opts := &scyllaclient.RcloneListDirOpts{
-			FilesOnly:          true,
-			ShowEventBasedHold: true,
-		}
-		listErr := w.Client.RcloneListDirIter(ctx, h.IP, remoteManifestDir, opts, func(item *scyllaclient.RcloneListDirItem) {
-			var mi backupspec.ManifestInfo
-			err := mi.ParsePath(path.Join(path.Dir(manifestPath), item.Name))
-			if err == nil && mi.TaskID == w.TaskID {
-				holdHandler.addRemote(ctx, item.Name, item.EventBasedHold)
-			}
-		})
-		err := stdErr.Join(
-			errors.Wrap(listErr, "list manifests holds"),
-			errors.Wrap(holdHandler.finalize(ctx), "finalize remote manifests holds"),
-		)
-		if err != nil {
-			return err
-		}
+	// Lock SM manifest
+	w.Logger.Info(ctx, "Locking manifest file", "host", h.IP)
+	if err := w.lockAndAwait(ctx, h.IP, remoteManifestDir, []string{path.Base(remoteManifestPath)}, cfg, "", ""); err != nil {
+		return errors.Wrap(err, "lock manifest")
 	}
 
 	return nil
 }
 
-// lockTableFiles locks sstables and scylla manifests for given table.
-func (w *worker) lockTableFiles(ctx context.Context, h *hostInfo, fm backupspec.FilesMeta, cfg retentionLockConfig) error {
+// lockTableFiles sets object retention locks on sstables and scylla manifests for given table.
+func (w *worker) lockTableFiles(ctx context.Context, h *hostInfo, fm backupspec.FilesMeta, cfg objectRetentionLockConfig) error {
 	sstDir := backupspec.RemoteSSTableVersionDir(w.ClusterID, h.DC, h.ID, fm.Keyspace, fm.Table, fm.Version)
 	remoteSSTDir := h.Location.RemotePath(sstDir)
 
@@ -230,7 +170,7 @@ func (w *worker) lockTableFiles(ctx context.Context, h *hostInfo, fm backupspec.
 }
 
 func (w *worker) batchLock(ctx context.Context, host, remoteDir string,
-	paths []string, cfg retentionLockConfig, keyspace, table string,
+	paths []string, cfg objectRetentionLockConfig, keyspace, table string,
 ) error {
 	for len(paths) > 0 {
 		size := min(len(paths), scyllaclient.MaxSStableComponentCountInReqBody)
@@ -245,7 +185,7 @@ func (w *worker) batchLock(ctx context.Context, host, remoteDir string,
 }
 
 func (w *worker) lockAndAwait(ctx context.Context, host, remoteDir string,
-	paths []string, cfg retentionLockConfig, keyspace, table string,
+	paths []string, cfg objectRetentionLockConfig, keyspace, table string,
 ) error {
 	mode, err := cfg.mode.toRetentionMode()
 	if err != nil {
@@ -255,12 +195,35 @@ func (w *worker) lockAndAwait(ctx context.Context, host, remoteDir string,
 	if err != nil {
 		return errors.Wrap(err, "schedule retention lock job")
 	}
-	return w.waitRetentionJob(ctx, host, jobID, keyspace, table)
+	return w.waitRetentionJob(ctx, host, jobID, w.retentionLockJobCB(host, jobID, keyspace, table))
 }
 
-// waitRetentionJob polls the async retention lock job until completion,
-// updating the retention_locked_files metric on each poll.
-func (w *worker) waitRetentionJob(ctx context.Context, host string, jobID int64, keyspace, table string) (err error) {
+// retentionJobCB is called on each retention job progress update polled by waitRetentionJob.
+type retentionJobCB func(job *scyllaclient.RcloneJobProgress) (continuePolling bool, err error)
+
+func (w *worker) retentionLockJobCB(host string, jobID int64, keyspace, table string) retentionJobCB {
+	var done int64
+	return func(job *scyllaclient.RcloneJobProgress) (bool, error) {
+		switch scyllaclient.RcloneJobStatus(job.Status) {
+		case scyllaclient.JobError:
+			return false, errors.Errorf("retention lock job error (%d): %s", jobID, job.Error)
+		case scyllaclient.JobNotFound:
+			return false, errors.Errorf("retention lock job not found (%d)", jobID)
+		case scyllaclient.JobSuccess, scyllaclient.JobRunning:
+			diff := job.Uploaded - done
+			done = job.Uploaded
+			w.Metrics.IncreaseRetentionLockedFiles(w.ClusterID, keyspace, table, host, diff)
+			if scyllaclient.RcloneJobStatus(job.Status) == scyllaclient.JobSuccess {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+}
+
+// waitRetentionJob polls the async retention job, running callback on each
+// fetched progress, until callback stops the polling or returns an error.
+func (w *worker) waitRetentionJob(ctx context.Context, host string, jobID int64, cb retentionJobCB) (err error) {
 	defer func() {
 		if err != nil {
 			w.Logger.Info(ctx, "Stop job", "host", host, "id", jobID)
@@ -282,7 +245,6 @@ func (w *worker) waitRetentionJob(ctx context.Context, host string, jobID int64,
 		}
 	}()
 
-	var done int64
 	for {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -293,18 +255,12 @@ func (w *worker) waitRetentionJob(ctx context.Context, host string, jobID int64,
 			return errors.Wrap(err, "fetch retention lock job progress")
 		}
 
-		switch scyllaclient.RcloneJobStatus(job.Status) {
-		case scyllaclient.JobError:
-			return errors.Errorf("retention lock job error (%d): %s", jobID, job.Error)
-		case scyllaclient.JobNotFound:
-			return errors.Errorf("retention lock job not found (%d)", jobID)
-		case scyllaclient.JobSuccess, scyllaclient.JobRunning:
-			diff := job.Uploaded - done
-			done = job.Uploaded
-			w.Metrics.IncreaseRetentionLockedFiles(w.ClusterID, keyspace, table, host, diff)
-			if scyllaclient.RcloneJobStatus(job.Status) == scyllaclient.JobSuccess {
-				return nil
-			}
+		ok, err := cb(job)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return nil
 		}
 	}
 }

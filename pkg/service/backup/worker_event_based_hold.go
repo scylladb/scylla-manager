@@ -5,16 +5,138 @@ package backup
 import (
 	"context"
 	stdErr "errors"
+	"path"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"golang.org/x/sync/errgroup"
 )
+
+// eventBasedHoldSnapshot handles StageRetentionLock for the RetentionLockEventBasedHold mode.
+// This approach works retroactively - holds placed on the current snapshot files are removed
+// only during the next backup task execution (unless they will be deduplicated).
+// This is true even for the never deduplicated files like schema and manifests.
+// eventBasedHoldSnapshot doesn't touch sstables nor scylla manifests,
+// as they already have been handled in StageDeduplicate.
+// Schema holds are removed first, then it proceeds with SM manifests, so that the manifests
+// have the longest retention period and can be used to reason about snapshot retention protection.
+func (w *worker) eventBasedHoldSnapshot(ctx context.Context, hosts []hostInfo, target Target) error {
+	if !target.SkipSchema {
+		if err := w.holdSchemaFiles(ctx, hosts); err != nil {
+			return errors.Wrap(err, "handle schema files holds")
+		}
+	}
+
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(MaxManifestInMemory)
+	for i := range hosts {
+		eg.Go(func() error {
+			if err := w.holdManifestFiles(ctx, &hosts[i]); err != nil {
+				return errors.Wrapf(err, "handle host %s manifest holds", hosts[i].IP)
+			}
+			return nil
+		})
+	}
+
+	return eg.Wait()
+}
+
+// holdSchemaFiles handles event based holds on CQL and alternator schema files for all locations.
+func (w *worker) holdSchemaFiles(ctx context.Context, hosts []hostInfo) error {
+	doneLocations := make(map[string]struct{})
+	for i := range hosts {
+		if _, ok := doneLocations[hosts[i].Location.StringWithoutDC()]; ok {
+			continue
+		}
+		doneLocations[hosts[i].Location.StringWithoutDC()] = struct{}{}
+		w.Logger.Info(ctx, "Handle schema files holds", "location", hosts[i].Location.StringWithoutDC(), "host", hosts[i].IP)
+
+		cqlPath := backupspec.RemoteSchemaFile(w.ClusterID, w.TaskID, w.SnapshotTag)
+		paths := []string{path.Base(cqlPath)}
+		if _, ok := getAlternatorHost(hosts); ok {
+			paths = append(paths, path.Base(backupspec.AlternatorSchemaPath(w.ClusterID, w.TaskID, w.SnapshotTag)))
+		}
+		remoteSchemaDir := hosts[i].Location.RemotePath(path.Dir(cqlPath))
+
+		// Initialize holdHandler
+		apply := func(ctx context.Context, paths []string, hold bool) error {
+			return w.holdAndWait(ctx, hosts[i].IP, remoteSchemaDir, paths, hold, "", "")
+		}
+		holdHandler := newEventBasedHoldHandler(apply, eventBasedHoldBatchSize)
+		// Feed local files - even though schema files have already been uploaded,
+		// we still treat them as local for the purposes of applying/removing the hold.
+		for _, p := range paths {
+			holdHandler.addLocal(p)
+		}
+		holdHandler.finalizeLocal()
+		// Feed remote files - limit to schema files coming from the same task ID,
+		// so that behavior is consistent with SM manifest holds.
+		opts := &scyllaclient.RcloneListDirOpts{
+			FilesOnly:          true,
+			ShowEventBasedHold: true,
+		}
+		listErr := w.Client.RcloneListDirIter(ctx, hosts[i].IP, remoteSchemaDir, opts, func(item *scyllaclient.RcloneListDirItem) {
+			taskID, _, err := ParseSchemaFileName(item.Name)
+			if err == nil && taskID == w.TaskID {
+				holdHandler.addRemote(ctx, item.Name, item.EventBasedHold)
+			}
+		})
+		if err := stdErr.Join(
+			errors.Wrap(listErr, "list schema files holds"),
+			errors.Wrap(holdHandler.finalize(ctx), "finalize remote schema files holds"),
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// holdManifestFiles handles event based holds on SM manifests for given host.
+func (w *worker) holdManifestFiles(ctx context.Context, h *hostInfo) error {
+	w.Logger.Info(ctx, "Reconciling manifest files holds", "host", h.IP)
+
+	manifestPath := backupspec.RemoteManifestFile(w.ClusterID, w.TaskID, w.SnapshotTag, h.DC, h.ID)
+	remoteManifestPath := h.Location.RemotePath(manifestPath)
+	remoteManifestDir := path.Dir(remoteManifestPath)
+
+	// Initialize holdHandler
+	apply := func(ctx context.Context, paths []string, hold bool) error {
+		return w.holdAndWait(ctx, h.IP, remoteManifestDir, paths, hold, "", "")
+	}
+	holdHandler := newEventBasedHoldHandler(apply, eventBasedHoldBatchSize)
+	// Feed local files - even though manifests have already been uploaded,
+	// we still treat them as local for the purposes of applying/removing the hold.
+	// For consistency, we also treat shadowed temporary manifest as local,
+	// so that its hold cycle follows the regular manifest cycle.
+	holdHandler.addLocal(path.Base(remoteManifestPath))
+	holdHandler.addLocal(backupspec.TempFile(path.Base(remoteManifestPath)))
+	holdHandler.finalizeLocal()
+	// Feed remote files - limit to manifests coming from the same task ID,
+	// so that we reduce interference between multiple backup tasks.
+	opts := &scyllaclient.RcloneListDirOpts{
+		FilesOnly:          true,
+		ShowEventBasedHold: true,
+	}
+	listErr := w.Client.RcloneListDirIter(ctx, h.IP, remoteManifestDir, opts, func(item *scyllaclient.RcloneListDirItem) {
+		var mi backupspec.ManifestInfo
+		err := mi.ParsePath(path.Join(path.Dir(manifestPath), item.Name))
+		if err == nil && mi.TaskID == w.TaskID {
+			holdHandler.addRemote(ctx, item.Name, item.EventBasedHold)
+		}
+	})
+	return stdErr.Join(
+		errors.Wrap(listErr, "list manifests holds"),
+		errors.Wrap(holdHandler.finalize(ctx), "finalize remote manifests holds"),
+	)
+}
 
 func (w *worker) holdAndWait(ctx context.Context, host, remoteDir string, paths []string, hold bool, keyspace, table string) error {
 	jobID, err := w.Client.RcloneBatchEventBasedHold(ctx, host, remoteDir, paths, hold)
 	if err != nil {
 		return errors.Wrap(err, "schedule event based hold job")
 	}
-	return w.waitRetentionJob(ctx, host, jobID, keyspace, table)
+	return w.waitRetentionJob(ctx, host, jobID, w.retentionLockJobCB(host, jobID, keyspace, table))
 }
 
 // eventBasedHoldBatchSize defines how many files are batched together
@@ -133,7 +255,7 @@ func (r *eventBasedHoldHandler) finalizeLocal() {
 	r.localDone = true
 }
 
-// addRemote reconciles a single remote file against the local set.
+// addRemote handles a single remote file against the local set.
 // In case remote needs its hold changed, it's recorded in the batch buffer.
 // When the buffer reaches minBatchSize, objects are sent to SM agent,
 // so that their holds can be adjusted.
