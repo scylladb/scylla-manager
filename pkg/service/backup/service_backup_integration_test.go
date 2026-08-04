@@ -36,6 +36,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
@@ -520,10 +521,6 @@ func TestGetTargetInParallelIntegration(t *testing.T) {
 		h        = newBackupTestHelper(t, session, cfg, location, nil)
 		ctx      = t.Context()
 	)
-	ni, err := h.Client.AnyNodeInfo(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// Prepare additional service using altered config
 	cleanupCfg := defaultConfig()
@@ -533,9 +530,7 @@ func TestGetTargetInParallelIntegration(t *testing.T) {
 
 	// Prepare different backup properties
 	props := defaultTestProperties(location, "")
-	if CheckConstraint(t, ni.ScyllaVersion, "< 2026.1") {
-		props["method"] = "rclone"
-	}
+	props["method"] = backup.MethodAuto
 	rawProps, err := json.Marshal(props)
 	if err != nil {
 		t.Fatal(err)
@@ -564,6 +559,7 @@ func TestGetTargetInParallelIntegration(t *testing.T) {
 	if err := h.Client.RclonePut(ctx, ManagedClusterHost(), location.RemotePath(path.Join(basePath, initialFileUnknownFormat)), bytes.NewBuffer([]byte{0})); err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("Initial file known format: %s, initial file unknown format: %s", initialFile, initialFileUnknownFormat)
 
 	Print("When: call GetTarget in parallel")
 	eg := errgroup.Group{}
@@ -593,7 +589,10 @@ func TestGetTargetInParallelIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(leftoverFiles) != 1 || leftoverFiles[0].Path != initialFileUnknownFormat {
-		t.Fatalf("Expected only the initial unknown permission check file to be present after cleanup, got: %v", leftoverFiles)
+		leftover := slices2.Map(leftoverFiles, func(li *scyllaclient.RcloneListDirItem) string {
+			return li.Path
+		})
+		t.Fatalf("Expected only the initial unknown permission check file to be present after cleanup, got: %v", leftover)
 	}
 }
 
