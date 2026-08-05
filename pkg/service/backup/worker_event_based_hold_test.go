@@ -10,6 +10,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 )
 
 type holdCall struct {
@@ -297,5 +301,200 @@ func TestEventBasedHoldHandlerAddRemoteDoesNotBlockOnApply(t *testing.T) {
 	}
 	if expected := [][]string{{"a"}, {"b"}, {"c"}, {"d"}}; !reflect.DeepEqual(got, expected) {
 		t.Fatalf("got calls %v, expected %v", got, expected)
+	}
+}
+
+func TestGroupManifestsByTagAndHold(t *testing.T) {
+	t.Parallel()
+
+	var (
+		task       = uuid.MustRandom()
+		otherTask  = uuid.MustRandom()
+		currentTag = "sm_20260731100000UTC"
+		oldTag     = "sm_20260730100000UTC"
+		olderTag   = "sm_20260729100000UTC"
+	)
+
+	gen := func(nodeID, tag string, taskID uuid.UUID, temporary, hold bool) remoteManifestInfo {
+		return remoteManifestInfo{
+			ManifestInfo: &backupspec.ManifestInfo{
+				DC:          "dc1",
+				NodeID:      nodeID,
+				TaskID:      taskID,
+				SnapshotTag: tag,
+				Temporary:   temporary,
+			},
+			EventBasedHold: hold,
+		}
+	}
+
+	paths := func(manifests []remoteManifestInfo) []string {
+		out := slices2.Map(manifests, func(m remoteManifestInfo) string { return m.Path() })
+		slices.Sort(out)
+		return out
+	}
+
+	testCases := []struct {
+		name      string
+		manifests []remoteManifestInfo
+		current   []remoteManifestInfo
+		oldHeld   []remoteManifestInfo
+	}{
+		{
+			name: "steady state",
+			manifests: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("b", currentTag, task, false, true),
+				gen("a", oldTag, task, false, true),
+				gen("b", oldTag, task, false, true),
+				gen("a", olderTag, task, false, false),
+			},
+			current: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("b", currentTag, task, false, true),
+			},
+			oldHeld: []remoteManifestInfo{
+				gen("a", oldTag, task, false, true),
+				gen("b", oldTag, task, false, true),
+			},
+		},
+		{
+			name: "other task is ignored",
+			manifests: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("a", currentTag, otherTask, false, true),
+				gen("a", oldTag, otherTask, false, true),
+				gen("a", oldTag, otherTask, true, true),
+			},
+			current: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+			},
+		},
+		{
+			name: "current manifest without hold is still current",
+			manifests: []remoteManifestInfo{
+				gen("a", currentTag, task, false, false),
+			},
+			current: []remoteManifestInfo{
+				gen("a", currentTag, task, false, false),
+			},
+		},
+		{
+			name: "removed node manifests are old held",
+			manifests: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("removed", oldTag, task, false, true),
+				gen("removed", olderTag, task, false, true),
+			},
+			current: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+			},
+			oldHeld: []remoteManifestInfo{
+				gen("removed", oldTag, task, false, true),
+				gen("removed", olderTag, task, false, true),
+			},
+		},
+		{
+			name: "shadowed temporary manifests",
+			manifests: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("a", currentTag, task, true, true),
+				gen("a", oldTag, task, false, true),
+				gen("a", oldTag, task, true, true),
+				gen("a", olderTag, task, false, false),
+				gen("a", olderTag, task, true, false),
+			},
+			current: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+			},
+			oldHeld: []remoteManifestInfo{
+				gen("a", oldTag, task, false, true),
+			},
+		},
+		{
+			name: "temporary manifest is not shadowed by other node",
+			manifests: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("b", currentTag, task, false, true),
+				gen("a", oldTag, task, false, true),
+				gen("b", oldTag, task, true, true),
+			},
+			current: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("b", currentTag, task, false, true),
+			},
+			oldHeld: []remoteManifestInfo{
+				gen("a", oldTag, task, false, true),
+				gen("b", oldTag, task, true, true),
+			},
+		},
+		{
+			name: "unshadowed temporary manifest of old snapshot acts as regular",
+			manifests: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("a", oldTag, task, true, true),
+				gen("a", olderTag, task, true, false),
+			},
+			current: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+			},
+			oldHeld: []remoteManifestInfo{
+				gen("a", oldTag, task, true, true),
+			},
+		},
+		{
+			name: "unshadowed temporary manifest of current snapshot acts as regular",
+			manifests: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("b", currentTag, task, true, true),
+			},
+			current: []remoteManifestInfo{
+				gen("a", currentTag, task, false, true),
+				gen("b", currentTag, task, true, true),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			current, oldHeld := groupManifestsByTagAndHold(tc.manifests, task, currentTag)
+			if got, want := paths(current), paths(tc.current); !slices.Equal(got, want) {
+				t.Fatalf("current: got %v, expected %v", got, want)
+			}
+			if got, want := paths(oldHeld), paths(tc.oldHeld); !slices.Equal(got, want) {
+				t.Fatalf("oldHeld: got %v, expected %v", got, want)
+			}
+		})
+	}
+}
+
+func TestGroupHostsByLocation(t *testing.T) {
+	t.Parallel()
+
+	var (
+		loc1 = backupspec.Location{Provider: backupspec.GCS, Path: "one"}
+		loc2 = backupspec.Location{Provider: backupspec.GCS, Path: "two", DC: "dc2"}
+		// Same path as loc1, but pinned to a DC - it's still the same physical location
+		loc3 = backupspec.Location{Provider: backupspec.GCS, Path: "one", DC: "dc1"}
+	)
+	hosts := []hostInfo{
+		{IP: "h1", Location: loc1},
+		{IP: "h2", Location: loc2},
+		{IP: "h3", Location: loc1},
+		{IP: "h4", Location: loc3},
+	}
+
+	got := make(map[backupspec.Location][]string)
+	for loc, hs := range groupHostsByLocation(hosts) {
+		got[loc] = slices2.Map(hs, func(h hostInfo) string { return h.IP })
+	}
+	want := map[backupspec.Location][]string{
+		{Provider: backupspec.GCS, Path: "one"}: {"h1", "h3", "h4"},
+		{Provider: backupspec.GCS, Path: "two"}: {"h2"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %v, expected %v", got, want)
 	}
 }
