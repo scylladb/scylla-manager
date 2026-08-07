@@ -8,9 +8,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -137,7 +139,7 @@ func (i *eventBasedHoldInterceptor) interceptReq(req *http.Request) (*http.Respo
 }
 
 func (i *eventBasedHoldInterceptor) interceptResp(resp *http.Response, err error) (*http.Response, error) {
-	if err != nil || resp == nil || resp.Request == nil {
+	if err != nil || resp == nil || resp.Request == nil || resp.StatusCode/100 != 2 {
 		return nil, nil
 	}
 
@@ -444,6 +446,138 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 
 	Print("And: files from non-current snapshots don't have event based hold")
 	assertObjectMetadataAll(t, h.Client, host, location, tagAOnlyFiles, false, string(scyllaclient.RetentionModeLocked), baseTime.Add(policy))
+}
+
+func TestBackupEventBasedHoldVanishedDirsIntegration(t *testing.T) {
+	// This test verifies that event based hold backup releases holds from objects
+	// in vanished sstable dirs (dirs being a part of previous snapshot that are not
+	// a part of the current one). Such dirs can happen on node removal or table drop.
+	const (
+		bucket       = "backuptest-vanished-dirs"
+		keyspace     = "backuptest_vanished_dirs"
+		droppedTable = "dropped_table"
+		replication  = "{'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 3}"
+	)
+	location := backupspec.Location{Provider: backupspec.GCS, Path: bucket}
+	GCSInitBucket(t, bucket)
+
+	var (
+		host           = ManagedClusterHost()
+		h              = newBackupTestHelper(t, CreateSessionWithoutMigration(t), defaultConfig(), location, nil)
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+		policy         = 24 * time.Hour
+	)
+	// Base time is set in the past, so that retention periods started
+	// by hold removal are already expired at the time of the purge.
+	baseTime := timeutc.Now().Add(-2 * policy).Truncate(time.Millisecond)
+	interceptor := newEventBasedHoldInterceptor(t, h.Hrt)
+	interceptor.defaultBucketRetentionPolicy = policy
+	interceptor.defaultEventBasedHold = true
+	interceptor.now = func() time.Time { return baseTime }
+
+	nextID := RawWriteData(t, clusterSession, keyspace, 0, 1, replication, true, BigTableName, droppedTable)
+
+	props := defaultTestProperties(location, keyspace)
+	props["dc"] = []string{"dc1", "dc2"} // Ensure all nodes are backed up
+	props["retention"] = 7               // Just to keep purge out of the equation
+	props["method"] = backup.MethodAuto  // Just to not run into problems with GCS native backup support
+
+	makeTarget := func() backup.Target {
+		rawProps, err := json.Marshal(props)
+		if err != nil {
+			t.Fatal(err)
+		}
+		target, err := h.service.GetTarget(t.Context(), h.ClusterID, rawProps)
+		if err != nil {
+			t.Fatal(err)
+		}
+		target.RetentionLockMode = backup.RetentionLockEventBasedHold // Bypass target validation for not yet exposed mode
+		target.Units = []backup.Unit{{Keyspace: keyspace}}            // Just to skip not interesting schema sstables
+		return target
+	}
+
+	runBackup := func(target backup.Target) string {
+		runID := uuid.NewTime()
+		if err := h.service.Backup(t.Context(), h.ClusterID, h.TaskID, runID, target); err != nil {
+			t.Fatal(err)
+		}
+		pr, err := h.service.GetProgress(t.Context(), h.ClusterID, h.TaskID, runID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return pr.SnapshotTag
+	}
+
+	Print("When: first backup is executed")
+	tagA := runBackup(makeTarget())
+	tagAFiles := listSnapshotFiles(t, h, tagA)
+
+	Print("Then: all files from the first snapshot have event based hold")
+	assertObjectMetadataAll(t, h.Client, host, location, tagAFiles, true, "", time.Time{})
+
+	Print("When: vanished dir is caused by table drop")
+	ExecStmt(t, clusterSession, fmt.Sprintf("DROP TABLE %q.%q", keyspace, droppedTable))
+
+	Print("And: vanished dir is caused by filtered out node")
+	props["dc"] = []string{"dc1"}
+
+	Print("And: new data is written")
+	RawWriteData(t, clusterSession, keyspace, nextID, 1, replication, true)
+
+	Print("And: second backup is executed")
+	tagB := runBackup(makeTarget())
+	tagBFiles := listSnapshotFiles(t, h, tagB)
+
+	Print("Then: first snapshot contains vanished files")
+	vanishedTableFile := slices.ContainsFunc(tagAFiles, func(f string) bool {
+		return !strings.Contains(f, "/dc/dc2/") && strings.Contains(f, "/table/"+droppedTable+"/")
+	})
+	if !vanishedTableFile {
+		t.Fatal("Expected first snapshot to contain vanished table files")
+	}
+	vanishedNodeFile := slices.ContainsFunc(tagAFiles, func(f string) bool {
+		return strings.Contains(f, "/dc/dc2/") && !strings.Contains(f, "/table/"+droppedTable+"/")
+	})
+	if !vanishedNodeFile {
+		t.Fatal("Expected first snapshot to contain vanished node files")
+	}
+
+	Print("And: second snapshot doesn't contain vanished files")
+	vanishedFile := slices.ContainsFunc(tagBFiles, func(f string) bool {
+		return strings.Contains(f, "/dc/dc2/") || strings.Contains(f, "/table/"+droppedTable+"/")
+	})
+	if vanishedFile {
+		t.Fatal("Expected second snapshot to not contain vanished files")
+	}
+
+	Print("And: all files from the second snapshot have event based hold")
+	assertObjectMetadataAll(t, h.Client, host, location, tagBFiles, true, "", time.Time{})
+
+	Print("And: files (also vanished) referenced only by the first snapshot don't have event based hold")
+	tagBFilesSet := strset.New(tagBFiles...)
+	var tagAOnlyFiles []string
+	for _, f := range tagAFiles {
+		if !tagBFilesSet.Has(f) {
+			tagAOnlyFiles = append(tagAOnlyFiles, f)
+		}
+	}
+	assertObjectMetadataAll(t, h.Client, host, location, tagAOnlyFiles, false, string(scyllaclient.RetentionModeLocked), baseTime.Add(policy))
+
+	Print("When: purge keeping only the last snapshot is executed")
+	purgeTarget := makeTarget()
+	purgeTarget.PurgeOnly = true
+	purgeTarget.RetentionMap = backup.RetentionMap{h.TaskID: {Retention: 1}}
+	runBackup(purgeTarget)
+
+	Print("Then: the first snapshot is fully purged")
+	if got := listSnapshotFiles(t, h, tagA); len(got) != 0 {
+		t.Fatalf("Expected stale snapshot %s to be purged, got files: %v", tagA, got)
+	}
+
+	Print("And: the second snapshot is kept")
+	if got := strset.New(listSnapshotFiles(t, h, tagB)...); !got.IsEqual(strset.New(tagBFiles...)) {
+		t.Fatalf("Expected second snapshot %s to be kept, want: \n%v\n, got: \n%v\n", tagB, tagBFiles, got.List())
+	}
 }
 
 func assertShadowedTemporaryManifests(t *testing.T, h *backupTestHelper, snapshotTag string) {
