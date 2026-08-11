@@ -1,0 +1,6 @@
+# HELP scylla_manager_backup_removed_event_based_holds Number of snapshot files that had event based hold removed. The "node" label describes the ID of the node owning the file, while the "host" label describes the IP of the node setting the hold.
+# TYPE scylla_manager_backup_removed_event_based_holds gauge
+scylla_manager_backup_removed_event_based_holds{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",node="n",table="t"} 1
+# HELP scylla_manager_backup_set_event_based_holds Number of snapshot files that had event based hold set. The "node" label describes the ID of the node owning the file, while the "host" label describes the IP of the node setting the hold.
+# TYPE scylla_manager_backup_set_event_based_holds gauge
+scylla_manager_backup_set_event_based_holds{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",node="n",table="t"} 5
