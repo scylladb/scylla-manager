@@ -1,0 +1,3 @@
+# HELP scylla_manager_backup_versioned_files_count Number of versioned snapshot files that will be created on snapshot upload.
+# TYPE scylla_manager_backup_versioned_files_count gauge
+scylla_manager_backup_versioned_files_count{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",keyspace="k",node="n",table="t"} 2
