@@ -63,7 +63,12 @@ func NewBackupMetrics() BackupMetrics {
 
 // MustRegister shall be called to make the metrics visible by prometheus client.
 func (m BackupMetrics) MustRegister() BackupMetrics {
-	prometheus.MustRegister(m.all()...)
+	return m.MustRegisterWith(prometheus.DefaultRegisterer)
+}
+
+// MustRegisterWith registers all backup metrics with the given registerer.
+func (m BackupMetrics) MustRegisterWith(reg prometheus.Registerer) BackupMetrics {
+	reg.MustRegister(m.all()...)
 	return m
 }
 

@@ -557,6 +557,18 @@ func TestBackupProtectedManifestsIntegration(t *testing.T) {
 func listSnapshotFiles(t *testing.T, h *backupTestHelper, snapshotTag string) []string {
 	t.Helper()
 
+	manifests, schemas, files, scyllaManifests := listGroupedSnapshotFiles(t, h, snapshotTag)
+	all := make([]string, 0, len(manifests)+len(schemas)+len(files)+len(scyllaManifests))
+	all = append(all, manifests...)
+	all = append(all, schemas...)
+	all = append(all, files...)
+	all = append(all, scyllaManifests...)
+	return all
+}
+
+func listGroupedSnapshotFiles(t *testing.T, h *backupTestHelper, snapshotTag string) (manifests, schemas, files, scyllaManifests []string) {
+	t.Helper()
+
 	filesInfo, err := h.service.ListFiles(t.Context(), h.ClusterID, []backupspec.Location{h.location}, backup.ListFilter{
 		ClusterID:   h.ClusterID,
 		TaskID:      h.TaskID,
@@ -566,30 +578,26 @@ func listSnapshotFiles(t *testing.T, h *backupTestHelper, snapshotTag string) []
 		t.Fatalf("ListFiles for tag %s: %v", snapshotTag, err)
 	}
 
-	var files []string
 	for _, fi := range filesInfo {
-		// Add schema file
 		if fi.Schema != "" {
-			files = append(files, fi.Schema)
+			schemas = append(schemas, fi.Schema)
 		}
-		// Add sstable files and scylla manifests
 		for _, fm := range fi.Files {
 			for _, f := range fm.Files {
 				files = append(files, path.Join(fm.Path, f))
 			}
 			for _, sm := range fm.ScyllaManifests {
-				files = append(files, path.Join(fm.Path, sm))
+				scyllaManifests = append(scyllaManifests, path.Join(fm.Path, sm))
 			}
 		}
 	}
 
-	// Add SM manifests
-	manifests, _, _, _ := h.listS3Files()
-	for _, manifestPath := range manifests {
+	allManifests, _, _, _ := h.listS3Files()
+	for _, manifestPath := range allManifests {
 		if strings.Contains(manifestPath, snapshotTag) {
-			files = append(files, manifestPath)
+			manifests = append(manifests, manifestPath)
 		}
 	}
 
-	return files
+	return manifests, schemas, files, scyllaManifests
 }
