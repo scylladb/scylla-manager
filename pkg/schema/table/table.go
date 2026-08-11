@@ -41,6 +41,8 @@ var (
 			"completed_at",
 			"error",
 			"failed",
+			"files_count",
+			"files_skipped_count",
 			"host",
 			"run_id",
 			"scylla_task_id",
