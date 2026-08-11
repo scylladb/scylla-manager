@@ -211,7 +211,9 @@ type RunProgress struct {
 	Skipped     int64 // Amount of skipped bytes because file was present.
 	// Amount of bytes that have been uploaded but due to error have to be
 	// uploaded again.
-	Failed int64
+	Failed            int64
+	FilesCount        int64 // Total file count before deduplication.
+	FilesSkippedCount int64 // Amount of files deleted locally by deduplication.
 
 	files []fileInfo
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
@@ -84,8 +85,9 @@ func defaultTestTarget(loc backupspec.Location, ks string, dc string, retention 
 type backupTestHelper struct {
 	*CommonTestHelper
 
-	service  *backup.Service
-	location backupspec.Location
+	service    *backup.Service
+	location   backupspec.Location
+	metricsReg *prometheus.Registry
 }
 
 func newBackupTestHelper(t *testing.T, session gocqlx.Session, config backup.Config, location backupspec.Location, clientConf *scyllaclient.Config) *backupTestHelper {
@@ -102,7 +104,10 @@ func newBackupTestHelperWithUser(t *testing.T, session gocqlx.Session, config ba
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	client := newTestClient(t, hrt, logger.Named("client"), clientConf)
-	service := newTestServiceWithUser(t, session, client, config, logger, clusterID, user, pass)
+	// Per-helper registry allowing to verify metrics behavior during test execution
+	metricsReg := prometheus.NewPedanticRegistry()
+	backupMetrics := metrics.NewBackupMetrics().MustRegisterWith(metricsReg)
+	service := newTestServiceWithUser(t, session, client, config, backupMetrics, logger, clusterID, user, pass)
 	cHelper := &CommonTestHelper{
 		Session:   session,
 		Hrt:       hrt,
@@ -122,8 +127,36 @@ func newBackupTestHelperWithUser(t *testing.T, session gocqlx.Session, config ba
 	return &backupTestHelper{
 		CommonTestHelper: cHelper,
 
-		service:  service,
-		location: location,
+		service:    service,
+		location:   location,
+		metricsReg: metricsReg,
+	}
+}
+
+// sumBackupMetric returns the sum over all series of the scylla_manager_backup_<name> metric family.
+func (h *backupTestHelper) sumBackupMetric(name string) int64 {
+	h.T.Helper()
+
+	mfs, err := h.metricsReg.Gather()
+	if err != nil {
+		h.T.Fatal(err)
+	}
+	var sum float64
+	for _, mf := range mfs {
+		if mf.GetName() == "scylla_manager_backup_"+name {
+			for _, m := range mf.GetMetric() {
+				sum += m.GetGauge().GetValue()
+			}
+		}
+	}
+	return int64(sum)
+}
+
+func (h *backupTestHelper) assertBackupMetric(name string, want int64) {
+	h.T.Helper()
+
+	if got := h.sumBackupMetric(name); got != want {
+		h.T.Fatalf("Expected %s metric to be %d, got %d", name, want, got)
 	}
 }
 
@@ -143,13 +176,15 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	return c
 }
 
-func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config, logger log.Logger, clusterID uuid.UUID, user, pass string) *backup.Service {
+func newTestServiceWithUser(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c backup.Config,
+	backupMetrics metrics.BackupMetrics, logger log.Logger, clusterID uuid.UUID, user, pass string,
+) *backup.Service {
 	t.Helper()
 
 	s, err := backup.NewService(
 		session,
 		c,
-		metrics.NewBackupMetrics(),
+		backupMetrics,
 		func(_ context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
 		},
@@ -883,6 +918,12 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
 		t.Fatal(err)
 	}
+
+	Print("Then: files count metrics are set for fresh backup")
+	_, _, files, _ := h.listS3Files()
+	h.assertBackupMetric("files_count", int64(len(files)))
+	h.assertBackupMetric("files_skipped_count", 0)
+
 	Print("And: run it again")
 	if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target); err != nil {
 		t.Fatal(err)
@@ -1050,6 +1091,16 @@ func TestBackupSmokeIntegration(t *testing.T) {
 	if len(filesInfo) != 3*3 {
 		t.Fatalf("len(ListFiles()) = %d, expected %d", len(filesInfo), 3*3)
 	}
+
+	Print("And: files count metrics are set for the third backup")
+	// SnapshotInfo is sorted in descending order, so [0] is the latest backup
+	_, _, thirdFiles, _ := listGroupedSnapshotFiles(t, h, i.SnapshotInfo[0].SnapshotTag)
+	_, _, secondFiles, _ := listGroupedSnapshotFiles(t, h, i.SnapshotInfo[1].SnapshotTag)
+	thirdBackupFiles := strset.New(thirdFiles...)
+	secondBackupFiles := strset.New(secondFiles...)
+	skippedFiles := strset.Intersection(thirdBackupFiles, secondBackupFiles)
+	h.assertBackupMetric("files_count", int64(thirdBackupFiles.Size()))
+	h.assertBackupMetric("files_skipped_count", int64(skippedFiles.Size()))
 
 	assertManifestHasCorrectFormat(t, ctx, h, manifests[0], schemas)
 }

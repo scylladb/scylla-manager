@@ -129,14 +129,15 @@ func (w *worker) indexSnapshotDirs(ctx context.Context, h hostInfo) ([]snapshotD
 			}
 
 			d.Progress = &RunProgress{
-				ClusterID: w.ClusterID,
-				TaskID:    w.TaskID,
-				RunID:     w.RunID,
-				Host:      d.Host,
-				Unit:      d.Unit,
-				TableName: d.Table,
-				Size:      size,
-				files:     files,
+				ClusterID:  w.ClusterID,
+				TaskID:     w.TaskID,
+				RunID:      w.RunID,
+				Host:       d.Host,
+				Unit:       d.Unit,
+				TableName:  d.Table,
+				Size:       size,
+				FilesCount: int64(len(files)),
+				files:      files,
 			}
 			w.ResumeUploadProgress(ctx, d.Progress)
 			d.SkippedBytesOffset = d.Progress.Skipped

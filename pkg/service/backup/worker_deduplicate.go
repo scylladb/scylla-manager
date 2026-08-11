@@ -149,7 +149,7 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		if err != nil {
 			return errors.Wrap(err, "delete deduplicated files")
 		}
-
+		d.Progress.FilesSkippedCount += int64(len(deduplicated))
 		d.SkippedBytesOffset += totalSkipped
 		return nil
 	}

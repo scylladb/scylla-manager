@@ -1184,11 +1184,16 @@ func (s *Service) resumeUploadProgress(prevRunID uuid.UUID) func(context.Context
 			p.Size = prev.Size
 			p.Uploaded = prev.Uploaded
 			p.Skipped = prev.Skipped
+			p.FilesCount = prev.FilesCount
+			p.FilesSkippedCount = prev.FilesSkippedCount
 		} else {
 			diskSize := p.Size
+			diskCount := p.FilesCount
 			p.Size = prev.Size
 			p.Uploaded = 0
 			p.Skipped = prev.Size - diskSize
+			p.FilesCount = prev.FilesCount
+			p.FilesSkippedCount = prev.FilesCount - diskCount
 		}
 	}
 }
