@@ -123,11 +123,16 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		}
 
 		deduplicatedUUIDSSTables := w.deduplicateUUIDSStables(remoteSSTableBundles, localSSTableBundles)
-		deduplicatedIntSSTables, willCreateVersioned, err := w.deduplicateIntSSTables(ctx, h.IP, dataDst, d.Path, remoteSSTableBundles, localSSTableBundles)
+		deduplicatedIntSSTables, versionedCnt, err := w.deduplicateIntSSTables(ctx, h.IP, dataDst, d.Path, remoteSSTableBundles, localSSTableBundles)
 		if err != nil {
 			return errors.Wrap(err, "deduplication based on .crc32 content")
 		}
-		if willCreateVersioned && w.RetentionLockMode != RetentionLockDisabled {
+		if versionedCnt > 0 {
+			// This metric is used to monitor edge case scenarios - populate it before returning
+			// feature compatibility error and set it only when there is something to report.
+			w.Metrics.SetVersionedFilesCount(w.ClusterID, h.ID, d.Keyspace, d.Table, versionedCnt)
+		}
+		if versionedCnt > 0 && w.RetentionLockMode != RetentionLockDisabled {
 			// Creation of versioned sstable happens by copying old sstable version with appended version
 			// suffix, then removing the original old version, then uploading the new version.
 			// This is not compatible with event based hold backup, where default backup retention policy
@@ -141,7 +146,7 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 				"Then, start the backup task from scratch.", h.IP, d.Keyspace, d.Table)
 		}
 
-		d.willCreateVersioned = willCreateVersioned
+		d.willCreateVersioned = versionedCnt > 0
 		deduplicated := make([]string, 0, len(deduplicatedUUIDSSTables)+len(deduplicatedIntSSTables))
 
 		var totalSkipped int64
@@ -190,10 +195,11 @@ func (w *worker) deduplicateUUIDSStables(remoteSSTables, localSSTables *sstableB
 	return deduplicated
 }
 
-// willCreateVersioned corresponds to snapshotDir.willCreateVersioned.
+// versionedCnt is the sum of local sstable bundle files which couldn't
+// be deduplicated even though they have counterpart remote bundle.
 func (w *worker) deduplicateIntSSTables(ctx context.Context, host string, remoteDir, localDir string,
 	remoteSSTables, localSSTables *sstableBundlesByID,
-) (deduplicated []fileInfo, willCreateVersioned bool, err error) {
+) (deduplicated []fileInfo, versionedCnt int, err error) {
 	// Reference to SSTables 3.0 Data File Format
 	// https://opensource.docs.scylladb.com/stable/architecture/sstable/sstable3/sstables-3-data-file-format.html
 
@@ -206,39 +212,39 @@ func (w *worker) deduplicateIntSSTables(ctx context.Context, host string, remote
 			continue
 		}
 		// At this point analyzed SSTable ID is present in both local and remote dirs.
-		// Not being able to deduplicate it results in setting 'willCreateVersioned' to true.
+		// Not being able to deduplicate it results in increasing versionedCnt.
 		crc32Idx := slices.IndexFunc(localBundle, func(fi fileInfo) bool {
 			return strings.HasSuffix(fi.Name, "Digest.crc32")
 		})
 		if crc32Idx == -1 {
-			willCreateVersioned = true
+			versionedCnt += len(localBundle)
 			continue
 		}
 		crc32FileName := localBundle[crc32Idx].Name
 		if !isSSTableBundleSizeEqual(localBundle, remoteBundle) {
-			willCreateVersioned = true
+			versionedCnt += len(localBundle)
 			continue
 		}
 
 		remoteCRC32Path := path.Join(remoteDir, crc32FileName)
 		remoteCRC32, err := w.Client.RcloneCat(ctx, host, remoteCRC32Path)
 		if err != nil {
-			return nil, true, errors.Wrapf(err, "get content of remote CRC32 %s", remoteCRC32Path)
+			return nil, 0, errors.Wrapf(err, "get content of remote CRC32 %s", remoteCRC32Path)
 		}
 
 		localCRC32Path := path.Join(localDir, crc32FileName)
 		localCRC32, err := w.Client.RcloneCat(ctx, host, localCRC32Path)
 		if err != nil {
-			return nil, true, errors.Wrapf(err, "get content of local CRC32 %s", localCRC32Path)
+			return nil, 0, errors.Wrapf(err, "get content of local CRC32 %s", localCRC32Path)
 		}
 
 		if bytes.Equal(localCRC32, remoteCRC32) {
 			deduplicated = append(deduplicated, localBundle...)
 		} else {
-			willCreateVersioned = true
+			versionedCnt += len(localBundle)
 		}
 	}
-	return deduplicated, willCreateVersioned, nil
+	return deduplicated, versionedCnt, nil
 }
 
 type sstableBundlesByID struct {
