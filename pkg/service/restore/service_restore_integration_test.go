@@ -26,6 +26,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/backupspec"
@@ -53,9 +54,10 @@ import (
 type restoreTestHelper struct {
 	*CommonTestHelper
 
-	service   *Service
-	backupSvc *backup.Service
-	location  backupspec.Location
+	service    *Service
+	backupSvc  *backup.Service
+	location   backupspec.Location
+	metricsReg *prometheus.Registry
 }
 
 func newRestoreTestHelper(t *testing.T, session gocqlx.Session, config Config, location backupspec.Location, clientConf *scyllaclient.Config, user, pass string) *restoreTestHelper {
@@ -67,7 +69,10 @@ func newRestoreTestHelper(t *testing.T, session gocqlx.Session, config Config, l
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
 	client := newTestClient(t, hrt, logger.Named("client"), clientConf)
-	service, backupSvc := newTestService(t, session, client, config, logger, clusterID, user, pass)
+	// Per-helper registry allowing to verify metrics behavior during test execution
+	metricsReg := prometheus.NewPedanticRegistry()
+	backupMetrics := metrics.NewBackupMetrics().MustRegisterWith(metricsReg)
+	service, backupSvc := newTestService(t, session, client, config, backupMetrics, logger, clusterID, user, pass)
 	cHelper := &CommonTestHelper{
 		Session:   session,
 		Hrt:       hrt,
@@ -87,9 +92,37 @@ func newRestoreTestHelper(t *testing.T, session gocqlx.Session, config Config, l
 	return &restoreTestHelper{
 		CommonTestHelper: cHelper,
 
-		service:   service,
-		backupSvc: backupSvc,
-		location:  location,
+		service:    service,
+		backupSvc:  backupSvc,
+		location:   location,
+		metricsReg: metricsReg,
+	}
+}
+
+// sumBackupMetric returns the sum over all series of the scylla_manager_backup_<name> metric family.
+func (h *restoreTestHelper) sumBackupMetric(name string) int64 {
+	h.T.Helper()
+
+	mfs, err := h.metricsReg.Gather()
+	if err != nil {
+		h.T.Fatal(err)
+	}
+	var sum float64
+	for _, mf := range mfs {
+		if mf.GetName() == "scylla_manager_backup_"+name {
+			for _, m := range mf.GetMetric() {
+				sum += m.GetGauge().GetValue()
+			}
+		}
+	}
+	return int64(sum)
+}
+
+func (h *restoreTestHelper) assertBackupMetric(name string, want int64) {
+	h.T.Helper()
+
+	if got := h.sumBackupMetric(name); got != want {
+		h.T.Fatalf("Expected %s metric to be %d, got %d", name, want, got)
 	}
 }
 
@@ -109,7 +142,9 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	return c
 }
 
-func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c Config, logger log.Logger, clusterID uuid.UUID, user, pass string) (*Service, *backup.Service) {
+func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.Client, c Config,
+	backupMetrics metrics.BackupMetrics, logger log.Logger, clusterID uuid.UUID, user, pass string,
+) (*Service, *backup.Service) {
 	t.Helper()
 
 	configCacheSvc := NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts)
@@ -135,7 +170,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 	backupSvc, err := backup.NewService(
 		session,
 		defaultBackupTestConfig(),
-		metrics.NewBackupMetrics(),
+		backupMetrics,
 		func(_ context.Context, id uuid.UUID) (string, error) {
 			return "test_cluster", nil
 		},
@@ -1040,6 +1075,9 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	backupProps["method"] = backup.MethodAuto // This additionally validates fallback to rclone on versioned files creation
 	srcH.simpleBackupWithProperties(target.Location[0], backupProps)
 
+	Print("Fresh backup didn't create any versioned files")
+	srcH.assertBackupMetric("versioned_files_count", 0)
+
 	// Corrupting SSTables allows us to force the creation of versioned files
 	Print("Choose SSTables to corrupt")
 	remoteDir := target.Location[0].RemotePath(backupspec.RemoteSSTableDir(srcH.ClusterID, host.Datacenter, host.HostID, corruptedKeyspace, corruptedTable))
@@ -1162,6 +1200,15 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 			if _, err = srcH.Client.RcloneFileInfo(ctx, host.Addr, corruptedPath); err != nil {
 				t.Fatalf("Validate file %s: %s", corruptedPath, err)
 			}
+		}
+		// The versioned_files_count metric is approximative - it assumes that if any
+		// sstable component is versioned, all will be as well. That's usually the case,
+		// but this test creates versioned files only from the .db sstable components.
+		// Since we don't need this metric to be precise and would like to avoid rewriting
+		// this test, we just validate that this metric is set.
+		Print("Backup creating versioned files has versioned files count metric set")
+		if got := srcH.sumBackupMetric("versioned_files_count"); got <= 0 {
+			t.Fatalf("Expected versioned_files_count metric to be greater than 0, got %d", got)
 		}
 
 		return tag
