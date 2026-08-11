@@ -94,6 +94,12 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 			if strings.HasSuffix(f.Name, backupspec.ScyllaManifest) {
 				return
 			}
+			// Skip versioned files, as deduplication is only interested
+			// in the newest file versions (others have tag suffix which
+			// makes them impossible to deduplicate).
+			if _, version := SplitNameAndVersion(f.Name); version != "" {
+				return
+			}
 			if err := remoteSSTableBundles.add(f.Name, f.Size); err != nil {
 				w.Logger.Error(ctx, "Couldn't create remote sstable bundle info", "file", f.Name, "error", err)
 			}
