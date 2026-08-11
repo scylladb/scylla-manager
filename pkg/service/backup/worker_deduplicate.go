@@ -67,7 +67,7 @@ func (w *worker) deduplicateHost(ctx context.Context, h hostInfo) error {
 		if applyHolds {
 			// Initialize holdHandler
 			apply := func(ctx context.Context, paths []string, hold bool) error {
-				return w.holdAndWait(ctx, h.IP, dataDst, paths, hold, d.Keyspace, d.Table)
+				return w.holdAndWait(ctx, h.IP, dataDst, paths, hold, h.ID, d.Keyspace, d.Table)
 			}
 			holdHandler = newEventBasedHoldHandler(apply, eventBasedHoldBatchSize)
 			// Feed local files

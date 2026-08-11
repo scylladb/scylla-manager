@@ -67,7 +67,7 @@ func (w *worker) holdSchemaFiles(ctx context.Context, hosts []hostInfo) error {
 
 		// Initialize holdHandler
 		apply := func(ctx context.Context, paths []string, hold bool) error {
-			return w.holdAndWait(ctx, hosts[i].IP, remoteSchemaDir, paths, hold, "", "")
+			return w.holdAndWait(ctx, hosts[i].IP, remoteSchemaDir, paths, hold, "", "", "")
 		}
 		holdHandler := newEventBasedHoldHandler(apply, eventBasedHoldBatchSize)
 		// Feed local files - even though schema files have already been uploaded,
@@ -129,7 +129,7 @@ func (w *worker) holdLocationManifests(ctx context.Context, manifestLimit int, l
 		}
 	}
 	if len(currentNotHeld) > 0 {
-		if err := w.holdAndWait(ctx, hosts[0].IP, loc.RemotePath(""), currentNotHeld, true, "", ""); err != nil {
+		if err := w.holdAndWait(ctx, hosts[0].IP, loc.RemotePath(""), currentNotHeld, true, "", "", ""); err != nil {
 			return errors.Wrap(err, "set missing hold on current manifests")
 		}
 	}
@@ -301,7 +301,7 @@ func (w *worker) releaseAllDirHolds(ctx context.Context, h hostInfo, dir sstable
 
 	remoteDir := h.Location.RemotePath(dir.Path)
 	apply := func(ctx context.Context, paths []string, hold bool) error {
-		return w.holdAndWait(ctx, h.IP, remoteDir, paths, hold, dir.Keyspace, dir.Table)
+		return w.holdAndWait(ctx, h.IP, remoteDir, paths, hold, dir.NodeID, dir.Keyspace, dir.Table)
 	}
 	holdHandler := newEventBasedHoldHandler(apply, eventBasedHoldBatchSize)
 	// No local files - all objects should have holds removed
@@ -346,15 +346,40 @@ func (w *worker) releaseManifestsHold(ctx context.Context, host string, manifest
 			}
 		}
 	}
-	return w.holdAndWait(ctx, host, manifests[0].Location.RemotePath(""), paths, false, "", "")
+	return w.holdAndWait(ctx, host, manifests[0].Location.RemotePath(""), paths, false, "", "", "")
 }
 
-func (w *worker) holdAndWait(ctx context.Context, host, remoteDir string, paths []string, hold bool, keyspace, table string) error {
+// holdAndWait schedules an event based hold job and waits for its completion.
+// The nodeID arg describes the node owning the remote dir.
+// It emits set|remove_event_based_holds metrics only for non-empty keyspace and table args.
+func (w *worker) holdAndWait(ctx context.Context, host, remoteDir string, paths []string, hold bool, nodeID, keyspace, table string) error {
 	jobID, err := w.Client.RcloneBatchEventBasedHold(ctx, host, remoteDir, paths, hold)
 	if err != nil {
 		return errors.Wrap(err, "schedule event based hold job")
 	}
-	return w.waitRetentionJob(ctx, host, jobID, w.retentionLockJobCB(host, jobID, keyspace, table))
+	return w.waitRetentionJob(ctx, host, jobID, w.eventBasedHoldJobCB(host, jobID, hold, nodeID, keyspace, table))
+}
+
+func (w *worker) eventBasedHoldJobCB(host string, jobID int64, hold bool, nodeID, keyspace, table string) retentionJobCB {
+	var done int64
+	return func(job *scyllaclient.RcloneJobProgress) (bool, error) {
+		switch scyllaclient.RcloneJobStatus(job.Status) {
+		case scyllaclient.JobError:
+			return false, errors.Errorf("event based hold job error (%d): %s", jobID, job.Error)
+		case scyllaclient.JobNotFound:
+			return false, errors.Errorf("event based hold job not found (%d)", jobID)
+		case scyllaclient.JobSuccess, scyllaclient.JobRunning:
+			diff := job.Uploaded - done
+			done = job.Uploaded
+			if keyspace != "" && table != "" {
+				w.Metrics.IncreaseEventBasedHolds(w.ClusterID, nodeID, keyspace, table, host, hold, diff)
+			}
+			if scyllaclient.RcloneJobStatus(job.Status) == scyllaclient.JobSuccess {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
 }
 
 // groupManifestsByTagAndHold returns manifests being a part of the current snapshot

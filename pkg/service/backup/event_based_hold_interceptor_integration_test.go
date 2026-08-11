@@ -335,6 +335,7 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 	// - deduplicated files have hold
 	// - files from non-current snapshot don't have hold
 	// - files with hold manually changed are adjusted
+	// - hold metrics reflect the hold changes on the sstable dir files
 	const (
 		testBucket   = "backuptest-event-based-hold"
 		testKeyspace = "backuptest_event_based_hold"
@@ -388,6 +389,10 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 	tagAFiles := listSnapshotFiles(t, h, tagA.SnapshotTag)
 	assertObjectMetadataAll(t, h.Client, host, location, tagAFiles, true, "", time.Time{})
 	assertShadowedTemporaryManifests(t, h, tagA.SnapshotTag)
+
+	Print("And: fresh snapshot does not populate hold metrics")
+	h.assertBackupMetric("set_event_based_holds", 0)
+	h.assertBackupMetric("removed_event_based_holds", 0)
 
 	tagATOCFiles := make([]string, 0)
 	for _, file := range tagAFiles {
@@ -446,6 +451,26 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 
 	Print("And: files from non-current snapshots don't have event based hold")
 	assertObjectMetadataAll(t, h.Client, host, location, tagAOnlyFiles, false, string(scyllaclient.RetentionModeLocked), baseTime.Add(policy))
+
+	Print("And: second snapshot reports hold metrics")
+	// Note that since backup is executed outside or backup runner, the metrics
+	// are not reset between the runs. This is not a problem here, as we validated
+	// that the first backup didn't report any holds set or removed.
+	// We want to check that the second backup removed holds from first snapshot
+	// only files and that it set holds for the manually tampered TOC files.
+	_, _, tagASSTables, tagAScyllaManifests := listGroupedSnapshotFiles(t, h, tagA.SnapshotTag)
+	_, _, tagBSSTables, tagBScyllaManifests := listGroupedSnapshotFiles(t, h, tagB.SnapshotTag)
+	tagASstDirFiles := strset.New(append(tagASSTables, tagAScyllaManifests...)...)
+	tagBSstDirFiles := strset.New(append(tagBSSTables, tagBScyllaManifests...)...)
+	tocFiles := strset.New(tagATOCFiles...)
+	expectedSet := strset.Intersection(tagBSstDirFiles, tocFiles)
+	expectedRemoved := strset.Difference(tagASstDirFiles, tagBSstDirFiles, tocFiles)
+	h.assertBackupMetric("set_event_based_holds", int64(expectedSet.Size()))
+	h.assertBackupMetric("removed_event_based_holds", int64(expectedRemoved.Size()))
+
+	Print("And: retention lock and versioned files metrics are not reported")
+	h.assertBackupMetric("retention_locked_files", 0)
+	h.assertBackupMetric("versioned_files_count", 0)
 }
 
 func TestBackupEventBasedHoldVanishedDirsIntegration(t *testing.T) {
