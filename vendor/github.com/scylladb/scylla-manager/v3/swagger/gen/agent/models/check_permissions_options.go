@@ -16,7 +16,7 @@ import (
 type CheckPermissionsOptions struct {
 
 	// Whether the object is under event based hold
-	EventBasedHold bool `json:"EventBasedHold,omitempty"`
+	EventBasedHold bool `json:"eventBasedHold,omitempty"`
 
 	// A remote name string eg. drive:
 	Fs string `json:"fs,omitempty"`

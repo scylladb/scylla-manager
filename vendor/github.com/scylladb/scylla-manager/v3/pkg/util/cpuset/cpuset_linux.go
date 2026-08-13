@@ -1,4 +1,4 @@
-// Copyright (C) 2017 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 //go:build linux
 // +build linux
 
@@ -14,10 +14,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// AvailableCPUs returns a list of CPUs of length wantCPUs that does not contain
-// any of the busyCPUs. If the conditions cannot be met error is returned.
-// AvailableCPUs selects the CPUs with the highest available indexes to offload
-// shard 0...
+// AvailableCPUs returns a list of CPUs that does not contain any of the busyCPUs.
 func AvailableCPUs(busyCPUs []int) ([]int, error) {
 	var cpus unix.CPUSet
 	if err := unix.SchedGetaffinity(os.Getpid(), &cpus); err != nil {
@@ -25,11 +22,6 @@ func AvailableCPUs(busyCPUs []int) ([]int, error) {
 	}
 	for _, c := range busyCPUs {
 		cpus.Clear(c)
-	}
-
-	n := cpus.Count()
-	if n == 0 {
-		return nil, errors.Errorf("no available CPUs")
 	}
 
 	return cpulist(&cpus), nil
