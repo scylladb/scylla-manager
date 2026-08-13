@@ -447,7 +447,8 @@ func TestBackupProtectedManifestsIntegration(t *testing.T) {
 			nextID := RawWriteData(t, clusterSession, tc.keyspace, 0, 1, replication, true)
 
 			props := defaultTestProperties(location, tc.keyspace)
-			// Just to satisfy retention lock validation.
+			props["retention_lock_mode"] = tc.retentionLockMode
+			// Required by the unlocked mode validation.
 			// Different retention policy will be used for purge purposes.
 			props["retention_days"] = 1
 			// Tests forcing GCS provider need to use method auto to avoid
@@ -462,8 +463,6 @@ func TestBackupProtectedManifestsIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// Added here to bypass validation, as this method is not yet exposed
-			target.RetentionLockMode = tc.retentionLockMode
 			// Inject purge so that it keeps only the last snapshot
 			target.RetentionMap = backup.RetentionMap{h.TaskID: {Retention: 1}}
 			// To skip not interesting schema sstables

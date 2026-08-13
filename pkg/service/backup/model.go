@@ -311,17 +311,24 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 		return errors.New("unknown Method: " + string(p.Method))
 	}
 	if !slices.Contains([]RetentionLockMode{
-		RetentionLockDisabled, RetentionLockUnlocked, RetentionLockLocked,
+		RetentionLockDisabled, RetentionLockUnlocked, RetentionLockLocked, RetentionLockEventBasedHold,
 	}, p.RetentionLockMode) {
 		return errors.New("unknown retention lock mode: " + string(p.RetentionLockMode))
 	}
-	if p.RetentionLockMode != RetentionLockDisabled {
+	// Retention policy restrictions apply only to the object retention lock modes,
+	// as the post hold release retention period is configured on bucket level.
+	if p.RetentionLockMode == RetentionLockUnlocked || p.RetentionLockMode == RetentionLockLocked {
 		if p.RetentionDays == nil || *p.RetentionDays <= 0 {
-			return util.ErrValidate(errors.New("retention days must be set when retention lock is enabled"))
+			return util.ErrValidate(errors.Errorf("retention days must be set when retention lock mode %q is used", p.RetentionLockMode))
 		}
 		if p.Retention != nil && *p.Retention > 0 {
-			return util.ErrValidate(errors.New("count-based retention mustn't be set when retention lock is enabled"))
+			return util.ErrValidate(errors.Errorf("count-based retention mustn't be set when retention lock mode %q is used", p.RetentionLockMode))
 		}
+	}
+	if p.OverrideRetentionLock && (p.RetentionLockMode == RetentionLockDisabled || p.RetentionLockMode == RetentionLockEventBasedHold) {
+		return util.ErrValidate(errors.Errorf("retention lock cannot be overridden when retention lock mode %q is used", p.RetentionLockMode))
+	}
+	if p.RetentionLockMode != RetentionLockDisabled {
 		for _, l := range p.Location {
 			if l.Provider != backupspec.GCS {
 				return util.ErrValidate(errors.Errorf(
@@ -329,9 +336,6 @@ func (p taskProperties) validate(dcs []string, dcMap map[string][]string) error 
 						"it's supported only for %s", l.Provider, backupspec.GCS))
 			}
 		}
-	}
-	if p.RetentionLockMode == RetentionLockDisabled && p.OverrideRetentionLock {
-		return util.ErrValidate(errors.New("retention lock cannot be overridden when it is disabled"))
 	}
 
 	// Validate location DCs
