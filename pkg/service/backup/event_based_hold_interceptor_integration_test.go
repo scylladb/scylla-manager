@@ -363,6 +363,7 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 	props["retention"] = 0
 	props["retention_days"] = 2
 	props["method"] = backup.MethodAuto
+	props["retention_lock_mode"] = backup.RetentionLockEventBasedHold
 	rawProps, err := json.Marshal(props)
 	if err != nil {
 		t.Fatal(err)
@@ -371,7 +372,6 @@ func TestBackupEventBasedHoldIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target.RetentionLockMode = backup.RetentionLockEventBasedHold
 	// To skip not interesting schema sstables
 	target.Units = []backup.Unit{{Keyspace: testKeyspace}}
 
@@ -506,6 +506,7 @@ func TestBackupEventBasedHoldVanishedDirsIntegration(t *testing.T) {
 	props["dc"] = []string{"dc1", "dc2"} // Ensure all nodes are backed up
 	props["retention"] = 7               // Just to keep purge out of the equation
 	props["method"] = backup.MethodAuto  // Just to not run into problems with GCS native backup support
+	props["retention_lock_mode"] = backup.RetentionLockEventBasedHold
 
 	makeTarget := func() backup.Target {
 		rawProps, err := json.Marshal(props)
@@ -516,8 +517,7 @@ func TestBackupEventBasedHoldVanishedDirsIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		target.RetentionLockMode = backup.RetentionLockEventBasedHold // Bypass target validation for not yet exposed mode
-		target.Units = []backup.Unit{{Keyspace: keyspace}}            // Just to skip not interesting schema sstables
+		target.Units = []backup.Unit{{Keyspace: keyspace}} // Just to skip not interesting schema sstables
 		return target
 	}
 

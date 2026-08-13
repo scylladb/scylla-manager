@@ -707,12 +707,12 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 		{
 			Name:  "retention lock enabled without retention days",
 			JSON:  `{"retention_lock_mode": "unlocked", "location": ["s3:backuptest-get-target-error"]}`,
-			Error: "retention days must be set when retention lock is enabled",
+			Error: `retention days must be set when retention lock mode "unlocked" is used`,
 		},
 		{
 			Name:  "retention lock enabled with count-based retention",
 			JSON:  `{"retention_lock_mode": "unlocked", "retention_days": 7, "retention": 3, "location": ["s3:backuptest-get-target-error"]}`,
-			Error: "count-based retention mustn't be set when retention lock is enabled",
+			Error: `count-based retention mustn't be set when retention lock mode "unlocked" is used`,
 		},
 		{
 			Name:  "retention lock enabled with non-gcs provider",
@@ -722,7 +722,17 @@ func TestGetTargetErrorIntegration(t *testing.T) {
 		{
 			Name:  "override retention lock when disabled",
 			JSON:  `{"retention_lock_mode": "disabled", "override_retention_lock": true, "location": ["s3:backuptest-get-target-error"]}`,
-			Error: "retention lock cannot be overridden when it is disabled",
+			Error: `retention lock cannot be overridden when retention lock mode "disabled" is used`,
+		},
+		{
+			Name:  "override retention lock with event based hold",
+			JSON:  `{"retention_lock_mode": "event-based-hold", "override_retention_lock": true, "location": ["s3:backuptest-get-target-error"]}`,
+			Error: `retention lock cannot be overridden when retention lock mode "event-based-hold" is used`,
+		},
+		{
+			Name:  "event based hold with non-gcs provider",
+			JSON:  `{"retention_lock_mode": "event-based-hold", "location": ["s3:backuptest-get-target-error"]}`,
+			Error: "retention lock is not supported for s3 provider",
 		},
 	}
 
