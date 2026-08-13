@@ -139,17 +139,29 @@ options:
     - name: retention-lock-mode
       default_value: disabled
       usage: |
-        Set object retention lock mode for snapshot files.
-        When enabled, snapshot files in the backup location are protected from deletion until the retention period (set by '--retention-days') expires.
+        Set retention lock mode for snapshot files.
+        When enabled, snapshot files in the backup location are protected from deletion until the retention period expires.
         Supported for GCS cloud provider only.
         Supported values:
 
         * 'disabled': No retention lock is applied to snapshot files (default).
-        * 'unlocked': Retention lock is applied but can be shortened or removed with special permissions.
-        * 'locked': Retention lock is applied and cannot be overridden.
+        * 'unlocked': Object retention lock is applied but can be shortened or removed with special permissions.
+        * 'locked': Object retention lock is applied and cannot be overridden.
+        * 'event-based-hold': While referenced by the newest snapshot, files are protected by default event based holds.
+          After that, they are protected by default retention period.
 
-        Requires '--retention-days' to be set to a positive value.
-        Count-based '--retention' mustn't be set when retention lock is enabled.
+        The 'unlocked' and 'locked' modes protect snapshot files for the retention period set by '--retention-days'.
+        They work by applying or refreshing object retention locks on both new and deduplicated snapshot files.
+        They require '--retention-days' to be set to a positive value and count-based '--retention' mustn't be set.
+
+        The 'event-based-hold' mode requires prior configuration of default retention period on the backup bucket level.
+        The default event based hold configuration is also strongly recommended (saves on request count).
+        It works by applying event based holds on newly uploaded snapshot files. If such file is still referenced by the next snapshot,
+        it keeps its hold set. Otherwise, the hold is removed and the default retention period starts ticking.
+        This means that snapshot files can be purged only after bucket_retention_period + backup_task_interval has passed.
+        It works with any '--retention' and '--retention-days' settings, as snapshots still protected by the event based holds
+        or retention period won't be purged even if backup task retention policy qualifies them as stale.
+        Changing retention lock mode between 'unlocked'/'locked' and 'event-based-hold' is not supported.
 
         Using retention lock requires additional configuration and has its own limitations,
         which are described in details in https://manager.docs.scylladb.com/stable/backup/retention-lock.
