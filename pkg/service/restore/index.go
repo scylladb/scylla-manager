@@ -1,4 +1,4 @@
-// Copyright (C) 2024 ScyllaDB
+// Copyright (C) 2026 ScyllaDB
 
 package restore
 
@@ -6,12 +6,16 @@ import (
 	"context"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	. "github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore/tablet"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
+	cqlTable "github.com/scylladb/scylla-manager/v3/pkg/table"
+	"golang.org/x/sync/errgroup"
 )
 
 // Workload represents total restore workload.
@@ -20,6 +24,8 @@ type Workload struct {
 	LocationSize map[Location]int64
 	TableSize    map[TableName]int64
 	RemoteDir    []RemoteDirWorkload
+
+	TabletAwareWorkload tablet.Workload
 }
 
 // NativeRestoreSupport validates that native restore can be used for all sstables in the workload.
@@ -72,22 +78,64 @@ type SSTable struct {
 }
 
 // IndexWorkload returns sstables to be restored aggregated by location, table and remote sstable dir.
-func (w *tablesWorker) IndexWorkload(ctx context.Context, locations []LocationInfo) (Workload, error) {
-	var rawWorkload []RemoteDirWorkload
-	for _, l := range locations {
-		lw, err := w.indexLocationWorkload(ctx, l)
+func (w *tablesWorker) IndexWorkload(ctx context.Context) (Workload, error) {
+	// Read remote manifests and store their indexes on disk just once
+	// for both regular and tablet aware restore workload indexing.
+	// Indexes will be read from disk multiple times.
+	var manifests []ManifestInfoWithContent
+	var mu sync.Mutex
+
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(backup.MaxManifestInMemory)
+	for _, l := range w.target.locationInfo {
+		eg.Go(func() error {
+			return w.forEachManifest(egCtx, l, func(m ManifestInfoWithContent) error {
+				mu.Lock()
+				manifests = append(manifests, m)
+				mu.Unlock()
+				return nil
+			})
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return Workload{}, errors.Wrap(err, "read remote manifests")
+	}
+
+	tabletWorkload := make(tablet.Workload)
+	var err error
+	if w.config.TabletAwareRestoreFeatureFlag {
+		tabletWorkload, err = w.indexTabletAwareWorkload(ctx, manifests)
 		if err != nil {
-			return Workload{}, errors.Wrapf(err, "index workload in %s", l.Location)
+			return Workload{}, errors.Wrap(err, "index tablet aware workload")
 		}
-		rawWorkload = append(rawWorkload, lw...)
+	}
+
+	tables := unitsToTables(w.run.Units)
+	// Don't index tables already indexed and compatible with tablet aware restore
+	for t := range tabletWorkload {
+		delete(tables, t)
+	}
+
+	rawWorkload, err := w.indexLocationWorkload(ctx, tables, manifests)
+	if err != nil {
+		return Workload{}, errors.Wrap(err, "index workload")
 	}
 	workload := aggregateWorkload(rawWorkload)
+	workload.TabletAwareWorkload = tabletWorkload
 	w.logWorkloadInfo(ctx, workload)
 	return workload, nil
 }
 
-func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location LocationInfo) ([]RemoteDirWorkload, error) {
-	rawWorkload, err := w.createRemoteDirWorkloads(ctx, location)
+func (w *tablesWorker) indexTabletAwareWorkload(ctx context.Context, manifests []ManifestInfoWithContent) (tablet.Workload, error) {
+	tw, err := tablet.NewIndexWorker(ctx, w.logger, w.client, w.clusterSession, w.nodeConfig, w.target.Location)
+	if err != nil {
+		return tablet.Workload{}, errors.Wrap(err, "build tablet workload indexer")
+	}
+	return tw.Index(ctx, unitsToTables(w.run.Units), manifests)
+}
+
+func (w *tablesWorker) indexLocationWorkload(ctx context.Context, tables map[cqlTable.CQLTable]struct{}, manifests []ManifestInfoWithContent) ([]RemoteDirWorkload, error) {
+	rawWorkload, err := w.createRemoteDirWorkloads(ctx, tables, manifests)
 	if err != nil {
 		return nil, errors.Wrap(err, "create remote dir workloads")
 	}
@@ -100,11 +148,12 @@ func (w *tablesWorker) indexLocationWorkload(ctx context.Context, location Locat
 	return rawWorkload, nil
 }
 
-func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location LocationInfo) ([]RemoteDirWorkload, error) {
+func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, tables map[cqlTable.CQLTable]struct{}, manifests []ManifestInfoWithContent) ([]RemoteDirWorkload, error) {
 	var rawWorkload []RemoteDirWorkload
-	err := w.forEachManifest(ctx, location, func(m ManifestInfoWithContent) error {
-		return m.ForEachIndexIterWithError(nil, func(fm FilesMeta) error {
-			if !unitsContainTable(w.run.Units, fm.Keyspace, fm.Table) {
+	for _, m := range manifests {
+		err := m.ForEachIndexIterWithError(nil, func(fm FilesMeta) error {
+			t := cqlTable.CQLTable{Keyspace: fm.Keyspace, Name: fm.Table}
+			if _, ok := tables[t]; !ok {
 				return nil
 			}
 
@@ -113,7 +162,7 @@ func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Lo
 				return errors.Wrapf(err, "convert files meta to sstables")
 			}
 			sstDir := m.LocationSSTableVersionDir(fm.Keyspace, fm.Table, fm.Version)
-			remoteSSTables, err := w.adjustSSTablesWithRemote(ctx, location.AnyHost(), sstDir, sstables)
+			remoteSSTables, err := w.adjustSSTablesWithRemote(ctx, w.anyHost(m.Location), sstDir, sstables)
 			if err != nil {
 				return errors.Wrap(err, "fetch sstables sizes")
 			}
@@ -122,12 +171,11 @@ func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Lo
 			for _, sst := range remoteSSTables {
 				size += sst.Size
 			}
-			t := TableName{
-				Keyspace: fm.Keyspace,
-				Table:    fm.Table,
-			}
 			workload := RemoteDirWorkload{
-				TableName:        t,
+				TableName: TableName{
+					Keyspace: fm.Keyspace,
+					Table:    fm.Table,
+				},
 				ManifestInfo:     m.ManifestInfo,
 				RemoteSSTableDir: sstDir,
 				Size:             size,
@@ -138,9 +186,9 @@ func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, location Lo
 			}
 			return nil
 		})
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "iterate over manifests")
+		if err != nil {
+			return nil, errors.Wrap(err, "iterate over manifest index")
+		}
 	}
 	return rawWorkload, nil
 }
@@ -226,6 +274,15 @@ func (w *tablesWorker) initMetrics(workload Workload) {
 }
 
 func (w *tablesWorker) logWorkloadInfo(ctx context.Context, workload Workload) {
+	for _, tm := range workload.TabletAwareWorkload {
+		w.logger.Info(ctx, "Tablet aware table workload",
+			"keyspace", tm.Table.Keyspace,
+			"table", tm.Table.Name,
+			"size", tm.Size,
+			"files count", tm.FileCnt,
+		)
+	}
+
 	for loc, size := range workload.LocationSize {
 		w.logger.Info(ctx, "Location workload",
 			"location", loc,
@@ -304,6 +361,15 @@ func (w *tablesWorker) adjustSSTablesWithRemote(ctx context.Context, host, remot
 	return remoteSSTables, nil
 }
 
+func (w *tablesWorker) anyHost(loc Location) string {
+	for _, l := range w.target.locationInfo {
+		if l.Location == loc {
+			return l.AnyHost()
+		}
+	}
+	return ""
+}
+
 func filesMetaToSSTables(fm FilesMeta) (map[sstable.ID]SSTable, error) {
 	const expectedSSTableFileCnt = 9
 	sstables := make(map[sstable.ID]SSTable, len(fm.Files)/expectedSSTableFileCnt)
@@ -323,4 +389,14 @@ func filesMetaToSSTables(fm FilesMeta) (map[sstable.ID]SSTable, error) {
 		sstables[id] = sst
 	}
 	return sstables, nil
+}
+
+func unitsToTables(units []Unit) map[cqlTable.CQLTable]struct{} {
+	tables := make(map[cqlTable.CQLTable]struct{})
+	for _, u := range units {
+		for _, t := range u.Tables {
+			tables[cqlTable.CQLTable{Keyspace: u.Keyspace, Name: t.Table}] = struct{}{}
+		}
+	}
+	return tables
 }

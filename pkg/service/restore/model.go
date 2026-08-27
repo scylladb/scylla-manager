@@ -190,14 +190,6 @@ func (u *Unit) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error
 	return gocql.Unmarshal(info, data, f.Addr().Interface())
 }
 
-func unitsContainTable(units []Unit, ks, tab string) bool {
-	idx := slices.IndexFunc(units, func(u Unit) bool { return u.Keyspace == ks })
-	if idx < 0 {
-		return false
-	}
-	return slices.ContainsFunc(units[idx].Tables, func(t Table) bool { return t.Table == tab })
-}
-
 // Table represents restored table, its size and original tombstone_gc mode.
 type Table struct {
 	Table       string          `json:"table" db:"table_name"`
