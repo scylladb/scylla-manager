@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -540,6 +541,184 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 	h.runRestore(t, props)
 
 	validateTableContent[int, int](t, h.srcCluster.rootSession, h.dstCluster.rootSession, ks, tab, c1, c2)
+}
+
+func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
+	// Tests tablet-aware restore by backing up and restoring tables
+	// with different initial tablet counts across multiple keyspaces.
+	// Initially, tablet-aware restore is supported only from and to
+	// single DC cluster, but when that limitation is abolished,
+	// more test cases can be added.
+	testCases := []struct {
+		name     string
+		srcHosts []string
+		dstHosts []string
+	}{
+		{
+			name:     "backup and restore on small cluster",
+			srcHosts: ManagedSecondClusterHosts(),
+			dstHosts: ManagedSecondClusterHosts(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			enableTabletAwareRestore = true
+			defer func() {
+				enableTabletAwareRestore = false
+			}()
+			h := newTestHelper(t, tc.srcHosts, tc.dstHosts)
+			loc := testLocation("tablet-aware-smoke", "")
+			InitBucket(t, loc.Path)
+
+			ni, err := h.dstCluster.Client.AnyNodeInfo(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if ok, err := ni.SupportsTabletRestoreAPI(); err != nil {
+				t.Fatal(err)
+			} else if !ok {
+				t.Skip("This test assumes tablet aware restore API support")
+			}
+			if _, err := ni.ScyllaObjectStorageEndpoint(loc.Provider); err != nil {
+				t.Skip("This test assumes scylla object_storage_endpoints are configured: ", err)
+			}
+
+			ks1 := randomizedName("tablet_smoke_ks1_")
+			ks2 := randomizedName("tablet_smoke_ks2_")
+			vnodeKs := randomizedName("vnode_smoke_ks_")
+			tab1Cnt := 8
+			tab2Cnt := 16
+			tab3Cnt := 32
+			tab1 := randomizedName(fmt.Sprint("tab_", tab1Cnt))
+			tab2 := randomizedName(fmt.Sprint("tab_", tab2Cnt))
+			tab3 := randomizedName(fmt.Sprint("tab_", tab3Cnt))
+			vnodeTab := randomizedName("tab_")
+			tables := []table{
+				{ks: ks1, tab: tab1},
+				{ks: ks1, tab: tab2},
+				{ks: ks2, tab: tab3},
+				{ks: vnodeKs, tab: vnodeTab},
+			}
+			ksFilter := []string{ks1, ks2, vnodeKs}
+
+			var beforeTruncate map[string]map[int]int
+			var tag string
+
+			t.Run("create tables to back up", func(t *testing.T) {
+				Print("Create tablet keyspaces")
+				// Use RF=2 because of smaller secondary cluster, use RF=3 for bigger cluster (when multi-dc clusters are supported).
+				ksStmt := "CREATE KEYSPACE IF NOT EXISTS %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2} AND tablets = {'enabled': 'true'}"
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks1))
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks2))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks1))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(ksStmt, ks2))
+
+				Print("Create vnode keyspace")
+				vnodeKsStmt := "CREATE KEYSPACE IF NOT EXISTS %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2} AND tablets = {'enabled': 'false'}"
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(vnodeKsStmt, vnodeKs))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(vnodeKsStmt, vnodeKs))
+
+				Print("Create tablet tables with different initial tablet counts")
+				tabStmt := "CREATE TABLE IF NOT EXISTS %q.%q (id int PRIMARY KEY, data int) WITH tablets = {'min_tablet_count': %d}"
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks1, tab1, tab1Cnt))
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks1, tab2, tab2Cnt))
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks2, tab3, tab3Cnt))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks1, tab1, tab1Cnt))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks1, tab2, tab2Cnt))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks2, tab3, tab3Cnt))
+
+				Print("Create vnode table")
+				vnodeTabStmt := "CREATE TABLE IF NOT EXISTS %q.%q (id int PRIMARY KEY, data int)"
+				ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(vnodeTabStmt, vnodeKs, vnodeTab))
+				ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(vnodeTabStmt, vnodeKs, vnodeTab))
+
+				Print("Fill tables with data")
+				fillTable(t, h.srcCluster.rootSession, 50, ks1, tab1)
+				fillTable(t, h.srcCluster.rootSession, 100, ks1, tab2)
+				fillTable(t, h.srcCluster.rootSession, 200, ks2, tab3)
+				fillTable(t, h.srcCluster.rootSession, 25, vnodeKs, vnodeTab)
+
+				Print("Snapshot table contents")
+				beforeTruncate = make(map[string]map[int]int)
+				for _, tt := range tables {
+					key := tt.ks + "." + tt.tab
+					beforeTruncate[key] = selectTableAsMap[int, int](t, h.srcCluster.rootSession, tt.ks, tt.tab, "id", "data")
+				}
+			})
+			if t.Failed() {
+				t.FailNow()
+			}
+
+			t.Run("run backup", func(t *testing.T) {
+				S3InitBucket(t, loc.Path)
+				backupProps := defaultTestBackupProperties(loc, "")
+				backupProps["keyspace"] = ksFilter
+				tag = h.runBackup(t, backupProps)
+			})
+			if t.Failed() {
+				t.FailNow()
+			}
+
+			t.Run("truncate backed up tables", func(t *testing.T) {
+				for _, tt := range tables {
+					ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("TRUNCATE %q.%q", tt.ks, tt.tab))
+				}
+			})
+			if t.Failed() {
+				t.FailNow()
+			}
+
+			tabletRestoredTables := make(map[table]struct{})
+			trtMu := sync.Mutex{}
+			t.Run("restore backed up tables", func(t *testing.T) {
+				h.dstCluster.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if req.Method == http.MethodPost && req.URL.Path == "/storage_service/tablets/restore" {
+						q := req.URL.Query()
+						ks := q.Get("keyspace")
+						tab := q.Get("table")
+						trtMu.Lock()
+						tabletRestoredTables[table{ks: ks, tab: tab}] = struct{}{}
+						trtMu.Unlock()
+					}
+					return nil, nil
+				}))
+				defer h.dstCluster.Hrt.SetInterceptor(nil)
+
+				grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+				restoreProps := defaultTestProperties(loc, tag, true)
+				restoreProps["keyspace"] = ksFilter
+				h.runRestore(t, restoreProps)
+			})
+			if t.Failed() {
+				t.FailNow()
+			}
+
+			t.Run("verify tables contents after restore", func(t *testing.T) {
+				for _, tt := range tables {
+					key := tt.ks + "." + tt.tab
+					afterRestore := selectTableAsMap[int, int](t, h.dstCluster.rootSession, tt.ks, tt.tab, "id", "data")
+					if !maps.Equal(beforeTruncate[key], afterRestore) {
+						t.Fatalf("table %s content mismatch after restore", key)
+					}
+				}
+			})
+
+			t.Run("verify restore methods", func(t *testing.T) {
+				rd := scyllaclient.NewRingDescriber(t.Context(), h.dstCluster.Client)
+				for _, tt := range tables {
+					expected := rd.IsTabletKeyspace(tt.ks)
+					_, got := tabletRestoredTables[tt]
+					if got && !expected {
+						t.Fatalf("VNode table %s.%s restored with tablet aware restore API", tt.ks, tt.tab)
+					}
+					if !got && expected {
+						t.Fatalf("Tablet table %s.%s restored with non tablet aware restore API", tt.ks, tt.tab)
+					}
+				}
+			})
+		})
+	}
 }
 
 func TestRestoreTablesPausedIntegration(t *testing.T) {

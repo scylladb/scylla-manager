@@ -280,8 +280,16 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 	return nil
 }
 
-// validateDCMappings that every dc from mappings exists in source or target cluster respectevely.
+// validateDCMappings that every dc from mappings exists in source or target cluster respectively.
 func (w *worker) validateDCMappings(dcMappings map[string]string, sourceDC, targetDC []string) error {
+	if w.config.TabletAwareRestoreFeatureFlag {
+		for src, dst := range dcMappings {
+			if src != dst {
+				return errors.Errorf("Tablet-aware restore does not support DC mapping changing source DC name (%q to %q)", src, dst)
+			}
+		}
+	}
+
 	sourceDCSet := strset.New(sourceDC...)
 	targetDCSet := strset.New(targetDC...)
 	sourceDCMappingSet, targetDCMappingSet := strset.New(), strset.New()

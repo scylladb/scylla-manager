@@ -9,8 +9,9 @@ import (
 
 // Config specifies the backup service configuration.
 type Config struct {
-	DiskSpaceFreeMinPercent   int `yaml:"disk_space_free_min_percent"`
-	LongPollingTimeoutSeconds int `yaml:"long_polling_timeout_seconds"`
+	DiskSpaceFreeMinPercent       int  `yaml:"disk_space_free_min_percent"`
+	LongPollingTimeoutSeconds     int  `yaml:"long_polling_timeout_seconds"`
+	TabletAwareRestoreFeatureFlag bool `yaml:"-"`
 }
 
 func DefaultConfig() Config {

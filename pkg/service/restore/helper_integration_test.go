@@ -157,6 +157,9 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 	return svc
 }
 
+// Temporary workaround for controlling tablet aware restore usage until --method=tablet-aware is added.
+var enableTabletAwareRestore = false
+
 func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, clusterID uuid.UUID, user, pass string) *Service {
 	configCacheSvc := NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts)
 
@@ -178,10 +181,15 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		t.Fatal(err)
 	}
 
+	cfg := defaultTestConfig()
+	if enableTabletAwareRestore {
+		cfg.TabletAwareRestoreFeatureFlag = true
+	}
+
 	svc, err := NewService(
 		repairSvc,
 		mgrSession,
-		defaultTestConfig(),
+		cfg,
 		metrics.NewRestoreMetrics(),
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
