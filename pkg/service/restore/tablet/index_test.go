@@ -49,6 +49,14 @@ func TestCheckManifestsCompatibility(t *testing.T) {
 			ok:         false,
 		},
 		{
+			name: "manifest without scylla version",
+			manifests: []backupspec.ManifestInfoWithContent{
+				testManifest("dc1", "r1", "n1", ""),
+			},
+			targetTopo: testTopology(dcRack{dc: "dc1", rack: "r1"}),
+			ok:         false,
+		},
+		{
 			name: "invalid manifest scylla version",
 			manifests: []backupspec.ManifestInfoWithContent{
 				testManifest("dc1", "r1", "n1", "not-a-version"),
