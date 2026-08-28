@@ -80,7 +80,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		ranges = j.ranges
 	}
 
-	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master.String(), slices.MapToString(j.replicaSet), ranges, j.intensity, j.jobType == smallTableJobType)
+	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master.String(), slices.MapToString(j.hosts), ranges, j.intensity, j.jobType == smallTableJobType)
 	if err != nil {
 		return errors.Wrap(err, "schedule repair")
 	}
@@ -89,7 +89,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		"keyspace", j.keyspace,
 		"table", j.table,
 		"master", j.master,
-		"hosts", j.replicaSet,
+		"hosts", j.hosts,
 		"ranges", len(ranges),
 		"intensity", j.intensity,
 		"job_id", jobID,

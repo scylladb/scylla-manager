@@ -150,6 +150,10 @@ func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties
 	if err := validateIgnoreDownNodes(t, status); err != nil {
 		return t, err
 	}
+	// Record whether the user narrowed down the set of nodes taking part in the
+	// repair. It has to be taken from the raw properties, as t.DC is filled with
+	// all of the cluster DCs when --dc is not set.
+	t.HostFilter = len(props.DC) > 0 || props.Host != "" || props.IgnoreDownHosts
 
 	// Get potential units - all tables matched by keyspace flag
 	f, err := ksfilter.NewFilter(props.Keyspace)

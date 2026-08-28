@@ -220,7 +220,9 @@ func parseRepairAsyncReq(t *testing.T, req *http.Request) repairReq {
 		}
 		sched.rangesParallelism = rangesParallelism
 	}
-	if sched.keyspace == "" || sched.table == "" || len(sched.replicaSet) == 0 {
+	// The hosts param is optional: a small table repair sends no host limit,
+	// so that all of the table replicas take part in it.
+	if sched.keyspace == "" || sched.table == "" || (len(sched.replicaSet) == 0 && !sched.smallTableOptimization) {
 		t.Error("Not fully initialized old repair sched req")
 		return repairReq{}
 	}

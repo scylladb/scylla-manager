@@ -12,6 +12,7 @@
     "dc1"
   ],
   "keyspace_replication": "all",
+  "host_filter": true,
   "fail_fast": false,
   "continue": false,
   "intensity": 1,

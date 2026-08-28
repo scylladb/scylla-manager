@@ -40,7 +40,12 @@ type Target struct {
 	Host                netip.Addr                       `json:"host"`
 	KeyspaceReplication scyllaclient.KeyspaceReplication `json:"keyspace_replication"`
 	// Down hosts excluded from repair by the --ignore-down-hosts flag.
-	IgnoreHosts         []netip.Addr                 `json:"ignore_hosts,omitempty"`
+	IgnoreHosts []netip.Addr `json:"ignore_hosts,omitempty"`
+	// HostFilter is true when the user explicitly narrowed the set of nodes
+	// taking part in the repair with the --dc, --host or --ignore-down-hosts
+	// flag. It cannot be derived from the fields above, as DC is always filled
+	// with all of the cluster DCs when --dc is not set.
+	HostFilter          bool                         `json:"host_filter"`
 	FailFast            bool                         `json:"fail_fast"`
 	Continue            bool                         `json:"continue"`
 	Intensity           Intensity                    `json:"intensity"`

@@ -5,6 +5,7 @@ package repair
 import (
 	"context"
 	"net/netip"
+	"slices"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
@@ -73,13 +74,19 @@ func (jt jobType) fullTableRepair() bool {
 }
 
 type job struct {
-	keyspace   string
-	table      string
-	master     netip.Addr
+	keyspace string
+	table    string
+	master   netip.Addr
+	// replicaSet is the replica set of the repaired ranges. It is the unit of
+	// the controller bookkeeping and of the recorded progress.
 	replicaSet []netip.Addr
-	ranges     []scyllaclient.TokenRange
-	intensity  int
-	jobType    jobType
+	// hosts is sent as the 'hosts' param of the repair API call, limiting the
+	// nodes taking part in the repair. Empty means no limit, which lets Scylla
+	// pick the participants on its own.
+	hosts     []netip.Addr
+	ranges    []scyllaclient.TokenRange
+	intensity int
+	jobType   jobType
 }
 
 type jobResult struct {
@@ -280,6 +287,7 @@ func (tg *tableGenerator) newJob() (job, bool) {
 				table:      tg.Table,
 				master:     tg.ms.Select(filtered),
 				replicaSet: filtered,
+				hosts:      tg.repairHosts(jt, filtered),
 				ranges:     ranges,
 				intensity:  intensity,
 				jobType:    jt,
@@ -288,6 +296,49 @@ func (tg *tableGenerator) newJob() (job, bool) {
 	}
 
 	return job{}, false
+}
+
+// repairHosts returns the nodes to be sent as the 'hosts' param of the repair
+// API call for a job of given jobType repairing given replica set.
+//
+// A small table repair is performed with a single API call covering the whole
+// ring, so it spans the ranges of every replica set - not just the one the job
+// was created for. Scylla resolves the participants of such a call as all of
+// the normal token owners, but it intersects them with the 'hosts' param, so
+// passing a single replica set there would leave every replica outside of it
+// unrepaired, see CLOUD-3672.
+//
+// Because of that, no 'hosts' limit is sent for such calls, unless the user
+// narrowed down the nodes taking part in the repair - in which case the limit
+// has to be honored, and all of the table replicas that passed the filtering
+// are sent instead. Note that a filtered repair does not cover all of the
+// replicas, so it does not advance the tombstone gc repair time in Scylla.
+func (tg *tableGenerator) repairHosts(jt jobType, filtered []netip.Addr) []netip.Addr {
+	if jt != smallTableJobType {
+		return filtered
+	}
+	if !tg.target.HostFilter {
+		return nil
+	}
+	return tg.allFilteredReplicas()
+}
+
+// allFilteredReplicas returns all of the table replicas that passed the
+// --dc / --host / --ignore-down-hosts filtering.
+func (tg *tableGenerator) allFilteredReplicas() []netip.Addr {
+	var out []netip.Addr
+	for _, rt := range tg.Ring.ReplicaTokens {
+		for _, h := range filterReplicaSet(rt.ReplicaSet, tg.Ring.HostDC, tg.target) {
+			if !slices.Contains(out, h) {
+				out = append(out, h)
+			}
+		}
+	}
+	// Ensure deterministic order of nodes.
+	slices.SortFunc(out, func(a, b netip.Addr) int {
+		return a.Compare(b)
+	})
+	return out
 }
 
 func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange, intensity int) []scyllaclient.TokenRange {
