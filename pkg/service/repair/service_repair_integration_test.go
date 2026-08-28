@@ -2666,3 +2666,110 @@ func TestTabletRepairInteractionIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestServiceRepairSmallTableOptimizationRepairsAllNodesIntegration(t *testing.T) {
+	// End-to-end companion of the CLOUD-3672 regression tests above.
+	//
+	// Instead of asserting the shape of the repair API call, this test runs a real
+	// repair and verifies via Scylla's per-node repair metrics that every node
+	// holding the table actually did some repair work. The row hash counters are
+	// bumped on both the master and the followers during the hash exchange, even
+	// when there is nothing to reconcile, so a node that took part in the repair
+	// always moves them, and a node that was left out never does.
+	//
+	// Before the fix SM sends 'hosts' set to a single replica set, which silences
+	// every replica outside of it - their counters stay untouched.
+	//
+	// NOTE: the repair metrics are cluster wide, Scylla exposes no per table
+	// counter. Any other repair running on the cluster in between the two
+	// snapshots below would be counted as this repair's work, and could make the
+	// test pass even without the fix. That is why this test must not be run in
+	// parallel with any other repair - don't add t.Parallel() to it.
+	const (
+		testKeyspace = "test_repair_small_table_all_nodes"
+		testTable    = "test_table_0"
+	)
+
+	session := CreateScyllaManagerDBSession(t)
+	h := newRepairTestHelper(t, session, repair.DefaultConfig())
+	clusterSession := CreateSessionAndDropAllKeyspaces(t, h.Client)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	Print("Given: small table replicated to a subset of nodes in every DC")
+	createVnodeKeyspace(t, clusterSession, testKeyspace, 2, 2)
+	WriteData(t, clusterSession, testKeyspace, 1, testTable)
+	defer dropKeyspace(t, clusterSession, testKeyspace)
+	// Flush, so that the data is on disk and the sizes below are not 0.
+	FlushTable(t, h.Client, ManagedClusterHosts(), testKeyspace, testTable)
+
+	Print("And: the ring consists of more than one replica set")
+	// With a single replica set covering the whole ring, the one call SM makes
+	// would legitimately reach every node, and the test would pass even without
+	// the fix. Guard the premise explicitly, so that such a topology fails the
+	// test instead of silently making it vacuous.
+	ring, err := h.Client.DescribeVnodeRing(ctx, testKeyspace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	allReplicas := strset.New()
+	for _, rt := range ring.ReplicaTokens {
+		for _, r := range rt.ReplicaSet {
+			allReplicas.Add(r.String())
+		}
+	}
+	if len(ring.ReplicaTokens) < 2 || allReplicas.Size() <= ring.RF {
+		t.Fatalf("Test requires a ring with more than one replica set and more replicas (%d) than RF (%d), got %d replica sets",
+			allReplicas.Size(), ring.RF, len(ring.ReplicaTokens))
+	}
+
+	Print("And: the table is spread across all of the cluster nodes")
+	// Every node must hold a part of the table, otherwise a node doing no repair
+	// work would not prove anything.
+	for _, host := range ManagedClusterHosts() {
+		size, err := h.Client.TableDiskSize(ctx, host, testKeyspace, testTable)
+		if err != nil {
+			t.Fatalf("Get table size on %s: %s", host, err)
+		}
+		t.Logf("Table size on %s: %d bytes", host, size)
+		if size == 0 {
+			t.Fatalf("Host %s holds no data of %s.%s, cannot validate repair coverage",
+				host, testKeyspace, testTable)
+		}
+	}
+
+	repairWork := func() map[string]float64 {
+		t.Helper()
+		out := make(map[string]float64)
+		for _, host := range ManagedClusterHosts() {
+			out[host] = nodeRepairWork(t, host)
+		}
+		return out
+	}
+
+	Print("And: repair work counters before the repair")
+	before := repairWork()
+
+	Print("When: run repair")
+	h.runRepair(ctx, map[string]any{
+		"keyspace":              []string{testKeyspace + "." + testTable},
+		"small_table_threshold": 1 * 1024 * 1024 * 1024,
+	})
+
+	Print("Then: repair is done")
+	h.assertDone(longWait)
+
+	Print("And: every node did some repair work")
+	after := repairWork()
+	var idle []string
+	for _, host := range ManagedClusterHosts() {
+		delta := after[host] - before[host]
+		t.Logf("Repair work on %s: %.0f -> %.0f (delta %.0f)", host, before[host], after[host], delta)
+		if delta <= 0 {
+			idle = append(idle, host)
+		}
+	}
+	if len(idle) > 0 {
+		t.Fatalf("Nodes %v did no repair work, so they were not repaired", idle)
+	}
+}

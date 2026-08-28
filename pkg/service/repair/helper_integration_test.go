@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/netip"
 	"os"
@@ -30,6 +31,7 @@ import (
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/prom"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/client/operations"
@@ -738,4 +740,76 @@ func chanClosedWithin(t *testing.T, c chan struct{}, d time.Duration) {
 	case <-time.After(d):
 		t.Fatal("timeout after ", d)
 	}
+}
+
+// scyllaPrometheusPort is the port Scylla exposes its metrics on.
+const scyllaPrometheusPort = "9180"
+
+// nodeRepairWork returns the total number of row hashes exchanged by given node
+// during all of the repairs it took part in, summed over its shards.
+//
+// The counters are bumped on both sides of the row hash exchange, so any node
+// participating in a repair moves them, even when there is nothing to reconcile.
+// A node that was left out of a repair does not move them at all, which makes
+// them a way of telling whether a node was really repaired.
+//
+// Scylla exposes its metrics on the second test network, not on the one the API
+// is served on, so the host is translated between the two.
+func nodeRepairWork(t *testing.T, host string) float64 {
+	t.Helper()
+
+	metricsHost, err := secondNetHost(host)
+	if err != nil {
+		t.Fatalf("Translate %s to the second test network: %s", host, err)
+	}
+	u := "http://" + net.JoinHostPort(metricsHost, scyllaPrometheusPort) + "/metrics?name=repair_hashes_nr"
+
+	resp, err := http.Get(u) //nolint:gosec,noctx
+	if err != nil {
+		t.Fatalf("Get metrics of %s: %s", host, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Get metrics of %s: status %d", host, resp.StatusCode)
+	}
+
+	families, err := prom.ParseText(resp.Body)
+	if err != nil {
+		t.Fatalf("Parse metrics of %s: %s", host, err)
+	}
+
+	var out float64
+	// Scylla registers its metric groups on startup, so a missing metric means
+	// that it was renamed or removed - fail instead of reporting no repair work.
+	for _, name := range []string{"scylla_repair_rx_hashes_nr", "scylla_repair_tx_hashes_nr"} {
+		family, ok := families[name]
+		if !ok {
+			t.Fatalf("Scylla on %s does not expose %s metric", host, name)
+		}
+		for _, m := range family.GetMetric() {
+			if counter := m.GetCounter(); counter != nil {
+				out += counter.GetValue()
+			}
+		}
+	}
+	return out
+}
+
+// secondNetHost translates an address from the test network to the second test
+// network, keeping the host part of the address.
+func secondNetHost(host string) (string, error) {
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return "", err
+	}
+	s := addr.String()
+	sep := "."
+	if !addr.Is4() {
+		sep = ":"
+	}
+	i := strings.LastIndex(s, sep)
+	if i < 0 {
+		return "", errors.New("unexpected address format: " + s)
+	}
+	return ToCanonicalIP(IPFromSecondTestNet(s[i+1:])), nil
 }
