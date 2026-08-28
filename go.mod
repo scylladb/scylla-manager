@@ -38,7 +38,7 @@ require (
 	github.com/scylladb/scylla-manager/backupspec v1.0.3-0.20260407094300-c4d92171ff7c
 	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20260813082001-6ba95e37a249
 	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20260813082001-6ba95e37a249
-	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20260813082001-6ba95e37a249
+	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20260828130901-9d72da3bca45
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stoewer/go-strcase v1.3.0
