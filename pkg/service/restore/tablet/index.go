@@ -218,9 +218,15 @@ const scyllaTabletAwareBackupSupport = ">= 2026.1.1"
 func (w *IndexWorker) checkManifestsCompatibility(ctx context.Context, manifests []backupspec.ManifestInfoWithContent) (bool, error) {
 	// Check scylla manifests support tablet restore
 	for _, m := range manifests {
-		ok, err := version.CheckConstraint(m.ScyllaVersion, scyllaTabletAwareBackupSupport)
-		if err != nil {
-			return false, errors.Wrapf(err, "check node %s backed up scylla version", m.NodeID)
+		// Old manifests might not have scylla version field populated.
+		// They are treated in the same way as if they had too old scylla version.
+		ok := false
+		if m.ScyllaVersion != "" {
+			var err error
+			ok, err = version.CheckConstraint(m.ScyllaVersion, scyllaTabletAwareBackupSupport)
+			if err != nil {
+				return false, errors.Wrapf(err, "check node %s backed up scylla version", m.NodeID)
+			}
 		}
 		if !ok {
 			w.logger.Info(ctx, "Backed up scylla manifests do not support tablet restore (available from 2026.1.1)", "node", m.NodeID, "version", m.ScyllaVersion)
