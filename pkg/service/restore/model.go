@@ -23,22 +23,32 @@ import (
 
 // Target specifies what data should be restored and from which locations.
 type Target struct {
-	Location        []backupspec.Location `json:"location"`
-	Keyspace        []string              `json:"keyspace,omitempty"`
-	SnapshotTag     string                `json:"snapshot_tag"`
-	BatchSize       int                   `json:"batch_size,omitempty"`
-	Parallel        int                   `json:"parallel,omitempty"`
-	Transfers       int                   `json:"transfers"`
-	RateLimit       []backup.DCLimit      `json:"rate_limit,omitempty"`
-	AllowCompaction bool                  `json:"allow_compaction,omitempty"`
-	UnpinAgentCPU   bool                  `json:"unpin_agent_cpu"`
-	RestoreSchema   bool                  `json:"restore_schema,omitempty"`
-	RestoreTables   bool                  `json:"restore_tables,omitempty"`
-	Continue        bool                  `json:"continue"`
-	DCMappings      map[string]string     `json:"dc_mapping"`
-	Method          Method                `json:"method,omitempty"`
+	Location         []backupspec.Location `json:"location"`
+	Keyspace         []string              `json:"keyspace,omitempty"`
+	SnapshotTag      string                `json:"snapshot_tag"`
+	BatchSize        int                   `json:"batch_size,omitempty"`
+	Parallel         int                   `json:"parallel,omitempty"`
+	Transfers        int                   `json:"transfers"`
+	RateLimit        []backup.DCLimit      `json:"rate_limit,omitempty"`
+	AllowCompaction  bool                  `json:"allow_compaction,omitempty"`
+	UnpinAgentCPU    bool                  `json:"unpin_agent_cpu"`
+	RestoreSchema    bool                  `json:"restore_schema,omitempty"`
+	RestoreTables    bool                  `json:"restore_tables,omitempty"`
+	Continue         bool                  `json:"continue"`
+	DCMappings       map[string]string     `json:"dc_mapping"`
+	KeyspaceMappings map[string]string     `json:"keyspace_mapping,omitempty"`
+	Method           Method                `json:"method,omitempty"`
 
 	locationInfo []LocationInfo
+}
+
+// TargetKeyspace returns the target keyspace name for the given source keyspace.
+// If no mapping exists for sourceKs, it returns sourceKs unchanged.
+func (t Target) TargetKeyspace(sourceKs string) string {
+	if ks, ok := t.KeyspaceMappings[sourceKs]; ok {
+		return ks
+	}
+	return sourceKs
 }
 
 // Method describes which API should be used by SM during restore.
@@ -141,6 +151,17 @@ func (t Target) validateProperties() error {
 	}
 	if t.RestoreSchema && t.Method != defaultMethod {
 		return errors.New("restore schema does not support '--method' flag")
+	}
+	if t.RestoreSchema && len(t.KeyspaceMappings) > 0 {
+		return errors.New("restore schema does not support '--keyspace-mapping' flag")
+	}
+	for sourceKs, targetKs := range t.KeyspaceMappings {
+		if sourceKs == "" {
+			return errors.New("keyspace mapping source keyspace must not be empty")
+		}
+		if targetKs == "" {
+			return errors.Errorf("keyspace mapping target keyspace for source %q must not be empty", sourceKs)
+		}
 	}
 	// Check for duplicates in Location
 	allLocations := strset.New()
