@@ -61,7 +61,6 @@ type jobType int
 const (
 	normalJobType jobType = iota
 	skipJobType
-	mergeRangesJobType
 	smallTableJobType
 	tabletJobType
 )
@@ -183,8 +182,6 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 		jt = tabletJobType
 	case tp.Small:
 		jt = smallTableJobType
-	case len(ring.ReplicaTokens) == 1 && tp.Small:
-		jt = mergeRangesJobType
 	default:
 		jt = normalJobType
 	}
