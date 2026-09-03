@@ -1800,18 +1800,12 @@ func TestServiceRepairIntegration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		var (
-			optUsed         = atomic.Bool{}
-			mergedRangeUsed = atomic.Bool{}
-		)
+		optUsed := atomic.Bool{}
 		h.Hrt.SetInterceptor(combineInterceptors(
 			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
 				if r, ok := parseRepairReq(t, req); ok {
 					if r.smallTableOptimization {
 						optUsed.Store(true)
-					}
-					if slices.Equal(r.ranges, []scyllaclient.TokenRange{{StartToken: dht.Murmur3MinToken, EndToken: dht.Murmur3MaxToken}}) {
-						mergedRangeUsed.Store(true)
 					}
 				}
 				return nil, nil
@@ -1831,10 +1825,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 		// small_table_optimization shouldn't be used on big tables
 		if optUsed.Load() {
 			t.Fatal("small_table_optimisation was used")
-		}
-		// merged ranges optimization shouldn't be used on big tables
-		if mergedRangeUsed.Load() {
-			t.Fatal("merged ranges optimization was used")
 		}
 
 		p, err := h.service.GetProgress(context.Background(), h.ClusterID, h.TaskID, h.RunID)

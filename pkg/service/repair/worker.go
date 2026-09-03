@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
@@ -69,13 +68,6 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		return w.fullTabletTableRepair(ctx, j.keyspace, j.table, j.master.String())
 	case smallTableJobType:
 		ranges = nil
-	case mergeRangesJobType:
-		ranges = []scyllaclient.TokenRange{
-			{
-				StartToken: dht.Murmur3MinToken,
-				EndToken:   dht.Murmur3MaxToken,
-			},
-		}
 	default:
 		ranges = j.ranges
 	}
