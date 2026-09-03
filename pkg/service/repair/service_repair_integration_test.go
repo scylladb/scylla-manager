@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/netip"
 	"slices"
@@ -1723,15 +1724,16 @@ func TestServiceRepairIntegration(t *testing.T) {
 			testTable    = "test_table_0"
 		)
 
-		Print("Given: small and fully replicated table")
+		Print("Given: small table")
 		// Small table optimisation is not supported for tablet keyspaces
-		createVnodeKeyspace(t, clusterSession, testKeyspace, 3, 0)
+		createVnodeKeyspace(t, clusterSession, testKeyspace, 2, 1)
 		WriteData(t, clusterSession, testKeyspace, 1, testTable)
 		defer dropKeyspace(t, clusterSession, testKeyspace)
 
 		h := newRepairTestHelper(t, session, defaultConfig())
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+
+		ipCmp := func(a, b netip.Addr) int { return a.Compare(b) }
+		allHosts := slices.SortedFunc(slices.Values(slices2.Map(h.GetAllHosts(), netip.MustParseAddr)), ipCmp)
 
 		var (
 			repairCalled int32
@@ -1743,6 +1745,13 @@ func TestServiceRepairIntegration(t *testing.T) {
 					if r.smallTableOptimization {
 						optUsed.Store(true)
 					}
+					// Expect no dc filter (we don't set it for vnode repair),
+					// and exact host filter (it's ok even if no-op for vnode repair).
+					slices.SortFunc(r.replicaSet, ipCmp)
+					if r.dcFilter != nil || !slices.Equal(r.replicaSet, allHosts) {
+						t.Errorf("Table %q: expected just the no-op host filter %v, got dc=%v, hosts=%v",
+							r.fullTable(), allHosts, r.dcFilter, r.replicaSet)
+					}
 				}
 				return nil, nil
 			}),
@@ -1751,7 +1760,7 @@ func TestServiceRepairIntegration(t *testing.T) {
 		))
 
 		Print("When: run repair")
-		h.runRepair(ctx, map[string]any{
+		h.runRepair(t.Context(), map[string]any{
 			"keyspace":              []string{testKeyspace + "." + testTable},
 			"dc":                    []string{"dc1", "dc2"},
 			"intensity":             1,
@@ -1779,6 +1788,42 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		if p.TokenRanges != p.Success {
 			t.Fatalf("Expected full success, got %d/%d", p.Success, p.TokenRanges)
+		}
+
+		// Expect --dc to be encoded into the host filter
+		expectedHostFilter := slices.SortedFunc(slices.Values(slices2.Map(h.GetHostsFromDC("dc1"), netip.MustParseAddr)), ipCmp)
+		var dcRepairCalled int32
+		h.Hrt.SetInterceptor(combineInterceptors(
+			httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if r, ok := parseRepairReq(t, req); ok {
+					if !r.smallTableOptimization {
+						t.Errorf("Table %q: small table optimization wasn't used", r.fullTable())
+					}
+					slices.SortFunc(r.replicaSet, ipCmp)
+					if r.dcFilter != nil || !slices.Equal(r.replicaSet, expectedHostFilter) {
+						t.Errorf("Table %q: expected just the host filter %v, got dc=%v, hosts=%v",
+							r.fullTable(), expectedHostFilter, r.dcFilter, r.replicaSet)
+					}
+				}
+				return nil, nil
+			}),
+			countInterceptor(&dcRepairCalled, isRepairReq),
+			repairMockInterceptor(t, repairStatusDone),
+		))
+
+		Print("When: run repair with dc filter")
+		h.RunID = uuid.NewTime()
+		h.runRepair(t.Context(), map[string]any{
+			"keyspace":              []string{testKeyspace + "." + testTable},
+			"dc":                    []string{"dc1"},
+			"small_table_threshold": 1 * 1024 * 1024 * 1024,
+		})
+
+		Print("Then: repair is done")
+		h.assertDone(longWait)
+
+		if v := atomic.LoadInt32(&dcRepairCalled); v != 1 {
+			t.Fatalf("Expected 1 repair request, got %v", v)
 		}
 	})
 
@@ -2138,6 +2183,25 @@ func TestServiceRepairIntegration(t *testing.T) {
 		WriteData(t, clusterSession, tabletSingleDCKs, 1, "tab")
 		WriteData(t, clusterSession, vnodeKs, 1, "tab")
 
+		t.Run("Repairing tablet table should succeed", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+
+			h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if isTabletRepairReq(req) {
+					r := parseTabletRepairReq(t, req)
+					if r.dcFilter != nil || r.hostFilter != nil {
+						t.Errorf("Table %q: expected no filtering params, got dc=%v, host=%v", r.fullTable(), r.dcFilter, r.hostFilter)
+					}
+				}
+				return nil, nil
+			}))
+
+			h.runRepair(t.Context(), map[string]any{
+				"keyspace": []string{tabletMultiDCKs, tabletSingleDCKs},
+			})
+			h.assertDone(longWait)
+		})
+
 		t.Run("Repairing tablet table with --host should fail at generating target", func(t *testing.T) {
 			h := newRepairTestHelper(t, session, defaultConfig())
 			_, err := h.generateTarget(map[string]any{
@@ -2155,12 +2219,23 @@ func TestServiceRepairIntegration(t *testing.T) {
 			defer cancel()
 
 			host := netip.MustParseAddr(h.GetHostsFromDC("dc2")[0])
-			h.Hrt.SetInterceptor(repairReqAssertHostInterceptor(t, host))
+			// Expect fallback to regular vnode repair,
+			// as small table opt can't handle --host filtering.
+			h.Hrt.SetInterceptor(combineInterceptors(
+				httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if r, ok := parseRepairReq(t, req); ok && r.smallTableOptimization {
+						t.Errorf("Table %q: unexpected small table optimization", r.fullTable())
+					}
+					return nil, nil
+				}),
+				repairReqAssertHostInterceptor(t, host),
+			))
 
 			h.runRepair(ctx, map[string]any{
-				"dc":       []string{"dc2"},
-				"keyspace": []string{tabletSingleDCKs, vnodeKs},
-				"host":     host.String(),
+				"dc":                    []string{"dc2"},
+				"keyspace":              []string{tabletSingleDCKs, vnodeKs},
+				"host":                  host.String(),
+				"small_table_threshold": 1024 * 1024 * 1024 * 1024, // Ensure theoretical small vnode table opt eligibility
 			})
 			h.assertDone(shortWait)
 		})
@@ -2196,18 +2271,120 @@ func TestServiceRepairIntegration(t *testing.T) {
 			})
 			defer startNodeFunc()
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			h.runRepair(ctx, map[string]any{
+			// Expect dc filter set due to --dc
+			var tabletRepairCalled int32
+			h.Hrt.SetInterceptor(combineInterceptors(
+				httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if isTabletRepairReq(req) {
+						r := parseTabletRepairReq(t, req)
+						if !slices.Equal(r.dcFilter, []string{"dc1"}) {
+							t.Errorf("Table %q: expected dc filter %v, got %v", r.fullTable(), []string{"dc1"}, r.dcFilter)
+						}
+					}
+					return nil, nil
+				}),
+				countInterceptor(&tabletRepairCalled, isTabletRepairReq),
+			))
+
+			h.runRepair(t.Context(), map[string]any{
 				"keyspace": []string{tabletMultiDCKs, vnodeKs},
 				"dc":       []string{"dc1"},
 			})
 
-			rd := scyllaclient.NewRingDescriber(ctx, h.Client)
-			if rd.IsTabletKeyspace("test_repair") {
-				h.assertDonePartialTabletRepair(longWait, startNodeFunc)
-			} else {
-				h.assertDone(2 * longWait)
+			h.assertDonePartialTabletRepair(longWait, startNodeFunc)
+
+			if v := atomic.LoadInt32(&tabletRepairCalled); v != 1 {
+				t.Fatalf("Expected 1 tablet repair request, got %v", v)
+			}
+		})
+
+		t.Run("Repairing table with node down and --ignore-down-nodes should succeed", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+
+			down := h.GetHostsFromDC("dc2")[0]
+			h.StopNode(down)
+			startNodeFunc := sync.OnceFunc(func() {
+				h.StartNode(down, globalNodeInfo)
+			})
+			defer startNodeFunc()
+
+			// Get running nodes ID
+			ctx := t.Context()
+			hostIDs, err := h.Client.HostIDs(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			delete(hostIDs, down)
+			expectedHostFilter := slices.Sorted(maps.Values(hostIDs))
+
+			// Expect host filter set due to --ignore-down-hosts
+			var tabletRepairCalled int32
+			h.Hrt.SetInterceptor(combineInterceptors(
+				httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if isTabletRepairReq(req) {
+						r := parseTabletRepairReq(t, req)
+						slices.Sort(r.hostFilter)
+						if !slices.Equal(r.hostFilter, expectedHostFilter) {
+							t.Errorf("Table %q: expected host filter %v, got %v", r.fullTable(), expectedHostFilter, r.hostFilter)
+						}
+					}
+					return nil, nil
+				}),
+				countInterceptor(&tabletRepairCalled, isTabletRepairReq),
+			))
+
+			h.runRepair(ctx, map[string]any{
+				"keyspace":          []string{tabletMultiDCKs, vnodeKs},
+				"ignore_down_hosts": true,
+			})
+
+			h.assertDonePartialTabletRepair(longWait, startNodeFunc)
+
+			if v := atomic.LoadInt32(&tabletRepairCalled); v != 1 {
+				t.Fatalf("Expected 1 tablet repair request, got %v", v)
+			}
+		})
+
+		t.Run("Repairing small vnode table with --dc and --ignore-down-nodes should succeed", func(t *testing.T) {
+			h := newRepairTestHelper(t, session, defaultConfig())
+
+			down := h.GetHostsFromDC("dc1")[0]
+			h.StopNode(down)
+			defer h.StartNode(down, globalNodeInfo)
+
+			// Expect --dc and --ignore-down-hosts to be encoded into the host filter
+			ipCmp := func(a, b netip.Addr) int { return a.Compare(b) }
+			liveHosts := slices.DeleteFunc(h.GetHostsFromDC("dc1"), func(host string) bool { return host == down })
+			expectedHostFilter := slices.SortedFunc(slices.Values(slices2.Map(liveHosts, netip.MustParseAddr)), ipCmp)
+
+			var repairCalled int32
+			h.Hrt.SetInterceptor(combineInterceptors(
+				httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if isRepairAsyncReq(req) {
+						r := parseRepairAsyncReq(t, req)
+						if !r.smallTableOptimization {
+							t.Errorf("Table %q: small table optimization wasn't used", r.fullTable())
+						}
+						slices.SortFunc(r.replicaSet, ipCmp)
+						if r.dcFilter != nil || !slices.Equal(r.replicaSet, expectedHostFilter) {
+							t.Errorf("Table %q: expected just the host filter %v, got dc=%v, hosts=%v",
+								r.fullTable(), expectedHostFilter, r.dcFilter, r.replicaSet)
+						}
+					}
+					return nil, nil
+				}),
+				countInterceptor(&repairCalled, isRepairAsyncReq),
+			))
+
+			h.runRepair(t.Context(), map[string]any{
+				"keyspace":          []string{vnodeKs},
+				"dc":                []string{"dc1"},
+				"ignore_down_hosts": true,
+			})
+			h.assertDone(longWait)
+
+			if v := atomic.LoadInt32(&repairCalled); v != 1 {
+				t.Fatalf("Expected 1 repair request, got %v", v)
 			}
 		})
 	})
@@ -2224,25 +2401,22 @@ func TestServiceRepairIntegration(t *testing.T) {
 			t2       = "test_table_2"
 		)
 		testCases := []struct {
-			ks            string
-			tab           []string
-			api           string
-			singleCall    bool
-			loadBalancing bool
+			ks         string
+			tab        []string
+			api        string
+			singleCall bool
 		}{
 			{
-				ks:            tabletKS,
-				tab:           []string{t1, t2},
-				api:           tabletRepairEndpoint,
-				singleCall:    true,
-				loadBalancing: true,
+				ks:         tabletKS,
+				tab:        []string{t1, t2},
+				api:        tabletRepairEndpoint,
+				singleCall: true,
 			},
 			{
-				ks:            vnodeKs,
-				tab:           []string{t1, t2},
-				api:           repairAsyncEndpoint,
-				singleCall:    false,
-				loadBalancing: true,
+				ks:         vnodeKs,
+				tab:        []string{t1, t2},
+				api:        repairAsyncEndpoint,
+				singleCall: false,
 			},
 		}
 
@@ -2257,16 +2431,15 @@ func TestServiceRepairIntegration(t *testing.T) {
 
 		tabRepairEndpoint := make(map[string]string) // The endpoint used for repairing the table
 		tabCallCnt := make(map[string]int)           // The amount of API calls needed for repairing the table
-		tabLoadBalancing := make(map[string]bool)    // Was load balancing enabled when table was repaired
-		loadBalancing := true                        // Keeps track of current load balancing setting
 		mu := sync.Mutex{}
 		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			if enabled, ok := newTabletLoadBalancingReq(t, req); ok {
-				mu.Lock()
-				loadBalancing = enabled
-				mu.Unlock()
+			if _, ok := newTabletLoadBalancingReq(t, req); ok {
+				t.Error("Tablet load balancing shouldn't be touched during repair")
 			}
 			if r, ok := parseRepairReq(t, req); ok {
+				if r.dcFilter != nil || r.hostFilter != nil {
+					t.Errorf("Table %q: dc/host filters shouldn't be set when not needed, dc=%v, host=%v", r.fullTable(), r.dcFilter, r.hostFilter)
+				}
 				mu.Lock()
 				tabCallCnt[r.fullTable()]++
 				// Ensure single repair endpoint per table
@@ -2276,14 +2449,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 					}
 				} else {
 					tabRepairEndpoint[r.fullTable()] = req.URL.Path
-				}
-				// Ensure single tablet load balancing setting per table
-				if enabled, ok := tabLoadBalancing[r.fullTable()]; ok {
-					if enabled != loadBalancing {
-						t.Error("Mixing load balancing for the same table")
-					}
-				} else {
-					tabLoadBalancing[r.fullTable()] = loadBalancing
 				}
 				mu.Unlock()
 			}
@@ -2308,9 +2473,6 @@ func TestServiceRepairIntegration(t *testing.T) {
 				}
 				if cnt := tabCallCnt[fn]; cnt <= 0 || ((cnt == 1) != tc.singleCall) {
 					t.Errorf("Table %q: expected single_call=%v, got %d", fn, tc.singleCall, cnt)
-				}
-				if enabled := tabLoadBalancing[fn]; enabled != tc.loadBalancing {
-					t.Errorf("Table %q: expected tablet load balancing: %v, got %v", fn, tc.loadBalancing, enabled)
 				}
 			}
 		}
