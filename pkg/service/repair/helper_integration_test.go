@@ -102,15 +102,17 @@ type repairReq struct {
 	host     netip.Addr
 	keyspace string
 	table    string
-	// always set for vnode
+	// always set for regular vnode, optional with small table opt
 	replicaSet []netip.Addr
 	ranges     []scyllaclient.TokenRange
+	// optional tablet version of replicaSet - contains host IDs
+	hostFilter []string
+	// optional for both vnode and tablet
+	dcFilter []string
 	// optional for vnode
 	smallTableOptimization bool
 	rangesParallelism      int
 	// optional for tablet
-	dcFilter        []string
-	hostFilter      []netip.Addr
 	incrementalMode string
 }
 
@@ -222,6 +224,9 @@ func parseRepairAsyncReq(t *testing.T, req *http.Request) repairReq {
 		}
 		sched.rangesParallelism = rangesParallelism
 	}
+	if dcs := req.URL.Query().Get("dataCenters"); dcs != "" {
+		sched.dcFilter = strings.Split(dcs, ",")
+	}
 	// Small vnode table repair does not need to set exact replica set
 	if sched.keyspace == "" || sched.table == "" || (len(sched.replicaSet) == 0 && !sched.smallTableOptimization) {
 		t.Error("Not fully initialized old repair sched req")
@@ -246,7 +251,7 @@ func parseTabletRepairReq(t *testing.T, req *http.Request) repairReq {
 		sched.dcFilter = strings.Split(dcFilter, ",")
 	}
 	if hostsFilter := req.URL.Query().Get("hosts_filter"); hostsFilter != "" {
-		sched.hostFilter = slices2.Map(strings.Split(hostsFilter, ","), netip.MustParseAddr)
+		sched.hostFilter = strings.Split(hostsFilter, ",")
 	}
 	if incrementalMode := req.URL.Query().Get("incremental_mode"); incrementalMode != "" {
 		sched.incrementalMode = incrementalMode
