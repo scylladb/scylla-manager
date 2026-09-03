@@ -4,6 +4,7 @@ package repair
 
 import (
 	"context"
+	"net/netip"
 	"time"
 
 	"github.com/pkg/errors"
@@ -11,6 +12,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/slice"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 )
 
@@ -65,14 +67,14 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 	var ranges []scyllaclient.TokenRange
 	switch j.jobType {
 	case tabletJobType:
-		return w.fullTabletTableRepair(ctx, j.keyspace, j.table, j.master.String())
+		return w.fullTabletTableRepair(ctx, j)
 	case smallTableJobType:
 		ranges = nil
 	default:
 		ranges = j.ranges
 	}
 
-	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master.String(), slices.MapToString(j.replicaSet), ranges, j.intensity, j.jobType == smallTableJobType)
+	jobID, err = w.client.Repair(ctx, j.keyspace, j.table, j.master.String(), slices.MapToString(j.hostFilter), ranges, j.intensity, j.jobType == smallTableJobType)
 	if err != nil {
 		return errors.Wrap(err, "schedule repair")
 	}
@@ -81,7 +83,7 @@ func (w *worker) runRepair(ctx context.Context, j job) (out error) {
 		"keyspace", j.keyspace,
 		"table", j.table,
 		"master", j.master,
-		"hosts", j.replicaSet,
+		"hosts", j.hostFilter,
 		"ranges", len(ranges),
 		"intensity", j.intensity,
 		"job_id", jobID,
@@ -162,8 +164,10 @@ func (w *worker) isTableDeleted(ctx context.Context, j job) bool {
 	return !exists
 }
 
-func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, host string) error {
-	hostFilter, err := w.hostFilter(ctx)
+func (w *worker) fullTabletTableRepair(ctx context.Context, j job) error {
+	host := j.master.String()
+	// Convert host filter from IPs to host IDs
+	hostFilter, err := w.hostToID(ctx, j.hostFilter)
 	if err != nil {
 		return errors.Wrap(err, "create host filter")
 	}
@@ -172,13 +176,13 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 	if w.apiSupport.incrementalRepair {
 		incrementalMode = w.target.IncrementalMode
 	}
-	id, err := w.client.TabletRepair(ctx, keyspace, table, host, w.target.DC, hostFilter, incrementalMode)
+	id, err := w.client.TabletRepair(ctx, j.keyspace, j.table, host, j.dcFilter, hostFilter, incrementalMode)
 	if err != nil {
 		convertedErr := w.convertColocatedTableRepairErr(err)
 		if convertedErr == nil {
 			w.logger.Info(ctx, "Skipping repair of colocated table, because its base table is repaired",
-				"keyspace", keyspace,
-				"table", table,
+				"keyspace", j.keyspace,
+				"table", j.table,
 				"initial error", err)
 			return nil
 		}
@@ -186,8 +190,10 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 	}
 
 	w.logger.Info(ctx, "Repairing entire tablet table",
-		"keyspace", keyspace,
-		"table", table,
+		"keyspace", j.keyspace,
+		"table", j.table,
+		"hosts", j.hostFilter,
+		"dcs", j.dcFilter,
 		"task ID", id,
 	)
 
@@ -208,15 +214,27 @@ func (w *worker) fullTabletTableRepair(ctx context.Context, keyspace, table, hos
 	}
 }
 
-func (w *worker) hostFilter(ctx context.Context) ([]string, error) {
-	if len(w.target.IgnoreHosts) == 0 {
+func (w *worker) hostToID(ctx context.Context, hosts []netip.Addr) ([]string, error) {
+	if len(hosts) == 0 {
 		return nil, nil
 	}
-	status, err := w.client.Status(ctx)
+	rawHostIDs, err := w.client.HostIDs(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "get status")
+		return nil, errors.Wrap(err, "get host IDs")
 	}
-	return status.Up().HostIDs(), nil
+	hostIDs, err := maps.MapKeyWithError(rawHostIDs, netip.ParseAddr)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(hosts))
+	for _, h := range hosts {
+		id, ok := hostIDs[h]
+		if !ok {
+			return nil, errors.Errorf("missing host ID of host %s", h)
+		}
+		out = append(out, id)
+	}
+	return out, nil
 }
 
 // convertColocatedTableRepairErr checks if the error returned from scheduling tablet repair
