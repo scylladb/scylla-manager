@@ -4,7 +4,9 @@ package repair
 
 import (
 	"context"
+	stdmaps "maps"
 	"net/netip"
+	"slices"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
@@ -79,6 +81,15 @@ type job struct {
 	ranges     []scyllaclient.TokenRange
 	intensity  int
 	jobType    jobType
+	// Scylla repair API filtering params.
+	// A full table repair job (see jobType.fullTableRepair) computes them
+	// against the full table replica set. Tablet repair sets them only
+	// when they actually filter anything out, as unnecessary filtering
+	// params stop it from advancing table last repair timestamp, which
+	// breaks incremental repair and tombstone_gc mode repair features.
+	// Other jobs always filter by their specific replica set.
+	hostFilter []netip.Addr
+	dcFilter   []string
 }
 
 type jobResult struct {
@@ -180,7 +191,10 @@ func (g *generator) newTableGenerator(keyspace string, tp tablePlan, ring scylla
 	switch {
 	case tabletKs:
 		jt = tabletJobType
-	case tp.Small:
+	// Small vnode table opt is not compatible with --host,
+	// as --host forces us to schedule separate repair
+	// for each filtered replica set.
+	case tp.Small && !g.target.Host.IsValid():
 		jt = smallTableJobType
 	default:
 		jt = normalJobType
@@ -267,6 +281,7 @@ func (tg *tableGenerator) newJob() (job, bool) {
 				continue
 			}
 			jt := tg.JobType
+			dcFilter, hostFilter := tg.repairFilters(jt, filtered)
 			// Some repair jobType repair an entire table with a single API call,
 			// so the remaining job are skipped (and sent only for recording progress).
 			if tg.JobType.fullTableRepair() {
@@ -280,11 +295,55 @@ func (tg *tableGenerator) newJob() (job, bool) {
 				ranges:     ranges,
 				intensity:  intensity,
 				jobType:    jt,
+				dcFilter:   dcFilter,
+				hostFilter: hostFilter,
 			}, true
 		}
 	}
 
 	return job{}, false
+}
+
+func (tg *tableGenerator) repairFilters(jt jobType, repSet []netip.Addr) (dc []string, hosts []netip.Addr) {
+	switch jt {
+	case tabletJobType:
+		// Select dc/host filtering based on full replica set.
+		// Don't set no-op filters.
+		full := tg.fullTableReplicaSet()
+		return tg.tableDcFilter(full), tg.tableHostFilter(full)
+	case smallTableJobType:
+		// Set host filter to the filtered full replica set.
+		// Side note: vnode repair API does not allow using both dc and host filters.
+		return nil, filterReplicaSet(tg.fullTableReplicaSet(), tg.Ring.HostDC, tg.target)
+	default:
+		// Set host filtering to exact repaired replica set
+		return nil, slices.Clone(repSet)
+	}
+}
+
+// fullTableReplicaSet returns the union of all replica sets in the ring.
+func (tg *tableGenerator) fullTableReplicaSet() []netip.Addr {
+	return slices.Collect(stdmaps.Keys(tg.Ring.HostDC))
+}
+
+// tableDcFilter returns the dc filter that should be used for repairing given replica set.
+// In case dc filter wouldn't have any effect, nil is returned instead.
+func (tg *tableGenerator) tableDcFilter(repSet []netip.Addr) []string {
+	dcFiltered := filterReplicaSetByDc(repSet, tg.Ring.HostDC, tg.target.DC)
+	if len(dcFiltered) == len(repSet) {
+		return nil
+	}
+	return slices.Clone(tg.target.DC)
+}
+
+// tableHostFilter returns the host filter that should be used for repairing given replica set.
+// In case host filter wouldn't have any effect, nil is returned instead.
+func (tg *tableGenerator) tableHostFilter(repSet []netip.Addr) []netip.Addr {
+	hostFiltered := filterReplicaSetByHost(repSet, tg.target.Host, tg.target.IgnoreHosts)
+	if len(hostFiltered) == len(repSet) {
+		return nil
+	}
+	return hostFiltered
 }
 
 func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange, intensity int) []scyllaclient.TokenRange {

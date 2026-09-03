@@ -343,14 +343,31 @@ func MaxRingParallel(ring scyllaclient.Ring, dcs []string) int {
 	}
 }
 
-// Filters replica set according to --dc, --ignore-down-hosts, --host.
+// Filters replica set by dc and host filters.
 func filterReplicaSet(replicaSet []netip.Addr, hostDC map[netip.Addr]string, target Target) []netip.Addr {
-	if target.Host.IsValid() && !slices.Contains(replicaSet, target.Host) {
+	hostFiltered := filterReplicaSetByHost(replicaSet, target.Host, target.IgnoreHosts)
+	return filterReplicaSetByDc(hostFiltered, hostDC, target.DC)
+}
+
+// filterReplicaSetByHost according to --host and --ignore-down-hosts.
+func filterReplicaSetByHost(replicaSet []netip.Addr, host netip.Addr, ignoreHosts []netip.Addr) []netip.Addr {
+	if host.IsValid() && !slices.Contains(replicaSet, host) {
 		return nil
 	}
 	var out []netip.Addr
 	for _, h := range replicaSet {
-		if slice.ContainsString(target.DC, hostDC[h]) && !slices.Contains(target.IgnoreHosts, h) {
+		if !slices.Contains(ignoreHosts, h) {
+			out = append(out, h)
+		}
+	}
+	return out
+}
+
+// filterReplicaSetByDc according to --dc.
+func filterReplicaSetByDc(replicaSet []netip.Addr, hostDC map[netip.Addr]string, dcs []string) []netip.Addr {
+	var out []netip.Addr
+	for _, h := range replicaSet {
+		if slice.ContainsString(dcs, hostDC[h]) {
 			out = append(out, h)
 		}
 	}
