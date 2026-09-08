@@ -4,7 +4,9 @@ package tablet
 
 import (
 	"context"
+	"maps"
 	"net/netip"
+	"slices"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -20,7 +22,7 @@ type RestoreWorker struct {
 	logger             log.Logger
 	client             *scyllaclient.Client
 	nodeConfig         map[netip.Addr]configcache.NodeConfig
-	hostPicker         *dcHostPicker
+	hostPicker         *hostPicker
 	longPollingSeconds int
 }
 
@@ -30,7 +32,7 @@ func NewRestoreWorker(logger log.Logger, client *scyllaclient.Client, nodeConfig
 		logger:             logger.Named("tablet_restore"),
 		client:             client,
 		nodeConfig:         nodeConfig,
-		hostPicker:         newDCHostPicker(nodeConfig),
+		hostPicker:         newHostPicker(nodeConfig),
 		longPollingSeconds: longPollingSeconds,
 	}
 }
@@ -64,33 +66,17 @@ func (w *RestoreWorker) Restore(ctx context.Context, tables Workload) error {
 
 // restoreTable by scheduling tablet aware restore task and waiting for its completion.
 func (w *RestoreWorker) restoreTable(ctx context.Context, tm TableMeta) error {
-	// Spread requests evenly across hosts in target DCs
-	var host string
-	locations := make([]scyllaclient.TabletRestoreLocation, 0, len(tm.Datacenters))
-	for _, dcMeta := range tm.Datacenters {
-		nodeIP, err := w.hostPicker.pick(dcMeta.DC)
-		if err != nil {
-			return errors.Wrapf(err, "get node config for dc %s", dcMeta.DC)
-		}
-		nodeCfg := w.nodeConfig[nodeIP]
-		endpoint, err := nodeCfg.ScyllaObjectStorageEndpoint(dcMeta.Provider)
-		if err != nil {
-			return errors.Wrapf(err, "get object storage endpoint for dc %s", dcMeta.DC)
-		}
-		host = nodeIP.String()
-		locations = append(locations, scyllaclient.TabletRestoreLocation{
-			Endpoint: endpoint,
-			Bucket:   dcMeta.Bucket,
-			// Note that DcMeta contains source DC name.
-			// When scheduling tablet aware restore, we should use target DC names.
-			// They might be different when --dc-mapping is used.
-			// For now, tablet aware restore does not support --dc-mapping changing
-			// DC names, so no change needs to be applied, but when it happens,
-			// we need to remember to apply it here as well.
-			Datacenter: dcMeta.DC,
-			Manifests:  dcMeta.RemoteManifests,
-		})
+	locations, err := w.buildTabletRestoreLocations(tm)
+	if err != nil {
+		return errors.Wrap(err, "build tablet restore locations")
 	}
+
+	hostIP, err := w.hostPicker.pick(slices.Collect(maps.Keys(tm.Datacenters))...)
+	if err != nil {
+		return errors.Wrap(err, "pick host for coordinating tablet aware restore")
+	}
+	defer w.hostPicker.release(hostIP)
+	host := hostIP.String()
 
 	w.logger.Info(ctx, "Started table tablet aware restore",
 		"keyspace", tm.Table.Keyspace,
@@ -108,6 +94,33 @@ func (w *RestoreWorker) restoreTable(ctx context.Context, tm TableMeta) error {
 		return errors.Wrapf(err, "wait for tablet aware restore task %s on node %s", id, host)
 	}
 	return nil
+}
+
+func (w *RestoreWorker) buildTabletRestoreLocations(tm TableMeta) ([]scyllaclient.TabletRestoreLocation, error) {
+	locations := make([]scyllaclient.TabletRestoreLocation, 0, len(tm.Datacenters))
+	for _, dcMeta := range tm.Datacenters {
+		nodeCfg, err := w.nodeConfigForDC(dcMeta.DC)
+		if err != nil {
+			return nil, errors.Wrapf(err, "get node config for dc %s", dcMeta.DC)
+		}
+		endpoint, err := nodeCfg.ScyllaObjectStorageEndpoint(dcMeta.Provider)
+		if err != nil {
+			return nil, errors.Wrapf(err, "get object storage endpoint for dc %s", dcMeta.DC)
+		}
+		locations = append(locations, scyllaclient.TabletRestoreLocation{
+			Endpoint: endpoint,
+			Bucket:   dcMeta.Bucket,
+			// Note that DcMeta contains source DC name.
+			// When scheduling tablet aware restore, we should use target DC names.
+			// They might be different when --dc-mapping is used.
+			// For now, tablet aware restore does not support --dc-mapping changing
+			// DC names, so no change needs to be applied, but when it happens,
+			// we need to remember to apply it here as well.
+			Datacenter: dcMeta.DC,
+			Manifests:  dcMeta.RemoteManifests,
+		})
+	}
+	return locations, nil
 }
 
 func (w *RestoreWorker) waitTask(ctx context.Context, host, id string) error {
@@ -132,6 +145,16 @@ func (w *RestoreWorker) waitTask(ctx context.Context, host, id string) error {
 	}
 }
 
+// nodeConfigForDC returns config of an arbitrary node from the given datacenter.
+func (w *RestoreWorker) nodeConfigForDC(dc string) (configcache.NodeConfig, error) {
+	for _, nc := range w.nodeConfig {
+		if nc.Datacenter == dc {
+			return nc, nil
+		}
+	}
+	return configcache.NodeConfig{}, errors.Errorf("no node found in datacenter %s", dc)
+}
+
 func (w *RestoreWorker) abortTask(host, id string) {
 	if err := w.client.ScyllaAbortTask(context.Background(), host, id); err != nil {
 		w.logger.Error(context.Background(), "Failed to abort task",
@@ -142,35 +165,55 @@ func (w *RestoreWorker) abortTask(host, id string) {
 	}
 }
 
-// dcHostPicker picks hosts from requested datacenter using round-robin.
+// hostPicker picks the least utilized host from the eligible datacenters.
 // It's safe for concurrent use.
-type dcHostPicker struct {
-	mu      sync.Mutex
-	dcHosts map[string][]netip.Addr
-	dcIdx   map[string]int
+type hostPicker struct {
+	mu       sync.Mutex
+	hostDC   map[netip.Addr]string
+	inflight map[netip.Addr]int
 }
 
-func newDCHostPicker(nodeConfig map[netip.Addr]configcache.NodeConfig) *dcHostPicker {
-	dcHosts := make(map[string][]netip.Addr)
+func newHostPicker(nodeConfig map[netip.Addr]configcache.NodeConfig) *hostPicker {
+	hostDC := make(map[netip.Addr]string, len(nodeConfig))
 	for ip, nc := range nodeConfig {
-		dcHosts[nc.Datacenter] = append(dcHosts[nc.Datacenter], ip)
+		hostDC[ip] = nc.Datacenter
 	}
-	return &dcHostPicker{
-		dcHosts: dcHosts,
-		dcIdx:   make(map[string]int),
+	return &hostPicker{
+		hostDC:   hostDC,
+		inflight: make(map[netip.Addr]int, len(hostDC)),
 	}
 }
 
-// pick returns IP of the next host from the given datacenter.
-func (p *dcHostPicker) pick(dc string) (netip.Addr, error) {
+// pick returns the host from the given datacenters with the lowest
+// number of in-flight requests and increases its count.
+// A finished request should be reported with release.
+func (p *hostPicker) pick(dcs ...string) (netip.Addr, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	hosts := p.dcHosts[dc]
-	if len(hosts) == 0 {
-		return netip.Addr{}, errors.Errorf("no node found in datacenter %s", dc)
+	var (
+		best  netip.Addr
+		found bool
+	)
+	for ip, dc := range p.hostDC {
+		if !slices.Contains(dcs, dc) {
+			continue
+		}
+		if !found || p.inflight[ip] < p.inflight[best] {
+			best = ip
+			found = true
+		}
 	}
-	ip := hosts[p.dcIdx[dc]%len(hosts)]
-	p.dcIdx[dc]++
-	return ip, nil
+	if !found {
+		return netip.Addr{}, errors.Errorf("no node found in datacenters %v", dcs)
+	}
+	p.inflight[best]++
+	return best, nil
+}
+
+// release marks a request to the given host as finished.
+func (p *hostPicker) release(host netip.Addr) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.inflight[host]--
 }
