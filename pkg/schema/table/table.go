@@ -306,6 +306,34 @@ var (
 		},
 	})
 
+	RestoreRunProgressTablet = table.New(table.Metadata{
+		Name: "restore_run_progress_tablet",
+		Columns: []string{
+			"cluster_id",
+			"completed_at",
+			"error",
+			"host",
+			"keyspace_name",
+			"restored_sstables",
+			"run_id",
+			"scylla_task_id",
+			"size",
+			"started_at",
+			"table_name",
+			"task_id",
+			"total_sstables",
+		},
+		PartKey: []string{
+			"cluster_id",
+			"task_id",
+			"run_id",
+		},
+		SortKey: []string{
+			"keyspace_name",
+			"table_name",
+		},
+	})
+
 	SchedulerTask = table.New(table.Metadata{
 		Name: "scheduler_task",
 		Columns: []string{
