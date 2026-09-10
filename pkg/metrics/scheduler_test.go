@@ -31,13 +31,14 @@ func TestSchedulerMetrics(t *testing.T) {
 	})
 
 	t.Run("BeginEndRun", func(t *testing.T) {
-		m.BeginRun(c, p, t0)
-		m.BeginRun(c, p, t1)
-		m.BeginRun(c, p, t2)
-		m.EndRun(c, p, t0, "DONE", 1645517563)
-		m.EndRun(c, p, t1, "ERROR", 1645517563)
+		m.BeginRun(c, p, t0, 1645517563)
+		m.BeginRun(c, p, t1, 1645517563)
+		m.BeginRun(c, p, t2, 1645517563)
+		m.EndRun(c, p, t0, "DONE", 1645517563, 1645517600)
+		m.EndRun(c, p, t1, "ERROR", 1645517563, 1645517700)
 
-		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState)
+		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState,
+			m.taskRunStartSeconds, m.taskLastSuccessSecond)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
@@ -53,7 +54,7 @@ func TestSchedulerMetricsTaskState(t *testing.T) {
 
 	t.Run("tablet repair is reported as repair", func(t *testing.T) {
 		m := NewSchedulerMetrics()
-		m.BeginRun(c, "tablet_repair", taskID)
+		m.BeginRun(c, "tablet_repair", taskID, 1645517563)
 
 		text := Dump(t, m.taskState)
 
@@ -66,8 +67,8 @@ func TestSchedulerMetricsTaskState(t *testing.T) {
 
 	t.Run("state is latched after the run", func(t *testing.T) {
 		m := NewSchedulerMetrics()
-		m.BeginRun(c, "backup", taskID)
-		m.EndRun(c, "backup", taskID, "ERROR", 1645517563)
+		m.BeginRun(c, "backup", taskID, 1645517563)
+		m.EndRun(c, "backup", taskID, "ERROR", 1645517563, 1645517700)
 
 		text := Dump(t, m.taskState)
 
@@ -83,6 +84,21 @@ func TestSchedulerMetricsTaskState(t *testing.T) {
 		m.InitTaskState(c, "backup", taskID, "ERROR")
 
 		text := Dump(t, m.taskState)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("last success is restored and reports the run end time", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.InitTaskLastSuccess(c, "tablet_repair", taskID, 1645517700)
+		m.BeginRun(c, "backup", taskID, 1645600000)
+		m.EndRun(c, "backup", taskID, "DONE", 1645600000, 1645700000)
+
+		text := Dump(t, m.taskRunStartSeconds, m.taskLastSuccessSecond)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)

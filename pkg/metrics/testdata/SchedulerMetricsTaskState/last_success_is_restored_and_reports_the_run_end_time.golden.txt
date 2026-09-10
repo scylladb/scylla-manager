@@ -1,0 +1,7 @@
+# HELP scylla_manager_scheduler_task_last_success_seconds End time of the last successful task run as a Unix timestamp. Unlike "last_success", which reports the start time of that run, this metric reports when the run actually finished, so that "time() - task_last_success_seconds" is the real age of the last success.
+# TYPE scylla_manager_scheduler_task_last_success_seconds gauge
+scylla_manager_scheduler_task_last_success_seconds{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 1.6457e+09
+scylla_manager_scheduler_task_last_success_seconds{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="repair"} 1.6455177e+09
+# HELP scylla_manager_scheduler_task_run_start_seconds Start time of the last task run as a Unix timestamp. Together with "task_state" it tells for how long a task has been running.
+# TYPE scylla_manager_scheduler_task_run_start_seconds gauge
+scylla_manager_scheduler_task_run_start_seconds{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 1.6456e+09
