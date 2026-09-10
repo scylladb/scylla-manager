@@ -8,29 +8,47 @@ import (
 	"net/netip"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2"
+	schematable "github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 	"golang.org/x/sync/errgroup"
 )
 
 // RestoreWorker is a set of tools responsible for
 // restoring tables with tablet aware restore.
 type RestoreWorker struct {
+	clusterID uuid.UUID
+	taskID    uuid.UUID
+	runID     uuid.UUID
+
 	logger             log.Logger
 	client             *scyllaclient.Client
+	smSession          gocqlx.Session
 	nodeConfig         map[netip.Addr]configcache.NodeConfig
 	hostPicker         *hostPicker
 	longPollingSeconds int
 }
 
 // NewRestoreWorker is a constructor for RestoreWorker.
-func NewRestoreWorker(logger log.Logger, client *scyllaclient.Client, nodeConfig map[netip.Addr]configcache.NodeConfig, longPollingSeconds int) *RestoreWorker {
+func NewRestoreWorker(clusterID, taskID, runID uuid.UUID,
+	logger log.Logger, client *scyllaclient.Client, smSession gocqlx.Session,
+	nodeConfig map[netip.Addr]configcache.NodeConfig, longPollingSeconds int,
+) *RestoreWorker {
 	return &RestoreWorker{
+		clusterID:          clusterID,
+		taskID:             taskID,
+		runID:              runID,
 		logger:             logger.Named("tablet_restore"),
 		client:             client,
+		smSession:          smSession,
 		nodeConfig:         nodeConfig,
 		hostPicker:         newHostPicker(nodeConfig),
 		longPollingSeconds: longPollingSeconds,
@@ -85,12 +103,29 @@ func (w *RestoreWorker) restoreTable(ctx context.Context, tm TableMeta) error {
 		"locations", locations,
 	)
 	defer w.logger.Info(ctx, "Finished table tablet aware restore", "keyspace", tm.Table.Keyspace, "table", tm.Table.Name)
+
+	pr := &RunProgress{
+		ClusterID: w.clusterID,
+		TaskID:    w.taskID,
+		RunID:     w.runID,
+		Keyspace:  tm.Table.Keyspace,
+		Table:     tm.Table.Name,
+		StartedAt: timeutc.Now(),
+		Size:      tm.Size,
+	}
+	w.upsertProgress(ctx, pr)
+
 	id, err := w.client.TabletRestore(ctx, host, tm.Table.Keyspace, tm.Table.Name, tm.SnapshotTag, locations)
 	if err != nil {
-		return errors.Wrapf(err, "schedule tablet aware restore on node %s", host)
+		err = errors.Wrapf(err, "schedule tablet aware restore on node %s", host)
+		w.recordFailure(ctx, pr, err)
+		return err
 	}
+	pr.Host = host
+	pr.ScyllaTaskID = id
+	w.upsertProgress(ctx, pr)
 
-	if err := w.waitTask(ctx, host, id); err != nil {
+	if err := w.waitTask(ctx, pr); err != nil {
 		return errors.Wrapf(err, "wait for tablet aware restore task %s on node %s", id, host)
 	}
 	return nil
@@ -123,18 +158,21 @@ func (w *RestoreWorker) buildTabletRestoreLocations(tm TableMeta) ([]scyllaclien
 	return locations, nil
 }
 
-func (w *RestoreWorker) waitTask(ctx context.Context, host, id string) error {
+func (w *RestoreWorker) waitTask(ctx context.Context, pr *RunProgress) error {
 	for {
 		if ctx.Err() != nil {
-			w.abortTask(host, id)
+			w.abortTask(pr.Host, pr.ScyllaTaskID)
+			w.recordFailure(ctx, pr, ctx.Err())
 			return ctx.Err()
 		}
 
-		task, err := w.client.ScyllaWaitTask(ctx, host, id, int64(w.longPollingSeconds))
+		task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(w.longPollingSeconds))
 		if err != nil {
-			w.abortTask(host, id)
+			w.abortTask(pr.Host, pr.ScyllaTaskID)
+			w.recordFailure(ctx, pr, err)
 			return errors.Wrap(err, "long poll task status")
 		}
+		w.updateProgress(ctx, pr, task)
 
 		switch scyllaclient.ScyllaTaskState(task.State) {
 		case scyllaclient.ScyllaTaskStateFailed:
@@ -142,6 +180,62 @@ func (w *RestoreWorker) waitTask(ctx context.Context, host, id string) error {
 		case scyllaclient.ScyllaTaskStateDone:
 			return nil
 		}
+	}
+}
+
+// updateProgress updates and saves run progress described by scylla task status.
+func (w *RestoreWorker) updateProgress(ctx context.Context, pr *RunProgress, task *models.TaskStatus) {
+	pr.RestoredSSTables = int64(task.ProgressCompleted)
+	pr.TotalSSTables = int64(task.ProgressTotal)
+	if t := time.Time(task.StartTime); !t.IsZero() {
+		pr.StartedAt = t
+	}
+
+	switch scyllaclient.ScyllaTaskState(task.State) {
+	case scyllaclient.ScyllaTaskStateDone:
+		pr.CompletedAt = taskEndTime(task)
+	case scyllaclient.ScyllaTaskStateFailed:
+		pr.CompletedAt = taskEndTime(task)
+		pr.Error = joinError(pr.Error, task.Error)
+	}
+	w.upsertProgress(ctx, pr)
+}
+
+// recordFailure updates and saves run progress on error (not just on failed scylla task status).
+func (w *RestoreWorker) recordFailure(ctx context.Context, pr *RunProgress, err error) {
+	pr.CompletedAt = timeutc.Now()
+	pr.Error = joinError(pr.Error, err.Error())
+	w.upsertProgress(ctx, pr)
+}
+
+// taskEndTime returns task end time falling back to SM side clock when unset.
+func taskEndTime(task *models.TaskStatus) time.Time {
+	if t := time.Time(task.EndTime); !t.IsZero() {
+		return t
+	}
+	return timeutc.Now()
+}
+
+func joinError(recorded, current string) string {
+	switch {
+	case recorded == "":
+		return current
+	case current == "":
+		return recorded
+	default:
+		return recorded + "; " + current
+	}
+}
+
+func (w *RestoreWorker) upsertProgress(ctx context.Context, pr *RunProgress) {
+	q := schematable.RestoreRunProgressTablet.InsertQuery(w.smSession)
+	defer q.Release()
+	if err := q.BindStruct(pr).Exec(); err != nil {
+		w.logger.Error(ctx, "Failed to upsert tablet aware restore run progress",
+			"keyspace", pr.Keyspace,
+			"table", pr.Table,
+			"error", err,
+		)
 	}
 }
 
