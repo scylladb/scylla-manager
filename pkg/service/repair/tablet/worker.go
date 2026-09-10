@@ -91,7 +91,7 @@ func (w *worker) repairTable(ctx context.Context, client *scyllaclient.Client, k
 		if err != nil {
 			pr.Error = err.Error()
 		} else {
-			w.metrics.SetTableProgress(w.clusterID, w.clusterID, ks, tab, 100)
+			w.metrics.SetTableProgress(w.clusterID, w.taskID, ks, tab, 100)
 		}
 		w.upsertTableProgress(ctx, pr)
 	}(start)
