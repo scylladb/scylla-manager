@@ -27,6 +27,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore/tablet"
 	scyllaTable "github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/retry"
@@ -686,6 +687,10 @@ func (w *worker) decorateWithPrevRun(ctx context.Context) error {
 
 // Clone insert all previous RunProgress for current run.
 func (w *worker) clonePrevProgress(ctx context.Context) {
+	if err := tablet.CloneProgress(w.session, w.run.ClusterID, w.run.TaskID, w.run.PrevID, w.run.ID); err != nil {
+		w.logger.Error(ctx, "Couldn't clone tablet aware restore run progress", "error", err)
+	}
+
 	q := table.RestoreRunProgress.InsertQuery(w.session)
 	defer q.Release()
 
