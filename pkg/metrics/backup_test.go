@@ -29,6 +29,21 @@ func TestBackupMetrics(t *testing.T) {
 		}
 	})
 
+	t.Run("SetTaskProgress", func(t *testing.T) {
+		task := uuid.MustParse("965f4f5c-c7d1-4ae6-b770-a2225df4ef49")
+		m.SetTaskProgress(c, task, BackupTypeRclone, 42)
+		m.SetTaskFilesProgress(c, task, BackupTypeRclone, "h1", 100, 40, 20)
+		m.SetTaskFilesProgress(c, task, BackupTypeRclone, "h2", 100, 0, 100)
+
+		text := Dump(t, m.taskProgress, m.taskFilesSizeBytes, m.taskFilesUploadedBytes, m.taskFilesSkippedBytes)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
 	t.Run("SetFilesProgress", func(t *testing.T) {
 		m.SetFilesProgress(c, "k", "t", "h", 10, 5, 3, 2, 7, 3)
 
