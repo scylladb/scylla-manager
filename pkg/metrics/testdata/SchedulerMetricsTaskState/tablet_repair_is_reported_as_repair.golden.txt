@@ -1,0 +1,3 @@
+# HELP scylla_manager_scheduler_task_state State of the last known task run: 0 - never run, 1 - running, 2 - done, 3 - error, 4 - stopped. The value is latched, so it describes the last run until the next one starts. The "type" label of tablet repair tasks is reported as "repair", so that filtering by type="repair" returns both vnode and tablet repair tasks.
+# TYPE scylla_manager_scheduler_task_state gauge
+scylla_manager_scheduler_task_state{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="repair"} 1

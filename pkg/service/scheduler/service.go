@@ -412,6 +412,9 @@ func (s *Service) shouldPutTask(create bool, t *Task) error {
 
 func (s *Service) initMetrics(t *Task) {
 	s.metrics.Init(t.ClusterID, t.Type.String(), t.ID, *(*[]string)(unsafe.Pointer(&allStatuses))...)
+	// Restore the task state metric, so that a task that failed before
+	// SM restart is still reported as failed after it.
+	s.metrics.InitTaskState(t.ClusterID, t.Type.String(), t.ID, string(t.Status))
 }
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {

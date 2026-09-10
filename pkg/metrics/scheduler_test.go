@@ -3,6 +3,7 @@
 package metrics
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -37,12 +38,75 @@ func TestSchedulerMetrics(t *testing.T) {
 		m.EndRun(c, p, t0, "DONE", 1645517563)
 		m.EndRun(c, p, t1, "ERROR", 1645517563)
 
-		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess)
+		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
 		if diff := cmp.Diff(text, golden); diff != "" {
 			t.Error(diff)
+		}
+	})
+}
+
+func TestSchedulerMetricsTaskState(t *testing.T) {
+	c := uuid.MustParse("b703df56-c428-46a7-bfba-cfa6ee91b976")
+	taskID := uuid.MustParse("965f4f5c-c7d1-4ae6-b770-a2225df4ef49")
+
+	t.Run("tablet repair is reported as repair", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.BeginRun(c, "tablet_repair", taskID)
+
+		text := Dump(t, m.taskState)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("state is latched after the run", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.BeginRun(c, "backup", taskID)
+		m.EndRun(c, "backup", taskID, "ERROR", 1645517563)
+
+		text := Dump(t, m.taskState)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("restored from the last task status", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.InitTaskState(c, "backup", taskID, "ERROR")
+
+		text := Dump(t, m.taskState)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("a task that has never run is reported as new", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.InitTaskState(c, "backup", taskID, "NEW")
+
+		if text := Dump(t, m.taskState); !strings.Contains(text, `type="backup"} 0`) {
+			t.Errorf("expected state 0, got %q", text)
+		}
+	})
+
+	t.Run("a task that was running when SM stopped is not restored", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.InitTaskState(c, "backup", taskID, "RUNNING")
+
+		if text := Dump(t, m.taskState); text != "" {
+			t.Errorf("expected no task state, got %q", text)
 		}
 	})
 }

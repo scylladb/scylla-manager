@@ -25,6 +25,9 @@ type plan struct {
 	MaxParallel      int
 	MaxHostIntensity map[netip.Addr]Intensity
 	apiSupport       apiSupport
+	// IncrementalMode used when repairing tablet keyspaces.
+	// It's kept here only for progress reporting purposes.
+	IncrementalMode scyllaclient.IncrementalMode
 	// Used for progress purposes
 	Stats map[scyllaclient.HostKeyspaceTable]tableStats
 }
@@ -147,6 +150,7 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 		MaxParallel:      maxP,
 		MaxHostIntensity: mhi,
 		apiSupport:       support,
+		IncrementalMode:  target.IncrementalMode,
 		Stats:            newStats(sizeReport, ranges),
 	}, nil
 }
