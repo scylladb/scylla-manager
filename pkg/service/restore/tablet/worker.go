@@ -72,14 +72,42 @@ func (w *RestoreWorker) Restore(ctx context.Context, tables Workload) error {
 	limit = min(1000, limit)
 	w.logger.Info(ctx, "Calculated concurrency limit", "limit", limit)
 
+	// Returns empty map unless CloneProgress was called.
+	prevProgress, err := getProgressMap(w.smSession, w.clusterID, w.taskID, w.runID)
+	if err != nil {
+		return errors.Wrap(err, "load previous run tablet aware restore progress")
+	}
+
 	eg := errgroup.Group{}
 	eg.SetLimit(limit)
 	for _, tm := range tables {
 		eg.Go(func() error {
-			return errors.Wrapf(w.restoreTable(ctx, tm), "tablet aware restore table %s.%s", tm.Table.Keyspace, tm.Table.Name)
+			return errors.Wrapf(w.restoreTableWithResume(ctx, tm, prevProgress[tm.Table]),
+				"tablet aware restore table %s.%s", tm.Table.Keyspace, tm.Table.Name)
 		})
 	}
 	return eg.Wait()
+}
+
+// restoreTableWithResume skips, re-attaches to, or restores the table
+// from scratch based on the provided RunProgress.
+func (w *RestoreWorker) restoreTableWithResume(ctx context.Context, tm TableMeta, prev RunProgress) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	if prev.isSuccess() {
+		w.logger.Info(ctx, "Table already restored by previous run, skipping",
+			"keyspace", tm.Table.Keyspace,
+			"table", tm.Table.Name,
+		)
+		return nil
+	}
+	// Note that the scylla task scheduled by the previous run might still be running
+	// (e.g. after SM crash). SM doesn't need to re-attach to it, because scheduling
+	// tablet aware restore of the same table and snapshot again makes scylla join
+	// the ongoing restore request instead of starting a new one. Scylla also skips
+	// sstables that were already downloaded by the previous attempts so no progress is lost.
+	return w.restoreTable(ctx, tm)
 }
 
 // restoreTable by scheduling tablet aware restore task and waiting for its completion.
@@ -158,21 +186,14 @@ func (w *RestoreWorker) buildTabletRestoreLocations(tm TableMeta) ([]scyllaclien
 	return locations, nil
 }
 
+// waitTask executes waitTaskTick until error or terminal scylla task status is encountered.
+// Error from scylla task status is included in the returned error.
 func (w *RestoreWorker) waitTask(ctx context.Context, pr *RunProgress) error {
 	for {
-		if ctx.Err() != nil {
-			w.abortTask(pr.Host, pr.ScyllaTaskID)
-			w.recordFailure(ctx, pr, ctx.Err())
-			return ctx.Err()
-		}
-
-		task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(w.longPollingSeconds))
+		task, err := w.waitTaskTick(ctx, pr, w.longPollingSeconds)
 		if err != nil {
-			w.abortTask(pr.Host, pr.ScyllaTaskID)
-			w.recordFailure(ctx, pr, err)
-			return errors.Wrap(err, "long poll task status")
+			return err
 		}
-		w.updateProgress(ctx, pr, task)
 
 		switch scyllaclient.ScyllaTaskState(task.State) {
 		case scyllaclient.ScyllaTaskStateFailed:
@@ -181,6 +202,20 @@ func (w *RestoreWorker) waitTask(ctx context.Context, pr *RunProgress) error {
 			return nil
 		}
 	}
+}
+
+// waitTaskTick performs a single long polling iteration on the scylla task
+// and updates run progress with the returned task status.
+// Error from scylla task status is not included in the returned error.
+func (w *RestoreWorker) waitTaskTick(ctx context.Context, pr *RunProgress, longPollingSeconds int) (*models.TaskStatus, error) {
+	task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(longPollingSeconds))
+	if err != nil {
+		w.abortTask(pr.Host, pr.ScyllaTaskID)
+		w.recordFailure(ctx, pr, err)
+		return nil, errors.Wrap(err, "long poll task status")
+	}
+	w.updateProgress(ctx, pr, task)
+	return task, nil
 }
 
 // updateProgress updates and saves run progress described by scylla task status.
