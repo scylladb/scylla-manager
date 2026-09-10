@@ -1548,12 +1548,15 @@ func (c *Client) ScyllaAbortTask(ctx context.Context, host, id string) error {
 // (5 minutes is generous for such use case).
 const ManagerTaskTTLSeconds = 5 * 60
 
-// ScyllaControlTaskUserTTL sets Scylla user task TTL to ManagerTaskTTLSeconds.
-// Returned reset func resets Scylla user task TTL to the original value.
+// ScyllaControlTaskUserTTL ensures that Scylla user task TTL is set to at least ManagerTaskTTLSeconds.
+// Returned reset func resets Scylla user task TTL to the original value, if it was changed.
 func (c *Client) ScyllaControlTaskUserTTL(ctx context.Context, host string) (reset func(), err error) {
 	oldTTL, err := c.ScyllaGetUserTaskTTL(ctx, host)
 	if err != nil {
 		return nil, errors.Wrap(err, "get user task TTL")
+	}
+	if oldTTL >= ManagerTaskTTLSeconds {
+		return func() {}, nil
 	}
 
 	c.logger.Info(ctx, "Set Scylla user task TTL", "host", host, "new TTL", ManagerTaskTTLSeconds, "old TTL", oldTTL)
