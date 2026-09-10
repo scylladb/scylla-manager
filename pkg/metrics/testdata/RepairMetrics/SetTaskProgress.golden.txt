@@ -1,0 +1,4 @@
+# HELP scylla_manager_repair_task_progress Repair task progress in percents (0-100) weighted by repaired table size. The "repair_type" label describes the task: "vnode" for the general repair task and "tablet" for the tablet repair task. The "mode" label describes the tablet repair incremental mode used by the task.
+# TYPE scylla_manager_repair_task_progress gauge
+scylla_manager_repair_task_progress{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",mode="full",repair_type="vnode",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 42
+scylla_manager_repair_task_progress{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",mode="incremental",repair_type="tablet",task="8fd16af1-815b-46db-bb2d-bd0a42ee9f92"} 100

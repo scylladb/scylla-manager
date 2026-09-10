@@ -21,14 +21,16 @@ type worker struct {
 	taskID    uuid.UUID
 	runID     uuid.UUID
 
-	logger    log.Logger
-	metrics   metrics.TabletRepairMetrics
-	smSession gocqlx.Session
-	client    *scyllaclient.Client
-
+	logger        log.Logger
+	metrics       metrics.TabletRepairMetrics
+	repairMetrics metrics.RepairMetrics
+	smSession     gocqlx.Session
+	client        *scyllaclient.Client
 	// sizes keeps on disk size of all repaired tables. It is filled in
 	// at the beginning of the run and stays constant afterwards.
 	sizes tableSizes
+	// progress is the size weighted task progress in percents (0-100).
+	progress float64
 }
 
 func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*worker, error) {
@@ -37,13 +39,14 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 		return nil, errors.Wrap(err, "get scylla client")
 	}
 	return &worker{
-		clusterID: clusterID,
-		taskID:    taskID,
-		runID:     runID,
-		logger:    s.logger.Named("worker"),
-		metrics:   s.metrics,
-		smSession: s.smSession,
-		client:    client,
+		clusterID:     clusterID,
+		taskID:        taskID,
+		runID:         runID,
+		logger:        s.logger.Named("worker"),
+		metrics:       s.metrics,
+		repairMetrics: s.repairMetrics,
+		smSession:     s.smSession,
+		client:        client,
 	}, nil
 }
 
@@ -55,6 +58,7 @@ func (w *worker) repairAll(ctx context.Context, target Target) error {
 	w.sizes = sizes
 	w.logger.Info(ctx, "Calculated repaired tables size", "total_size", sizes.totalSize())
 
+	w.setTaskProgress(0)
 	w.init(ctx, target)
 	// We need to make sure that leftover scylla tablet repair tasks are not running,
 	// as scheduling new scylla tablet repair tasks on a table with an ongoing tablet repair
@@ -70,9 +74,26 @@ func (w *worker) repairAll(ctx context.Context, target Target) error {
 			if err := w.repairTable(ctx, w.client, ks, tab); err != nil {
 				return errors.Wrapf(err, "%s.%s: run repair", ks, tab)
 			}
+			w.addTaskProgress(w.sizes.weight(ks, tab) * 100)
 		}
 	}
+	// Invalidate rounding errors of the size weighted progress.
+	w.setTaskProgress(100)
 	return nil
+}
+
+// setTaskProgress updates the per task repair progress metric.
+func (w *worker) setTaskProgress(progress float64) {
+	w.progress = progress
+	w.repairMetrics.SetTaskProgress(w.clusterID, w.taskID, metrics.RepairTypeTablet, tabletRepairMode, progress)
+}
+
+// addTaskProgress advances the per task repair progress metric by delta.
+func (w *worker) addTaskProgress(delta float64) {
+	// Watch out for rounding over 100% errors.
+	if total := w.progress + delta; total <= 100 {
+		w.setTaskProgress(total)
+	}
 }
 
 func (w *worker) init(ctx context.Context, target Target) {

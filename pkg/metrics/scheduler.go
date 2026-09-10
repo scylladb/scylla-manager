@@ -12,6 +12,7 @@ type SchedulerMetrics struct {
 	runIndicator *prometheus.GaugeVec
 	runsTotal    *prometheus.GaugeVec
 	lastSuccess  *prometheus.GaugeVec
+	taskState    *prometheus.GaugeVec
 }
 
 func NewSchedulerMetrics() SchedulerMetrics {
@@ -26,6 +27,12 @@ func NewSchedulerMetrics() SchedulerMetrics {
 			"run_total", "cluster", "type", "task", "status"),
 		lastSuccess: g("Start time of the last successful run as a Unix timestamp.",
 			"last_success", "cluster", "type", "task"),
+		taskState: g("State of the last known task run: "+
+			"1 - running, 2 - done, 3 - error, 4 - stopped. "+
+			"The value is latched, so it describes the last run until the next one starts. "+
+			"The \"type\" label of tablet repair tasks is reported as \"repair\", "+
+			"so that filtering by type=\"repair\" returns both vnode and tablet repair tasks.",
+			"task_state", "cluster", "type", "task"),
 	}
 }
 
@@ -35,6 +42,7 @@ func (m SchedulerMetrics) all() []prometheus.Collector {
 		m.runIndicator,
 		m.runsTotal,
 		m.lastSuccess,
+		m.taskState,
 	}
 }
 
@@ -59,17 +67,37 @@ func (m SchedulerMetrics) Init(clusterID uuid.UUID, taskType string, taskID uuid
 	}
 }
 
-// BeginRun updates "run_indicator".
-func (m SchedulerMetrics) BeginRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID) {
-	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Inc()
+// InitTaskState restores "task_state" from the last known task status.
+// It is needed so that a task that ended in error before SM restart
+// is still reported as failed after the restart.
+// Statuses that do not describe a finished run are ignored - the metric
+// is not reported at all until the task runs for the first time.
+func (m SchedulerMetrics) InitTaskState(clusterID uuid.UUID, taskType string, taskID uuid.UUID, status string) {
+	state, ok := taskStateFromStatus(status)
+	if !ok || state == TaskStateRunning {
+		// A task that was running when SM stopped is not running anymore.
+		return
+	}
+	m.taskState.WithLabelValues(clusterID.String(), normalizeTaskType(taskType), taskID.String()).Set(float64(state))
 }
 
-// EndRun updates "run_indicator", "runs_total", and "last_success".
+// BeginRun updates "run_indicator" and "task_state".
+func (m SchedulerMetrics) BeginRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID) {
+	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Inc()
+	m.taskState.WithLabelValues(clusterID.String(), normalizeTaskType(taskType), taskID.String()).
+		Set(float64(TaskStateRunning))
+}
+
+// EndRun updates "run_indicator", "runs_total", "last_success" and "task_state".
 func (m SchedulerMetrics) EndRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID, status string, startTime int64) {
 	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Dec()
 	m.runsTotal.WithLabelValues(clusterID.String(), taskType, taskID.String(), status).Inc()
-	if status == "DONE" {
+	if status == statusDone {
 		m.lastSuccess.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(startTime))
+	}
+	if state, ok := taskStateFromStatus(status); ok {
+		m.taskState.WithLabelValues(clusterID.String(), normalizeTaskType(taskType), taskID.String()).
+			Set(float64(state))
 	}
 }
 

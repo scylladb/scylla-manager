@@ -7,8 +7,27 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
+// Repair types reported by the "repair_task_progress" metric.
+const (
+	// RepairTypeVnode describes the general repair task.
+	RepairTypeVnode = "vnode"
+	// RepairTypeTablet describes the tablet repair task.
+	RepairTypeTablet = "tablet"
+)
+
+// RepairMode returns the value of the "mode" label of the
+// "repair_task_progress" metric. An empty incremental mode means that
+// the Scylla side default (incremental) is used.
+func RepairMode(incrementalMode string) string {
+	if incrementalMode == "" {
+		return "incremental"
+	}
+	return incrementalMode
+}
+
 type RepairMetrics struct {
 	progress            *prometheus.GaugeVec
+	taskProgress        *prometheus.GaugeVec
 	tokenRangesTotal    *prometheus.GaugeVec
 	tokenRangesSuccess  *prometheus.GaugeVec
 	tokenRangesError    *prometheus.GaugeVec
@@ -21,6 +40,11 @@ func NewRepairMetrics() RepairMetrics {
 
 	return RepairMetrics{
 		progress: g("Total percentage repair progress.", "progress", "cluster"),
+		taskProgress: g("Repair task progress in percents (0-100) weighted by repaired table size. "+
+			"The \"repair_type\" label describes the task: \"vnode\" for the general repair task "+
+			"and \"tablet\" for the tablet repair task. "+
+			"The \"mode\" label describes the tablet repair incremental mode used by the task.",
+			"task_progress", "cluster", "task", "repair_type", "mode"),
 		tokenRangesTotal: g("Total number of token ranges to repair.",
 			"token_ranges_total", "cluster", "keyspace", "table", "host"),
 		tokenRangesSuccess: g("Number of repaired token ranges.",
@@ -37,6 +61,7 @@ func NewRepairMetrics() RepairMetrics {
 func (m RepairMetrics) all() []prometheus.Collector {
 	return []prometheus.Collector{
 		m.progress,
+		m.taskProgress,
 		m.tokenRangesTotal,
 		m.tokenRangesSuccess,
 		m.tokenRangesError,
@@ -54,6 +79,13 @@ func (m RepairMetrics) MustRegister() RepairMetrics {
 // ResetClusterMetrics resets all metrics labeled with the cluster.
 func (m RepairMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range m.all() {
+		if c == prometheus.Collector(m.taskProgress) {
+			// "task_progress" is scoped to a single task, while this method
+			// is called at the beginning of every repair run. Resetting it
+			// here would wipe the progress of every other repair task of
+			// the cluster. Each task overwrites its own series on run start.
+			continue
+		}
 		setGaugeVecMatching(c.(*prometheus.GaugeVec), unspecifiedValue, clusterMatcher(clusterID))
 	}
 }
@@ -97,6 +129,17 @@ func (m RepairMetrics) SetProgress(clusterID uuid.UUID, progress float64) {
 		"cluster": clusterID.String(),
 	}
 	m.progress.With(l).Set(progress)
+}
+
+// SetTaskProgress sets "task_progress" metric.
+func (m RepairMetrics) SetTaskProgress(clusterID, taskID uuid.UUID, repairType, mode string, progress float64) {
+	l := prometheus.Labels{
+		"cluster":     clusterID.String(),
+		"task":        taskID.String(),
+		"repair_type": repairType,
+		"mode":        mode,
+	}
+	m.taskProgress.With(l).Set(progress)
 }
 
 // AddProgress updates "progress" metric.

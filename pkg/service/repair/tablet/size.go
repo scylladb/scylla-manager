@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
@@ -82,3 +83,8 @@ func (ts tableSizes) weight(ks, tab string) float64 {
 	}
 	return float64(ts.tableSize(ks, tab)) / float64(ts.total)
 }
+
+// tabletRepairMode is the value of the "mode" label of the repair task
+// progress metric reported by the tablet repair task.
+// The task always relies on the Scylla side default incremental mode (#4683).
+var tabletRepairMode = metrics.RepairMode("")
