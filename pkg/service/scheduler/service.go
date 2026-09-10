@@ -415,6 +415,18 @@ func (s *Service) initMetrics(t *Task) {
 	// Restore the task state metric, so that a task that failed before
 	// SM restart is still reported as failed after it.
 	s.metrics.InitTaskState(t.ClusterID, t.Type.String(), t.ID, string(t.Status))
+	// Restore the last success metric, so that the age of the last
+	// successful run is not reset by an SM restart.
+	if t.LastSuccess != nil {
+		s.metrics.InitTaskLastSuccess(t.ClusterID, t.Type.String(), t.ID, t.LastSuccess.Unix())
+	}
+	// Restore the start of the last run. Unlike the task status it is not
+	// kept on the task, so it has to be read back from the last run - without
+	// it every restart makes the metric disappear until the task runs again,
+	// which is exactly when "running for too long" needs it most.
+	if r, err := s.getLastRun(t); err == nil && !r.StartTime.IsZero() {
+		s.metrics.InitTaskRunStart(t.ClusterID, t.Type.String(), t.ID, r.StartTime.Unix())
+	}
 }
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
@@ -501,7 +513,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 	if err := s.putRunAndUpdateTask(r); err != nil {
 		return errors.Wrap(err, "put run")
 	}
-	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID)
+	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.StartTime.Unix())
 
 	defer func() {
 		r.Status, r.Cause = statusAndCauseFromCtxAndErr(runCtx, runErr)
@@ -541,7 +553,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		if err != nil {
 			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
 		}
-		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
+		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix(), r.EndTime.Unix())
 	}()
 
 	if ctx.Properties.(Properties) == nil {
