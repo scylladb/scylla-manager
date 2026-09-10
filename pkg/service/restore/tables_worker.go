@@ -204,7 +204,8 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	}
 	w.initMetrics(workload)
 
-	tw := tablet.NewRestoreWorker(w.logger, w.client, w.nodeConfig, w.config.LongPollingTimeoutSeconds)
+	tw := tablet.NewRestoreWorker(w.run.ClusterID, w.run.TaskID, w.run.ID,
+		w.logger, w.client, w.session, w.nodeConfig, w.config.LongPollingTimeoutSeconds)
 	if err := tw.Restore(ctx, workload.TabletAwareWorkload); err != nil {
 		return errors.Wrap(err, "run tablet aware restore")
 	}
