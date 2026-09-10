@@ -78,6 +78,9 @@ func (w *RestoreWorker) Restore(ctx context.Context, tables Workload) error {
 		return errors.Wrap(err, "load previous run tablet aware restore progress")
 	}
 
+	reset := w.setTaskTTL(ctx)
+	defer reset()
+
 	eg := errgroup.Group{}
 	eg.SetLimit(limit)
 	for _, tm := range tables {
@@ -87,6 +90,38 @@ func (w *RestoreWorker) Restore(ctx context.Context, tables Workload) error {
 		})
 	}
 	return eg.Wait()
+}
+
+// setTaskTTL sets scylla user task TTL on all nodes, so that task status
+// is preserved on scylla side in between long polling calls or during SM restart.
+// It returns reset function resetting TTL to its previous value.
+func (w *RestoreWorker) setTaskTTL(ctx context.Context) (reset func()) {
+	var (
+		mu     sync.Mutex
+		resets = make([]func(), 0, len(w.nodeConfig))
+	)
+	wg := sync.WaitGroup{}
+	for ip := range w.nodeConfig {
+		wg.Go(func() {
+			r, err := w.client.ScyllaControlTaskUserTTL(ctx, ip.String())
+			if err != nil {
+				w.logger.Error(ctx, "Failed to set Scylla user task TTL", "host", ip.String(), "error", err)
+				return
+			}
+			mu.Lock()
+			resets = append(resets, r)
+			mu.Unlock()
+		})
+	}
+	wg.Wait()
+
+	return func() {
+		wg := sync.WaitGroup{}
+		for _, r := range resets {
+			wg.Go(r)
+		}
+		wg.Wait()
+	}
 }
 
 // restoreTableWithResume skips, re-attaches to, or restores the table
