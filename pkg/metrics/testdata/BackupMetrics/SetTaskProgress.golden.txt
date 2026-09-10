@@ -1,0 +1,15 @@
+# HELP scylla_manager_backup_task_files_size_bytes Total size of the backed up files in bytes, per node.
+# TYPE scylla_manager_backup_task_files_size_bytes gauge
+scylla_manager_backup_task_files_size_bytes{backup_type="rclone",cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h1",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 100
+scylla_manager_backup_task_files_size_bytes{backup_type="rclone",cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h2",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 100
+# HELP scylla_manager_backup_task_files_skipped_bytes Number of deduplicated bytes already present in the backup location, per node.
+# TYPE scylla_manager_backup_task_files_skipped_bytes gauge
+scylla_manager_backup_task_files_skipped_bytes{backup_type="rclone",cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h1",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 20
+scylla_manager_backup_task_files_skipped_bytes{backup_type="rclone",cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h2",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 100
+# HELP scylla_manager_backup_task_files_uploaded_bytes Number of bytes uploaded to the backup location, per node.
+# TYPE scylla_manager_backup_task_files_uploaded_bytes gauge
+scylla_manager_backup_task_files_uploaded_bytes{backup_type="rclone",cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h1",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 40
+scylla_manager_backup_task_files_uploaded_bytes{backup_type="rclone",cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h2",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 0
+# HELP scylla_manager_backup_task_progress Backup task progress in percents (0-100), calculated as (uploaded + skipped) / size. The "backup_type" label describes the configured backup method - "auto" means that the method is resolved per node and table.
+# TYPE scylla_manager_backup_task_progress gauge
+scylla_manager_backup_task_progress{backup_type="rclone",cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 42

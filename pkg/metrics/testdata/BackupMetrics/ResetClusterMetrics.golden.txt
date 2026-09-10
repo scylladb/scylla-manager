@@ -22,25 +22,25 @@ scylla_manager_backup_files_skipped_count{cluster="b703df56-c428-46a7-bfba-cfa6e
 # TYPE scylla_manager_backup_files_uploaded_bytes gauge
 scylla_manager_backup_files_uploaded_bytes{cluster="400d09d8-b3ce-4023-102c-6912671b051a",host="h",keyspace="k",table="t"} 5
 scylla_manager_backup_files_uploaded_bytes{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",table="t"} -1
-# HELP scylla_manager_backup_purge_deleted_files Number of files that were deleted.
+# HELP scylla_manager_backup_purge_deleted_files DEPRECATED: Use scylla_manager_backup_task_* instead. Number of files that were deleted.
 # TYPE scylla_manager_backup_purge_deleted_files gauge
 scylla_manager_backup_purge_deleted_files{cluster="400d09d8-b3ce-4023-102c-6912671b051a",host="h"} 1
 scylla_manager_backup_purge_deleted_files{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h"} -1
-# HELP scylla_manager_backup_purge_files Number of files that need to be deleted due to retention policy.
+# HELP scylla_manager_backup_purge_files DEPRECATED: Use scylla_manager_backup_task_* instead. Number of files that need to be deleted due to retention policy.
 # TYPE scylla_manager_backup_purge_files gauge
 scylla_manager_backup_purge_files{cluster="400d09d8-b3ce-4023-102c-6912671b051a",host="h"} 2
 scylla_manager_backup_purge_files{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h"} -1
 # HELP scylla_manager_backup_removed_event_based_holds Number of snapshot files that had event based hold removed. The "node" label describes the ID of the node owning the file, while the "host" label describes the IP of the node setting the hold.
 # TYPE scylla_manager_backup_removed_event_based_holds gauge
 scylla_manager_backup_removed_event_based_holds{cluster="400d09d8-b3ce-4023-102c-6912671b051a",host="h",keyspace="k",node="n",table="t"} 1
-# HELP scylla_manager_backup_retention_locked_files Number of backup files that had retention lock set.
+# HELP scylla_manager_backup_retention_locked_files DEPRECATED: Use scylla_manager_backup_task_* instead. Number of backup files that had retention lock set.
 # TYPE scylla_manager_backup_retention_locked_files gauge
 scylla_manager_backup_retention_locked_files{cluster="400d09d8-b3ce-4023-102c-6912671b051a",host="h",keyspace="k",table="t"} 5
 scylla_manager_backup_retention_locked_files{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k",table="t"} -1
 # HELP scylla_manager_backup_set_event_based_holds Number of snapshot files that had event based hold set. The "node" label describes the ID of the node owning the file, while the "host" label describes the IP of the node setting the hold.
 # TYPE scylla_manager_backup_set_event_based_holds gauge
 scylla_manager_backup_set_event_based_holds{cluster="400d09d8-b3ce-4023-102c-6912671b051a",host="h",keyspace="k",node="n",table="t"} 2
-# HELP scylla_manager_backup_snapshot Indicates if snapshot was taken.
+# HELP scylla_manager_backup_snapshot DEPRECATED: Use scylla_manager_backup_task_* instead. Indicates if snapshot was taken.
 # TYPE scylla_manager_backup_snapshot gauge
 scylla_manager_backup_snapshot{cluster="400d09d8-b3ce-4023-102c-6912671b051a",host="h",keyspace="k"} 1
 scylla_manager_backup_snapshot{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k"} -1
