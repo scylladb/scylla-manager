@@ -7,6 +7,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	schematable "github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
@@ -27,6 +28,19 @@ func GetProgress(session gocqlx.Session, clusterID, taskID, runID uuid.UUID) ([]
 		out = append(out, pr)
 	}
 	return out, iter.Close()
+}
+
+// getProgressMap converts GetProgress slice output into a map.
+func getProgressMap(session gocqlx.Session, clusterID, taskID, runID uuid.UUID) (map[table.CQLTable]RunProgress, error) {
+	prs, err := GetProgress(session, clusterID, taskID, runID)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[table.CQLTable]RunProgress, len(prs))
+	for i := range prs {
+		out[table.CQLTable{Keyspace: prs[i].Keyspace, Name: prs[i].Table}] = prs[i]
+	}
+	return out, nil
 }
 
 // CloneProgress copies resumable progress rows of the previous run under the new run ID.
