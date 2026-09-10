@@ -699,7 +699,7 @@ func (w *worker) clonePrevProgress(ctx context.Context) {
 		// We don't support interrupted run progresses resume,
 		// so only finished run progresses should be copied.
 		if !validateTimeIsSet(pr.RestoreCompletedAt) {
-			return
+			continue
 		}
 		pr.RunID = w.run.ID
 		if err := q.BindStruct(pr).Exec(); err != nil {
