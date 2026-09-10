@@ -25,6 +25,10 @@ type worker struct {
 	metrics   metrics.TabletRepairMetrics
 	smSession gocqlx.Session
 	client    *scyllaclient.Client
+
+	// sizes keeps on disk size of all repaired tables. It is filled in
+	// at the beginning of the run and stays constant afterwards.
+	sizes tableSizes
 }
 
 func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*worker, error) {
@@ -44,6 +48,13 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 }
 
 func (w *worker) repairAll(ctx context.Context, target Target) error {
+	sizes, err := newTableSizes(ctx, w.client, target)
+	if err != nil {
+		return errors.Wrap(err, "calculate table sizes")
+	}
+	w.sizes = sizes
+	w.logger.Info(ctx, "Calculated repaired tables size", "total_size", sizes.totalSize())
+
 	w.init(ctx, target)
 	// We need to make sure that leftover scylla tablet repair tasks are not running,
 	// as scheduling new scylla tablet repair tasks on a table with an ongoing tablet repair
@@ -68,7 +79,7 @@ func (w *worker) init(ctx context.Context, target Target) {
 	w.metrics.ResetClusterMetrics(w.clusterID)
 	for ks, tabs := range target.KsTabs {
 		for _, tab := range tabs {
-			w.logger.Info(ctx, "Plan to repair table", "keyspace", ks, "table", tab)
+			w.logger.Info(ctx, "Plan to repair table", "keyspace", ks, "table", tab, "size", w.sizes.tableSize(ks, tab))
 			pr := newRunProgress(w.clusterID, w.taskID, w.runID, ks, tab)
 			w.upsertTableProgress(ctx, pr)
 		}
