@@ -16,6 +16,19 @@ const (
 	metricBufferSize = 100
 )
 
+// Values reported by the three "*_status" metrics.
+const (
+	// metricStatusUp means that the protocol's probe succeeded.
+	metricStatusUp = 1
+	// metricStatusDown means that the probe failed.
+	metricStatusDown = -1
+	// metricStatusAgentUnavailable means that the probe failed and the agent
+	// did not answer either, so the REST API could not be reached through the
+	// agent proxy for a reason that is not Scylla's. Reported by the REST
+	// status alone - see the pingAgent field of runner.
+	metricStatusAgentUnavailable = -2
+)
+
 func labelNames() []string {
 	return []string{clusterKey, dcKey, rackKey, hostKey}
 }
@@ -50,7 +63,7 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "cql_status",
-		Help:      "Host CQL status. -2 stands for an unreachable agent, -1 for an unreachable CQL port and 1 for everything is fine.",
+		Help:      "Host CQL status. -1 stands for an unreachable CQL port and 1 for everything is fine.",
 	}, labelNames())
 
 	cqlRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -64,7 +77,8 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "rest_status",
-		Help:      "Host Scylla REST API status. -2 stands for an unreachable agent, -1 for an unreachable REST API and 1 for everything is fine.",
+		Help: "Host Scylla REST API status. -2 stands for an unreachable agent, " +
+			"-1 for an unreachable REST API and 1 for everything is fine.",
 	}, labelNames())
 
 	restRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -78,8 +92,7 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "alternator_status",
-		Help: "Host Alternator status. -2 stands for an unreachable agent, " +
-			"-1 for an unreachable Alternator API and 1 for everything is fine. " +
+		Help: "Host Alternator status. -1 stands for an unreachable Alternator API and 1 for everything is fine. " +
 			"Note that a node reports 1 with 0ms RTT when Alternator is not enabled at all.",
 	}, labelNames())
 

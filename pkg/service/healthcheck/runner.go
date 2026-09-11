@@ -60,7 +60,13 @@ type runner struct {
 	timeout      time.Duration
 	metrics      *runnerMetrics
 	ping         func(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration, nodeConf configcache.NodeConfig) (rtt time.Duration, err error)
-	pingAgent    func(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error)
+	// pingAgent is set for the REST runner alone: that probe is proxied
+	// through the agent, so its failure can be the agent's fault as much as
+	// Scylla's - an agent busy enough not to answer has hidden Scylla
+	// problems before. CQL and Alternator are dialled directly, taking the
+	// node configuration from the config cache, so a failure there cannot be
+	// explained by the agent (CLOUD-4380).
+	pingAgent func(ctx context.Context, clusterID uuid.UUID, host string, timeout time.Duration) (rtt time.Duration, err error)
 }
 
 type runnerMetrics struct {
@@ -97,9 +103,9 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, addresses [
 		}
 		promLs := newLabels(clusterID.String(), ni.Datacenter, ni.Rack, addresses[i]).promLabels()
 		if err != nil {
-			r.metrics.status.With(promLs).Set(-1)
+			r.metrics.status.With(promLs).Set(r.statusOnPingError(ctx, clusterID, addresses[i]))
 		} else {
-			r.metrics.status.With(promLs).Set(1)
+			r.metrics.status.With(promLs).Set(metricStatusUp)
 		}
 		r.metrics.rtt.With(promLs).Set(float64(rtt.Milliseconds()))
 
@@ -109,6 +115,19 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, addresses [
 	_ = parallel.Run(len(addresses), parallel.NoLimit, f, func(i int, err error) { // nolint: errcheck
 		r.logger.Error(ctx, "Parallel hosts check failed", "host", addresses[i], "error", err)
 	})
+}
+
+// statusOnPingError grades a failed probe: -2 when the agent did not answer
+// either, -1 otherwise. Runners without pingAgent - see the field - always
+// report -1, because their probe does not go through the agent.
+func (r runner) statusOnPingError(ctx context.Context, clusterID uuid.UUID, host string) float64 {
+	if r.pingAgent == nil {
+		return metricStatusDown
+	}
+	if _, err := r.pingAgent(ctx, clusterID, host, r.timeout); err != nil {
+		return metricStatusAgentUnavailable
+	}
+	return metricStatusDown
 }
 
 func (r runner) removeMetricsForCluster(clusterID uuid.UUID) {
