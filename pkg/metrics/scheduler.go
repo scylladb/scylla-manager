@@ -64,7 +64,7 @@ func NewSchedulerMetrics() SchedulerMetrics {
 		lastSuccess: g("Start time of the last successful run as a Unix timestamp.",
 			"last_success", "cluster", "type", "task"),
 		taskState: g("State of the last known task run: "+
-			"1 - running, 2 - done, 3 - error, 4 - stopped. "+
+			"0 - never run, 1 - running, 2 - done, 3 - error, 4 - stopped. "+
 			"The value is latched, so it describes the last run until the next one starts. "+
 			"The \"type\" label of tablet repair tasks is reported as \"repair\", "+
 			"so that filtering by type=\"repair\" returns both vnode and tablet repair tasks.",

@@ -172,9 +172,17 @@ func TestSchedulerMetricsTaskState(t *testing.T) {
 		}
 	})
 
-	t.Run("not restored for a task that never finished a run", func(t *testing.T) {
+	t.Run("a task that has never run is reported as new", func(t *testing.T) {
 		m := NewSchedulerMetrics()
 		m.InitTaskState(c, "backup", taskID, "NEW")
+
+		if text := Dump(t, m.taskState); !strings.Contains(text, `type="backup"} 0`) {
+			t.Errorf("expected state 0, got %q", text)
+		}
+	})
+
+	t.Run("a task that was running when SM stopped is not restored", func(t *testing.T) {
+		m := NewSchedulerMetrics()
 		m.InitTaskState(c, "backup", taskID, "RUNNING")
 
 		if text := Dump(t, m.taskState); text != "" {

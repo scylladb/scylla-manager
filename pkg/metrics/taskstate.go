@@ -10,6 +10,8 @@ type TaskState float64
 
 // Task states reported by the "scheduler_task_state" metric.
 const (
+	// TaskStateNew means that the task exists but has not run yet.
+	TaskStateNew TaskState = 0
 	// TaskStateRunning means that the task run is in progress.
 	TaskStateRunning TaskState = 1
 	// TaskStateDone means that the last task run finished successfully.
@@ -24,6 +26,7 @@ const (
 // They are duplicated here in order to avoid an import cycle
 // (the scheduler service already depends on this package).
 const (
+	statusNew      = "NEW"
 	statusRunning  = "RUNNING"
 	statusStopping = "STOPPING"
 	statusStopped  = "STOPPED"
@@ -37,6 +40,11 @@ const (
 // statuses that do not describe a task run (e.g. NEW or WAITING).
 func taskStateFromStatus(status string) (TaskState, bool) {
 	switch status {
+	case statusNew:
+		// The task is scheduled but has never run. Reported so that a task
+		// which should have fired and did not is visible, instead of simply
+		// missing from every panel driven by this metric.
+		return TaskStateNew, true
 	case statusRunning, statusStopping:
 		return TaskStateRunning, true
 	case statusDone:

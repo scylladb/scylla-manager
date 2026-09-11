@@ -16,7 +16,7 @@ func TestTaskStateFromStatus(t *testing.T) {
 		{status: "ERROR", state: TaskStateError, ok: true},
 		{status: "STOPPED", state: TaskStateStopped, ok: true},
 		{status: "ABORTED", state: TaskStateStopped, ok: true},
-		{status: "NEW"},
+		{status: "NEW", state: TaskStateNew, ok: true},
 		{status: "WAITING"},
 		{status: ""},
 	}
