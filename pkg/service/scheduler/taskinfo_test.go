@@ -51,6 +51,41 @@ func TestNewTaskInfo(t *testing.T) {
 			golden: metrics.TaskInfo{Cron: metrics.TaskScheduleAdHoc},
 		},
 		{
+			name: "repair task falls back to the defaults",
+			task: Task{Name: "defaults", Type: RepairTask},
+			golden: metrics.TaskInfo{
+				Name:                "defaults",
+				Cron:                metrics.TaskScheduleAdHoc,
+				Keyspace:            "*,!system_traces",
+				KeyspaceReplication: "all",
+				IncrementalMode:     "incremental",
+				DC:                  "all",
+				Host:                "all",
+				FailFast:            "false",
+			},
+		},
+		{
+			name: "configured repair properties win over the defaults",
+			task: Task{
+				Type:       RepairTask,
+				Properties: json.RawMessage(`{"keyspace":["ks"],"dc":["dc1"],"fail_fast":true}`),
+			},
+			golden: metrics.TaskInfo{
+				Cron:                metrics.TaskScheduleAdHoc,
+				Keyspace:            "ks",
+				KeyspaceReplication: "all",
+				IncrementalMode:     "incremental",
+				DC:                  "dc1",
+				Host:                "all",
+				FailFast:            "true",
+			},
+		},
+		{
+			name:   "defaults are not applied to other task types",
+			task:   Task{Name: "b", Type: BackupTask},
+			golden: metrics.TaskInfo{Name: "b", Cron: metrics.TaskScheduleAdHoc},
+		},
+		{
 			name: "full repair properties",
 			task: Task{
 				Name: "weekly",

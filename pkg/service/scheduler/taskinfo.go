@@ -31,13 +31,14 @@ type taskInfoProperties struct {
 // listed with its name and type.
 func newTaskInfo(t *Task) metrics.TaskInfo {
 	info := metrics.TaskInfo{Name: t.Name, Cron: taskSchedule(t)}
-	if len(t.Properties) == 0 {
-		return info
-	}
 
 	var p taskInfoProperties
-	if err := json.Unmarshal(t.Properties, &p); err != nil {
-		return info
+	if len(t.Properties) > 0 {
+		if err := json.Unmarshal(t.Properties, &p); err != nil {
+			// Nothing can be said about the properties, so don't pretend that
+			// the defaults apply either.
+			return info
+		}
 	}
 
 	info.Keyspace = strings.Join(p.Keyspace, ",")
@@ -48,7 +49,46 @@ func newTaskInfo(t *Task) metrics.TaskInfo {
 	if p.FailFast != nil {
 		info.FailFast = strconv.FormatBool(*p.FailFast)
 	}
+	if t.Type == RepairTask {
+		applyRepairDefaults(&info)
+	}
 	return info
+}
+
+// Defaults applied to a repair task property that was not configured, so
+// that the metric describes what the task will actually do rather than what
+// was typed. They mirror defaultTaskProperties in pkg/service/repair, which
+// cannot be imported here without making the scheduler depend on the
+// services it runs - keep the two in step.
+//
+// "all" is not a literal default: an empty dc or host filter means every
+// datacenter or host. An empty incremental mode means that SM does not send
+// the parameter and Scylla applies its own default, which is incremental.
+const (
+	defaultRepairKeyspace            = "*,!system_traces"
+	defaultRepairKeyspaceReplication = "all"
+	defaultRepairIncrementalMode     = "incremental"
+	defaultRepairDC                  = "all"
+	defaultRepairHost                = "all"
+	defaultRepairFailFast            = "false"
+)
+
+func applyRepairDefaults(info *metrics.TaskInfo) {
+	for _, f := range []struct {
+		v   *string
+		def string
+	}{
+		{&info.Keyspace, defaultRepairKeyspace},
+		{&info.KeyspaceReplication, defaultRepairKeyspaceReplication},
+		{&info.IncrementalMode, defaultRepairIncrementalMode},
+		{&info.DC, defaultRepairDC},
+		{&info.Host, defaultRepairHost},
+		{&info.FailFast, defaultRepairFailFast},
+	} {
+		if *f.v == "" {
+			*f.v = f.def
+		}
+	}
 }
 
 // taskSchedule describes when a task is expected to run. It reports the cron
