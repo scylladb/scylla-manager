@@ -4,33 +4,53 @@ package tablet
 
 import (
 	"context"
+	"maps"
 	"net/netip"
+	"slices"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/go-log"
+	"github.com/scylladb/gocqlx/v2"
+	schematable "github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 	"golang.org/x/sync/errgroup"
 )
 
 // RestoreWorker is a set of tools responsible for
 // restoring tables with tablet aware restore.
 type RestoreWorker struct {
+	clusterID uuid.UUID
+	taskID    uuid.UUID
+	runID     uuid.UUID
+
 	logger             log.Logger
 	client             *scyllaclient.Client
+	smSession          gocqlx.Session
 	nodeConfig         map[netip.Addr]configcache.NodeConfig
-	hostPicker         *dcHostPicker
+	hostPicker         *hostPicker
 	longPollingSeconds int
 }
 
 // NewRestoreWorker is a constructor for RestoreWorker.
-func NewRestoreWorker(logger log.Logger, client *scyllaclient.Client, nodeConfig map[netip.Addr]configcache.NodeConfig, longPollingSeconds int) *RestoreWorker {
+func NewRestoreWorker(clusterID, taskID, runID uuid.UUID,
+	logger log.Logger, client *scyllaclient.Client, smSession gocqlx.Session,
+	nodeConfig map[netip.Addr]configcache.NodeConfig, longPollingSeconds int,
+) *RestoreWorker {
 	return &RestoreWorker{
+		clusterID:          clusterID,
+		taskID:             taskID,
+		runID:              runID,
 		logger:             logger.Named("tablet_restore"),
 		client:             client,
+		smSession:          smSession,
 		nodeConfig:         nodeConfig,
-		hostPicker:         newDCHostPicker(nodeConfig),
+		hostPicker:         newHostPicker(nodeConfig),
 		longPollingSeconds: longPollingSeconds,
 	}
 }
@@ -52,32 +72,160 @@ func (w *RestoreWorker) Restore(ctx context.Context, tables Workload) error {
 	limit = min(1000, limit)
 	w.logger.Info(ctx, "Calculated concurrency limit", "limit", limit)
 
+	// Returns empty map unless CloneProgress was called.
+	prevProgress, err := getProgressMap(w.smSession, w.clusterID, w.taskID, w.runID)
+	if err != nil {
+		return errors.Wrap(err, "load previous run tablet aware restore progress")
+	}
+
+	reset := w.setTaskTTL(ctx)
+	defer reset()
+
 	eg := errgroup.Group{}
 	eg.SetLimit(limit)
 	for _, tm := range tables {
 		eg.Go(func() error {
-			return errors.Wrapf(w.restoreTable(ctx, tm), "tablet aware restore table %s.%s", tm.Table.Keyspace, tm.Table.Name)
+			return errors.Wrapf(w.restoreTableWithResume(ctx, tm, prevProgress[tm.Table]),
+				"tablet aware restore table %s.%s", tm.Table.Keyspace, tm.Table.Name)
 		})
 	}
 	return eg.Wait()
 }
 
+// setTaskTTL sets scylla user task TTL on all nodes, so that task status
+// is preserved on scylla side in between long polling calls or during SM restart.
+// It returns reset function resetting TTL to its previous value.
+func (w *RestoreWorker) setTaskTTL(ctx context.Context) (reset func()) {
+	var (
+		mu     sync.Mutex
+		resets = make([]func(), 0, len(w.nodeConfig))
+	)
+	wg := sync.WaitGroup{}
+	for ip := range w.nodeConfig {
+		wg.Go(func() {
+			r, err := w.client.ScyllaControlTaskUserTTL(ctx, ip.String())
+			if err != nil {
+				w.logger.Error(ctx, "Failed to set Scylla user task TTL", "host", ip.String(), "error", err)
+				return
+			}
+			mu.Lock()
+			resets = append(resets, r)
+			mu.Unlock()
+		})
+	}
+	wg.Wait()
+
+	return func() {
+		wg := sync.WaitGroup{}
+		for _, r := range resets {
+			wg.Go(r)
+		}
+		wg.Wait()
+	}
+}
+
+// restoreTableWithResume skips, re-attaches to, or restores the table
+// from scratch based on the provided RunProgress.
+func (w *RestoreWorker) restoreTableWithResume(ctx context.Context, tm TableMeta, prev RunProgress) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	switch {
+	case prev.isSuccess():
+		w.logger.Info(ctx, "Table already restored by previous run, skipping",
+			"keyspace", tm.Table.Keyspace,
+			"table", tm.Table.Name,
+		)
+		return nil
+	case prev.canReattach():
+		if w.tryReattach(ctx, &prev) {
+			w.logger.Info(ctx, "Re-attached to tablet aware restore task from previous run",
+				"keyspace", prev.Keyspace,
+				"table", prev.Table,
+				"host", prev.Host,
+				"task id", prev.ScyllaTaskID,
+			)
+			return w.waitTask(ctx, &prev)
+		}
+		w.logger.Info(ctx, "Failed to re-attach to tablet aware restore task, restoring table from scratch",
+			"keyspace", tm.Table.Keyspace,
+			"table", tm.Table.Name,
+		)
+		return w.restoreTable(ctx, tm)
+	default:
+		return w.restoreTable(ctx, tm)
+	}
+}
+
+// tryReattach reports whether the tablet aware restore task scheduled
+// by the previous run can still be tracked (e.g. after SM crash).
+func (w *RestoreWorker) tryReattach(ctx context.Context, pr *RunProgress) bool {
+	// We just want to make a quick probe of whether task
+	// can still be waited on - no real long polling is needed.
+	_, err := w.waitTaskTick(ctx, pr, 1)
+	return err == nil
+}
+
 // restoreTable by scheduling tablet aware restore task and waiting for its completion.
 func (w *RestoreWorker) restoreTable(ctx context.Context, tm TableMeta) error {
-	// Spread requests evenly across hosts in target DCs
-	var host string
+	locations, err := w.buildTabletRestoreLocations(tm)
+	if err != nil {
+		return errors.Wrap(err, "build tablet restore locations")
+	}
+
+	hostIP, err := w.hostPicker.pick(slices.Collect(maps.Keys(tm.Datacenters))...)
+	if err != nil {
+		return errors.Wrap(err, "pick host for coordinating tablet aware restore")
+	}
+	defer w.hostPicker.release(hostIP)
+	host := hostIP.String()
+
+	w.logger.Info(ctx, "Started table tablet aware restore",
+		"keyspace", tm.Table.Keyspace,
+		"table", tm.Table.Name,
+		"host", host,
+		"locations", locations,
+	)
+	defer w.logger.Info(ctx, "Finished table tablet aware restore", "keyspace", tm.Table.Keyspace, "table", tm.Table.Name)
+
+	pr := &RunProgress{
+		ClusterID: w.clusterID,
+		TaskID:    w.taskID,
+		RunID:     w.runID,
+		Keyspace:  tm.Table.Keyspace,
+		Table:     tm.Table.Name,
+		StartedAt: timeutc.Now(),
+		Size:      tm.Size,
+	}
+	w.upsertProgress(ctx, pr)
+
+	id, err := w.client.TabletRestore(ctx, host, tm.Table.Keyspace, tm.Table.Name, tm.SnapshotTag, locations)
+	if err != nil {
+		err = errors.Wrapf(err, "schedule tablet aware restore on node %s", host)
+		w.recordFailure(ctx, pr, err)
+		return err
+	}
+	pr.Host = host
+	pr.ScyllaTaskID = id
+	w.upsertProgress(ctx, pr)
+
+	if err := w.waitTask(ctx, pr); err != nil {
+		return errors.Wrapf(err, "wait for tablet aware restore task %s on node %s", id, host)
+	}
+	return nil
+}
+
+func (w *RestoreWorker) buildTabletRestoreLocations(tm TableMeta) ([]scyllaclient.TabletRestoreLocation, error) {
 	locations := make([]scyllaclient.TabletRestoreLocation, 0, len(tm.Datacenters))
 	for _, dcMeta := range tm.Datacenters {
-		nodeIP, err := w.hostPicker.pick(dcMeta.DC)
+		nodeCfg, err := w.nodeConfigForDC(dcMeta.DC)
 		if err != nil {
-			return errors.Wrapf(err, "get node config for dc %s", dcMeta.DC)
+			return nil, errors.Wrapf(err, "get node config for dc %s", dcMeta.DC)
 		}
-		nodeCfg := w.nodeConfig[nodeIP]
 		endpoint, err := nodeCfg.ScyllaObjectStorageEndpoint(dcMeta.Provider)
 		if err != nil {
-			return errors.Wrapf(err, "get object storage endpoint for dc %s", dcMeta.DC)
+			return nil, errors.Wrapf(err, "get object storage endpoint for dc %s", dcMeta.DC)
 		}
-		host = nodeIP.String()
 		locations = append(locations, scyllaclient.TabletRestoreLocation{
 			Endpoint: endpoint,
 			Bucket:   dcMeta.Bucket,
@@ -91,36 +239,16 @@ func (w *RestoreWorker) restoreTable(ctx context.Context, tm TableMeta) error {
 			Manifests:  dcMeta.RemoteManifests,
 		})
 	}
-
-	w.logger.Info(ctx, "Started table tablet aware restore",
-		"keyspace", tm.Table.Keyspace,
-		"table", tm.Table.Name,
-		"host", host,
-		"locations", locations,
-	)
-	defer w.logger.Info(ctx, "Finished table tablet aware restore", "keyspace", tm.Table.Keyspace, "table", tm.Table.Name)
-	id, err := w.client.TabletRestore(ctx, host, tm.Table.Keyspace, tm.Table.Name, tm.SnapshotTag, locations)
-	if err != nil {
-		return errors.Wrapf(err, "schedule tablet aware restore on node %s", host)
-	}
-
-	if err := w.waitTask(ctx, host, id); err != nil {
-		return errors.Wrapf(err, "wait for tablet aware restore task %s on node %s", id, host)
-	}
-	return nil
+	return locations, nil
 }
 
-func (w *RestoreWorker) waitTask(ctx context.Context, host, id string) error {
+// waitTask executes waitTaskTick until error or terminal scylla task status is encountered.
+// Error from scylla task status is included in the returned error.
+func (w *RestoreWorker) waitTask(ctx context.Context, pr *RunProgress) error {
 	for {
-		if ctx.Err() != nil {
-			w.abortTask(host, id)
-			return ctx.Err()
-		}
-
-		task, err := w.client.ScyllaWaitTask(ctx, host, id, int64(w.longPollingSeconds))
+		task, err := w.waitTaskTick(ctx, pr, w.longPollingSeconds)
 		if err != nil {
-			w.abortTask(host, id)
-			return errors.Wrap(err, "long poll task status")
+			return err
 		}
 
 		switch scyllaclient.ScyllaTaskState(task.State) {
@@ -130,6 +258,86 @@ func (w *RestoreWorker) waitTask(ctx context.Context, host, id string) error {
 			return nil
 		}
 	}
+}
+
+// waitTaskTick performs a single long polling iteration on the scylla task
+// and updates run progress with the returned task status.
+// Error from scylla task status is not included in the returned error.
+func (w *RestoreWorker) waitTaskTick(ctx context.Context, pr *RunProgress, longPollingSeconds int) (*models.TaskStatus, error) {
+	task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(longPollingSeconds))
+	if err != nil {
+		w.abortTask(pr.Host, pr.ScyllaTaskID)
+		w.recordFailure(ctx, pr, err)
+		return nil, errors.Wrap(err, "long poll task status")
+	}
+	w.updateProgress(ctx, pr, task)
+	return task, nil
+}
+
+// updateProgress updates and saves run progress described by scylla task status.
+func (w *RestoreWorker) updateProgress(ctx context.Context, pr *RunProgress, task *models.TaskStatus) {
+	pr.RestoredSSTables = int64(task.ProgressCompleted)
+	pr.TotalSSTables = int64(task.ProgressTotal)
+	if t := time.Time(task.StartTime); !t.IsZero() {
+		pr.StartedAt = t
+	}
+
+	switch scyllaclient.ScyllaTaskState(task.State) {
+	case scyllaclient.ScyllaTaskStateDone:
+		pr.CompletedAt = taskEndTime(task)
+	case scyllaclient.ScyllaTaskStateFailed:
+		pr.CompletedAt = taskEndTime(task)
+		pr.Error = joinError(pr.Error, task.Error)
+	}
+	w.upsertProgress(ctx, pr)
+}
+
+// recordFailure updates and saves run progress on error (not just on failed scylla task status).
+func (w *RestoreWorker) recordFailure(ctx context.Context, pr *RunProgress, err error) {
+	pr.CompletedAt = timeutc.Now()
+	pr.Error = joinError(pr.Error, err.Error())
+	w.upsertProgress(ctx, pr)
+}
+
+// taskEndTime returns task end time falling back to SM side clock when unset.
+func taskEndTime(task *models.TaskStatus) time.Time {
+	if t := time.Time(task.EndTime); !t.IsZero() {
+		return t
+	}
+	return timeutc.Now()
+}
+
+func joinError(recorded, current string) string {
+	switch {
+	case recorded == "":
+		return current
+	case current == "":
+		return recorded
+	default:
+		return recorded + "; " + current
+	}
+}
+
+func (w *RestoreWorker) upsertProgress(ctx context.Context, pr *RunProgress) {
+	q := schematable.RestoreRunProgressTablet.InsertQuery(w.smSession)
+	defer q.Release()
+	if err := q.BindStruct(pr).Exec(); err != nil {
+		w.logger.Error(ctx, "Failed to upsert tablet aware restore run progress",
+			"keyspace", pr.Keyspace,
+			"table", pr.Table,
+			"error", err,
+		)
+	}
+}
+
+// nodeConfigForDC returns config of an arbitrary node from the given datacenter.
+func (w *RestoreWorker) nodeConfigForDC(dc string) (configcache.NodeConfig, error) {
+	for _, nc := range w.nodeConfig {
+		if nc.Datacenter == dc {
+			return nc, nil
+		}
+	}
+	return configcache.NodeConfig{}, errors.Errorf("no node found in datacenter %s", dc)
 }
 
 func (w *RestoreWorker) abortTask(host, id string) {
@@ -142,35 +350,55 @@ func (w *RestoreWorker) abortTask(host, id string) {
 	}
 }
 
-// dcHostPicker picks hosts from requested datacenter using round-robin.
+// hostPicker picks the least utilized host from the eligible datacenters.
 // It's safe for concurrent use.
-type dcHostPicker struct {
-	mu      sync.Mutex
-	dcHosts map[string][]netip.Addr
-	dcIdx   map[string]int
+type hostPicker struct {
+	mu       sync.Mutex
+	hostDC   map[netip.Addr]string
+	inflight map[netip.Addr]int
 }
 
-func newDCHostPicker(nodeConfig map[netip.Addr]configcache.NodeConfig) *dcHostPicker {
-	dcHosts := make(map[string][]netip.Addr)
+func newHostPicker(nodeConfig map[netip.Addr]configcache.NodeConfig) *hostPicker {
+	hostDC := make(map[netip.Addr]string, len(nodeConfig))
 	for ip, nc := range nodeConfig {
-		dcHosts[nc.Datacenter] = append(dcHosts[nc.Datacenter], ip)
+		hostDC[ip] = nc.Datacenter
 	}
-	return &dcHostPicker{
-		dcHosts: dcHosts,
-		dcIdx:   make(map[string]int),
+	return &hostPicker{
+		hostDC:   hostDC,
+		inflight: make(map[netip.Addr]int, len(hostDC)),
 	}
 }
 
-// pick returns IP of the next host from the given datacenter.
-func (p *dcHostPicker) pick(dc string) (netip.Addr, error) {
+// pick returns the host from the given datacenters with the lowest
+// number of in-flight requests and increases its count.
+// A finished request should be reported with release.
+func (p *hostPicker) pick(dcs ...string) (netip.Addr, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	hosts := p.dcHosts[dc]
-	if len(hosts) == 0 {
-		return netip.Addr{}, errors.Errorf("no node found in datacenter %s", dc)
+	var (
+		best  netip.Addr
+		found bool
+	)
+	for ip, dc := range p.hostDC {
+		if !slices.Contains(dcs, dc) {
+			continue
+		}
+		if !found || p.inflight[ip] < p.inflight[best] {
+			best = ip
+			found = true
+		}
 	}
-	ip := hosts[p.dcIdx[dc]%len(hosts)]
-	p.dcIdx[dc]++
-	return ip, nil
+	if !found {
+		return netip.Addr{}, errors.Errorf("no node found in datacenters %v", dcs)
+	}
+	p.inflight[best]++
+	return best, nil
+}
+
+// release marks a request to the given host as finished.
+func (p *hostPicker) release(host netip.Addr) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.inflight[host]--
 }
