@@ -134,6 +134,13 @@ func (m SchedulerMetrics) InitTaskState(clusterID uuid.UUID, taskType string, ta
 	m.taskState.WithLabelValues(clusterID.String(), normalizeTaskType(taskType), taskID.String()).Set(float64(state))
 }
 
+// InitTaskRunStart restores "task_run_start_seconds" from the last recorded
+// run of the task, so that the metric survives a restart of SM.
+func (m SchedulerMetrics) InitTaskRunStart(clusterID uuid.UUID, taskType string, taskID uuid.UUID, startTime int64) {
+	m.taskRunStartSeconds.WithLabelValues(clusterID.String(), normalizeTaskType(taskType), taskID.String()).
+		Set(float64(startTime))
+}
+
 // InitTaskLastSuccess restores "task_last_success_seconds" from the last
 // successful run recorded for the task. It is needed so that the age of the
 // last success is not reset by an SM restart.

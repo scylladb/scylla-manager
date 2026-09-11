@@ -433,6 +433,13 @@ func (s *Service) initMetrics(t *Task) {
 		s.metrics.InitTaskLastSuccess(t.ClusterID, t.Type.String(), t.ID, t.LastSuccess.Unix())
 	}
 	s.metrics.SetTaskInfo(t.ClusterID, t.Type.String(), t.ID, newTaskInfo(t))
+	// Restore the start of the last run. Unlike the task status it is not
+	// kept on the task, so it has to be read back from the last run - without
+	// it every restart makes the metric disappear until the task runs again,
+	// which is exactly when "running for too long" needs it most.
+	if r, err := s.getLastRun(t); err == nil && !r.StartTime.IsZero() {
+		s.metrics.InitTaskRunStart(t.ClusterID, t.Type.String(), t.ID, r.StartTime.Unix())
+	}
 }
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
