@@ -3,6 +3,7 @@
 package metrics
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -104,6 +105,48 @@ func TestSchedulerMetricsTaskState(t *testing.T) {
 		golden := testutils.LoadGoldenTextFile(t)
 		if diff := cmp.Diff(text, golden); diff != "" {
 			t.Error(diff)
+		}
+	})
+
+	t.Run("task info reports only configured properties", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.SetTaskInfo(c, "repair", taskID, TaskInfo{
+			Name:                "weekly",
+			Keyspace:            "*,!system_traces",
+			KeyspaceReplication: "tablet",
+			DC:                  "dc1,dc2",
+			FailFast:            "true",
+		})
+
+		text := Dump(t, m.taskInfo)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("task info falls back to the task ID for an unnamed task", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.SetTaskInfo(c, "repair", taskID, TaskInfo{Keyspace: "ks"})
+
+		if text := Dump(t, m.taskInfo); !strings.Contains(text, `name="`+taskID.String()+`"`) {
+			t.Errorf("expected the task ID as name, got %q", text)
+		}
+	})
+
+	t.Run("task info replaces the series when a property changes", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.SetTaskInfo(c, "repair", taskID, TaskInfo{Keyspace: "old"})
+		m.SetTaskInfo(c, "repair", taskID, TaskInfo{Keyspace: "new"})
+
+		text := Dump(t, m.taskInfo)
+		if strings.Contains(text, `keyspace="old"`) {
+			t.Errorf("stale series kept: %q", text)
+		}
+		if !strings.Contains(text, `keyspace="new"`) {
+			t.Errorf("new series missing: %q", text)
 		}
 	})
 

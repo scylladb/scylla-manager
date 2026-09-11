@@ -16,6 +16,34 @@ type SchedulerMetrics struct {
 
 	taskRunStartSeconds   *prometheus.GaugeVec
 	taskLastSuccessSecond *prometheus.GaugeVec
+	taskInfo              *prometheus.GaugeVec
+}
+
+// TaskInfo describes the configured task properties reported by the
+// "task_info" metric. Only properties that were actually set are reported -
+// an unset property is reported as TaskInfoUnset, so that the metric never
+// claims a value the user did not configure.
+type TaskInfo struct {
+	Name                string
+	Cron                string
+	Keyspace            string
+	KeyspaceReplication string
+	IncrementalMode     string
+	DC                  string
+	Host                string
+	FailFast            string
+}
+
+// TaskInfoUnset is reported for a property that was not configured.
+// An empty label value cannot be used, because Prometheus treats an empty
+// label as an absent one, which would drop the property from the series
+// entirely and make it impossible to render as a fixed table column.
+const TaskInfoUnset = "-"
+
+// taskInfoLabels lists the "task_info" labels in the order they are set.
+var taskInfoLabels = []string{
+	"cluster", "type", "task", "name", "cron",
+	"keyspace", "keyspace_replication", "incremental_mode", "dc", "host", "fail_fast",
 }
 
 func NewSchedulerMetrics() SchedulerMetrics {
@@ -44,6 +72,12 @@ func NewSchedulerMetrics() SchedulerMetrics {
 			"this metric reports when the run actually finished, "+
 			"so that \"time() - task_last_success_seconds\" is the real age of the last success.",
 			"task_last_success_seconds", "cluster", "type", "task"),
+		taskInfo: g("Configured properties of a task, always 1. "+
+			"Join it to other task metrics on the \"task\" label, e.g. "+
+			"\"task_state * on(task) group_left(keyspace) task_info\". "+
+			"A property that was not configured is reported as \"-\". "+
+			"The \"name\" label falls back to the task ID for unnamed tasks.",
+			"task_info", taskInfoLabels...),
 	}
 }
 
@@ -56,6 +90,7 @@ func (m SchedulerMetrics) all() []prometheus.Collector {
 		m.taskState,
 		m.taskRunStartSeconds,
 		m.taskLastSuccessSecond,
+		m.taskInfo,
 	}
 }
 
@@ -100,6 +135,32 @@ func (m SchedulerMetrics) InitTaskState(clusterID uuid.UUID, taskType string, ta
 func (m SchedulerMetrics) InitTaskLastSuccess(clusterID uuid.UUID, taskType string, taskID uuid.UUID, endTime int64) {
 	m.taskLastSuccessSecond.WithLabelValues(clusterID.String(), normalizeTaskType(taskType), taskID.String()).
 		Set(float64(endTime))
+}
+
+// SetTaskInfo updates "task_info" with the currently configured properties.
+// Previous series of the task are removed first, so that editing a property
+// replaces the series instead of leaving a stale one behind.
+func (m SchedulerMetrics) SetTaskInfo(clusterID uuid.UUID, taskType string, taskID uuid.UUID, info TaskInfo) {
+	DeleteMatching(m.taskInfo, LabelMatcher("task", taskID.String()))
+	// A task does not have to be named - an ad-hoc one usually isn't - and
+	// sctool falls back to the task ID in that case, so the "name" label does
+	// the same. It is always safe to display, unlike the properties.
+	name := info.Name
+	if name == "" {
+		name = taskID.String()
+	}
+	m.taskInfo.WithLabelValues(
+		clusterID.String(), normalizeTaskType(taskType), taskID.String(), name, orUnset(info.Cron),
+		orUnset(info.Keyspace), orUnset(info.KeyspaceReplication), orUnset(info.IncrementalMode),
+		orUnset(info.DC), orUnset(info.Host), orUnset(info.FailFast),
+	).Set(1)
+}
+
+func orUnset(v string) string {
+	if v == "" {
+		return TaskInfoUnset
+	}
+	return v
 }
 
 // BeginRun updates "run_indicator", "task_state" and "task_run_start_seconds".

@@ -386,6 +386,12 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		if err := table.SchedulerTaskUpdate.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
 			return err
 		}
+		// The update rewrites the name, the schedule and the properties, which
+		// is everything the info metric reports, so it has to be rewritten
+		// too - otherwise it keeps describing the task as it was created until
+		// the next restart. Only this metric is refreshed here: the others
+		// describe runs, and an update is not one.
+		s.metrics.SetTaskInfo(t.ClusterID, t.Type.String(), t.ID, newTaskInfo(t))
 		s.schedule(ctx, t, false)
 	}
 
@@ -420,6 +426,7 @@ func (s *Service) initMetrics(t *Task) {
 	if t.LastSuccess != nil {
 		s.metrics.InitTaskLastSuccess(t.ClusterID, t.Type.String(), t.ID, t.LastSuccess.Unix())
 	}
+	s.metrics.SetTaskInfo(t.ClusterID, t.Type.String(), t.ID, newTaskInfo(t))
 }
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
