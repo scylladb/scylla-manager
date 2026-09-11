@@ -417,6 +417,12 @@ func (s *Service) shouldPutTask(create bool, t *Task) error {
 }
 
 func (s *Service) initMetrics(t *Task) {
+	// Tasks are loaded from the database on start without filtering out the
+	// deleted ones, so a deleted task would otherwise come back to the
+	// metrics on every restart.
+	if t.Deleted {
+		return
+	}
 	s.metrics.Init(t.ClusterID, t.Type.String(), t.ID, *(*[]string)(unsafe.Pointer(&allStatuses))...)
 	// Restore the task state metric, so that a task that failed before
 	// SM restart is still reported as failed after it.
@@ -673,6 +679,8 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	if err := q.ExecRelease(); err != nil {
 		return err
 	}
+
+	s.metrics.DeleteTask(t.ID)
 
 	s.mu.Lock()
 	l, lok := s.scheduler[t.ClusterID]

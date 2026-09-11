@@ -23,7 +23,7 @@ func TestNewTaskInfo(t *testing.T) {
 		{
 			name:   "no properties",
 			task:   Task{Name: "every-5min"},
-			golden: metrics.TaskInfo{Name: "every-5min"},
+			golden: metrics.TaskInfo{Name: "every-5min", Cron: metrics.TaskScheduleAdHoc},
 		},
 		{
 			name:   "cron schedule",
@@ -37,18 +37,18 @@ func TestNewTaskInfo(t *testing.T) {
 		},
 		{
 			name:   "no schedule at all",
-			task:   Task{Name: "ad-hoc"},
-			golden: metrics.TaskInfo{Name: "ad-hoc"},
+			task:   Task{Name: "one-off"},
+			golden: metrics.TaskInfo{Name: "one-off", Cron: metrics.TaskScheduleAdHoc},
 		},
 		{
 			name:   "empty properties",
 			task:   Task{Name: "t", Properties: json.RawMessage(`{}`)},
-			golden: metrics.TaskInfo{Name: "t"},
+			golden: metrics.TaskInfo{Name: "t", Cron: metrics.TaskScheduleAdHoc},
 		},
 		{
 			name:   "only configured properties are reported",
 			task:   Task{Properties: json.RawMessage(`{"intensity":2,"parallel":3}`)},
-			golden: metrics.TaskInfo{},
+			golden: metrics.TaskInfo{Cron: metrics.TaskScheduleAdHoc},
 		},
 		{
 			name: "full repair properties",
@@ -66,6 +66,7 @@ func TestNewTaskInfo(t *testing.T) {
 			},
 			golden: metrics.TaskInfo{
 				Name:                "weekly",
+				Cron:                metrics.TaskScheduleAdHoc,
 				Keyspace:            "*,!system_traces",
 				KeyspaceReplication: "tablet",
 				IncrementalMode:     "full",
@@ -77,12 +78,12 @@ func TestNewTaskInfo(t *testing.T) {
 		{
 			name:   "fail_fast false is reported, unset is not",
 			task:   Task{Properties: json.RawMessage(`{"fail_fast": false}`)},
-			golden: metrics.TaskInfo{FailFast: "false"},
+			golden: metrics.TaskInfo{Cron: metrics.TaskScheduleAdHoc, FailFast: "false"},
 		},
 		{
 			name:   "unreadable properties still describe the task",
 			task:   Task{Name: "broken", Properties: json.RawMessage(`not json`)},
-			golden: metrics.TaskInfo{Name: "broken"},
+			golden: metrics.TaskInfo{Name: "broken", Cron: metrics.TaskScheduleAdHoc},
 		},
 	}
 

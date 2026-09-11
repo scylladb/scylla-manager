@@ -40,6 +40,11 @@ type TaskInfo struct {
 // entirely and make it impossible to render as a fixed table column.
 const TaskInfoUnset = "-"
 
+// TaskScheduleAdHoc is reported in the "cron" label of a task that is not
+// scheduled at all. It sorts after any cron specification, so a list
+// ordered by schedule keeps ad-hoc tasks at the end.
+const TaskScheduleAdHoc = "ad-hoc"
+
 // taskInfoLabels lists the "task_info" labels in the order they are set.
 var taskInfoLabels = []string{
 	"cluster", "type", "task", "name", "cron",
@@ -135,6 +140,20 @@ func (m SchedulerMetrics) InitTaskState(clusterID uuid.UUID, taskType string, ta
 func (m SchedulerMetrics) InitTaskLastSuccess(clusterID uuid.UUID, taskType string, taskID uuid.UUID, endTime int64) {
 	m.taskLastSuccessSecond.WithLabelValues(clusterID.String(), normalizeTaskType(taskType), taskID.String()).
 		Set(float64(endTime))
+}
+
+// DeleteTask removes every series describing the task. It should be called
+// when a task is deleted, so that the metrics describe the tasks that
+// currently exist - otherwise a deleted task keeps being reported for as
+// long as the process runs.
+func (m SchedulerMetrics) DeleteTask(taskID uuid.UUID) {
+	matcher := LabelMatcher("task", taskID.String())
+	for _, c := range []*prometheus.GaugeVec{
+		m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState,
+		m.taskRunStartSeconds, m.taskLastSuccessSecond, m.taskInfo,
+	} {
+		DeleteMatching(c, matcher)
+	}
 }
 
 // SetTaskInfo updates "task_info" with the currently configured properties.
