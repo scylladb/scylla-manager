@@ -167,6 +167,20 @@ func (m SchedulerMetrics) InitTaskLastSuccess(clusterID uuid.UUID, taskType stri
 		Set(float64(endTime))
 }
 
+// DeleteTask removes every series describing the task. It should be called
+// when a task is deleted, so that the metrics describe the tasks that
+// currently exist - otherwise a deleted task keeps being reported for as
+// long as the process runs.
+func (m SchedulerMetrics) DeleteTask(taskID uuid.UUID) {
+	matcher := LabelMatcher("task", taskID.String())
+	for _, c := range []*prometheus.GaugeVec{
+		m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState,
+		m.taskRunStartSeconds, m.taskLastSuccessSecond, m.taskInfo,
+	} {
+		DeleteMatching(c, matcher)
+	}
+}
+
 // SetTaskInfo updates "task_info" with the currently configured properties.
 // Previous series of the task are removed first, so that editing a property
 // replaces the series instead of leaving a stale one behind.

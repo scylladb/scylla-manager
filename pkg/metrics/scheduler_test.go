@@ -136,6 +136,28 @@ func TestSchedulerMetricsTaskState(t *testing.T) {
 		}
 	})
 
+	t.Run("deleting a task removes all of its series", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		other := uuid.MustParse("1b967567-8bc4-4407-9e1d-c7f37069415e")
+		for _, id := range []uuid.UUID{taskID, other} {
+			m.Init(c, "repair", id, "DONE")
+			m.BeginRun(c, "repair", id, 1645517563)
+			m.EndRun(c, "repair", id, "DONE", 1645517563, 1645517600)
+			m.SetTaskInfo(c, "repair", id, TaskInfo{Keyspace: "ks"})
+		}
+
+		m.DeleteTask(taskID)
+
+		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState,
+			m.taskRunStartSeconds, m.taskLastSuccessSecond, m.taskInfo)
+		if strings.Contains(text, taskID.String()) {
+			t.Errorf("deleted task still reported: %q", text)
+		}
+		if !strings.Contains(text, other.String()) {
+			t.Errorf("other task was removed too: %q", text)
+		}
+	})
+
 	t.Run("task info replaces the series when a property changes", func(t *testing.T) {
 		m := NewSchedulerMetrics()
 		m.SetTaskInfo(c, "repair", taskID, TaskInfo{Keyspace: "old"})
