@@ -50,7 +50,7 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "cql_status",
-		Help:      "Host native port status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
+		Help:      "Host CQL status. -2 stands for an unreachable agent, -1 for an unreachable CQL port and 1 for everything is fine.",
 	}, labelNames())
 
 	cqlRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -64,7 +64,7 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "rest_status",
-		Help:      "Host REST status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
+		Help:      "Host Scylla REST API status. -2 stands for an unreachable agent, -1 for an unreachable REST API and 1 for everything is fine.",
 	}, labelNames())
 
 	restRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -78,7 +78,7 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "alternator_status",
-		Help:      "Host Alternator status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
+		Help:      "Host Alternator status. -2 stands for an unreachable agent, -1 for an unreachable Alternator API and 1 for everything is fine. Note that a node reports 1 with 0ms RTT when Alternator is not enabled at all.",
 	}, labelNames())
 
 	alternatorRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
