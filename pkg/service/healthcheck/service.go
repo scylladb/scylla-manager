@@ -64,8 +64,7 @@ func (s *Service) Runner() Runner {
 				status: cqlStatus,
 				rtt:    cqlRTT,
 			},
-			ping:      s.pingCQL,
-			pingAgent: s.pingAgent,
+			ping: s.pingCQL,
 		},
 		rest: runner{
 			logger:       s.logger.Named("REST healthcheck"),
@@ -88,8 +87,7 @@ func (s *Service) Runner() Runner {
 				status: alternatorStatus,
 				rtt:    alternatorRTT,
 			},
-			ping:      s.pingAlternator,
-			pingAgent: s.pingAgent,
+			ping: s.pingAlternator,
 		},
 	}
 }
