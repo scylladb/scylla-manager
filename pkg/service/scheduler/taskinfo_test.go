@@ -81,9 +81,75 @@ func TestNewTaskInfo(t *testing.T) {
 			},
 		},
 		{
+			name: "backup task falls back to the defaults",
+			task: Task{Name: "defaults", Type: BackupTask},
+			golden: metrics.TaskInfo{
+				Name:              "defaults",
+				Cron:              metrics.TaskScheduleAdHoc,
+				Keyspace:          "all",
+				DC:                "all",
+				Retention:         "3",
+				RetentionDays:     "0",
+				Method:            "rclone",
+				PurgeOnly:         "false",
+				SkipSchema:        "false",
+				RetentionLockMode: "disabled",
+			},
+		},
+		{
+			name: "configured backup properties win over the defaults",
+			task: Task{
+				Name: "weekly",
+				Type: BackupTask,
+				Properties: json.RawMessage(`{
+					"keyspace": ["ks", "!ks.tbl"],
+					"dc": ["dc1"],
+					"location": ["dc1:s3:backups", "s3:other"],
+					"retention_days": 30,
+					"method": "native",
+					"skip_schema": true,
+					"retention_lock_mode": "locked",
+					"transfers": 4
+				}`),
+			},
+			golden: metrics.TaskInfo{
+				Name:     "weekly",
+				Cron:     metrics.TaskScheduleAdHoc,
+				Keyspace: "ks,!ks.tbl",
+				DC:       "dc1",
+				Location: "dc1:s3:backups,s3:other",
+				// Configuring only retention_days leaves retention at 0 - the
+				// fallback to 3 applies only when neither is set.
+				Retention:         "0",
+				RetentionDays:     "30",
+				Method:            "native",
+				PurgeOnly:         "false",
+				SkipSchema:        "true",
+				RetentionLockMode: "locked",
+			},
+		},
+		{
+			name: "backup defaults are not applied to a repair task",
+			task: Task{
+				Name:       "r",
+				Type:       RepairTask,
+				Properties: json.RawMessage(`{"keyspace":["ks"]}`),
+			},
+			golden: metrics.TaskInfo{
+				Name:                "r",
+				Cron:                metrics.TaskScheduleAdHoc,
+				Keyspace:            "ks",
+				KeyspaceReplication: "all",
+				IncrementalMode:     "incremental",
+				DC:                  "all",
+				Host:                "all",
+				FailFast:            "false",
+			},
+		},
+		{
 			name:   "defaults are not applied to other task types",
-			task:   Task{Name: "b", Type: BackupTask},
-			golden: metrics.TaskInfo{Name: "b", Cron: metrics.TaskScheduleAdHoc},
+			task:   Task{Name: "v", Type: ValidateBackupTask},
+			golden: metrics.TaskInfo{Name: "v", Cron: metrics.TaskScheduleAdHoc},
 		},
 		{
 			name: "full repair properties",

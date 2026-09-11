@@ -24,14 +24,24 @@ type SchedulerMetrics struct {
 // an unset property is reported as TaskInfoUnset, so that the metric never
 // claims a value the user did not configure.
 type TaskInfo struct {
-	Name                string
-	Cron                string
-	Keyspace            string
+	Name string
+	Cron string
+	// Keyspace and DC are configured by both repair and backup tasks.
+	Keyspace string
+	DC       string
+	// Repair only.
 	KeyspaceReplication string
 	IncrementalMode     string
-	DC                  string
 	Host                string
 	FailFast            string
+	// Backup only.
+	Location          string
+	Retention         string
+	RetentionDays     string
+	Method            string
+	PurgeOnly         string
+	SkipSchema        string
+	RetentionLockMode string
 }
 
 // TaskInfoUnset is reported for a property that was not configured.
@@ -46,9 +56,16 @@ const TaskInfoUnset = "-"
 const TaskScheduleAdHoc = "ad-hoc"
 
 // taskInfoLabels lists the "task_info" labels in the order they are set.
+// A property that does not apply to a task type is reported as TaskInfoUnset,
+// so that every task has the same set of labels and a dashboard can render a
+// fixed set of columns per type.
 var taskInfoLabels = []string{
-	"cluster", "type", "task", "name", "cron",
-	"keyspace", "keyspace_replication", "incremental_mode", "dc", "host", "fail_fast",
+	"cluster", "type", "task", "name", "cron", "keyspace", "dc",
+	// Repair only.
+	"keyspace_replication", "incremental_mode", "host", "fail_fast",
+	// Backup only.
+	"location", "retention", "retention_days", "method", "purge_only",
+	"skip_schema", "retention_lock_mode",
 }
 
 func NewSchedulerMetrics() SchedulerMetrics {
@@ -80,7 +97,8 @@ func NewSchedulerMetrics() SchedulerMetrics {
 		taskInfo: g("Configured properties of a task, always 1. "+
 			"Join it to other task metrics on the \"task\" label, e.g. "+
 			"\"task_state * on(task) group_left(keyspace) task_info\". "+
-			"A property that was not configured is reported as \"-\". "+
+			"A property that was not configured, or that does not apply to the "+
+			"task type, is reported as \"-\". "+
 			"The \"name\" label falls back to the task ID for unnamed tasks.",
 			"task_info", taskInfoLabels...),
 	}
@@ -177,8 +195,12 @@ func (m SchedulerMetrics) SetTaskInfo(clusterID uuid.UUID, taskType string, task
 	}
 	m.taskInfo.WithLabelValues(
 		clusterID.String(), normalizeTaskType(taskType), taskID.String(), name, orUnset(info.Cron),
-		orUnset(info.Keyspace), orUnset(info.KeyspaceReplication), orUnset(info.IncrementalMode),
-		orUnset(info.DC), orUnset(info.Host), orUnset(info.FailFast),
+		orUnset(info.Keyspace), orUnset(info.DC),
+		orUnset(info.KeyspaceReplication), orUnset(info.IncrementalMode),
+		orUnset(info.Host), orUnset(info.FailFast),
+		orUnset(info.Location), orUnset(info.Retention), orUnset(info.RetentionDays),
+		orUnset(info.Method), orUnset(info.PurgeOnly), orUnset(info.SkipSchema),
+		orUnset(info.RetentionLockMode),
 	).Set(1)
 }
 
