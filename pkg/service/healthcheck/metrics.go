@@ -16,6 +16,21 @@ const (
 	metricBufferSize = 100
 )
 
+// Values reported by the three "*_status" metrics. They are ordered by
+// severity, so that min_over_time over a range is the worst state a node
+// reached in it.
+const (
+	// metricStatusUp means that the protocol's probe succeeded.
+	metricStatusUp = 1
+	// metricStatusDown means that the probe failed while the agent still
+	// answers, so the node is reachable and this one protocol is not.
+	metricStatusDown = -1
+	// metricStatusAgentUnavailable means that the agent did not answer
+	// either, so Scylla Manager cannot reach the node at all and nothing can
+	// be said about the protocol.
+	metricStatusAgentUnavailable = -2
+)
+
 func labelNames() []string {
 	return []string{clusterKey, dcKey, rackKey, hostKey}
 }
