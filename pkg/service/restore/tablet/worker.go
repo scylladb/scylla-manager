@@ -188,10 +188,12 @@ func (w *RestoreWorker) buildTabletRestoreLocations(tm TableMeta) ([]scyllaclien
 
 // waitTask executes waitTaskTick until error or terminal scylla task status is encountered.
 // Error from scylla task status is included in the returned error.
+// Scylla task is aborted on SM task pause.
 func (w *RestoreWorker) waitTask(ctx context.Context, pr *RunProgress) error {
 	for {
 		task, err := w.waitTaskTick(ctx, pr, w.longPollingSeconds)
 		if err != nil {
+			w.abortTaskOnPause(ctx, pr)
 			return err
 		}
 
@@ -204,13 +206,54 @@ func (w *RestoreWorker) waitTask(ctx context.Context, pr *RunProgress) error {
 	}
 }
 
+const taskAbortGracePeriodSeconds = 60
+
+// abortTaskOnPause aborts scylla task and waits for it to reach terminal state
+// for up to taskAbortGracePeriodSeconds. Waiting is caused by scylla abort API
+// being async, and trying schedule tablet aware restore on a table that is
+// currently being aborted results in an error.
+func (w *RestoreWorker) abortTaskOnPause(parentCtx context.Context, pr *RunProgress) {
+	// Don't want to abort on non-pause related errors
+	if parentCtx.Err() == nil {
+		return
+	}
+	// Since parent ctx is canceled, we need to run abort procedure in a new, bounded one
+	ctx, cancel := context.WithTimeout(context.Background(), taskAbortGracePeriodSeconds*time.Second)
+	defer cancel()
+
+	if err := w.client.ScyllaAbortTask(ctx, pr.Host, pr.ScyllaTaskID); err != nil {
+		w.logger.Error(ctx, "Failed to abort task",
+			"host", pr.Host,
+			"id", pr.ScyllaTaskID,
+			"error", err,
+		)
+		return
+	}
+
+	status, err := w.waitTaskTick(ctx, pr, taskAbortGracePeriodSeconds)
+	if err != nil {
+		w.logger.Error(ctx, "Failed to wait for aborted task to finish",
+			"host", pr.Host,
+			"id", pr.ScyllaTaskID,
+			"error", err,
+		)
+		return
+	}
+	if s := scyllaclient.ScyllaTaskState(status.State); s != scyllaclient.ScyllaTaskStateDone && s != scyllaclient.ScyllaTaskStateFailed {
+		w.logger.Error(ctx, "Aborted task has not finished within grace period",
+			"host", pr.Host,
+			"id", pr.ScyllaTaskID,
+			"grace_period", taskAbortGracePeriodSeconds*time.Second,
+		)
+	}
+}
+
 // waitTaskTick performs a single long polling iteration on the scylla task
 // and updates run progress with the returned task status.
 // Error from scylla task status is not included in the returned error.
 func (w *RestoreWorker) waitTaskTick(ctx context.Context, pr *RunProgress, longPollingSeconds int) (*models.TaskStatus, error) {
 	task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(longPollingSeconds))
 	if err != nil {
-		w.abortTask(pr.Host, pr.ScyllaTaskID)
 		w.recordFailure(ctx, pr, err)
 		return nil, errors.Wrap(err, "long poll task status")
 	}
@@ -229,9 +272,10 @@ func (w *RestoreWorker) updateProgress(ctx context.Context, pr *RunProgress, tas
 	switch scyllaclient.ScyllaTaskState(task.State) {
 	case scyllaclient.ScyllaTaskStateDone:
 		pr.CompletedAt = taskEndTime(task)
+		pr.Error = ""
 	case scyllaclient.ScyllaTaskStateFailed:
 		pr.CompletedAt = taskEndTime(task)
-		pr.Error = joinError(pr.Error, task.Error)
+		pr.Error = joinError(pr.Error, "scylla task error: "+task.Error)
 	}
 	w.upsertProgress(ctx, pr)
 }
@@ -282,16 +326,6 @@ func (w *RestoreWorker) nodeConfigForDC(dc string) (configcache.NodeConfig, erro
 		}
 	}
 	return configcache.NodeConfig{}, errors.Errorf("no node found in datacenter %s", dc)
-}
-
-func (w *RestoreWorker) abortTask(host, id string) {
-	if err := w.client.ScyllaAbortTask(context.Background(), host, id); err != nil {
-		w.logger.Error(context.Background(), "Failed to abort task",
-			"host", host,
-			"id", id,
-			"error", err,
-		)
-	}
 }
 
 // hostPicker picks the least utilized host from the eligible datacenters.
