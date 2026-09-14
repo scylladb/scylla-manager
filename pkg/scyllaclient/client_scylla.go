@@ -1489,7 +1489,6 @@ func scyllaWaitTaskShouldRetryHandler(err error) *bool {
 // Host is mandatory only when waiting for a task local to specific node.
 func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollingSeconds int64) (*models.TaskStatus, error) {
 	ctx = withShouldRetryHandler(ctx, scyllaWaitTaskShouldRetryHandler)
-	ctx = noTimeout(ctx)
 	if host != "" {
 		ctx = forceHost(ctx, host)
 	}
@@ -1498,7 +1497,10 @@ func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollin
 		TaskID:  id,
 	}
 	if longPollingSeconds > 0 {
+		p.SetContext(customTimeout(p.Context, c.longPollingTimeout(int(longPollingSeconds))))
 		p.SetTimeout(&longPollingSeconds)
+	} else {
+		p.SetContext(noTimeout(p.Context))
 	}
 
 	resp, err := c.scyllaOps.TaskManagerWaitTaskTaskIDGet(p)
