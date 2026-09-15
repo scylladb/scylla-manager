@@ -26,7 +26,7 @@ services:
     command: --smp 1 --memory 1G
 
   minio:
-    image: minio/minio
+    image: quay.io/minio/minio
     volumes:
       - minio_data:/data
     networks:
