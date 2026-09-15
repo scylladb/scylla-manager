@@ -1016,6 +1016,12 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 	}
 
+	// Purge only runs skip every stage that uploads anything, so there is no
+	// new snapshot to announce.
+	if !target.PurgeOnly {
+		w.logBackupCompleted(ctx, hi)
+	}
+
 	return nil
 }
 
