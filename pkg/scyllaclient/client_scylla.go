@@ -1477,6 +1477,14 @@ func isScyllaTaskRunning(err error) bool {
 	return status == http.StatusRequestTimeout
 }
 
+// IsScyllaTaskNotFound checks if error was caused by Scylla no longer tracking the task
+// (e.g. because it finished and its TTL expired, or because the node was restarted).
+func IsScyllaTaskNotFound(err error) bool {
+	// Scylla reports unknown task ID as a bad param error (see api/task_manager.cc in scylla).
+	status, msg := StatusCodeAndMessageOf(err)
+	return status == http.StatusBadRequest && strings.Contains(msg, "not found")
+}
+
 func scyllaWaitTaskShouldRetryHandler(err error) *bool {
 	if isScyllaTaskRunning(err) {
 		return new(false)

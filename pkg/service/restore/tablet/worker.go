@@ -138,7 +138,40 @@ func (w *RestoreWorker) restoreTableWithResume(ctx context.Context, tm TableMeta
 		)
 		return nil
 	case prev.canReattach():
-		if w.tryReattach(ctx, &prev) {
+		task, err := w.probeTask(ctx, &prev)
+		if err != nil {
+			if !scyllaclient.IsScyllaTaskNotFound(err) {
+				// We don't know the state of the scylla task, so we shouldn't schedule
+				// a new one. Progress stays re-attachable, so the next resume can retry.
+				return errors.Wrapf(err, "probe tablet aware restore task %s on node %s", prev.ScyllaTaskID, prev.Host)
+			}
+			w.logger.Info(ctx, "Tablet aware restore task from previous run is not found, restoring table from scratch",
+				"keyspace", tm.Table.Keyspace,
+				"table", tm.Table.Name,
+				"host", prev.Host,
+				"task id", prev.ScyllaTaskID,
+			)
+			return w.restoreTable(ctx, tm)
+		}
+		switch scyllaclient.ScyllaTaskState(task.State) {
+		case scyllaclient.ScyllaTaskStateDone:
+			w.logger.Info(ctx, "Tablet aware restore task from previous run finished, skipping",
+				"keyspace", prev.Keyspace,
+				"table", prev.Table,
+				"host", prev.Host,
+				"task id", prev.ScyllaTaskID,
+			)
+			return nil
+		case scyllaclient.ScyllaTaskStateFailed:
+			w.logger.Info(ctx, "Tablet aware restore task from previous run failed, restoring table from scratch",
+				"keyspace", prev.Keyspace,
+				"table", prev.Table,
+				"host", prev.Host,
+				"task id", prev.ScyllaTaskID,
+				"error", task.Error,
+			)
+			return w.restoreTable(ctx, tm)
+		default:
 			w.logger.Info(ctx, "Re-attached to tablet aware restore task from previous run",
 				"keyspace", prev.Keyspace,
 				"table", prev.Table,
@@ -147,23 +180,19 @@ func (w *RestoreWorker) restoreTableWithResume(ctx context.Context, tm TableMeta
 			)
 			return w.waitTask(ctx, &prev)
 		}
-		w.logger.Info(ctx, "Failed to re-attach to tablet aware restore task, restoring table from scratch",
-			"keyspace", tm.Table.Keyspace,
-			"table", tm.Table.Name,
-		)
-		return w.restoreTable(ctx, tm)
 	default:
 		return w.restoreTable(ctx, tm)
 	}
 }
 
-// tryReattach reports whether the tablet aware restore task scheduled
-// by the previous run can still be tracked (e.g. after SM crash).
-func (w *RestoreWorker) tryReattach(ctx context.Context, pr *RunProgress) bool {
+// probeTask makes a quick check of the tablet aware restore task scheduled
+// by the previous run and returns its status (e.g. after SM crash).
+// Returned error satisfying scyllaclient.IsScyllaTaskNotFound means that
+// scylla no longer tracks the task.
+func (w *RestoreWorker) probeTask(ctx context.Context, pr *RunProgress) (*models.TaskStatus, error) {
 	// We just want to make a quick probe of whether task
 	// can still be waited on - no real long polling is needed.
-	_, err := w.waitTaskTick(ctx, pr, 1)
-	return err == nil
+	return w.waitTaskTick(ctx, pr, 1)
 }
 
 // restoreTable by scheduling tablet aware restore task and waiting for its completion.

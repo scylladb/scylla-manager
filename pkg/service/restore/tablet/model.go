@@ -40,7 +40,9 @@ func (pr RunProgress) isSuccess() bool {
 // canReattach reports whether we can try to re-attach to the
 // ongoing tablet aware restore task. It allows for smoother
 // resume on SM crash. It won't work on resume after task pause,
-// as it results in aborting scylla tasks.
+// as it results in aborting scylla tasks and marking progress as completed.
+// Recorded error without completion timestamp doesn't prevent re-attaching,
+// as it means that SM lost track of the still running scylla task.
 func (pr RunProgress) canReattach() bool {
-	return pr.ScyllaTaskID != "" && pr.Host != "" && pr.CompletedAt.IsZero() && pr.Error == ""
+	return pr.ScyllaTaskID != "" && pr.Host != "" && pr.CompletedAt.IsZero()
 }

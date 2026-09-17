@@ -55,10 +55,10 @@ func TestRunProgressPredicates(t *testing.T) {
 			canReattach: false,
 		},
 		{
-			name:        "error recorded without completion timestamp",
-			pr:          RunProgress{StartedAt: now, Host: "h", ScyllaTaskID: "task", Error: "ctx cancelled"},
+			name:        "error recorded without completion timestamp (SM lost track of the task)",
+			pr:          RunProgress{StartedAt: now, Host: "h", ScyllaTaskID: "task", Error: "connection refused"},
 			isSuccess:   false,
-			canReattach: false,
+			canReattach: true,
 		},
 		{
 			name:        "error recorded before scheduling the task",
