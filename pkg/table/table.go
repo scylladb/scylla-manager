@@ -43,6 +43,22 @@ var ScyllaBackupTables = []CQLTable{
 	{Keyspace: "system_distributed", Name: "snapshot_tablets"},
 }
 
+// ScyllaClusterConfigTables lists internal scylla tables used for storing
+// scylla config for different scopes. Scylla config should be backed up
+// and restored via CQL, so the only reason to back up those tables is
+// for additional data redundancy. Note that some of those tables
+// (e.g., scylla_tables) were already present before scylla cluster config
+// and contain additional data not related to this feature.
+// Scylla cluster config is not yet released, but aims to be a part of 2026.4 release.
+var ScyllaClusterConfigTables = []CQLTable{
+	{Keyspace: "system_schema", Name: "scylla_clusters"},
+	{Keyspace: "system_schema", Name: "scylla_keyspaces"},
+	{Keyspace: "system_schema", Name: "scylla_tables"},
+	{Keyspace: "system_schema", Name: "scylla_datacenters"},
+	{Keyspace: "system_schema", Name: "scylla_racks"},
+	{Keyspace: "system_schema", Name: "scylla_nodes"},
+}
+
 // AuditKeyspace stores audit data. It lacks "system" prefix
 // and can be altered by users, but it's still an internal keyspace.
 // See https://docs.scylladb.com/manual/stable/operating-scylla/security/auditing.html.
