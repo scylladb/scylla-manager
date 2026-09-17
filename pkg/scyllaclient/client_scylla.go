@@ -1477,6 +1477,14 @@ func isScyllaTaskRunning(err error) bool {
 	return status == http.StatusRequestTimeout
 }
 
+// IsScyllaTaskNotFound checks if error was caused by Scylla no longer tracking the task
+// (e.g. because it finished and its TTL expired, or because the node was restarted).
+func IsScyllaTaskNotFound(err error) bool {
+	// Scylla reports unknown task ID as a bad param error (see api/task_manager.cc in scylla).
+	status, msg := StatusCodeAndMessageOf(err)
+	return status == http.StatusBadRequest && strings.Contains(msg, "not found")
+}
+
 func scyllaWaitTaskShouldRetryHandler(err error) *bool {
 	if isScyllaTaskRunning(err) {
 		return new(false)
@@ -1489,7 +1497,6 @@ func scyllaWaitTaskShouldRetryHandler(err error) *bool {
 // Host is mandatory only when waiting for a task local to specific node.
 func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollingSeconds int64) (*models.TaskStatus, error) {
 	ctx = withShouldRetryHandler(ctx, scyllaWaitTaskShouldRetryHandler)
-	ctx = noTimeout(ctx)
 	if host != "" {
 		ctx = forceHost(ctx, host)
 	}
@@ -1498,7 +1505,10 @@ func (c *Client) ScyllaWaitTask(ctx context.Context, host, id string, longPollin
 		TaskID:  id,
 	}
 	if longPollingSeconds > 0 {
+		p.SetContext(customTimeout(p.Context, c.longPollingTimeout(int(longPollingSeconds))))
 		p.SetTimeout(&longPollingSeconds)
+	} else {
+		p.SetContext(noTimeout(p.Context))
 	}
 
 	resp, err := c.scyllaOps.TaskManagerWaitTaskTaskIDGet(p)
@@ -1548,12 +1558,15 @@ func (c *Client) ScyllaAbortTask(ctx context.Context, host, id string) error {
 // (5 minutes is generous for such use case).
 const ManagerTaskTTLSeconds = 5 * 60
 
-// ScyllaControlTaskUserTTL sets Scylla user task TTL to ManagerTaskTTLSeconds.
-// Returned reset func resets Scylla user task TTL to the original value.
+// ScyllaControlTaskUserTTL ensures that Scylla user task TTL is set to at least ManagerTaskTTLSeconds.
+// Returned reset func resets Scylla user task TTL to the original value, if it was changed.
 func (c *Client) ScyllaControlTaskUserTTL(ctx context.Context, host string) (reset func(), err error) {
 	oldTTL, err := c.ScyllaGetUserTaskTTL(ctx, host)
 	if err != nil {
 		return nil, errors.Wrap(err, "get user task TTL")
+	}
+	if oldTTL >= ManagerTaskTTLSeconds {
+		return func() {}, nil
 	}
 
 	c.logger.Info(ctx, "Set Scylla user task TTL", "host", host, "new TTL", ManagerTaskTTLSeconds, "old TTL", oldTTL)
