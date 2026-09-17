@@ -57,6 +57,10 @@ func NewRestoreWorker(clusterID, taskID, runID uuid.UUID,
 
 // Restore given tables with tablet aware restore based on provided workload.
 func (w *RestoreWorker) Restore(ctx context.Context, tables Workload) error {
+	if len(tables) == 0 {
+		w.logger.Info(ctx, "No tables to restore with tablet aware restore")
+		return nil
+	}
 	w.logger.Info(ctx, "Started tablet aware restore")
 	defer w.logger.Info(ctx, "Finished tablet aware restore")
 
