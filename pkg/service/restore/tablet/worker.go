@@ -192,7 +192,11 @@ func (w *RestoreWorker) restoreTableWithResume(ctx context.Context, tm TableMeta
 func (w *RestoreWorker) probeTask(ctx context.Context, pr *RunProgress) (*models.TaskStatus, error) {
 	// We just want to make a quick probe of whether task
 	// can still be waited on - no real long polling is needed.
-	return w.waitTaskTick(ctx, pr, 1)
+	task, err := w.waitTaskTick(ctx, pr, 1)
+	if err != nil && !scyllaclient.IsScyllaTaskNotFound(err) {
+		w.handleWaitError(ctx, pr, err)
+	}
+	return task, err
 }
 
 // restoreTable by scheduling tablet aware restore task and waiting for its completion.
@@ -278,7 +282,7 @@ func (w *RestoreWorker) waitTask(ctx context.Context, pr *RunProgress) error {
 	for {
 		task, err := w.waitTaskTick(ctx, pr, w.longPollingSeconds)
 		if err != nil {
-			w.abortTaskOnPause(ctx, pr)
+			w.handleWaitError(ctx, pr, err)
 			return err
 		}
 
@@ -291,19 +295,37 @@ func (w *RestoreWorker) waitTask(ctx context.Context, pr *RunProgress) error {
 	}
 }
 
-const taskAbortGracePeriodSeconds = 30
+// handleWaitError persists the error encountered when waiting on scylla task.
+// On SM task pause (ctx cancellation), progress is marked as completed
+// and scylla task is aborted, so that resumed run restores the table from scratch.
+// On other errors (e.g. connectivity issues), scylla task is left running
+// and progress stays re-attachable, so that resumed run can try to track it again.
+func (w *RestoreWorker) handleWaitError(ctx context.Context, pr *RunProgress, err error) {
+	if ctx.Err() == nil {
+		w.recordError(ctx, pr, err)
+		return
+	}
+	// Persist pause cause before the possibly slow abort procedure
+	w.recordFailure(ctx, pr, err)
+	w.abortTask(pr)
+}
 
-// abortTaskOnPause aborts scylla task and waits for it to reach terminal state
+const (
+	taskAbortGracePeriodSeconds = 30
+	// taskAbortTimeout bounds the whole abort procedure (abort call and waiting
+	// for the grace period), so that unreachable node can't block SM task pause
+	// (and SM shutdown) indefinitely because of scylla client retries.
+	taskAbortTimeout = 2 * taskAbortGracePeriodSeconds * time.Second
+)
+
+// abortTask aborts scylla task and waits for it to reach terminal state
 // for up to taskAbortGracePeriodSeconds. Waiting is caused by scylla abort API
 // being async, and trying schedule tablet aware restore on a table that is
 // currently being aborted results in an error.
-func (w *RestoreWorker) abortTaskOnPause(parentCtx context.Context, pr *RunProgress) {
-	// Don't want to abort on non-pause related errors
-	if parentCtx.Err() == nil {
-		return
-	}
-	// Since parent ctx is canceled, we need to run abort procedure in a new one
-	ctx := context.Background()
+// It's called on SM task pause, so it runs with its own bounded ctx.
+func (w *RestoreWorker) abortTask(pr *RunProgress) {
+	ctx, cancel := context.WithTimeout(context.Background(), taskAbortTimeout)
+	defer cancel()
 
 	if err := w.client.ScyllaAbortTask(ctx, pr.Host, pr.ScyllaTaskID); err != nil {
 		w.logger.Error(ctx, "Failed to abort task",
@@ -335,10 +357,10 @@ func (w *RestoreWorker) abortTaskOnPause(parentCtx context.Context, pr *RunProgr
 // waitTaskTick performs a single long polling iteration on the scylla task
 // and updates run progress with the returned task status.
 // Error from scylla task status is not included in the returned error.
+// Returned error is not persisted in run progress - see handleWaitError.
 func (w *RestoreWorker) waitTaskTick(ctx context.Context, pr *RunProgress, longPollingSeconds int) (*models.TaskStatus, error) {
 	task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(longPollingSeconds))
 	if err != nil {
-		w.recordFailure(ctx, pr, err)
 		return nil, errors.Wrap(err, "long poll task status")
 	}
 	w.updateProgress(ctx, pr, task)
@@ -364,9 +386,15 @@ func (w *RestoreWorker) updateProgress(ctx context.Context, pr *RunProgress, tas
 	w.upsertProgress(ctx, pr)
 }
 
-// recordFailure updates and saves run progress on error (not just on failed scylla task status).
+// recordFailure marks run progress as completed with error (not just on failed scylla task status).
 func (w *RestoreWorker) recordFailure(ctx context.Context, pr *RunProgress, err error) {
 	pr.CompletedAt = timeutc.Now()
+	w.recordError(ctx, pr, err)
+}
+
+// recordError saves error in run progress without marking it as completed,
+// so that it stays re-attachable (see RunProgress.canReattach).
+func (w *RestoreWorker) recordError(ctx context.Context, pr *RunProgress, err error) {
 	pr.Error = joinError(pr.Error, err.Error())
 	w.upsertProgress(ctx, pr)
 }
