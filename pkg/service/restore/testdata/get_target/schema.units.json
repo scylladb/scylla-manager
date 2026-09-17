@@ -77,6 +77,26 @@
         "table": "scylla_keyspaces",
         "tombstone_gc": "timeout",
         "size": 35644
+      },
+      {
+        "table": "scylla_clusters",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "scylla_datacenters",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "scylla_racks",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "scylla_nodes",
+        "tombstone_gc": "timeout",
+        "size": 0
       }
     ]
   }

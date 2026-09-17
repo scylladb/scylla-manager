@@ -35,9 +35,11 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/restore"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
+	scyllatable "github.com/scylladb/scylla-manager/v3/pkg/table"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
@@ -404,6 +406,17 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 		"!system_distributed.service_levels",
 		"!system_distributed_everywhere.cdc_generation_descriptions_v2",
 	}
+	// We don't really care for system_schema backup, but we do that for
+	// additional data redundancy. Newer scylla versions (probably >=2026.4)
+	// have new system_schema tables related to scylla cluster config feature.
+	// We want to keep on validating system_schema backup target for the sake
+	// of montoring potentially interesting changes on scylla side.
+	var ignoredTables []string
+	if !CheckAnyConstraint(t, h.Client, ">= 2026.4") {
+		ignoredTables = slices2.Map(scyllatable.ScyllaClusterConfigTables, func(t scyllatable.CQLTable) string {
+			return t.Name
+		})
+	}
 	// It's not possible to create views on tablet keyspaces
 	var ignoredViews []string
 	rd := scyllaclient.NewRingDescriber(context.Background(), h.Client)
@@ -507,6 +520,7 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 				cmpopts.IgnoreFields(Unit{}, "Size"),
 				cmpopts.IgnoreFields(Table{}, "Size"),
 				cmpopts.IgnoreFields(Table{}, "TombstoneGC"),
+				cmpopts.IgnoreSliceElements(func(tab Table) bool { return slices.Contains(ignoredTables, tab.Table) }),
 			); diff != "" {
 				t.Fatal(tc.units, diff)
 			}
