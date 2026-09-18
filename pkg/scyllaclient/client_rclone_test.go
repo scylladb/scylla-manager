@@ -12,12 +12,14 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"go.uber.org/goleak"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
@@ -397,6 +399,116 @@ func TestRcloneListDirIterCancelContext(t *testing.T) {
 	}
 }
 
+// stalledListServer returns a server which writes a single list item, flushes it,
+// and then blocks until release is closed. After release it writes tail more items
+// and terminates the list.
+func stalledListServer(t *testing.T, tail int) (host, port string, release, handlerDone chan struct{}, closeServer func()) {
+	t.Helper()
+
+	release = make(chan struct{})
+	handlerDone = make(chan struct{})
+	b, err := json.Marshal(models.ListItem{Name: "foo", Path: "/bar/foo", Size: 42})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		defer close(handlerDone)
+		fmt.Fprint(w, `{"list":[`)
+		w.Write(b)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		<-release
+		for i := 0; i < tail; i++ {
+			w.Write([]byte(","))
+			w.Write(b)
+		}
+		w.Write([]byte("]}"))
+	})
+
+	host, port, closeServer = scyllaclienttest.MakeServer(t, h)
+	return
+}
+
+func TestRcloneListDirIterCancelStalledStream(t *testing.T) {
+	// Not parallel: goleak.IgnoreCurrent needs a stable baseline.
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	host, port, release, handlerDone, closeServer := stalledListServer(t, 0)
+	defer closeServer()
+	defer func() { <-handlerDone }()
+
+	client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
+		c.ListTimeout = 10 * time.Second
+	})
+	defer client.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var calls atomic.Int32
+	f := func(_ *scyllaclient.RcloneListDirItem) {
+		if calls.Add(1) == 1 {
+			// Cancel from outside the callback once the stream is known to be stalled.
+			go func() {
+				time.Sleep(50 * time.Millisecond)
+				cancel()
+			}()
+		}
+	}
+
+	start := time.Now()
+	err := client.RcloneListDirIter(ctx, scyllaclienttest.TestHost, "rclonetest:list", nil, f)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("RcloneListDirIter() error %v, expected context cancellation", err)
+	}
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("RcloneListDirIter() took %s, expected to return promptly on cancel", d)
+	}
+	if c := calls.Load(); c != 1 {
+		t.Fatalf("Callback called %d times, expected 1", c)
+	}
+
+	close(release)
+}
+
+func TestRcloneListDirIterNoCallbackAfterReturn(t *testing.T) {
+	// Not parallel: goleak.IgnoreCurrent needs a stable baseline.
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	const tail = 5
+	host, port, release, handlerDone, closeServer := stalledListServer(t, tail)
+	defer closeServer()
+	defer func() { <-handlerDone }()
+
+	client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
+		c.ListTimeout = 50 * time.Millisecond
+	})
+	defer client.Close()
+
+	var calls atomic.Int32
+	f := func(_ *scyllaclient.RcloneListDirItem) {
+		calls.Add(1)
+	}
+
+	err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:list", nil, f)
+	if err == nil || err.Error() != "rclone list dir timeout" {
+		t.Fatalf("RcloneListDirIter() error %v, expected timeout", err)
+	}
+	if c := calls.Load(); c != 1 {
+		t.Fatalf("Callback called %d times before return, expected 1", c)
+	}
+
+	// Let the server push the remaining items - the callback must not observe them.
+	close(release)
+	<-handlerDone
+	time.Sleep(100 * time.Millisecond)
+	if c := calls.Load(); c != 1 {
+		t.Fatalf("Callback called %d times after return, expected 1", c)
+	}
+}
+
 func TestRcloneDiskUsage(t *testing.T) {
 	t.Parallel()
 
@@ -560,11 +672,15 @@ func TestRcloneListDirTimeouts(t *testing.T) {
 	})
 
 	t.Run("iter", func(t *testing.T) {
+		// Timeout path used to leak the decoder goroutine (blocked on channel send).
+		defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+		defer closeServer()
+
 		client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
 			c.ListTimeout = time.Millisecond * 60
 			c.Timeout = time.Millisecond * 10
 		})
-		defer closeServer()
+		defer client.Close()
 
 		var files []*scyllaclient.RcloneListDirItem
 		err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:list", &scyllaclient.RcloneListDirOpts{}, rcloneListDirIterAppendFunc(&files))

@@ -684,26 +684,34 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 		}
 	}
 
-	errCh := make(chan error)
+	// The decoder goroutine only decodes items and hands them over.
+	// Calling f happens in this goroutine, so that f is never invoked
+	// after RcloneListDirIter returns. Every send selects on done,
+	// so that the decoder can't be left blocked when we return early
+	// (e.g. on list timeout). The deferred cancel closes the response
+	// body, which in turn unblocks any in-flight Decode.
+	type listItem struct {
+		item RcloneListDirItem
+		err  error
+	}
+	itemCh := make(chan listItem)
+	done := make(chan struct{})
+	defer close(done)
+
 	go func() {
-		var v RcloneListDirItem
-		for dec.More() && ctx.Err() == nil {
-			// Read value
-			v = RcloneListDirItem{}
-			if err := dec.Decode(&v); err != nil {
-				errCh <- err
+		defer close(itemCh)
+		for dec.More() {
+			var v RcloneListDirItem
+			err := dec.Decode(&v)
+			select {
+			case itemCh <- listItem{item: v, err: err}:
+			case <-done:
 				return
 			}
-			f(&v)
-
-			errCh <- nil
+			if err != nil {
+				return
+			}
 		}
-		// Detect context cancellation
-		if ctx.Err() != nil {
-			errCh <- ctx.Err()
-			return
-		}
-		close(errCh)
 	}()
 
 	// Rclone filters versioned files on its side.
@@ -718,15 +726,23 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	defer timer.Stop()
 
 	for {
+		// Check ctx before select, so that cancellation from within f
+		// stops the iteration without invoking f again.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		select {
-		case err, ok := <-errCh:
+		case li, ok := <-itemCh:
 			if !ok {
 				return nil
 			}
-			if err != nil {
-				return err
+			if li.err != nil {
+				return li.err
 			}
+			f(&li.item)
 			timer.Reset(resetTimeout)
+		case <-ctx.Done():
+			return ctx.Err()
 		case <-timer.C:
 			return errors.Errorf("rclone list dir timeout")
 		}
