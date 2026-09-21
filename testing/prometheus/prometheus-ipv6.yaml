@@ -7,3 +7,15 @@ scrape_configs:
       - server: '2001:0DB9:100::2'
         scheme: 'http'
         services: ['scylla']
+  # Scylla Manager does not advertise itself via its own consul endpoint
+  # (it only lists managed Scylla nodes), so it has to be scraped statically.
+  # The container is resolved by name, as it joins the network after the
+  # cluster is already up and does not have a fixed address.
+  # The job is named after the production one, and node-exporter is scraped
+  # under it rather than as a job of its own, because that is how the Scylla
+  # Manager VM is scraped in production: the Manager and the node exporter
+  # running beside it share the "scylla_manager" job, which is what lets one
+  # dashboard query work against both environments.
+  - job_name: 'scylla_manager'
+    static_configs:
+      - targets: ['scylla_manager_server:5090', 'node-exporter:9100']
