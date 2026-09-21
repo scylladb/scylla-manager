@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    # Fixed uid so that provisioned dashboards can reference it.
+    uid: scylla-manager-prometheus
+    access: proxy
+    # Resolved over the compose network, so it works for both
+    # the ipv4 and the ipv6 test environment.
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      # Matches "scrape_interval" from prometheus/prometheus.yaml.
+      timeInterval: 5s

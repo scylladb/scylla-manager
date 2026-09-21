@@ -199,6 +199,11 @@ start-dev-env: .testing-up deploy-agent build-cli
 .testing-up:
 	@IPV6=$(IPV6) SCYLLA_VERSION=$(SCYLLA_VERSION) TABLETS=$(TABLETS) SSL_ENABLED=$(SSL_ENABLED) make -C testing build down up
 
+.PHONY: start-dev-env-monitoring
+start-dev-env-monitoring: ## Start Grafana beside the dev env
+start-dev-env-monitoring:
+	@IPV6=$(IPV6) make -C testing monitoring
+
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes
 	@IPV6=$(IPV6) make -C testing status
