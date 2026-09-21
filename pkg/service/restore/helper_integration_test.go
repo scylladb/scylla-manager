@@ -5,11 +5,15 @@
 package restore_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
+	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,6 +24,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
+	schematable "github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"go.uber.org/zap/zapcore"
@@ -29,12 +34,16 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	. "github.com/scylladb/scylla-manager/v3/pkg/service/restore"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore/tablet"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/httpx"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/inexlist/ksfilter"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/scylla/v1/models"
 )
 
 type table struct {
@@ -615,4 +624,346 @@ func isDownloadOrRestoreEndpoint(path string) bool {
 func isLasOrRestoreEndpoint(path string) bool {
 	return strings.HasPrefix(path, "/storage_service/sstables") ||
 		strings.HasPrefix(path, "/storage_service/restore")
+}
+
+// ------------------------- tablet aware restore helpers -------------------------
+
+// skipUnsupportedTabletAwareRestore skips the test when the destination
+// cluster does not support tablet aware restore from the given backup location.
+func (h *testHelper) skipUnsupportedTabletAwareRestore(t *testing.T, loc backupspec.Location) {
+	t.Helper()
+
+	ni, err := h.dstCluster.Client.AnyNodeInfo(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := ni.SupportsTabletRestoreAPI(); err != nil {
+		t.Fatal(err)
+	} else if !ok {
+		t.Skip("This test assumes tablet aware restore API support")
+	}
+	if _, err := ni.ScyllaObjectStorageEndpoint(loc.Provider); err != nil {
+		t.Skip("This test assumes scylla object_storage_endpoints are configured: ", err)
+	}
+}
+
+// tabletProgressRows queries tablet aware restore progress for the dst cluster/task/run.
+func (h *testHelper) tabletProgressRows() (map[table]tablet.RunProgress, error) {
+	prs, err := tablet.GetProgress(h.dstCluster.Session, h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID)
+	if err != nil {
+		return nil, err
+	}
+	rows := make(map[table]tablet.RunProgress, len(prs))
+	for _, pr := range prs {
+		rows[table{ks: pr.Keyspace, tab: pr.Table}] = pr
+	}
+	return rows, nil
+}
+
+// mustTabletProgressRows is tabletProgressRows that fails on error.
+func (h *testHelper) mustTabletProgressRows(t *testing.T) map[table]tablet.RunProgress {
+	t.Helper()
+
+	rows, err := h.tabletProgressRows()
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "get tablet aware restore progress"))
+	}
+	return rows
+}
+
+// insertMockedPrevRun inserts a mocked, unfinished previous run of the current
+// dst restore task, so that the next run of this task resumes it.
+// It returns the ID of the inserted run.
+func (h *testHelper) insertMockedPrevRun(t *testing.T, rawProps json.RawMessage) uuid.UUID {
+	t.Helper()
+	// Units and views are initialized as in a real run, because the resumed run
+	// inherits them from the previous one.
+	target, units, views, err := h.dstRestoreSvc.GetTargetUnitsViews(t.Context(), h.dstCluster.ClusterID, rawProps)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "get target, units and views"))
+	}
+	run := Run{
+		ClusterID:   h.dstCluster.ClusterID,
+		TaskID:      h.dstCluster.TaskID,
+		ID:          uuid.NewTime(),
+		SnapshotTag: target.SnapshotTag,
+		Stage:       StageInit,
+		Units:       units,
+		Views:       views,
+	}
+	if err := schematable.RestoreRun.InsertQuery(h.dstCluster.Session).BindStruct(&run).ExecRelease(); err != nil {
+		t.Fatal(errors.Wrap(err, "insert restore run"))
+	}
+	return run.ID
+}
+
+// insertRestoredTabletProgressRow inserts a mocked progress row
+// of the given run describing an already restored table.
+func (h *testHelper) insertRestoredTabletProgressRow(t *testing.T, runID uuid.UUID, tt table) tablet.RunProgress {
+	t.Helper()
+
+	// DB timestamps have millisecond precision
+	now := timeutc.Now().Truncate(time.Millisecond)
+	pr := tablet.RunProgress{
+		ClusterID:        h.dstCluster.ClusterID,
+		TaskID:           h.dstCluster.TaskID,
+		RunID:            runID,
+		Keyspace:         tt.ks,
+		Table:            tt.tab,
+		Host:             h.dstCluster.Client.Config().Hosts[0],
+		ScyllaTaskID:     uuid.NewTime().String(),
+		StartedAt:        now.Add(-time.Minute),
+		CompletedAt:      now,
+		RestoredSSTables: 2,
+		TotalSSTables:    2,
+		Size:             1,
+	}
+	if err := schematable.RestoreRunProgressTablet.InsertQuery(h.dstCluster.Session).BindStruct(&pr).ExecRelease(); err != nil {
+		t.Fatal(errors.Wrap(err, "insert tablet aware restore progress row"))
+	}
+	return pr
+}
+
+// validateTabletProgressSuccess validates the progress row of a successfully restored table.
+func validateTabletProgressSuccess(t *testing.T, pr tablet.RunProgress) {
+	t.Helper()
+
+	name := pr.Keyspace + "." + pr.Table
+	if pr.Host == "" {
+		t.Errorf("Table %s: progress row without host", name)
+	}
+	if pr.ScyllaTaskID == "" {
+		t.Errorf("Table %s: progress row without scylla task ID", name)
+	}
+	if pr.StartedAt.IsZero() || pr.CompletedAt.IsZero() || pr.StartedAt.After(pr.CompletedAt) {
+		t.Errorf("Table %s: unset/incorrect timestamps (started_at: %v, completed_at: %v)", name, pr.StartedAt, pr.CompletedAt)
+	}
+	if pr.Error != "" {
+		t.Errorf("Table %s: progress row with unexpected error %q", name, pr.Error)
+	}
+	if pr.TotalSSTables <= 0 || pr.RestoredSSTables != pr.TotalSSTables {
+		t.Errorf("Table %s: expected all sstables to be restored, got %d/%d", name, pr.RestoredSSTables, pr.TotalSSTables)
+	}
+	if pr.Size <= 0 {
+		t.Errorf("Table %s: progress row without size", name)
+	}
+}
+
+// validateTabletProgressCloned validates that the progress row was cloned
+// from the expected one - all fields except the run ID should be equal.
+func validateTabletProgressCloned(t *testing.T, pr, expected tablet.RunProgress) {
+	t.Helper()
+
+	name := pr.Keyspace + "." + pr.Table
+	same := pr.Keyspace == expected.Keyspace && pr.Table == expected.Table &&
+		pr.Host == expected.Host && pr.ScyllaTaskID == expected.ScyllaTaskID &&
+		pr.StartedAt.Equal(expected.StartedAt) && pr.CompletedAt.Equal(expected.CompletedAt) &&
+		pr.RestoredSSTables == expected.RestoredSSTables && pr.TotalSSTables == expected.TotalSSTables &&
+		pr.Size == expected.Size && pr.Error == expected.Error
+	if !same {
+		t.Errorf("Table %s: expected progress row cloned from %+v, got %+v", name, expected, pr)
+	}
+}
+
+// ------------------------- tablet aware restore interceptors -------------------------
+
+const (
+	tabletRestorePath   = "/storage_service/tablets/restore"
+	scyllaWaitTaskPath  = "/task_manager/wait_task/"
+	scyllaAbortTaskPath = "/task_manager/abort_task/"
+)
+
+// countTabletRestoreSchedules returns an interceptor counting Scylla tablet
+// restore tasks scheduled per table and a getter of the count.
+func countTabletRestoreSchedules() (interceptor http.RoundTripper, count func(tt table) int) {
+	var (
+		mu        sync.Mutex
+		scheduled = make(map[table]int)
+	)
+	interceptor = httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if req.Method == http.MethodPost && req.URL.Path == tabletRestorePath {
+			mu.Lock()
+			scheduled[table{ks: req.URL.Query().Get("keyspace"), tab: req.URL.Query().Get("table")}]++
+			mu.Unlock()
+		}
+		return nil, nil
+	})
+	count = func(tt table) int {
+		mu.Lock()
+		defer mu.Unlock()
+		return scheduled[tt]
+	}
+	return interceptor, count
+}
+
+// tabletRestoreWaitMock is an interceptor of Scylla task status long polls.
+// It serves the first polls of each task with mocked running statuses
+// with increasing progress, and then hangs the polls until release is called,
+// so that the restore can't finish and the progress rows reflect just
+// the mocked statuses. Hung polls fail with ctx error on release, so release
+// should be called after pausing the restore in order to be treated as a pause.
+// Polls following the release (e.g. waiting for the aborted task) are passed to Scylla.
+// Before serving each poll, it snapshots the progress row of the polled task,
+// so that progress updates can be validated after each poll.
+type tabletRestoreWaitMock struct {
+	t *testing.T
+	h *testHelper
+	// number of mocked statuses served per task before hanging its polls
+	polls int
+	// makes task abort requests fail with ctx error without reaching Scylla,
+	// so that the tasks are not aborted on pause and the progress rows
+	// are not updated with their real statuses
+	failAbort bool
+	// closed on release
+	stop chan struct{}
+
+	mu sync.Mutex
+	// progress rows of the task snapshotted before serving each of its polls
+	pollRows map[string][]tablet.RunProgress
+}
+
+// mockTabletRestoreWait registers tabletRestoreWaitMock as the dst cluster interceptor.
+func (h *testHelper) mockTabletRestoreWait(t *testing.T, polls int, failAbort bool) *tabletRestoreWaitMock {
+	m := &tabletRestoreWaitMock{
+		t:         t,
+		h:         h,
+		polls:     polls,
+		failAbort: failAbort,
+		stop:      make(chan struct{}),
+		pollRows:  make(map[string][]tablet.RunProgress),
+	}
+	h.dstCluster.Hrt.SetInterceptor(m)
+	return m
+}
+
+func (m *tabletRestoreWaitMock) RoundTrip(req *http.Request) (*http.Response, error) {
+	if m.failAbort && strings.HasPrefix(req.URL.Path, scyllaAbortTaskPath) {
+		return nil, context.Canceled
+	}
+	id, ok := strings.CutPrefix(req.URL.Path, scyllaWaitTaskPath)
+	if !ok || m.isReleased() {
+		return nil, nil
+	}
+
+	// t.Fatal can't be called outside of the test goroutine
+	rows, err := m.h.tabletProgressRows()
+	if err != nil {
+		m.t.Errorf("Get progress rows on scylla task status poll: %s", err)
+		return nil, err
+	}
+	var row tablet.RunProgress
+	for _, pr := range rows {
+		if pr.ScyllaTaskID == id {
+			row = pr
+			break
+		}
+	}
+	m.mu.Lock()
+	m.pollRows[id] = append(m.pollRows[id], row)
+	poll := len(m.pollRows[id])
+	m.mu.Unlock()
+
+	if poll <= m.polls {
+		body, err := json.Marshal(m.status(id, poll))
+		if err != nil {
+			return nil, err
+		}
+		resp := httpx.MakeResponse(req, http.StatusOK)
+		resp.Body = io.NopCloser(bytes.NewReader(body))
+		return resp, nil
+	}
+	// Released also on test ctx done, so that a failing test isn't blocked
+	select {
+	case <-m.stop:
+	case <-m.t.Context().Done():
+	}
+	return nil, context.Canceled
+}
+
+// hanging returns the number of tasks whose polls hang.
+func (m *tabletRestoreWaitMock) hanging() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	cnt := 0
+	for _, rows := range m.pollRows {
+		if len(rows) > m.polls {
+			cnt++
+		}
+	}
+	return cnt
+}
+
+// release fails hung polls and passes the following ones to Scylla.
+func (m *tabletRestoreWaitMock) release() {
+	close(m.stop)
+}
+
+func (m *tabletRestoreWaitMock) isReleased() bool {
+	select {
+	case <-m.stop:
+		return true
+	default:
+		return false
+	}
+}
+
+// status returns mocked running task status served on the poll-th poll.
+func (m *tabletRestoreWaitMock) status(id string, poll int) models.TaskStatus {
+	return models.TaskStatus{
+		ID:                id,
+		Type:              string(scyllaclient.ScyllaTaskTypeRestoreTablets),
+		State:             string(scyllaclient.ScyllaTaskStateRunning),
+		ProgressCompleted: float64(poll),
+		ProgressTotal:     float64(m.polls + 1),
+	}
+}
+
+// total returns total sstables reported by the mocked statuses.
+// It's greater than the progress of any served status, so the task never finishes.
+func (m *tabletRestoreWaitMock) total() int64 {
+	return int64(m.polls + 1)
+}
+
+// validatePolls validates that the progress row of the table was saved on scylla
+// task schedule and updated according to each served status. Only the polls
+// of the table's current scylla task are validated.
+func (m *tabletRestoreWaitMock) validatePolls(t *testing.T, final tablet.RunProgress) {
+	t.Helper()
+
+	name := final.Keyspace + "." + final.Table
+
+	m.mu.Lock()
+	snapshots := m.pollRows[final.ScyllaTaskID]
+	m.mu.Unlock()
+	if len(snapshots) != m.polls+1 {
+		t.Errorf("Table %s: expected %d scylla task status polls, got %d", name, m.polls+1, len(snapshots))
+		return
+	}
+	// snapshots[i] holds the progress row persisted after serving i statuses
+	for i, pr := range snapshots {
+		if pr.ScyllaTaskID != final.ScyllaTaskID || pr.Host == "" || pr.StartedAt.IsZero() {
+			t.Errorf("Table %s: progress row without scylla task ID, host or start time before poll %d: %+v", name, i+1, pr)
+		}
+		if !pr.CompletedAt.IsZero() || pr.Error != "" {
+			t.Errorf("Table %s: progress row finished before the scylla task (poll %d): %+v", name, i+1, pr)
+		}
+		if pr.RestoredSSTables != int64(i) {
+			t.Errorf("Table %s: expected %d restored sstables before poll %d, got %d", name, i, i+1, pr.RestoredSSTables)
+		}
+		if i == 0 {
+			// Initial row saved on scylla task schedule
+			if pr.TotalSSTables != 0 {
+				t.Errorf("Table %s: expected unknown total sstables before the first poll, got %d", name, pr.TotalSSTables)
+			}
+			continue
+		}
+		if pr.TotalSSTables != m.total() {
+			t.Errorf("Table %s: expected %d total sstables before poll %d, got %d", name, m.total(), i+1, pr.TotalSSTables)
+		}
+		// Mocked statuses don't report task start time, so SM side one should be kept
+		if !pr.StartedAt.Equal(snapshots[0].StartedAt) {
+			t.Errorf("Table %s: expected start time %v before poll %d, got %v", name, snapshots[0].StartedAt, i+1, pr.StartedAt)
+		}
+	}
 }
