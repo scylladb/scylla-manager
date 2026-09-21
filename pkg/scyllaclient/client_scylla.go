@@ -789,6 +789,11 @@ func (c *Client) ActiveTabletRepairs(ctx context.Context) ([]*models.TaskStats, 
 	return c.activeScyllaTasks(ctx, ScyllaTaskModuleTablets, ScyllaTaskTypeUserRepair, nil)
 }
 
+// ActiveTabletAwareRestoreTasks returns scheduled or running ScyllaTaskTypeRestoreTablets tasks.
+func (c *Client) ActiveTabletAwareRestoreTasks(ctx context.Context, hosts ...string) ([]*models.TaskStats, error) {
+	return c.activeScyllaTasks(ctx, ScyllaTaskModuleSstablesLoader, ScyllaTaskTypeRestoreTablets, hosts)
+}
+
 func (c *Client) activeScyllaTasks(ctx context.Context, module ScyllaTaskModule, taskType ScyllaTaskType, hosts []string) ([]*models.TaskStats, error) {
 	if len(hosts) == 0 {
 		hosts = []string{""}
@@ -802,7 +807,7 @@ func (c *Client) activeScyllaTasks(ctx context.Context, module ScyllaTaskModule,
 		eg.Go(func() error {
 			tasks, err := c.ScyllaListTasks(egCtx, host, module)
 			if err != nil {
-				return errors.Wrapf(err, "%s: list repair module tasks", host)
+				return errors.Wrapf(err, "%s: list %s module tasks", host, module)
 			}
 			tasks = filterActiveScyllaTasks(tasks, taskType)
 
@@ -842,7 +847,7 @@ func (c *Client) abortActiveScyllaTasks(ctx context.Context, module ScyllaTaskMo
 		eg.Go(func() error {
 			tasks, err := c.ScyllaListTasks(egCtx, host, module)
 			if err != nil {
-				return errors.Wrapf(err, "%s: list repair module tasks", host)
+				return errors.Wrapf(err, "%s: list %s module tasks", host, module)
 			}
 			tasks = filterActiveScyllaTasks(tasks, taskType)
 
@@ -1609,6 +1614,10 @@ const (
 	// This module is node wide, meaning that only the node on which
 	// task was scheduled has access to its status.
 	ScyllaTaskModuleRepair ScyllaTaskModule = "repair"
+	// ScyllaTaskModuleSstablesLoader contains ScyllaTaskTypeRestoreTablets tasks.
+	// This module is node wide, meaning that only the node on which
+	// task was scheduled has access to its status.
+	ScyllaTaskModuleSstablesLoader ScyllaTaskModule = "sstables_loader"
 )
 
 // ScyllaTaskType describes scylla task types.
@@ -1623,6 +1632,9 @@ const (
 	// Single user requested tablet or vnode repair task
 	// is represented by multiple ScyllaTaskTypeRepair tasks.
 	ScyllaTaskTypeRepair ScyllaTaskType = "repair"
+	// ScyllaTaskTypeRestoreTablets describes tablet aware restore tasks.
+	// There is a single ScyllaTaskTypeRestoreTablets task for each user requested restore.
+	ScyllaTaskTypeRestoreTablets ScyllaTaskType = "restore_tablets"
 )
 
 // ScyllaListTasks lists Scylla tasks of given module.
