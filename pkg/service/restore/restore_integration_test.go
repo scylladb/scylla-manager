@@ -571,18 +571,7 @@ func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
 			loc := testLocation("tablet-aware-smoke", "")
 			InitBucket(t, loc.Path)
 
-			ni, err := h.dstCluster.Client.AnyNodeInfo(t.Context())
-			if err != nil {
-				t.Fatal(err)
-			}
-			if ok, err := ni.SupportsTabletRestoreAPI(); err != nil {
-				t.Fatal(err)
-			} else if !ok {
-				t.Skip("This test assumes tablet aware restore API support")
-			}
-			if _, err := ni.ScyllaObjectStorageEndpoint(loc.Provider); err != nil {
-				t.Skip("This test assumes scylla object_storage_endpoints are configured: ", err)
-			}
+			h.skipUnsupportedTabletAwareRestore(t, loc)
 
 			ks1 := randomizedName("tablet_smoke_ks1_")
 			ks2 := randomizedName("tablet_smoke_ks2_")
@@ -717,8 +706,330 @@ func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
 					}
 				}
 			})
+
+			t.Run("verify tablet aware restore run progress", func(t *testing.T) {
+				rows := h.mustTabletProgressRows(t)
+				if len(rows) != len(tabletRestoredTables) {
+					t.Errorf("Expected tablet aware restore progress row per restored tablet table (%d), got %d", len(tabletRestoredTables), len(rows))
+				}
+				for tt := range tabletRestoredTables {
+					pr, ok := rows[tt]
+					if !ok {
+						t.Errorf("Missing tablet aware progress row for table %s.%s", tt.ks, tt.tab)
+						continue
+					}
+					validateTabletProgressSuccess(t, pr)
+				}
+			})
 		})
 	}
+}
+
+func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
+	// This test validates tablet aware restore progress handling:
+	// - resume skips tables restored by the previous run
+	// - pause aborts scheduled scylla tasks and waits for them to finish
+	// - progress rows are saved on scylla task schedule, updated on each
+	//   task status long poll and record the pause cause, and the following
+	//   resume restores the interrupted tables again
+	enableTabletAwareRestore = true
+	defer func() {
+		enableTabletAwareRestore = false
+	}()
+	// Using second cluster as src and dst, as tablet aware restore
+	// is currently not supported for multi-dc clusters.
+	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedSecondClusterHosts())
+	loc := testLocation("tablet-aware-progress", "")
+	InitBucket(t, loc.Path)
+	h.skipUnsupportedTabletAwareRestore(t, loc)
+
+	Print("Create and fill tables to back up")
+	const (
+		tab1 = "tab_1"
+		tab2 = "tab_2"
+	)
+	ks := randomizedName("tablet_progress_ks_")
+	tt1 := table{ks: ks, tab: tab1}
+	tt2 := table{ks: ks, tab: tab2}
+	tables := []table{tt1, tt2}
+	// Note that src and dst describe the same cluster, so the schema is shared
+	createSchema := func(t *testing.T) {
+		t.Helper()
+		Print("Create schema")
+
+		ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2} AND tablets = {'enabled': 'true'}"
+		tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
+		ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks))
+		for _, tab := range []string{tab1, tab2} {
+			ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
+		}
+	}
+
+	createSchema(t)
+
+	Print("Fill initial data")
+	fillTable(t, h.srcCluster.rootSession, 100, ks, tab1, tab2)
+	expectedRows := make(map[string]map[int]int)
+	for _, tab := range []string{tab1, tab2} {
+		expectedRows[tab] = selectTableAsMap[int, int](t, h.srcCluster.rootSession, ks, tab, "id", "data")
+	}
+
+	Print("Run backup")
+	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
+
+	props := defaultTestProperties(loc, tag, true)
+	props["keyspace"] = []string{ks}
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "marshal properties"))
+	}
+
+	runRestore := func(ctx context.Context) error {
+		Print("Run restore")
+		return h.dstRestoreSvc.Restore(ctx, h.dstCluster.ClusterID, h.dstCluster.TaskID, h.dstCluster.RunID, rawProps)
+	}
+
+	// Runs restore in the background, waits for the scylla task status
+	// polls of all tables to hang and pauses the restore by canceling its ctx.
+	pauseHungRestore := func(t *testing.T, mock *tabletRestoreWaitMock) {
+		t.Helper()
+
+		Print("Run restore to be paused")
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		res := make(chan error, 1)
+		go func() {
+			res <- runRestore(ctx)
+		}()
+
+		Print("Wait for the scylla task status polls to hang")
+		timeout := time.After(5 * time.Minute)
+		for mock.hanging() < len(tables) {
+			select {
+			case err := <-res:
+				t.Fatalf("Restore finished before the pause with: %v", err)
+			case <-timeout:
+				t.Fatal("Timeout waiting for the scylla task status polls to hang")
+			case <-time.After(100 * time.Millisecond):
+			}
+		}
+
+		Print("Pause restore")
+		cancel()
+		mock.release()
+		select {
+		case err := <-res:
+			if !errors.Is(err, context.Canceled) {
+				t.Fatalf("Expected restore to be paused, got: %v", err)
+			}
+		case <-time.After(5 * time.Minute):
+			t.Fatal("Timeout waiting for the restore to be paused")
+		}
+	}
+
+	validateTableData := func(t *testing.T, tt table) {
+		t.Helper()
+		Printf("Validate table %s.%s data", tt.ks, tt.tab)
+
+		got := selectTableAsMap[int, int](t, h.dstCluster.rootSession, tt.ks, tt.tab, "id", "data")
+		if !maps.Equal(expectedRows[tt.tab], got) {
+			t.Errorf("Table %s.%s content mismatch after restore (expected %d rows, got %d)",
+				tt.ks, tt.tab, len(expectedRows[tt.tab]), len(got))
+		}
+	}
+
+	// Recreates the backed up keyspace and generates a fresh
+	// restore task, so that subtests don't share any state.
+	prepareSubtest := func(t *testing.T) {
+		t.Helper()
+
+		Print("Recreate backed up keyspace")
+		ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("DROP KEYSPACE %q", ks))
+		createSchema(t)
+		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, []string{ks}, h.dstUser)
+		// Scylla tracks sstables downloaded during tablet aware restore per
+		// snapshot and table, and skips them on the following restore attempts.
+		// Truncate this data, so that the recreated tables are restored from scratch.
+		ExecStmt(t, h.dstCluster.rootSession, "TRUNCATE TABLE system_distributed.snapshot_sstables")
+		h.dstCluster.TaskID = uuid.NewTime()
+		h.dstCluster.RunID = uuid.NewTime()
+	}
+
+	t.Run("resume skips restored table", func(t *testing.T) {
+		prepareSubtest(t)
+
+		Print("Mock previous run with a restored table")
+		prevRunID := h.insertMockedPrevRun(t, rawProps)
+		restored := h.insertRestoredTabletProgressRow(t, prevRunID, tt1)
+		// Resumed run has to be newer than the previous one
+		h.dstCluster.RunID = uuid.NewTime()
+
+		counter, scheduled := countTabletRestoreSchedules()
+		h.dstCluster.Hrt.SetInterceptor(counter)
+		defer h.dstCluster.Hrt.SetInterceptor(nil)
+
+		Print("Resume restore")
+		if err := runRestore(t.Context()); err != nil {
+			t.Fatal(errors.Wrap(err, "resume restore"))
+		}
+
+		Print("Validate scheduled restore tasks")
+		if cnt := scheduled(tt1); cnt != 0 {
+			t.Errorf("Expected no new restore task for the restored table, got %d", cnt)
+		}
+		if cnt := scheduled(tt2); cnt != 1 {
+			t.Errorf("Expected a single restore task for the remaining table, got %d", cnt)
+		}
+
+		Print("Validate run progress")
+		rows := h.mustTabletProgressRows(t)
+		if cnt := len(rows); cnt != len(tables) {
+			t.Fatalf("Expected %d progress rows, got %d", len(tables), cnt)
+		}
+		validateTabletProgressCloned(t, rows[tt1], restored)
+		validateTabletProgressSuccess(t, rows[tt2])
+
+		validateTableData(t, tt2)
+	})
+
+	t.Run("pause aborts scheduled scylla tasks", func(t *testing.T) {
+		prepareSubtest(t)
+
+		// Hang the first status poll of both scylla tasks, so that
+		// the restore is paused with both tasks scheduled and running.
+		mock := h.mockTabletRestoreWait(t, 0, false)
+		defer h.dstCluster.Hrt.SetInterceptor(nil)
+		pauseHungRestore(t, mock)
+
+		Print("Validate that scylla tasks finished after pause")
+		// Pause aborts scylla tasks and waits for them to finish,
+		// so there should be no active tasks right after it.
+		tasks, err := h.dstCluster.Client.ActiveTabletAwareRestoreTasks(t.Context(), h.dstCluster.Client.Config().Hosts...)
+		if err != nil {
+			t.Fatal(errors.Wrap(err, "list active tablet aware restore tasks"))
+		}
+		for _, task := range tasks {
+			t.Errorf("Unexpected active tablet aware restore task after pause: %+v", *task)
+		}
+
+		Print("Validate run progress after pause")
+		// CompletedAt is set only on observed terminal scylla task status,
+		// so it validates that pause waited for the aborted tasks to finish.
+		rows := h.mustTabletProgressRows(t)
+		if cnt := len(rows); cnt != len(tables) {
+			t.Fatalf("Expected %d progress rows, got %d", len(tables), cnt)
+		}
+		for tt, pr := range rows {
+			mock.validatePolls(t, pr)
+			if pr.CompletedAt.IsZero() {
+				t.Errorf("Table %s.%s: progress row without completion time after pause: %+v", tt.ks, tt.tab, pr)
+			}
+		}
+
+		// Resume the same restore task with a new run - tables restored before
+		// the abort took effect are skipped, the aborted ones are restored again.
+		Print("Resume restore")
+		h.dstCluster.Hrt.SetInterceptor(nil)
+		// Scheduling tablet aware restore might fail if the previous one was aborted.
+		// That's the case even if SM waits for the aborted task to reach terminal state
+		// before starting the new task. In general, this is a transient issue and should
+		// be fixed on the scylla side (https://scylladb.atlassian.net/browse/SCYLLADB-4472).
+		const maxTries = 5
+		var resumeErr error
+		for i := range maxTries {
+			if i > 0 {
+				time.Sleep(5 * time.Second)
+			}
+			h.dstCluster.RunID = uuid.NewTime()
+			if resumeErr = runRestore(t.Context()); resumeErr == nil {
+				break
+			}
+			if !strings.Contains(resumeErr.Error(), "seastar::abort_requested_exception") {
+				t.Fatal(errors.Wrap(resumeErr, "resume restore"))
+			}
+			t.Logf("Resumed restore failed due to scylla task abort issue: %s", resumeErr)
+		}
+		if resumeErr != nil {
+			t.Fatal(errors.Wrap(resumeErr, "resume restore failed on all retries due to SCYLLADB-4472"))
+		}
+
+		Print("Validate run progress after resume")
+		resumed := h.mustTabletProgressRows(t)
+		if cnt := len(resumed); cnt != len(tables) {
+			t.Fatalf("Expected %d progress rows after resume, got %d", len(tables), cnt)
+		}
+		for _, tt := range tables {
+			validateTabletProgressSuccess(t, resumed[tt])
+			validateTableData(t, tt)
+		}
+	})
+
+	t.Run("update run progress on status polls", func(t *testing.T) {
+		prepareSubtest(t)
+
+		// Serve a few mocked statuses to the status polls of both scylla tasks
+		// and then hang the polls, so that the restore is paused with both
+		// tables in progress. Task aborts fail without reaching scylla, so the
+		// progress rows reflect just the mocked statuses and the pause cause.
+		const polls = 3
+		mock := h.mockTabletRestoreWait(t, polls, true)
+		defer h.dstCluster.Hrt.SetInterceptor(nil)
+		pauseHungRestore(t, mock)
+
+		Print("Validate run progress updates")
+		rows := h.mustTabletProgressRows(t)
+		if cnt := len(rows); cnt != len(tables) {
+			t.Fatalf("Expected %d progress rows after pause, got %d", len(tables), cnt)
+		}
+		for tt, pr := range rows {
+			mock.validatePolls(t, pr)
+			// Scylla tasks were not aborted and their terminal status was not observed,
+			// so the rows should be interrupted with the pause cause and reflect just the last mocked status.
+			if !pr.CompletedAt.IsZero() {
+				t.Errorf("Table %s.%s: expected interrupted progress row without completion time, got %v", tt.ks, tt.tab, pr.CompletedAt)
+			}
+			if !strings.Contains(pr.Error, context.Canceled.Error()) {
+				t.Errorf("Table %s.%s: expected progress row error containing %q, got %q", tt.ks, tt.tab, context.Canceled.Error(), pr.Error)
+			}
+			if pr.RestoredSSTables != polls || pr.TotalSSTables != mock.total() {
+				t.Errorf("Table %s.%s: expected %d/%d sstables after pause, got %d/%d", tt.ks, tt.tab, polls, mock.total(), pr.RestoredSSTables, pr.TotalSSTables)
+			}
+		}
+
+		// Resume the same restore task with a new run - none of the tables
+		// was restored, so both of them should be restored again.
+		// Scylla tasks were not aborted, so scylla joins the ongoing restores.
+		Print("Resume restore")
+		counter, scheduled := countTabletRestoreSchedules()
+		h.dstCluster.Hrt.SetInterceptor(counter)
+		h.dstCluster.RunID = uuid.NewTime()
+		if err := runRestore(t.Context()); err != nil {
+			t.Fatal(errors.Wrap(err, "resume restore"))
+		}
+
+		Print("Validate scheduled restore tasks after resume")
+		for _, tt := range tables {
+			if cnt := scheduled(tt); cnt != 1 {
+				t.Errorf("Expected a single restore task for the interrupted table %s.%s, got %d", tt.ks, tt.tab, cnt)
+			}
+		}
+
+		Print("Validate run progress after resume")
+		resumed := h.mustTabletProgressRows(t)
+		if cnt := len(resumed); cnt != len(tables) {
+			t.Fatalf("Expected %d progress rows after resume, got %d", len(tables), cnt)
+		}
+		for _, tt := range tables {
+			validateTabletProgressSuccess(t, resumed[tt])
+			if resumed[tt].ScyllaTaskID == rows[tt].ScyllaTaskID {
+				t.Errorf("Expected interrupted table %s.%s to be restored again with a new scylla task", tt.ks, tt.tab)
+			}
+		}
+
+		for _, tt := range tables {
+			validateTableData(t, tt)
+		}
+	})
 }
 
 func TestRestoreTablesPausedIntegration(t *testing.T) {
