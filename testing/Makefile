@@ -152,10 +152,10 @@ endif
 	@$(SECOND_CQLSH_NODE) /var/lib/scylla/cql.m --cqlshrc=/dev/null -e "CREATE ROLE cassandra WITH PASSWORD = 'cassandra' AND LOGIN = true AND SUPERUSER = true" || true
 
 .PHONY: monitoring
-monitoring: ## Start Grafana
+monitoring: ## Start Grafana and node-exporter
 monitoring:
 	@echo "==> Starting monitoring containers"
-	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) --profile monitoring up -d grafana
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) --profile monitoring up -d grafana node-exporter
 	@echo "==> Grafana is at http://localhost:3000"
 
 .PHONY: down

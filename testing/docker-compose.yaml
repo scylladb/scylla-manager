@@ -244,6 +244,27 @@ services:
     networks:
       public:
 
+  # Reports the host the dev environment runs on, standing in for the node
+  # exporter that runs beside Scylla Manager on its VM in production. It is
+  # the same exporter, so the metric names are identical and a dashboard built
+  # here works there unchanged - on Docker Desktop it describes the Docker VM
+  # rather than the laptop, which is close enough for developing panels.
+  node-exporter:
+    image: prom/node-exporter:${NODE_EXPORTER_VERSION}
+    # Behind the same profile as Grafana: it exists to feed a dashboard, and
+    # Prometheus simply reports its target as down until it is started.
+    profiles: [monitoring]
+    command:
+      - '--path.rootfs=/host'
+    pid: host
+    volumes:
+      # Plain read only, without rslave: Docker Desktop's root is neither a
+      # shared nor a slave mount, and asking for propagation there fails the
+      # container outright.
+      - '/:/host:ro'
+    networks:
+      public:
+
   grafana:
     image: grafana/grafana:${GRAFANA_VERSION}
     # Started only by "make start-dev-env-monitoring": nothing but dashboard
