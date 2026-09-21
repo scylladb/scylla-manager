@@ -244,6 +244,42 @@ services:
     networks:
       public:
 
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION}
+    # Started only by "make start-dev-env-monitoring": nothing but dashboard
+    # development needs it, and the integration tests in CI run on a runner
+    # small enough that an idle container is worth not starting.
+    profiles: [monitoring]
+    ports:
+      - "3000:3000"
+    environment:
+      # Development environment - no login, everyone is an admin.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      # Mount the individual provisioning directories rather than the whole
+      # tree, so that the ones shipped in the image (plugins, alerting) are
+      # not shadowed by an empty dir.
+      - type: bind
+        source: ./grafana/provisioning/datasources
+        target: /etc/grafana/provisioning/datasources
+        read_only: true
+      - type: bind
+        source: ./grafana/provisioning/dashboards
+        target: /etc/grafana/provisioning/dashboards
+        read_only: true
+      # The dashboards live outside the test environment, in /monitoring:
+      # they are proposed to the ScyllaDB Monitoring stack, and the dev env
+      # is where they are developed rather than where they belong.
+      - type: bind
+        source: ../monitoring
+        target: /var/lib/grafana/dashboards
+        read_only: true
+    networks:
+      public:
+
 networks:
   public:
     driver: bridge
