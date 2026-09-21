@@ -1,0 +1,18 @@
+apiVersion: 1
+
+providers:
+  - name: scylla-manager
+    orgId: 1
+    folder: Scylla Manager
+    type: file
+    # Saving a dashboard in the UI is refused. The files are the source of
+    # truth either way - with UI updates allowed the save lands in Grafana's
+    # database and stands only until the next change to the file, which
+    # overwrites it without a word. Refusing the save says so at the point
+    # it happens, rather than losing the work later. Dashboards can still be
+    # opened and tweaked in the UI to try something out, and exported from
+    # there back into this directory.
+    allowUiUpdates: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards
