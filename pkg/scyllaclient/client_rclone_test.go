@@ -8,16 +8,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"go.uber.org/goleak"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
@@ -394,6 +398,195 @@ func TestRcloneListDirIterCancelContext(t *testing.T) {
 	}
 	if len(files) != 1 {
 		t.Fatalf("Files = %+v, expected one item", files)
+	}
+}
+
+func TestReadListStart(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		Name  string
+		Input string
+		Err   string
+		Next  string // token expected after a successful read
+	}{
+		{Name: "empty list", Input: `{"list":[]}`, Next: "]"},
+		{Name: "list with items", Input: `{"list":[{"Name":"a"}]}`, Next: "{"},
+		{Name: "whitespace", Input: " {\n \"list\" : [ 1 ] }", Next: "1"},
+		{Name: "empty input", Input: ``, Err: "read list start: EOF"},
+		{Name: "truncated after object start", Input: `{`, Err: "read list start"},
+		{Name: "truncated after key", Input: `{"list":`, Err: "read list start"},
+		{Name: "not an object", Input: `[]`, Err: "unexpected token [ expected {"},
+		{Name: "wrong key", Input: `{"items":[]}`, Err: "unexpected token items expected list"},
+		{Name: "value not a list", Input: `{"list":{}}`, Err: "unexpected token { expected ["},
+		{Name: "not json", Input: `foo`, Err: "read list start"},
+	}
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			dec := json.NewDecoder(strings.NewReader(test.Input))
+			err := scyllaclient.ReadListStart(dec)
+			if test.Err != "" {
+				if err == nil || !strings.Contains(err.Error(), test.Err) {
+					t.Fatalf("ReadListStart() error %v, expected %q", err, test.Err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ReadListStart() error %v", err)
+			}
+			tok, err := dec.Token()
+			if err != nil {
+				t.Fatalf("Token() error %v", err)
+			}
+			if got := fmt.Sprint(tok); got != test.Next {
+				t.Fatalf("Next token %s, expected %s", got, test.Next)
+			}
+		})
+	}
+}
+
+func TestReadListEnd(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		Name  string
+		Input string
+		Err   string
+	}{
+		{Name: "proper end", Input: `]}`},
+		{Name: "proper end with whitespace", Input: " ] \n} \n"},
+		{Name: "empty input", Input: ``, Err: "read list end: EOF"},
+		{Name: "missing object end", Input: `]`, Err: "read list end"},
+		{Name: "trailing data", Input: `]}{}`, Err: "unexpected token { expected EOF"},
+		{Name: "trailing garbage", Input: `]}x`, Err: "read list end"},
+		{Name: "list not closed", Input: `}`, Err: "read list end"},
+		{Name: "extra list item", Input: `{"Name":"a"}]}`, Err: "unexpected token { expected ]"},
+	}
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			// Position decoder inside the list, as RcloneListDirIter does.
+			dec := json.NewDecoder(strings.NewReader(`{"list":[` + test.Input))
+			if err := scyllaclient.ReadListStart(dec); err != nil {
+				t.Fatal(err)
+			}
+			err := scyllaclient.ReadListEnd(dec)
+			if test.Err != "" {
+				if err == nil || !strings.Contains(err.Error(), test.Err) {
+					t.Fatalf("ReadListEnd() error %v, expected %q", err, test.Err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ReadListEnd() error %v", err)
+			}
+		})
+	}
+}
+
+func TestRcloneListDirIterTruncatedStream(t *testing.T) {
+	// Not parallel: goleak.IgnoreCurrent needs a stable baseline.
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	const items = 2
+	b, err := json.Marshal(models.ListItem{Name: "foo", Path: "/bar/foo", Size: 42})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Server writes items but drops the connection before closing the list.
+	h := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			t.Error("ResponseWriter does not support hijacking")
+			return
+		}
+		conn, buf, err := hj.Hijack()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer conn.Close()
+
+		fmt.Fprint(buf, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n")
+		fmt.Fprint(buf, `{"list":[`)
+		for i := range items {
+			if i > 0 {
+				buf.Write([]byte(","))
+			}
+			buf.Write(b)
+		}
+		buf.Flush()
+	})
+
+	host, port, closeServer := scyllaclienttest.MakeServer(t, h)
+	defer closeServer()
+
+	client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
+		c.ListTimeout = 10 * time.Second
+	})
+	defer client.Close()
+
+	var files []*scyllaclient.RcloneListDirItem
+	err = client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:list", nil, rcloneListDirIterAppendFunc(&files))
+	if err == nil {
+		t.Fatal("RcloneListDirIter() expected error on truncated listing, got nil")
+	}
+	if !strings.Contains(err.Error(), "read list end") {
+		t.Fatalf("RcloneListDirIter() error %v, expected truncated list error", err)
+	}
+	if len(files) != items {
+		t.Fatalf("Got %d files, expected %d", len(files), items)
+	}
+}
+
+func TestRcloneListDirIterReusesConnection(t *testing.T) {
+	// Not parallel: goleak.IgnoreCurrent needs a stable baseline.
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	b, err := json.Marshal(models.ListItem{Name: "foo", Path: "/bar/foo", Size: 42})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Stream the response with chunked encoding, like the agent does for
+	// big listings. With a Content-Length body net/http reports EOF eagerly
+	// and would reuse the connection even if the tail was left unread.
+	h := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprintf(w, `{"list":[%s,`, b)
+		w.(http.Flusher).Flush()
+		fmt.Fprintf(w, `%s]}`, b)
+		w.(http.Flusher).Flush()
+		// Delay the terminating chunk, so that the client sees "]}" before EOF.
+		time.Sleep(50 * time.Millisecond)
+	})
+
+	// Count connections accepted by the server.
+	var conns atomic.Int32
+	connState := func(server *httptest.Server) {
+		server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+			if state == http.StateNew {
+				conns.Add(1)
+			}
+		}
+	}
+	host, port, closeServer := scyllaclienttest.MakeServer(t, h, connState)
+	defer closeServer()
+
+	client := scyllaclienttest.MakeClient(t, host, port)
+	defer client.Close()
+
+	const calls = 3
+	for range calls {
+		var files []*scyllaclient.RcloneListDirItem
+		if err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:list", nil, rcloneListDirIterAppendFunc(&files)); err != nil {
+			t.Fatalf("RcloneListDirIter() error %v", err)
+		}
+		if len(files) != 2 {
+			t.Fatalf("Got %d files, expected 2", len(files))
+		}
+	}
+	// Body is read to EOF, so the keep-alive connection is reused across calls.
+	if n := conns.Load(); n != 1 {
+		t.Fatalf("Server accepted %d connections for %d sequential listings, expected 1", n, calls)
 	}
 }
 

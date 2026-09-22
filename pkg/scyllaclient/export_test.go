@@ -4,6 +4,7 @@ package scyllaclient
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -37,4 +38,12 @@ func (p *CachedProvider) SetValidity(d time.Duration) {
 
 func (c *Client) Hosts(ctx context.Context) ([]string, error) {
 	return c.hosts(ctx)
+}
+
+func ReadListStart(dec *json.Decoder) error {
+	return readListStart(dec)
+}
+
+func ReadListEnd(dec *json.Decoder) error {
+	return readListEnd(dec)
 }

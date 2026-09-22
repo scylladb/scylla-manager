@@ -671,17 +671,8 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	defer resp.Body.Close()
 
 	dec := json.NewDecoder(resp.Body)
-
-	// Skip tokens down to array opening
-	expected := []string{"{", "list", "["}
-	for i := range expected {
-		tok, err := dec.Token()
-		if err != nil {
-			return errors.Wrap(err, "read token")
-		}
-		if fmt.Sprint(tok) != expected[i] {
-			return errors.Errorf("json unexpected token %s expected %s", tok, expected[i])
-		}
+	if err := readListStart(dec); err != nil {
+		return err
 	}
 
 	errCh := make(chan error)
@@ -701,6 +692,13 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 		// Detect context cancellation
 		if ctx.Err() != nil {
 			errCh <- ctx.Err()
+			return
+		}
+		// More() returns false on both error and properly closed array.
+		// We need to validate that the array was properly terminated without an error.
+		// Properly draining the body also allows for reusing the connection.
+		if err := readListEnd(dec); err != nil {
+			errCh <- err
 			return
 		}
 		close(errCh)
@@ -731,6 +729,42 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 			return errors.Errorf("rclone list dir timeout")
 		}
 	}
+}
+
+// readListStart consumes the tokens opening the list response ('{', "list", '[')
+// leaving the decoder positioned at the first list item.
+func readListStart(dec *json.Decoder) error {
+	return expectTokens(dec, "read list start", json.Delim('{'), "list", json.Delim('['))
+}
+
+// readListEnd consumes the tokens closing the list response (']', '}') and
+// asserts that nothing but EOF follows.
+func readListEnd(dec *json.Decoder) error {
+	if err := expectTokens(dec, "read list end", json.Delim(']'), json.Delim('}')); err != nil {
+		return err
+	}
+	tok, err := dec.Token()
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrap(err, "read list end")
+	}
+	return errors.Errorf("json unexpected token %v expected EOF", tok)
+}
+
+// expectTokens reads len(want) tokens and fails if any of them differs.
+func expectTokens(dec *json.Decoder, msg string, want ...json.Token) error {
+	for _, w := range want {
+		tok, err := dec.Token()
+		if err != nil {
+			return errors.Wrap(err, msg)
+		}
+		if tok != w {
+			return errors.Errorf("json unexpected token %v expected %v", tok, w)
+		}
+	}
+	return nil
 }
 
 // PermissionCheckOpts describes permission check options.
