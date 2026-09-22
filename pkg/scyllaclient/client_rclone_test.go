@@ -541,6 +541,41 @@ func TestRcloneListDirIterSlowCallbackDoesNotTimeout(t *testing.T) {
 	}
 }
 
+func TestRcloneListDirIterHeaderTimeout(t *testing.T) {
+	// Not parallel: goleak.IgnoreCurrent needs a stable baseline.
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	// Server never sends response headers until released or the client gives up.
+	releaseCh := make(chan struct{})
+	release := sync.OnceFunc(func() { close(releaseCh) })
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-releaseCh:
+		case <-r.Context().Done():
+		}
+		fmt.Fprint(w, `{"list":[]}`)
+	})
+	host, port, closeServer := scyllaclienttest.MakeServer(t, h)
+	defer closeServer()
+	defer release()
+
+	client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
+		c.ListTimeout = 50 * time.Millisecond
+	})
+	defer client.Close()
+
+	var calls atomic.Int32
+	err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:list", nil, func(_ *scyllaclient.RcloneListDirItem) {
+		calls.Add(1)
+	})
+	if !errors.Is(err, scyllaclient.ErrRcloneListDirTimeout) {
+		t.Fatalf("RcloneListDirIter() error %v, expected timeout while waiting for response headers", err)
+	}
+	if c := calls.Load(); c != 0 {
+		t.Fatalf("Callback called %d times, expected 0", c)
+	}
+}
+
 func TestReadListStart(t *testing.T) {
 	t.Parallel()
 

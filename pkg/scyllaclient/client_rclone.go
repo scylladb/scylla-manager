@@ -681,6 +681,21 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	}
 	req.Header.Add("Content-Type", "application/json")
 
+	// Rclone filters versioned files on its side.
+	// Since the amount of versioned files is little (usually 0),
+	// the timer won't be refreshed even though rclone is correctly iterating over
+	// remote files. To solve that, we use the MaxTimeout instead of the usual ListTimeout (#3615).
+	resetTimeout := c.config.ListTimeout
+	if listOpts.VersionedOnly {
+		resetTimeout = c.config.MaxTimeout
+	}
+	// The timer is armed before sending the request, so that waiting for the
+	// response headers is covered as well. The agent buffers small listings
+	// and sends headers only once rclone produced the first items, and an
+	// unresponsive agent would otherwise block until the parent ctx is done.
+	inactivity := time.AfterFunc(resetTimeout, func() { cancel(ErrRcloneListDirTimeout) })
+	defer inactivity.Stop()
+
 	resp, err := c.client.Do("OperationsList", req)
 	if err != nil {
 		if !opts.propagateNotFound() && StatusCodeOf(err) == http.StatusNotFound {
@@ -694,17 +709,6 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	if err := readListStart(dec); err != nil {
 		return err
 	}
-
-	// Rclone filters versioned files on its side.
-	// Since the amount of versioned files is little (usually 0),
-	// the timer won't be refreshed even though rclone is correctly iterating over
-	// remote files. To solve that, we use the MaxTimeout instead of the usual ListTimeout (#3615).
-	resetTimeout := c.config.ListTimeout
-	if listOpts.VersionedOnly {
-		resetTimeout = c.config.MaxTimeout
-	}
-	inactivity := time.AfterFunc(resetTimeout, func() { cancel(ErrRcloneListDirTimeout) })
-	defer inactivity.Stop()
 
 	// Cancelling ctx (timeout or parent) fails any pending body read,
 	// so the stream can be decoded inline.
