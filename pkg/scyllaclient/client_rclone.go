@@ -717,6 +717,12 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 		if err := dec.Decode(&v); err != nil {
 			return err
 		}
+		// Pause the inactivity timer while f runs,
+		// as it is supposed to track slow listing,
+		// not slow callback.
+		if !inactivity.Stop() {
+			return ErrRcloneListDirTimeout
+		}
 		f(&v)
 		inactivity.Reset(resetTimeout)
 	}
