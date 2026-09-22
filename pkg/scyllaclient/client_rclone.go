@@ -636,6 +636,8 @@ var ErrRcloneListDirTimeout = errors.New("rclone list dir timeout")
 // RcloneListDirIter returns contents of a directory specified by remotePath.
 // The remotePath is given in the following format "provider:bucket/path".
 // Resulting item path is relative to the remote path.
+// The item passed to f is reused between calls, so it must not be retained
+// after f returns - copy item or its fields on the caller side instead.
 func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts, f func(item *RcloneListDirItem)) (err error) {
 	ctx = noTimeout(ctx)
 	ctx = noRetry(ctx)
@@ -693,35 +695,6 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 		return err
 	}
 
-	errCh := make(chan error)
-	go func() {
-		var v RcloneListDirItem
-		for dec.More() && ctx.Err() == nil {
-			// Read value
-			v = RcloneListDirItem{}
-			if err := dec.Decode(&v); err != nil {
-				errCh <- err
-				return
-			}
-			f(&v)
-
-			errCh <- nil
-		}
-		// Detect context cancellation
-		if ctx.Err() != nil {
-			errCh <- ctx.Err()
-			return
-		}
-		// More() returns false on both error and properly closed array.
-		// We need to validate that the array was properly terminated without an error.
-		// Properly draining the body also allows for reusing the connection.
-		if err := readListEnd(dec); err != nil {
-			errCh <- err
-			return
-		}
-		close(errCh)
-	}()
-
 	// Rclone filters versioned files on its side.
 	// Since the amount of versioned files is little (usually 0),
 	// the timer won't be refreshed even though rclone is correctly iterating over
@@ -733,18 +706,28 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	inactivity := time.AfterFunc(resetTimeout, func() { cancel(ErrRcloneListDirTimeout) })
 	defer inactivity.Stop()
 
-	// Cancelling ctx (timeout or parent) fails the read the decoder goroutine
-	// is blocked on, so it always ends up sending on errCh.
-	for {
-		err, ok := <-errCh
-		if !ok {
-			return nil
-		}
-		if err != nil {
+	// Cancelling ctx (timeout or parent) fails any pending body read,
+	// so the stream can be decoded inline.
+	// v escapes to the heap (Decode and f take its address), so it is
+	// declared once and reset per item instead of allocated per item.
+	// This also means that f can't retain it without copying it first.
+	var v RcloneListDirItem
+	for dec.More() && ctx.Err() == nil {
+		v = RcloneListDirItem{}
+		if err := dec.Decode(&v); err != nil {
 			return err
 		}
+		f(&v)
 		inactivity.Reset(resetTimeout)
 	}
+	// Detect context cancellation
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// More() returns false on both error and properly closed array.
+	// We need to validate that the array was properly terminated without an error.
+	// Properly draining the body also allows for reusing the connection.
+	return readListEnd(dec)
 }
 
 // readListStart consumes the tokens opening the list response ('{', "list", '[')
