@@ -507,6 +507,40 @@ func TestRcloneListDirIterNoCallbackAfterReturn(t *testing.T) {
 	}
 }
 
+func TestRcloneListDirIterSlowCallbackDoesNotTimeout(t *testing.T) {
+	// Not parallel: goleak.IgnoreCurrent needs a stable baseline.
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	const listTimeout = 50 * time.Millisecond
+	// Server sends the second item only after the first callback finished,
+	// so the stream itself is never inactive for longer than listTimeout.
+	host, port, release, closeServer := stalledListServer(t, 1)
+	defer closeServer()
+	defer release()
+
+	client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
+		c.ListTimeout = listTimeout
+	})
+	defer client.Close()
+
+	var calls atomic.Int32
+	f := func(_ *scyllaclient.RcloneListDirItem) {
+		if calls.Add(1) == 1 {
+			// Callback takes much longer than the inactivity timeout.
+			time.Sleep(5 * listTimeout)
+			release()
+		}
+	}
+
+	err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:list", nil, f)
+	if err != nil {
+		t.Fatalf("RcloneListDirIter() error %v, expected callback time to be excluded from the timeout", err)
+	}
+	if c := calls.Load(); c != 2 {
+		t.Fatalf("Callback called %d times, expected 2", c)
+	}
+}
+
 func TestReadListStart(t *testing.T) {
 	t.Parallel()
 
