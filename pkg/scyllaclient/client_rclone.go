@@ -629,14 +629,32 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 	return resp.Payload.List, nil
 }
 
+// ErrRcloneListDirTimeout is returned by RcloneListDirIter when no list item
+// arrives within Config.ListTimeout (Config.MaxTimeout for VersionedOnly listing).
+var ErrRcloneListDirTimeout = errors.New("rclone list dir timeout")
+
 // RcloneListDirIter returns contents of a directory specified by remotePath.
 // The remotePath is given in the following format "provider:bucket/path".
 // Resulting item path is relative to the remote path.
-func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts, f func(item *RcloneListDirItem)) error {
+func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts, f func(item *RcloneListDirItem)) (err error) {
 	ctx = noTimeout(ctx)
 	ctx = noRetry(ctx)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	// The inactivity timeout is expressed as cancellation of this ctx with
+	// ErrRcloneListDirTimeout as cause. Cancelling the request ctx makes
+	// net/http close the connection, which fails any pending body read.
+	// Note that f might still block, as it doesn't accept ctx as arg,
+	// so it's user responsibility to make sure that it doesn't happen.
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	// Distinguish ErrRcloneListDirTimeout from other ctx errors.
+	defer func() {
+		if err == nil || ctx.Err() == nil {
+			return
+		}
+		if cause := context.Cause(ctx); errors.Is(cause, ErrRcloneListDirTimeout) {
+			err = cause
+		}
+	}()
 
 	// Due to OpenAPI limitations we manually construct and sent the request
 	// object to stream process the response body.
@@ -712,22 +730,20 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	if listOpts.VersionedOnly {
 		resetTimeout = c.config.MaxTimeout
 	}
-	timer := time.NewTimer(resetTimeout)
-	defer timer.Stop()
+	inactivity := time.AfterFunc(resetTimeout, func() { cancel(ErrRcloneListDirTimeout) })
+	defer inactivity.Stop()
 
+	// Cancelling ctx (timeout or parent) fails the read the decoder goroutine
+	// is blocked on, so it always ends up sending on errCh.
 	for {
-		select {
-		case err, ok := <-errCh:
-			if !ok {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-			timer.Reset(resetTimeout)
-		case <-timer.C:
-			return errors.Errorf("rclone list dir timeout")
+		err, ok := <-errCh
+		if !ok {
+			return nil
 		}
+		if err != nil {
+			return err
+		}
+		inactivity.Reset(resetTimeout)
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -401,6 +402,111 @@ func TestRcloneListDirIterCancelContext(t *testing.T) {
 	}
 }
 
+func stalledListServer(t *testing.T, tail int) (host, port string, release func(), closeServer func()) {
+	t.Helper()
+
+	releaseCh := make(chan struct{})
+	// Idempotent, so tests can release explicitly and again from a defer.
+	release = sync.OnceFunc(func() { close(releaseCh) })
+	b, err := json.Marshal(models.ListItem{Name: "foo", Path: "/bar/foo", Size: 42})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `{"list":[`)
+		w.Write(b)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		<-releaseCh
+		for range tail {
+			w.Write([]byte(","))
+			w.Write(b)
+		}
+		w.Write([]byte("]}"))
+	})
+
+	host, port, closeServer = scyllaclienttest.MakeServer(t, h)
+	return
+}
+
+func TestRcloneListDirIterCancelStalledStream(t *testing.T) {
+	// Not parallel: goleak.IgnoreCurrent needs a stable baseline.
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	host, port, release, closeServer := stalledListServer(t, 0)
+	defer closeServer()
+	defer release()
+
+	client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
+		c.ListTimeout = 10 * time.Second
+	})
+	defer client.Close()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	var calls atomic.Int32
+	f := func(_ *scyllaclient.RcloneListDirItem) {
+		if calls.Add(1) == 1 {
+			// Cancel from outside the callback once the stream is known to be stalled.
+			go func() {
+				time.Sleep(50 * time.Millisecond)
+				cancel()
+			}()
+		}
+	}
+
+	start := time.Now()
+	err := client.RcloneListDirIter(ctx, scyllaclienttest.TestHost, "rclonetest:list", nil, f)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("RcloneListDirIter() error %v, expected context cancellation", err)
+	}
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("RcloneListDirIter() took %s, expected to return promptly on cancel", d)
+	}
+	if c := calls.Load(); c != 1 {
+		t.Fatalf("Callback called %d times, expected 1", c)
+	}
+}
+
+func TestRcloneListDirIterNoCallbackAfterReturn(t *testing.T) {
+	// Not parallel: goleak.IgnoreCurrent needs a stable baseline.
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	const tail = 5
+	host, port, release, closeServer := stalledListServer(t, tail)
+	defer closeServer()
+	defer release()
+
+	client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
+		c.ListTimeout = 50 * time.Millisecond
+	})
+	defer client.Close()
+
+	var calls atomic.Int32
+	f := func(_ *scyllaclient.RcloneListDirItem) {
+		calls.Add(1)
+	}
+
+	err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:list", nil, f)
+	if !errors.Is(err, scyllaclient.ErrRcloneListDirTimeout) {
+		t.Fatalf("RcloneListDirIter() error %v, expected timeout", err)
+	}
+	if c := calls.Load(); c != 1 {
+		t.Fatalf("Callback called %d times before return, expected 1", c)
+	}
+
+	// Let the server push the remaining items and finish - the callback must
+	// not observe them. closeServer returns once the handler has returned.
+	release()
+	closeServer()
+	if c := calls.Load(); c != 1 {
+		t.Fatalf("Callback called %d times after return, expected 1", c)
+	}
+}
+
 func TestReadListStart(t *testing.T) {
 	t.Parallel()
 
@@ -753,16 +859,20 @@ func TestRcloneListDirTimeouts(t *testing.T) {
 	})
 
 	t.Run("iter", func(t *testing.T) {
+		// Timeout path used to leak the decoder goroutine (blocked on channel send).
+		defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+		defer closeServer()
+
 		client := scyllaclienttest.MakeClient(t, host, port, func(c *scyllaclient.Config) {
 			c.ListTimeout = time.Millisecond * 60
 			c.Timeout = time.Millisecond * 10
 		})
-		defer closeServer()
+		defer client.Close()
 
 		var files []*scyllaclient.RcloneListDirItem
 		err := client.RcloneListDirIter(context.Background(), scyllaclienttest.TestHost, "rclonetest:list", &scyllaclient.RcloneListDirOpts{}, rcloneListDirIterAppendFunc(&files))
-		if err == nil || err.Error() != "rclone list dir timeout" {
-			t.Fatal("Expected timeout")
+		if !errors.Is(err, scyllaclient.ErrRcloneListDirTimeout) {
+			t.Fatalf("RcloneListDirIter() error %v, expected timeout", err)
 		}
 		if len(files) != 4 {
 			t.Fatalf("Expected 3 files, got %d", len(files))
