@@ -71,6 +71,7 @@ type Client struct {
 	agentOps  agentOperations.ClientService
 	client    retryableClient
 	hostPool  hostpool.HostPool
+	closeOnce sync.Once
 
 	mu      sync.RWMutex
 	dcCache map[string]string
@@ -132,14 +133,20 @@ func (c *Client) Config() Config {
 	return c.config
 }
 
-// Close closes all the idle connections.
+// Close closes all the idle connections and stops the host pool.
+// It is safe to call Close multiple times.
+// Close doesn't prevent using the client afterwards, it only stops
+// the host pool background score decay, and new connections are dialed
+// as needed.
 func (c *Client) Close() error {
-	if t, ok := c.config.Transport.(*http.Transport); ok {
-		t.CloseIdleConnections()
-	}
-	if c.hostPool != nil {
-		c.hostPool.Close()
-	}
+	c.closeOnce.Do(func() {
+		if t, ok := c.config.Transport.(*http.Transport); ok {
+			t.CloseIdleConnections()
+		}
+		if c.hostPool != nil {
+			c.hostPool.Close()
+		}
+	})
 	return nil
 }
 
