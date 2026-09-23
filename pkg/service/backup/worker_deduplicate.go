@@ -296,3 +296,187 @@ func isSSTableBundleSizeEqual(b1, b2 []fileInfo) bool {
 	}
 	return true
 }
+
+// catFunc returns the content of the file stored under remotePath.
+// It abstracts scyllaclient.Client.RcloneCat bound to a given host.
+type catFunc func(ctx context.Context, remotePath string) ([]byte, error)
+
+// localSSTableBundle describes a single local sstable bundle
+// (all components sharing the same generation ID) together with the
+// summary of the remote files observed for this generation ID.
+type localSSTableBundle struct {
+	files []fileInfo
+	// remoteCnt is the amount of observed remote files with this generation ID.
+	remoteCnt int
+	// matchedCnt is the amount of observed remote files with this generation ID
+	// which have a local counterpart with the same name and size.
+	matchedCnt int
+}
+
+// matchesRemote returns whether the observed remote bundle consists of exactly
+// the same file names and sizes as the local one.
+func (b *localSSTableBundle) matchesRemote() bool {
+	return b.remoteCnt == len(b.files) && b.matchedCnt == b.remoteCnt
+}
+
+// sstableDeduplicator decides which local sstable files are already
+// present in the backup location and can be skipped during upload.
+//
+// sstable.UUID sstables are deduplicated when there is a 1-1 mapping
+// between local and remote component files with given UUID.
+// Mapping is established based on file names and sizes.
+//
+// sstable.IntegerID sstables are deduplicated when there is a 1-1 mapping
+// between local and remote component files with given integer ID.
+// Mapping is established based on file names, sizes and contents of the sstable.ComponentDigestCRC.
+//
+// sstableDeduplicator returns files that can be deduplicated alongside
+// the estimated amount of versioned files that will be created on upload.
+// sstable.IntegerID sstable bundles are expected to create versioned files
+// when remote components with the same integer ID exist, but there is no
+// 1-1 mapping between them and the local ones.
+// sstable.UUID sstables are never expected to create versioned files.
+//
+// Since the amount of remote sstables is expected to be greater than
+// the amount of local ones, sstableDeduplicator first stores all the
+// local sstables in memory (on creation) and performs deduplication checks
+// on the fly as the remote sstables are processed (via addRemote) without
+// storing them.
+type sstableDeduplicator struct {
+	// cat reads the content of a single remote or local file.
+	cat catFunc
+	// remoteDir is the sstable dir in the backup location.
+	remoteDir string
+	// localDir is the snapshot dir on the host.
+	localDir string
+	// local maps sstable ID to its components.
+	local map[string]*localSSTableBundle
+}
+
+// newSSTableDeduplicator creates sstableDeduplicator storing the local sstable components.
+// Local files of unknown format are skipped and reported in the returned error,
+// as they might not need deduplication.
+func newSSTableDeduplicator(cat catFunc, remoteDir, localDir string, local []fileInfo) (*sstableDeduplicator, error) {
+	d := &sstableDeduplicator{
+		cat:       cat,
+		remoteDir: remoteDir,
+		localDir:  localDir,
+		local:     make(map[string]*localSSTableBundle),
+	}
+	var err error
+	for _, f := range local {
+		// Skip scylla manifests
+		if strings.HasSuffix(f.Name, backupspec.ScyllaManifest) {
+			continue
+		}
+		id, extractErr := sstable.ExtractID(f.Name)
+		if extractErr != nil {
+			err = stdErr.Join(err, errors.Wrapf(extractErr, "extract sstable generation id of %s", f.Name))
+			continue
+		}
+		b, ok := d.local[id]
+		if !ok {
+			b = &localSSTableBundle{}
+			d.local[id] = b
+		}
+		b.files = append(b.files, f)
+	}
+	return d, err
+}
+
+// addRemote matches a single remote sstable component against the local bundles.
+func (d *sstableDeduplicator) addRemote(name string, size int64) error {
+	// Skip scylla manifests
+	if strings.HasSuffix(name, backupspec.ScyllaManifest) {
+		return nil
+	}
+	// Skip versioned files, as deduplication is only interested
+	// in the newest file versions (others have tag suffix which
+	// makes them impossible to deduplicate).
+	if _, version := SplitNameAndVersion(name); version != "" {
+		return nil
+	}
+	id, err := sstable.ExtractID(name)
+	if err != nil {
+		return errors.Wrap(err, "extract sstable generation id")
+	}
+	b, ok := d.local[id]
+	if !ok {
+		// No local bundle - nothing to deduplicate
+		return nil
+	}
+	b.remoteCnt++
+	if slices.ContainsFunc(b.files, func(fi fileInfo) bool {
+		return fi.Name == name && fi.Size == size
+	}) {
+		b.matchedCnt++
+	}
+	return nil
+}
+
+// result returns the files which can be deduplicated alongside
+// the amount of files which are expected to create versioned files on upload.
+// It must be called after all remote files have been added.
+func (d *sstableDeduplicator) result(ctx context.Context) (deduplicated []fileInfo, versionedCnt int, err error) {
+	for id, b := range d.local {
+		if b.remoteCnt == 0 {
+			// No remote counterpart - nothing to deduplicate
+			continue
+		}
+
+		// Deduplicate sstable.UUID based on file names and sizes
+		if sstable.GetIDType(id) == sstable.UUID {
+			if b.matchesRemote() {
+				deduplicated = append(deduplicated, b.files...)
+			}
+			continue
+		}
+
+		// Deduplicate sstable.IntegerID based on file names, sizes
+		// and sstable.ComponentDigestCRC contents.
+		if !b.matchesRemote() {
+			// Uploading a bundle which has a remote counterpart with
+			// a different set of components results in versioned files.
+			versionedCnt += len(b.files)
+			continue
+		}
+
+		equal, err := d.equalDigest(ctx, b)
+		if err != nil {
+			return nil, 0, err
+		}
+		if equal {
+			deduplicated = append(deduplicated, b.files...)
+		} else {
+			versionedCnt += len(b.files)
+		}
+	}
+	return deduplicated, versionedCnt, nil
+}
+
+// equalDigest compares the content of the local and remote
+// sstable.ComponentDigestCRC of the given bundle.
+// Bundles with no such component are never equal.
+func (d *sstableDeduplicator) equalDigest(ctx context.Context, b *localSSTableBundle) (bool, error) {
+	idx := slices.IndexFunc(b.files, func(fi fileInfo) bool {
+		return strings.HasSuffix(fi.Name, string(sstable.ComponentDigestCRC))
+	})
+	if idx == -1 {
+		return false, nil
+	}
+	name := b.files[idx].Name
+
+	remotePath := path.Join(d.remoteDir, name)
+	remoteDigest, err := d.cat(ctx, remotePath)
+	if err != nil {
+		return false, errors.Wrapf(err, "get content of remote CRC32 %s", remotePath)
+	}
+
+	localPath := path.Join(d.localDir, name)
+	localDigest, err := d.cat(ctx, localPath)
+	if err != nil {
+		return false, errors.Wrapf(err, "get content of local CRC32 %s", localPath)
+	}
+
+	return bytes.Equal(localDigest, remoteDigest), nil
+}
