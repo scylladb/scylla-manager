@@ -594,6 +594,17 @@ func (opts *RcloneListDirOpts) propagateNotFound() bool {
 	return opts != nil && opts.PropagateNotFound
 }
 
+// asListOptions builds the operations/list request body for listing remotePath.
+func (opts *RcloneListDirOpts) asListOptions(remotePath string) *models.ListOptions {
+	return &models.ListOptions{
+		Fs:            &remotePath,
+		Remote:        new(""),
+		Opt:           opts.asModelOpts(),
+		NewestOnly:    opts != nil && opts.NewestOnly,
+		VersionedOnly: opts != nil && opts.VersionedOnly,
+	}
+}
+
 // RcloneListDirItem represents a file in a listing with RcloneListDir.
 type RcloneListDirItem = models.ListItem
 
@@ -609,14 +620,8 @@ type RcloneListDirItem = models.ListItem
 // will be retried if failed.
 func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*RcloneListDirItem, error) {
 	p := operations.OperationsListParams{
-		Context: forceHost(ctx, host),
-		ListOpts: &models.ListOptions{
-			Fs:            &remotePath,
-			Remote:        new(""),
-			Opt:           opts.asModelOpts(),
-			NewestOnly:    opts != nil && opts.NewestOnly,
-			VersionedOnly: opts != nil && opts.VersionedOnly,
-		},
+		Context:  forceHost(ctx, host),
+		ListOpts: opts.asListOptions(remotePath),
 	}
 	resp, err := c.agentOps.OperationsList(&p)
 	if err != nil {
@@ -662,13 +667,7 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	// object to stream process the response body.
 	const urlPath = agentClient.DefaultBasePath + "/rclone/operations/list"
 
-	listOpts := &models.ListOptions{
-		Fs:            &remotePath,
-		Remote:        new(""),
-		Opt:           opts.asModelOpts(),
-		NewestOnly:    opts != nil && opts.NewestOnly,
-		VersionedOnly: opts != nil && opts.VersionedOnly,
-	}
+	listOpts := opts.asListOptions(remotePath)
 	b, err := listOpts.MarshalBinary()
 	if err != nil {
 		return err

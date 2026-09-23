@@ -87,6 +87,71 @@ func TestRcloneSplitRemotePath(t *testing.T) {
 	}
 }
 
+func TestRcloneListDirOptsAsListOptions(t *testing.T) {
+	t.Parallel()
+
+	const remotePath = "s3:bucket/backup/sst/cluster/id/dc/dc1/node/id/keyspace/ks/table/t/v"
+
+	table := []struct {
+		Name string
+		Opts *scyllaclient.RcloneListDirOpts
+		Want *models.ListOptions
+	}{
+		{
+			Name: "nil opts",
+			Opts: nil,
+			Want: &models.ListOptions{
+				Fs:     new(remotePath),
+				Remote: new(""),
+				Opt: &models.ListOptionsOpt{
+					NoModTime:  true,
+					NoMimeType: true,
+				},
+			},
+		},
+		{
+			Name: "all opts",
+			Opts: &scyllaclient.RcloneListDirOpts{
+				DirsOnly:           true,
+				FilesOnly:          true,
+				Recurse:            true,
+				ShowModTime:        true,
+				NewestOnly:         true,
+				VersionedOnly:      true,
+				ShowRetentionInfo:  true,
+				ShowEventBasedHold: true,
+				PropagateNotFound:  true,
+			},
+			Want: &models.ListOptions{
+				Fs:     new(remotePath),
+				Remote: new(""),
+				Opt: &models.ListOptionsOpt{
+					DirsOnly:           true,
+					FilesOnly:          true,
+					Recurse:            true,
+					NoModTime:          false,
+					NoMimeType:         true,
+					ShowRetentionInfo:  true,
+					ShowEventBasedHold: true,
+				},
+				NewestOnly:    true,
+				VersionedOnly: true,
+			},
+		},
+	}
+
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
+			got := test.Opts.AsListOptions(remotePath)
+			if diff := cmp.Diff(test.Want, got); diff != "" {
+				t.Fatalf("AsListOptions() diff (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestRcloneCat(t *testing.T) {
 	t.Parallel()
 
