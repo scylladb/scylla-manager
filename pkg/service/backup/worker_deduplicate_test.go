@@ -5,7 +5,9 @@ package backup
 import (
 	"context"
 	"errors"
+	"math"
 	"path"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -317,4 +319,87 @@ func TestSSTableDeduplicatorKeepsOnlyLocalFiles(t *testing.T) {
 // sstableName returns a name template of the i-th unique int ID sstable.
 func sstableName(i int) string {
 	return "me-" + strconv.Itoa(i+1000) + "-big-COMPONENT"
+}
+
+// uuidSSTableName returns a name template of the i-th unique sstable.UUID sstable.
+func uuidSSTableName(i int) string {
+	msb := strconv.FormatInt(int64(i), 36)
+	return "me-3g7k_098r_4wtqo" + strings.Repeat("0", 13-len(msb)) + msb + "-big-COMPONENT"
+}
+
+// deduplicatorRetainedHeap returns the amount of heap still held by the deduplicator
+// after processing localBundles local and remoteBundles remote sstables.
+// File names are generated on the fly, so that the names of the remote
+// sstables which the deduplicator didn't store can be garbage collected.
+// This way the result consists of what the deduplicator retains and
+// nothing else.
+func deduplicatorRetainedHeap(tb testing.TB, localBundles, remoteBundles int) uint64 {
+	tb.Helper()
+	before := heapAlloc()
+
+	d := newSSTableDeduplicator(unexpectedCat(tb), testRemoteDir, testLocalDir)
+	for i := range localBundles {
+		for _, f := range bundle(uuidSSTableName(i), 10, "Data.db", "Index.db") {
+			if err := d.addLocal(f.Name, f.Size); err != nil {
+				tb.Fatal(err)
+			}
+		}
+	}
+	d.finalizeLocal()
+	for i := range remoteBundles {
+		for _, f := range bundle(uuidSSTableName(i), 10, "Data.db", "Index.db") {
+			if err := d.addRemote(f.Name, f.Size); err != nil {
+				tb.Fatal(err)
+			}
+		}
+	}
+
+	after := heapAlloc()
+	runtime.KeepAlive(d)
+	if after < before {
+		return 0
+	}
+	return after - before
+}
+
+// heapAlloc returns the amount of allocated heap after garbage collection.
+// GC is called twice, as a single run can leave the memory freed
+// by the finalizers uncollected.
+func heapAlloc() uint64 {
+	runtime.GC()
+	runtime.GC()
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	return ms.HeapAlloc
+}
+
+// unexpectedCat returns a catFunc failing on any file read.
+func unexpectedCat(tb testing.TB) catFunc {
+	return func(_ context.Context, remotePath string) ([]byte, error) {
+		tb.Errorf("unexpected cat of %s", remotePath)
+		return nil, nil
+	}
+}
+
+// BenchmarkSSTableDeduplicator measures the heap retained by the deduplicator
+// after processing a whole remote sstable dir against a fixed amount of local
+// sstables. It must stay flat as the amount of remote sstables grows, since
+// only the local ones are stored.
+// Every iteration performs a full pass over the remote dir and the smallest
+// result is reported, as unrelated live objects can only inflate the reading.
+// Timing is not reported, as repeating the pass doesn't change the
+// retained heap.
+func BenchmarkSSTableDeduplicator(b *testing.B) {
+	const localBundles = 1000
+
+	for _, remoteBundles := range []int{localBundles, 100 * localBundles} {
+		b.Run("remote="+strconv.Itoa(remoteBundles), func(b *testing.B) {
+			retained := uint64(math.MaxUint64)
+			for b.Loop() {
+				retained = min(retained, deduplicatorRetainedHeap(b, localBundles, remoteBundles))
+			}
+			b.ReportMetric(0, "ns/op")
+			b.ReportMetric(float64(retained), "retained-B")
+		})
+	}
 }
