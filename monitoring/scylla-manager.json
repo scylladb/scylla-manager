@@ -1,0 +1,2499 @@
+{
+  "uid": "scylla-manager",
+  "title": "Scylla Manager",
+  "description": "Scylla Manager health check, repair and backup, built on the per task metrics from CLOUD-327.",
+  "tags": [
+    "scylla-manager"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "scylla-manager-prometheus"
+        },
+        "definition": "label_values(scylla_manager_cluster_name, cluster)",
+        "query": {
+          "query": "label_values(scylla_manager_cluster_name, cluster)",
+          "refId": "cluster"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "hide": 0,
+        "current": {}
+      },
+      {
+        "name": "dc",
+        "label": "DC",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "scylla-manager-prometheus"
+        },
+        "definition": "label_values(scylla_manager_healthcheck_cql_status{cluster=\"$cluster\"}, dc)",
+        "query": {
+          "query": "label_values(scylla_manager_healthcheck_cql_status{cluster=\"$cluster\"}, dc)",
+          "refId": "dc"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "hide": 0,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "allValue": ".*"
+      },
+      {
+        "name": "host",
+        "label": "Host",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "scylla-manager-prometheus"
+        },
+        "definition": "label_values(scylla_manager_healthcheck_cql_status{cluster=\"$cluster\", dc=~\"$dc\"}, host)",
+        "query": {
+          "query": "label_values(scylla_manager_healthcheck_cql_status{cluster=\"$cluster\", dc=~\"$dc\"}, host)",
+          "refId": "host"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "hide": 0,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "allValue": ".*"
+      },
+      {
+        "name": "repair_task",
+        "label": "Repair task",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "scylla-manager-prometheus"
+        },
+        "definition": "query_result(scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", cron=\"ad-hoc\"} and on(task) (scylla_manager_scheduler_task_run_start_seconds{cluster=\"$cluster\"} >= time() - $__range_s)))",
+        "query": {
+          "query": "query_result(scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", cron=\"ad-hoc\"} and on(task) (scylla_manager_scheduler_task_run_start_seconds{cluster=\"$cluster\"} >= time() - $__range_s)))",
+          "refId": "repair_task"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "hide": 0,
+        "regex": "/name=\"([^\"]+)\"/",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "backup_task",
+        "label": "Backup task",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "scylla-manager-prometheus"
+        },
+        "definition": "query_result(scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", cron=\"ad-hoc\"} and on(task) (scylla_manager_scheduler_task_run_start_seconds{cluster=\"$cluster\"} >= time() - $__range_s)))",
+        "query": {
+          "query": "query_result(scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", cron=\"ad-hoc\"} and on(task) (scylla_manager_scheduler_task_run_start_seconds{cluster=\"$cluster\"} >= time() - $__range_s)))",
+          "refId": "backup_task"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "hide": 0,
+        "regex": "/name=\"([^\"]+)\"/",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Health check",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "SM node memory used",
+      "description": "Memory in use on the node running Scylla Manager, against MemAvailable rather than MemFree - free memory excludes the page cache, which the kernel will hand back under pressure, so it reads alarmingly low on a perfectly healthy host.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"} / node_memory_MemTotal_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"})",
+          "legendFormat": "SM node memory used",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "SM node swap used",
+      "description": "Swap in use on the Scylla Manager node. The denominator is clamped so a host with no swap configured reads 0 rather than dividing by zero and rendering NaN. Worth watching at lower numbers than the other two: a host that has started swapping at all is already short of memory.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "100 * (node_memory_SwapTotal_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"} - node_memory_SwapFree_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"}) / clamp_min(node_memory_SwapTotal_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"}, 1)",
+          "legendFormat": "SM node swap used",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "SM node CPU busy",
+      "description": "CPU in use on the Scylla Manager node, averaged across cores over 5 minutes - so it is a share of the whole host, not of one core, and cannot exceed 100. Derived from idle time, which is the only mode guaranteed to be present on every platform.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{job=\"scylla_manager\", cluster=~\"$cluster|\", mode=\"idle\"}[5m])))",
+          "legendFormat": "SM node CPU busy",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 5,
+      "type": "row",
+      "title": "Scylla Manager -> cluster nodes connectivity health check",
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "CQL",
+      "description": "Left: nodes not healthy right now. Right: nodes that were not healthy for the whole selected range, so a node that dropped and recovered is still counted.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(scylla_manager_healthcheck_cql_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"} != 1) or vector(0)",
+          "legendFormat": "now",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(min_over_time(scylla_manager_healthcheck_cql_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}[$__range]) != 1) or vector(0)",
+          "legendFormat": "in range",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": " ",
+                  "color": "green",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "REST",
+      "description": "Left: nodes not healthy right now. Right: nodes that were not healthy for the whole selected range, so a node that dropped and recovered is still counted.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 6,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(scylla_manager_healthcheck_rest_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"} != 1) or vector(0)",
+          "legendFormat": "now",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(min_over_time(scylla_manager_healthcheck_rest_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}[$__range]) != 1) or vector(0)",
+          "legendFormat": "in range",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": " ",
+                  "color": "green",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Alternator",
+      "description": "Left: nodes not healthy right now. Right: nodes that were not healthy for the whole selected range, so a node that dropped and recovered is still counted. Scylla Manager reports a node as up with 0ms latency when the Alternator API is not enabled, so ALL UP here means \"not broken\", not \"in use\".",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 6,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(scylla_manager_healthcheck_alternator_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"} != 1) or vector(0)",
+          "legendFormat": "now",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(min_over_time(scylla_manager_healthcheck_alternator_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}[$__range]) != 1) or vector(0)",
+          "legendFormat": "in range",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": " ",
+                  "color": "green",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Nodes not healthy for the whole range",
+      "description": "Empty when every node was up for the entire selected range. A node that dropped and recovered before now is still listed, with the protocol whose check failed - or a single \"Agent\" row when the node could not be reached at all, in which case the protocols say nothing and are not listed.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "label_replace(min_over_time(scylla_manager_healthcheck_cql_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}[$__range]) == -1, \"protocol\", \"CQL\", \"\", \"\") or label_replace(min_over_time(scylla_manager_healthcheck_rest_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}[$__range]) == -1, \"protocol\", \"REST\", \"\", \"\") or label_replace(min_over_time(scylla_manager_healthcheck_alternator_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}[$__range]) == -1, \"protocol\", \"Alternator\", \"\", \"\") or label_replace(min_over_time(scylla_manager_healthcheck_rest_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}[$__range]) == -2, \"protocol\", \"Agent\", \"\", \"\")",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "cluster": true,
+              "instance": true,
+              "job": true,
+              "__name__": true
+            },
+            "renameByName": {
+              "protocol": "Protocol",
+              "host": "Host",
+              "dc": "DC",
+              "rack": "Rack"
+            },
+            "indexByName": {
+              "protocol": 0,
+              "host": 1,
+              "dc": 2,
+              "rack": 3
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": "",
+          "enablePagination": true
+        },
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Host"
+          }
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Connectivity health check history",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 10,
+          "type": "timeseries",
+          "title": "CQL status",
+          "description": "Three values exist, ordered by severity: up, this protocol's own check failing, and the agent not answering at all. The last one drops the line lowest, because Scylla Manager cannot see the node and the protocol's state is unknown rather than bad.\n\nOnly those three positions are meaningful - there is no value in between - so the axis is drawn without decimals and every tick names a state.\n\nIn the legend, Last is the state now and Min is the worst state the node reached in the range: the encoding is ordered, so the minimum is literally the worst. Last OK with a lower Min means the node dropped and recovered, which on a wide range can be a few pixels wide on the line.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 19,
+            "w": 24,
+            "h": 7
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "scylla-manager-prometheus"
+              },
+              "editorMode": "code",
+              "expr": "scylla_manager_healthcheck_cql_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}",
+              "legendFormat": "{{host}} ({{dc}}/{{rack}})",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "stepAfter",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "showPoints": "always",
+                "pointSize": 5,
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": {
+                      "text": "OK",
+                      "color": "green",
+                      "index": 0
+                    },
+                    "-1": {
+                      "text": "CQL DOWN",
+                      "color": "red",
+                      "index": 1
+                    },
+                    "-2": {
+                      "text": "AGENT UNREACHABLE",
+                      "color": "purple",
+                      "index": 2
+                    },
+                    "0": {
+                      "text": " ",
+                      "index": 3
+                    }
+                  }
+                }
+              ],
+              "min": -2.2,
+              "max": 1.2,
+              "decimals": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull",
+                "min"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        },
+        {
+          "id": 11,
+          "type": "timeseries",
+          "title": "REST status",
+          "description": "Three values exist, ordered by severity: up, this protocol's own check failing, and the agent not answering at all. The last one drops the line lowest, because Scylla Manager cannot see the node and the protocol's state is unknown rather than bad.\n\nOnly those three positions are meaningful - there is no value in between - so the axis is drawn without decimals and every tick names a state.\n\nIn the legend, Last is the state now and Min is the worst state the node reached in the range: the encoding is ordered, so the minimum is literally the worst. Last OK with a lower Min means the node dropped and recovered, which on a wide range can be a few pixels wide on the line.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 26,
+            "w": 24,
+            "h": 7
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "scylla-manager-prometheus"
+              },
+              "editorMode": "code",
+              "expr": "scylla_manager_healthcheck_rest_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}",
+              "legendFormat": "{{host}} ({{dc}}/{{rack}})",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "stepAfter",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "showPoints": "always",
+                "pointSize": 5,
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": {
+                      "text": "OK",
+                      "color": "green",
+                      "index": 0
+                    },
+                    "-1": {
+                      "text": "SCYLLA REST API DOWN",
+                      "color": "red",
+                      "index": 1
+                    },
+                    "-2": {
+                      "text": "AGENT UNREACHABLE",
+                      "color": "purple",
+                      "index": 2
+                    },
+                    "0": {
+                      "text": " ",
+                      "index": 3
+                    }
+                  }
+                }
+              ],
+              "min": -2.2,
+              "max": 1.2,
+              "decimals": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull",
+                "min"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        },
+        {
+          "id": 12,
+          "type": "timeseries",
+          "title": "Alternator status",
+          "description": "Three values exist, ordered by severity: up, this protocol's own check failing, and the agent not answering at all. The last one drops the line lowest, because Scylla Manager cannot see the node and the protocol's state is unknown rather than bad.\n\nOnly those three positions are meaningful - there is no value in between - so the axis is drawn without decimals and every tick names a state.\n\nIn the legend, Last is the state now and Min is the worst state the node reached in the range: the encoding is ordered, so the minimum is literally the worst. Last OK with a lower Min means the node dropped and recovered, which on a wide range can be a few pixels wide on the line.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 33,
+            "w": 24,
+            "h": 7
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "scylla-manager-prometheus"
+              },
+              "editorMode": "code",
+              "expr": "scylla_manager_healthcheck_alternator_status{cluster=\"$cluster\", dc=~\"$dc\", host=~\"$host\"}",
+              "legendFormat": "{{host}} ({{dc}}/{{rack}})",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "stepAfter",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "showPoints": "always",
+                "pointSize": 5,
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": {
+                      "text": "OK",
+                      "color": "green",
+                      "index": 0
+                    },
+                    "-1": {
+                      "text": "ALTERNATOR DOWN",
+                      "color": "red",
+                      "index": 1
+                    },
+                    "-2": {
+                      "text": "AGENT UNREACHABLE",
+                      "color": "purple",
+                      "index": 2
+                    },
+                    "0": {
+                      "text": " ",
+                      "index": 3
+                    }
+                  }
+                }
+              ],
+              "min": -2.2,
+              "max": 1.2,
+              "decimals": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull",
+                "min"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Repair",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Repair tasks",
+      "description": "Every repair task: how its last known run went, then how the task is configured. State, progress and the age of the last success describe the last run - progress is not gated on the task running, so for a run that failed or was stopped it shows how far it got. An empty progress cell means there is none to report. A property the user did not configure is shown with the value the task will actually run with: the Scylla Manager default, \"all\" where an empty filter means every datacenter or host, and \"incremental\" where SM sends no mode and Scylla applies its own default. Scheduled tasks are always listed; ad-hoc ones only when the selected time range covers their run.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max by (task) (scylla_manager_scheduler_task_state{cluster=\"$cluster\", type=\"repair\"} and on(task) (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", name=~\"$repair_task\"}))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(max by (task) ((time() - scylla_manager_scheduler_task_last_success_seconds{cluster=\"$cluster\", type=\"repair\"}) and on(task) (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", name=~\"$repair_task\"}))) or (max by (task) (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", name=~\"$repair_task\"}) * 0 + 99999999)",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max by (task) (scylla_manager_repair_task_progress{cluster=\"$cluster\"} and on(task) (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", name=~\"$repair_task\"}))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", name=~\"$repair_task\"}",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "D"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "task",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Time 3": true,
+              "cluster": true,
+              "type": true,
+              "instance": true,
+              "job": true,
+              "__name__": true,
+              "task": true,
+              "Value #D": true,
+              "location": true,
+              "retention": true,
+              "retention_days": true,
+              "method": true,
+              "purge_only": true,
+              "skip_schema": true,
+              "retention_lock_mode": true
+            },
+            "renameByName": {
+              "task": "Task ID",
+              "name": "Name",
+              "cron": "Cron",
+              "keyspace": "Keyspace filter",
+              "dc": "DC",
+              "keyspace_replication": "Replication",
+              "incremental_mode": "Incremental mode",
+              "host": "Host",
+              "fail_fast": "Fail fast",
+              "location": "Location",
+              "retention": "Retention",
+              "retention_days": "Retention days",
+              "method": "Method",
+              "purge_only": "Purge only",
+              "skip_schema": "Skip schema",
+              "retention_lock_mode": "Retention lock",
+              "Value #A": "State",
+              "Value #B": "Last success",
+              "Value #C": "Progress"
+            },
+            "indexByName": {
+              "name": 0,
+              "Value #A": 1,
+              "Value #C": 2,
+              "Value #B": 3,
+              "cron": 4,
+              "keyspace": 5,
+              "keyspace_replication": 6,
+              "incremental_mode": 7,
+              "dc": 8,
+              "host": 9,
+              "fail_fast": 10,
+              "task": 11
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "NEVER RUN",
+                        "color": "text",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "RUNNING",
+                        "color": "blue",
+                        "index": 1
+                      },
+                      "2": {
+                        "text": "DONE",
+                        "color": "green",
+                        "index": 2
+                      },
+                      "3": {
+                        "text": "ERROR",
+                        "color": "red",
+                        "index": 3
+                      },
+                      "4": {
+                        "text": "STOPPED",
+                        "color": "yellow",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 105
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Progress"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last success"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dthms"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "99999999": {
+                        "text": "never",
+                        "color": "red",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cron"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Keyspace filter"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Replication"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Incremental mode"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DC"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Host"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fail fast"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Task ID"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": "",
+          "enablePagination": true
+        },
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Name"
+          }
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "type": "state-timeline",
+      "title": "Repair task state",
+      "description": "One row per repair task, labelled by task name - unnamed tasks fall back to their task ID. type=repair covers vnode and tablet repair tasks.\n\nThe bands carry colour only and the legend is the key. Nothing is written on the row because the state is latched: on a wide range a band covers most of the row, and text across all of it drowns the runs that actually matter.\n\nHover a band to read it: a run in flight reports its percentage, a finished one its state. The colour key is the strip below rather than the panel's own legend - that legend is built from the distinct values in the data, so leaving the percentages unmapped for the tooltip would make it list every percentage ever seen as its own entry.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(max by (task) (scylla_manager_repair_task_progress{cluster=\"$cluster\"} and on(task) (scylla_manager_scheduler_task_state{cluster=\"$cluster\", type=\"repair\"} == 1)) or max by (task) ((scylla_manager_scheduler_task_state{cluster=\"$cluster\", type=\"repair\"} != 1) - 10)) * on(task) group_left(name) (topk(1, scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"repair\", name=~\"$repair_task\"}) by (task))",
+          "legendFormat": "{{name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-10": {
+                  "text": "NEVER EXECUTED YET",
+                  "color": "#8A8A8A",
+                  "index": 3
+                },
+                "-8": {
+                  "text": "PREV EXECUTION SUCCEEDED",
+                  "color": "green",
+                  "index": 1
+                },
+                "-7": {
+                  "text": "PREV EXECUTION FAILED",
+                  "color": "red",
+                  "index": 2
+                },
+                "-6": {
+                  "text": "PREV EXECUTION STOPPED",
+                  "color": "yellow",
+                  "index": 4
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 0,
+                "to": 100,
+                "result": {
+                  "color": "blue",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "blue",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 3
+              },
+              {
+                "color": "yellow",
+                "value": 4
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "spanNulls": false,
+            "insertNulls": false,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "perPage": 20,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "text",
+      "title": "",
+      "transparent": true,
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "\ud83d\udd35 **RUNNING**  \ud83d\udfe2 **PREV EXECUTION SUCCEEDED**  \ud83d\udd34 **PREV EXECUTION FAILED**  \ud83d\udfe1 **PREV EXECUTION STOPPED**  \u26aa **NEVER EXECUTED YET**"
+      }
+    },
+    {
+      "id": 18,
+      "type": "row",
+      "title": "Backup",
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 19,
+      "type": "table",
+      "title": "Backup tasks",
+      "description": "Every backup task: how its last known run went, then how the task is configured. Retention and Retention days are not independent - SM keeps 3 backups only when neither is set, and otherwise honours the one that is and treats the other as 0. Scheduled tasks are always listed; ad-hoc ones only when the selected time range covers their run.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max by (task) (scylla_manager_scheduler_task_state{cluster=\"$cluster\", type=\"backup\"} and on(task) (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", name=~\"$backup_task\"}))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(max by (task) ((time() - scylla_manager_scheduler_task_last_success_seconds{cluster=\"$cluster\", type=\"backup\"}) and on(task) (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", name=~\"$backup_task\"}))) or (max by (task) (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", name=~\"$backup_task\"}) * 0 + 99999999)",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max by (task) (scylla_manager_backup_task_progress{cluster=\"$cluster\"} and on(task) (scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", name=~\"$backup_task\"}))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", name=~\"$backup_task\"}",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "D"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "task",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Time 3": true,
+              "cluster": true,
+              "type": true,
+              "instance": true,
+              "job": true,
+              "__name__": true,
+              "task": true,
+              "Value #D": true,
+              "keyspace_replication": true,
+              "incremental_mode": true,
+              "host": true,
+              "fail_fast": true
+            },
+            "renameByName": {
+              "task": "Task ID",
+              "name": "Name",
+              "cron": "Cron",
+              "keyspace": "Keyspace filter",
+              "dc": "DC",
+              "keyspace_replication": "Replication",
+              "incremental_mode": "Incremental mode",
+              "host": "Host",
+              "fail_fast": "Fail fast",
+              "location": "Location",
+              "retention": "Retention",
+              "retention_days": "Retention days",
+              "method": "Method",
+              "purge_only": "Purge only",
+              "skip_schema": "Skip schema",
+              "retention_lock_mode": "Retention lock",
+              "Value #A": "State",
+              "Value #B": "Last success",
+              "Value #C": "Progress"
+            },
+            "indexByName": {
+              "name": 0,
+              "Value #A": 1,
+              "Value #C": 2,
+              "Value #B": 3,
+              "cron": 4,
+              "location": 5,
+              "keyspace": 6,
+              "dc": 7,
+              "retention": 8,
+              "retention_days": 9,
+              "method": 10,
+              "retention_lock_mode": 11,
+              "purge_only": 12,
+              "skip_schema": 13,
+              "task": 14
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "NEVER RUN",
+                        "color": "text",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "RUNNING",
+                        "color": "blue",
+                        "index": 1
+                      },
+                      "2": {
+                        "text": "DONE",
+                        "color": "green",
+                        "index": 2
+                      },
+                      "3": {
+                        "text": "ERROR",
+                        "color": "red",
+                        "index": 3
+                      },
+                      "4": {
+                        "text": "STOPPED",
+                        "color": "yellow",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 105
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Progress"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last success"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dthms"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "99999999": {
+                        "text": "never",
+                        "color": "red",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cron"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 115
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Location"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 195
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Keyspace filter"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DC"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Retention"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Retention days"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Method"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Retention lock"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Purge only"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Skip schema"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Task ID"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "rgba(108, 142, 191, 0.18)"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 290
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": "",
+          "enablePagination": true
+        },
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Name"
+          }
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "type": "state-timeline",
+      "title": "Backup task state",
+      "description": "One row per backup task, labelled by task name - unnamed tasks fall back to their task ID.\n\nThe bands carry colour only, keyed by the strip below. Nothing is written on the row because the state is latched: on a wide range a band covers most of the row, and text across all of it drowns the runs that actually matter.\n\nHover a band to read it: a run in flight reports its percentage, and a finished one reports its state. The colour key is a strip rather than the panel's own legend - that legend is built from the distinct values in the data, so leaving the percentages unmapped for the tooltip would make it list every percentage ever seen as its own entry.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "scylla-manager-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "scylla-manager-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(max by (task) (scylla_manager_backup_task_progress{cluster=\"$cluster\"} and on(task) (scylla_manager_scheduler_task_state{cluster=\"$cluster\", type=\"backup\"} == 1)) or max by (task) ((scylla_manager_scheduler_task_state{cluster=\"$cluster\", type=\"backup\"} != 1) - 10)) * on(task) group_left(name) (topk(1, scylla_manager_scheduler_task_info{cluster=\"$cluster\", type=\"backup\", name=~\"$backup_task\"}) by (task))",
+          "legendFormat": "{{name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-10": {
+                  "text": "NEVER EXECUTED YET",
+                  "color": "#8A8A8A",
+                  "index": 3
+                },
+                "-8": {
+                  "text": "PREV EXECUTION SUCCEEDED",
+                  "color": "green",
+                  "index": 1
+                },
+                "-7": {
+                  "text": "PREV EXECUTION FAILED",
+                  "color": "red",
+                  "index": 2
+                },
+                "-6": {
+                  "text": "PREV EXECUTION STOPPED",
+                  "color": "yellow",
+                  "index": 4
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 0,
+                "to": 100,
+                "result": {
+                  "color": "blue",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "blue",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 3
+              },
+              {
+                "color": "yellow",
+                "value": 4
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "spanNulls": false,
+            "insertNulls": false,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "perPage": 20,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "text",
+      "title": "",
+      "transparent": true,
+      "gridPos": {
+        "x": 0,
+        "y": 61,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "\ud83d\udd35 **RUNNING**  \ud83d\udfe2 **PREV EXECUTION SUCCEEDED**  \ud83d\udd34 **PREV EXECUTION FAILED**  \ud83d\udfe1 **PREV EXECUTION STOPPED**  \u26aa **NEVER EXECUTED YET**"
+      }
+    }
+  ]
+}

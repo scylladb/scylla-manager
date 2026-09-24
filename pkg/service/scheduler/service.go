@@ -386,6 +386,12 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		if err := table.SchedulerTaskUpdate.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
 			return err
 		}
+		// The update rewrites the name, the schedule and the properties, which
+		// is everything the info metric reports, so it has to be rewritten
+		// too - otherwise it keeps describing the task as it was created until
+		// the next restart. Only this metric is refreshed here: the others
+		// describe runs, and an update is not one.
+		s.metrics.SetTaskInfo(t.ClusterID, t.Type.String(), t.ID, newTaskInfo(t))
 		s.schedule(ctx, t, false)
 	}
 
@@ -411,7 +417,29 @@ func (s *Service) shouldPutTask(create bool, t *Task) error {
 }
 
 func (s *Service) initMetrics(t *Task) {
+	// Tasks are loaded from the database on start without filtering out the
+	// deleted ones, so a deleted task would otherwise come back to the
+	// metrics on every restart.
+	if t.Deleted {
+		return
+	}
 	s.metrics.Init(t.ClusterID, t.Type.String(), t.ID, *(*[]string)(unsafe.Pointer(&allStatuses))...)
+	// Restore the task state metric, so that a task that failed before
+	// SM restart is still reported as failed after it.
+	s.metrics.InitTaskState(t.ClusterID, t.Type.String(), t.ID, string(t.Status))
+	// Restore the last success metric, so that the age of the last
+	// successful run is not reset by an SM restart.
+	if t.LastSuccess != nil {
+		s.metrics.InitTaskLastSuccess(t.ClusterID, t.Type.String(), t.ID, t.LastSuccess.Unix())
+	}
+	s.metrics.SetTaskInfo(t.ClusterID, t.Type.String(), t.ID, newTaskInfo(t))
+	// Restore the start of the last run. Unlike the task status it is not
+	// kept on the task, so it has to be read back from the last run - without
+	// it every restart makes the metric disappear until the task runs again,
+	// which is exactly when "running for too long" needs it most.
+	if r, err := s.getLastRun(t); err == nil && !r.StartTime.IsZero() {
+		s.metrics.InitTaskRunStart(t.ClusterID, t.Type.String(), t.ID, r.StartTime.Unix())
+	}
 }
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
@@ -498,7 +526,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 	if err := s.putRunAndUpdateTask(r); err != nil {
 		return errors.Wrap(err, "put run")
 	}
-	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID)
+	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.StartTime.Unix())
 
 	defer func() {
 		r.Status, r.Cause = statusAndCauseFromCtxAndErr(runCtx, runErr)
@@ -538,7 +566,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		if err != nil {
 			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
 		}
-		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
+		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix(), r.EndTime.Unix())
 	}()
 
 	if ctx.Properties.(Properties) == nil {
@@ -658,6 +686,8 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	if err := q.ExecRelease(); err != nil {
 		return err
 	}
+
+	s.metrics.DeleteTask(t.ID)
 
 	s.mu.Lock()
 	l, lok := s.scheduler[t.ClusterID]

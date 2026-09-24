@@ -3,6 +3,7 @@
 package metrics
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -23,6 +24,33 @@ func TestRepairMetrics(t *testing.T) {
 		golden := testutils.LoadGoldenTextFile(t)
 		if diff := cmp.Diff(text, golden); diff != "" {
 			t.Error(diff)
+		}
+	})
+
+	t.Run("SetTaskProgress", func(t *testing.T) {
+		vnode := uuid.MustParse("965f4f5c-c7d1-4ae6-b770-a2225df4ef49")
+		tablet := uuid.MustParse("8fd16af1-815b-46db-bb2d-bd0a42ee9f92")
+		m.SetTaskProgress(c, vnode, RepairTypeVnode, RepairMode("full"), 42)
+		m.SetTaskProgress(c, tablet, RepairTypeTablet, RepairMode(""), 100)
+
+		text := Dump(t, m.taskProgress)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("ResetClusterMetrics keeps per task progress", func(t *testing.T) {
+		// ResetClusterMetrics runs at the beginning of every repair run,
+		// so it must not touch the progress of other repair tasks.
+		other := uuid.MustParse("1b967567-8bc4-4407-9e1d-c7f37069415e")
+		m.SetTaskProgress(c, other, RepairTypeVnode, RepairMode(""), 50)
+		m.ResetClusterMetrics(c)
+
+		if text := Dump(t, m.taskProgress); !strings.Contains(text, other.String()) {
+			t.Errorf("expected task progress of %s to be kept, got %q", other, text)
 		}
 	})
 

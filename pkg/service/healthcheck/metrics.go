@@ -16,6 +16,21 @@ const (
 	metricBufferSize = 100
 )
 
+// Values reported by the three "*_status" metrics. They are ordered by
+// severity, so that min_over_time over a range is the worst state a node
+// reached in it.
+const (
+	// metricStatusUp means that the protocol's probe succeeded.
+	metricStatusUp = 1
+	// metricStatusDown means that the probe failed while the agent still
+	// answers, so the node is reachable and this one protocol is not.
+	metricStatusDown = -1
+	// metricStatusAgentUnavailable means that the agent did not answer
+	// either, so Scylla Manager cannot reach the node at all and nothing can
+	// be said about the protocol.
+	metricStatusAgentUnavailable = -2
+)
+
 func labelNames() []string {
 	return []string{clusterKey, dcKey, rackKey, hostKey}
 }
@@ -50,7 +65,7 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "cql_status",
-		Help:      "Host native port status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
+		Help:      "Host CQL status. -2 stands for an unreachable agent, -1 for an unreachable CQL port and 1 for everything is fine.",
 	}, labelNames())
 
 	cqlRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -64,7 +79,7 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "rest_status",
-		Help:      "Host REST status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
+		Help:      "Host Scylla REST API status. -2 stands for an unreachable agent, -1 for an unreachable REST API and 1 for everything is fine.",
 	}, labelNames())
 
 	restRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -78,7 +93,7 @@ var (
 		Namespace: "scylla_manager",
 		Subsystem: "healthcheck",
 		Name:      "alternator_status",
-		Help:      "Host Alternator status. -2 stands for unavailable agent, -1 for unavailable Scylla and 1 for everything is fine.",
+		Help:      "Host Alternator status. -2 stands for an unreachable agent, -1 for an unreachable Alternator API and 1 for everything is fine. Note that a node reports 1 with 0ms RTT when Alternator is not enabled at all.",
 	}, labelNames())
 
 	alternatorRTT = prometheus.NewGaugeVec(prometheus.GaugeOpts{

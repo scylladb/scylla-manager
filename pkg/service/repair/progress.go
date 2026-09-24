@@ -54,6 +54,9 @@ type dbProgressManager struct {
 
 	metrics metrics.RepairMetrics
 	logger  log.Logger
+	// mode is the value of the "mode" label of the repair task progress
+	// metric. It's set in Init, as it comes from the repair plan.
+	mode string
 
 	mu       sync.Mutex
 	progress map[scyllaclient.HostKeyspaceTable]*RunProgress
@@ -74,7 +77,9 @@ func NewDBProgressManager(run *Run, session gocqlx.Session, metrics metrics.Repa
 func (pm *dbProgressManager) Init(plan *plan, prevID uuid.UUID) error {
 	pm.run.PrevID = prevID
 	pm.total.Store(0)
+	pm.mode = metrics.RepairMode(plan.IncrementalMode)
 	pm.metrics.SetProgress(pm.run.ClusterID, 0)
+	pm.setTaskProgress(0)
 
 	pm.tableSize = make(map[tableKey]int64)
 	pm.totalTableSize = 0
@@ -390,7 +395,13 @@ func (pm *dbProgressManager) updateTotalProgress(keyspace, table string, ranges 
 	// Watch out for rounding over 100% errors
 	if total := pm.total.Add(delta); total <= 100 {
 		pm.metrics.AddProgress(pm.run.ClusterID, delta)
+		pm.setTaskProgress(total)
 	}
+}
+
+// setTaskProgress updates the per task repair progress metric.
+func (pm *dbProgressManager) setTaskProgress(progress float64) {
+	pm.metrics.SetTaskProgress(pm.run.ClusterID, pm.run.TaskID, metrics.RepairTypeVnode, pm.mode, progress)
 }
 
 type tableKey struct {

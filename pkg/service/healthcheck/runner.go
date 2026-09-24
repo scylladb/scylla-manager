@@ -97,9 +97,9 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, addresses [
 		}
 		promLs := newLabels(clusterID.String(), ni.Datacenter, ni.Rack, addresses[i]).promLabels()
 		if err != nil {
-			r.metrics.status.With(promLs).Set(-1)
+			r.metrics.status.With(promLs).Set(r.statusOnPingError(ctx, clusterID, addresses[i]))
 		} else {
-			r.metrics.status.With(promLs).Set(1)
+			r.metrics.status.With(promLs).Set(metricStatusUp)
 		}
 		r.metrics.rtt.With(promLs).Set(float64(rtt.Milliseconds()))
 
@@ -109,6 +109,20 @@ func (r runner) checkHosts(ctx context.Context, clusterID uuid.UUID, addresses [
 	_ = parallel.Run(len(addresses), parallel.NoLimit, f, func(i int, err error) { // nolint: errcheck
 		r.logger.Error(ctx, "Parallel hosts check failed", "host", addresses[i], "error", err)
 	})
+}
+
+// statusOnPingError tells an unreachable node apart from a failing probe.
+// None of the probes go through the agent - CQL and Alternator are dialled
+// directly, and the REST one is proxied but fails for its own reasons - so a
+// failure on its own does not say whether the node is reachable at all.
+// Pinging the agent separates the two, and they call for different responses:
+// one protocol being down is a Scylla problem, an unreachable node is a
+// connectivity or agent problem that makes every other check meaningless.
+func (r runner) statusOnPingError(ctx context.Context, clusterID uuid.UUID, host string) float64 {
+	if _, err := r.pingAgent(ctx, clusterID, host, r.timeout); err != nil {
+		return metricStatusAgentUnavailable
+	}
+	return metricStatusDown
 }
 
 func (r runner) removeMetricsForCluster(clusterID uuid.UUID) {
