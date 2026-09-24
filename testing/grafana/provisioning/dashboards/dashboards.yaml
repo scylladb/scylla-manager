@@ -1,0 +1,19 @@
+apiVersion: 1
+
+providers:
+  - name: scylla-manager
+    orgId: 1
+    folder: Scylla Manager
+    type: file
+    # The files are the source of truth. With allowUiUpdates enabled Grafana
+    # refuses to apply a file whose "version" is not higher than the one it
+    # already stored, and it bumps that version every time it saves, so after
+    # the first UI save the directory is silently ignored - edits to the JSON
+    # stop showing up with nothing logged. Dashboards can still be opened and
+    # tweaked in the UI to try something out, and exported from there, they
+    # just cannot be saved back into Grafana's database - which is wiped by
+    # "make down" anyway.
+    allowUiUpdates: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards
