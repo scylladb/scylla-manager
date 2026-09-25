@@ -37,7 +37,7 @@ func (r *rcloneTestHelper) setup() {
 	rclone.RedirectLogPrint(log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("rclone"))
 	// Disable certificate check for scyllaclient package integration tests.
 	// Rclone server here is started on the localhost.
-	// Minio with custom CA certs is verified by integration-tests from other packages.
+	// Silo with custom CA certs is verified by integration-tests from other packages.
 	globalOptions := rclone.DefaultGlobalOptions()
 	globalOptions.InsecureSkipVerify = true
 	rclone.InitFsConfigWithOptions(globalOptions)

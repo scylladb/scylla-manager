@@ -752,13 +752,13 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 	tt1 := table{ks: ks, tab: tab1}
 	tt2 := table{ks: ks, tab: tab2}
 	tables := []table{tt1, tt2}
+	const tabStmt = "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
 	// Note that src and dst describe the same cluster, so the schema is shared
 	createSchema := func(t *testing.T) {
 		t.Helper()
 		Print("Create schema")
 
 		ksStmt := "CREATE KEYSPACE %q WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2} AND tablets = {'enabled': 'true'}"
-		tabStmt := "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
 		ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(ksStmt, ks))
 		for _, tab := range []string{tab1, tab2} {
 			ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab))
@@ -928,29 +928,32 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 
 		// Resume the same restore task with a new run - tables restored before
 		// the abort took effect are skipped, the aborted ones are restored again.
-		Print("Resume restore")
 		h.dstCluster.Hrt.SetInterceptor(nil)
-		// Scheduling tablet aware restore might fail if the previous one was aborted.
-		// That's the case even if SM waits for the aborted task to reach terminal state
-		// before starting the new task. In general, this is a transient issue and should
-		// be fixed on the scylla side (https://scylladb.atlassian.net/browse/SCYLLADB-4472).
-		const maxTries = 5
-		var resumeErr error
-		for i := range maxTries {
-			if i > 0 {
-				time.Sleep(5 * time.Second)
+
+		// Recreates the tables which are going to be restored again by the resumed
+		// restore, that is the tables without a successful progress row in the current run.
+		// Scylla doesn't allow for restoring a table with tablet aware restore again,
+		// as it might join the previous restore request of this table and return
+		// its result (e.g. abort error) instead of restoring the table. Recreating
+		// the table changes its ID, so that the resumed restore is not affected.
+		// TODO: remove when https://scylladb.atlassian.net/browse/SCYLLADB-4472 is fixed.
+		Print("Recreate tables to be restored again")
+		for tt, pr := range h.mustTabletProgressRows(t) {
+			if !pr.CompletedAt.IsZero() && pr.Error == "" {
+				// Restored table is skipped by the resumed restore
+				continue
 			}
-			h.dstCluster.RunID = uuid.NewTime()
-			if resumeErr = runRestore(t.Context()); resumeErr == nil {
-				break
-			}
-			if !strings.Contains(resumeErr.Error(), "seastar::abort_requested_exception") {
-				t.Fatal(errors.Wrap(resumeErr, "resume restore"))
-			}
-			t.Logf("Resumed restore failed due to scylla task abort issue: %s", resumeErr)
+			Printf("Recreate table %s.%s", tt.ks, tt.tab)
+			ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("DROP TABLE %q.%q", tt.ks, tt.tab))
+			ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, tt.ks, tt.tab))
 		}
-		if resumeErr != nil {
-			t.Fatal(errors.Wrap(resumeErr, "resume restore failed on all retries due to SCYLLADB-4472"))
+		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, []string{ks}, h.dstUser)
+		ExecStmt(t, h.dstCluster.rootSession, "TRUNCATE TABLE system_distributed.snapshot_sstables")
+
+		Print("Resume restore")
+		h.dstCluster.RunID = uuid.NewTime()
+		if err := runRestore(t.Context()); err != nil {
+			t.Fatal(errors.Wrap(err, "resume restore"))
 		}
 
 		Print("Validate run progress after resume")

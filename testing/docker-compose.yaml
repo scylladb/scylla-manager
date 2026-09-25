@@ -3,8 +3,8 @@ services:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     environment:
-      AWS_ACCESS_KEY_ID: miniouser
-      AWS_SECRET_ACCESS_KEY: minio1234
+      AWS_ACCESS_KEY_ID: silouser
+      AWS_SECRET_ACCESS_KEY: silo1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.dc1r1.properties
@@ -26,8 +26,8 @@ services:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     environment:
-      AWS_ACCESS_KEY_ID: miniouser
-      AWS_SECRET_ACCESS_KEY: minio1234
+      AWS_ACCESS_KEY_ID: silouser
+      AWS_SECRET_ACCESS_KEY: silo1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.dc1r2.properties
@@ -49,8 +49,8 @@ services:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     environment:
-      AWS_ACCESS_KEY_ID: miniouser
-      AWS_SECRET_ACCESS_KEY: minio1234
+      AWS_ACCESS_KEY_ID: silouser
+      AWS_SECRET_ACCESS_KEY: silo1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.dc1r3.properties
@@ -72,8 +72,8 @@ services:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     environment:
-      AWS_ACCESS_KEY_ID: miniouser
-      AWS_SECRET_ACCESS_KEY: minio1234
+      AWS_ACCESS_KEY_ID: silouser
+      AWS_SECRET_ACCESS_KEY: silo1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.dc2r1.properties
@@ -95,8 +95,8 @@ services:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     environment:
-      AWS_ACCESS_KEY_ID: miniouser
-      AWS_SECRET_ACCESS_KEY: minio1234
+      AWS_ACCESS_KEY_ID: silouser
+      AWS_SECRET_ACCESS_KEY: silo1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.dc2r2.properties
@@ -118,8 +118,8 @@ services:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     environment:
-      AWS_ACCESS_KEY_ID: miniouser
-      AWS_SECRET_ACCESS_KEY: minio1234
+      AWS_ACCESS_KEY_ID: silouser
+      AWS_SECRET_ACCESS_KEY: silo1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.dc2r3.properties
@@ -141,8 +141,8 @@ services:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     environment:
-      AWS_ACCESS_KEY_ID: miniouser
-      AWS_SECRET_ACCESS_KEY: minio1234
+      AWS_ACCESS_KEY_ID: silouser
+      AWS_SECRET_ACCESS_KEY: silo1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.dc1r1.properties
@@ -164,8 +164,8 @@ services:
     image: scylladb/agent-${SCYLLA_VERSION}
     privileged: true
     environment:
-      AWS_ACCESS_KEY_ID: miniouser
-      AWS_SECRET_ACCESS_KEY: minio1234
+      AWS_ACCESS_KEY_ID: silouser
+      AWS_SECRET_ACCESS_KEY: silo1234
     volumes:
       - type: bind
         source: ./scylla/cassandra-rackdc.dc1r2.properties
@@ -203,22 +203,23 @@ services:
     networks:
       second:
 
-  minio:
-    image: quay.io/minio/minio:${MINIO_VERSION}
+  silo:
+    image: docker.io/pgsty/silo:${SILO_VERSION}
     privileged: true
     user: ${CURRENT_UID}:${CURRENT_GID}
-    command: server /data --console-address ":9001" --certs-dir=/.minio
+    command: server /data --console-address ":9001" --certs-dir=/.silo
+    # Silo is a MinIO fork and still reads MINIO_* env vars.
     environment:
-      MINIO_REGION: ${MINIO_REGION}
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_REGION: ${SILO_REGION}
+      MINIO_ROOT_USER: ${SILO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${SILO_ROOT_PASSWORD}
     volumes:
       - type: bind
-        source: ./minio/data
+        source: ./silo/data
         target: /data
       - type: bind
-        source: ${MINIO_CERT_DIR}
-        target: /.minio
+        source: ${SILO_CERT_DIR}
+        target: /.silo
     ports:
       - "9000:9000"
       - "9001:9001"
