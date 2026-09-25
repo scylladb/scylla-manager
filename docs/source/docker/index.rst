@@ -29,7 +29,7 @@ Docker command installed.
 #. Run containers, this will run:
 
    * ScyllaDB node with ScyllaDB Manager Agent installed (a toy cluster)
-   * MinIO (for backups)
+   * `Silo <https://github.com/pgsty/silo>`_, a MinIO fork (for backups)
    * ScyllaDB Manager and its backend ScyllaDB instance
 
    .. code-block:: none
@@ -74,9 +74,9 @@ Docker command installed.
       |\_/|    $ sctool status -c defe1ffe-c992-4ca2-9fad-82a61f39ad9e
       \___/    $ sctool tasks -c defe1ffe-c992-4ca2-9fad-82a61f39ad9e
 
-#. Create a Bucket for Backups in MinIO
+#. Create a Bucket for Backups in Silo
 
-If you wish to create backups with ScyllaDB Manager using MinIO as a target you
+If you wish to create backups with ScyllaDB Manager using Silo as a target you
 need to first create a "bucket" directory to use as the backup target.
 
 Making sure you are back on your host shell and not in the scylla-manager
@@ -84,7 +84,7 @@ container, run the following:
 
    .. code-block:: none
 
-      docker compose exec minio sh -c "mkdir /data/docker"
+      docker compose exec silo sh -c "mkdir /data/docker"
 
 Afterwards you can schedule backups in ScyllaDB Manager using "s3:docker" as the
 backup location.

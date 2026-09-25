@@ -25,21 +25,21 @@ services:
         ipv4_address: 192.168.100.100
     command: --smp 1 --memory 1G
 
-  minio:
-    image: quay.io/minio/minio
+  silo:
+    image: docker.io/pgsty/silo
     volumes:
-      - minio_data:/data
+      - silo_data:/data
     networks:
       public:
     ports:
       - "9001:9000"
     environment:
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: minio123
+      MINIO_ROOT_USER: silo
+      MINIO_ROOT_PASSWORD: silo1234
     command: server /data
 
 volumes:
-  minio_data:
+  silo_data:
   scylla_data:
   scylla_manager_db_data:
 
