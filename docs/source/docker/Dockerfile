@@ -18,10 +18,10 @@ EOF
 RUN mkdir -p /etc/scylla-manager-agent && cat > /etc/scylla-manager-agent/scylla-manager-agent.yaml <<'EOF'
 auth_token: token
 s3:
-    access_key_id: minio
-    secret_access_key: minio123
+    access_key_id: silo
+    secret_access_key: silo1234
     provider: Minio
-    endpoint: http://minio:9000
+    endpoint: http://silo:9000
 EOF
 
 USER scylla
