@@ -25,13 +25,13 @@ SSL_ENABLED?=false
 MANAGER_CONFIG := testing/scylla-manager/scylla-manager.yaml
 PUBLIC_NET := 192.168.200.
 PUBLIC_SECOND_NET := 192.168.100.
-MINIO_ENDPOINT := https://192.168.200.99:9000
+SILO_ENDPOINT := https://192.168.200.99:9000
 GCS_ENDPOINT := http://192.168.200.97:4443
 ifeq ($(IP_FAMILY), IPV6)
 	MANAGER_CONFIG := testing/scylla-manager/scylla-manager-ipv6.yaml
 	PUBLIC_NET := 2001:0DB9:200::
 	PUBLIC_SECOND_NET := 2001:0DB9:100::
-	MINIO_ENDPOINT := https://[2001:0DB9:200::99]:9000
+	SILO_ENDPOINT := https://[2001:0DB9:200::99]:9000
 	GCS_ENDPOINT := http://[2001:0DB9:200::97]:4443
 endif
 
@@ -119,7 +119,7 @@ integration-test:
 	@$(MAKE) pkg-integration-test PKG=./pkg/store
 	@$(MAKE) pkg-integration-test PKG=./pkg/schema/migrate
 
-# Load Minio config for INTEGRATION_TEST_ARGS
+# Load Silo config for INTEGRATION_TEST_ARGS
 include testing/.env
 
 INTEGRATION_TEST_ARGS := -cluster $(PUBLIC_NET)100 \
@@ -129,7 +129,7 @@ INTEGRATION_TEST_ARGS := -cluster $(PUBLIC_NET)100 \
 -managed-second-cluster $(PUBLIC_NET)31,$(PUBLIC_NET)32 \
 -user cassandra -password cassandra \
 -agent-auth-token token \
--s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY) \
+-s3-provider Minio -s3-endpoint $(SILO_ENDPOINT) -s3-access-key-id $(SILO_USER_ACCESS_KEY) -s3-secret-access-key $(SILO_USER_SECRET_KEY) \
 -gcs-endpoint $(GCS_ENDPOINT)
 ifdef BACKUP_METHOD
 INTEGRATION_TEST_ARGS += -backup-method $(BACKUP_METHOD)
