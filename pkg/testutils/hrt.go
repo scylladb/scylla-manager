@@ -77,7 +77,7 @@ func (h *HackableRoundTripper) RoundTrip(req *http.Request) (resp *http.Response
 // sequentialPermissionCheck is a default interceptor ensuring that permission
 // check requests are executed sequentially. This is needed for our test env
 // as parallel permission checks operating on objects with common prefix are
-// not handled well by our MinIo container and result in test flakiness.
+// not handled well by our Silo (MinIO fork) container and result in test flakiness.
 // This problem is not observed in production or mock GCS server.
 func sequentialPermissionCheck(next http.RoundTripper) http.RoundTripper {
 	const permissionCheckPath = "/agent/rclone/operations/check-permissions"

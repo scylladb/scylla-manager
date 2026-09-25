@@ -108,7 +108,7 @@ make check # Full static analysis suite (should pass for every commit)
 ## Development Environment
 
 ```bash
-make start-dev-env SCYLLA_VERSION=<version> TABLETS=<enabled|disabled> SSL_ENABLED=<true|false> # Start test dev env (6-node Scylla cluster, another 2-node cluster MinIO, etc.)
+make start-dev-env SCYLLA_VERSION=<version> TABLETS=<enabled|disabled> SSL_ENABLED=<true|false> # Start test dev env (6-node Scylla cluster, another 2-node cluster, Silo (S3), etc.)
 make run-server SSL_ENABLED=<true|false>                                                        # Build and run SM server in test dev env
 ```
 

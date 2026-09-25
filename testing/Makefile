@@ -15,28 +15,28 @@ SCYLLA_VERSION?=scylla:latest
 IP_FAMILY?=IPV4
 TABLETS?=enabled
 
-MINIO_HOST := 192.168.200.99
-MINIO_ENDPOINT := https://192.168.200.99:9000
+SILO_HOST := 192.168.200.99
+SILO_ENDPOINT := https://192.168.200.99:9000
 GCS_ENDPOINT := http://192.168.200.97:4443
 SCYLLA_GCS_ENDPOINT := http://192.168.200.97:4443
 COMPOSE_FILE := docker-compose-ipv4.yaml
 AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent.yaml
 PUBLIC_NET := 192.168.100.
 SECOND_NET := 192.168.200.
-MINIO_CERT_DIR := ./minio/certs_ipv4
+SILO_CERT_DIR := ./silo/certs_ipv4
 
 ifeq ($(IP_FAMILY), IPV6)
 	# As currently scylla can't handle ipv6 object storage endpoints,
 	# we don't configure them for ipv6 test env.
-	MINIO_HOST := xxx
-	MINIO_ENDPOINT := https://[2001:0DB9:200::99]:9000
+	SILO_HOST := xxx
+	SILO_ENDPOINT := https://[2001:0DB9:200::99]:9000
 	GCS_ENDPOINT := http://[2001:0DB9:200::97]:4443
 	SCYLLA_GCS_ENDPOINT := xxx
 	COMPOSE_FILE := docker-compose-ipv6.yaml
 	AGENT_CONFIG := scylla-manager-agent/scylla-manager-agent-ipv6.yaml
 	PUBLIC_NET := 2001:0DB9:100::
 	SECOND_NET := 2001:0DB9:200::
-	MINIO_CERT_DIR := ./minio/certs_ipv6
+	SILO_CERT_DIR := ./silo/certs_ipv6
 endif
 
 SCYLLA_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)11
@@ -44,8 +44,8 @@ SCYLLA_SECOND_CLUSTER_ARGS := --smp 2 --memory 2G --seeds $(SECOND_NET)31
 
 export SCYLLA_ARGS
 export SCYLLA_SECOND_CLUSTER_ARGS
-export MINIO_ENDPOINT
-export MINIO_CERT_DIR
+export SILO_ENDPOINT
+export SILO_CERT_DIR
 export GCS_ENDPOINT
 
 include .env
@@ -73,7 +73,7 @@ up:
 	@echo "==> Generating Scylla configuration"
 	@cp scylla/config/scylla.yaml scylla/scylla.yaml
 	@cp scylla/config/scylla-sm.yaml scylla/scylla-sm.yaml
-	@$(YQ) write -i scylla/scylla.yaml 'object_storage_endpoints[0].(name)' $(MINIO_HOST)
+	@$(YQ) write -i scylla/scylla.yaml 'object_storage_endpoints[0].(name)' $(SILO_HOST)
 	@$(YQ) write -i scylla/scylla.yaml 'object_storage_endpoints[1].(name)' $(SCYLLA_GCS_ENDPOINT)
 
 ifeq ($(SSL_ENABLED),true)
@@ -103,7 +103,7 @@ endif
 	@$(YQ) write -i scylla/scylla-second-cluster.yaml 'cluster_name' 'Managed Other Cluster'
 
 	@echo "==> Starting containers"
-	mkdir -p ./minio/data
+	mkdir -p ./silo/data
 	mkdir -p ./fake-gcs/data
 	mkdir -p ./localstorage/data
 
@@ -142,8 +142,8 @@ endif
 	@$(COMPOSE) exec -T scylla-manager-db bash -c "mkdir -p /root/.cassandra"
 	@docker cp scylla/cqlshrc $$(docker ps -qf name=scylla-manager-db):/root/.cassandra/cqlshrc
 
-	@echo "==> Adding Minio user"
-	./minio/add_user.sh
+	@echo "==> Adding Silo user"
+	./silo/add_user.sh
 	@echo "==> Adding cassandra superuser"
 	# Starting from scylla 2026.2, cassandra superuser is no longer created by default on cluster startup.
 	# It is recommended to configure it manually via the maintenance socket.
@@ -193,9 +193,9 @@ deploy-agent: ## Update agent to the latest build on all nodes
 	@./nodes_cp ../scylla-manager-agent.dev /usr/bin/scylla-manager-agent
 	@./nodes_cp $(AGENT_CONFIG) /etc/scylla-manager-agent/scylla-manager-agent.yaml
 ifeq ($(IP_FAMILY), IPV6)
-	@(./nodes_cp minio/certs_ipv6/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt) || (./nodes_cp minio/certs_ipv6/CAs/rootCA.pem /etc/pki/ca-trust/source/anchors/rootCA.crt)
+	@(./nodes_cp silo/certs_ipv6/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt) || (./nodes_cp silo/certs_ipv6/CAs/rootCA.pem /etc/pki/ca-trust/source/anchors/rootCA.crt)
 else
-	@(./nodes_cp minio/certs_ipv4/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt) || (./nodes_cp minio/certs_ipv4/CAs/rootCA.pem /etc/pki/ca-trust/source/anchors/rootCA.crt)
+	@(./nodes_cp silo/certs_ipv4/CAs/rootCA.pem /usr/local/share/ca-certificates/rootCA.crt) || (./nodes_cp silo/certs_ipv4/CAs/rootCA.pem /etc/pki/ca-trust/source/anchors/rootCA.crt)
 endif
 	@(./nodes_exec "sudo update-ca-certificates") || (./nodes_exec "su root -c update-ca-trust")
 

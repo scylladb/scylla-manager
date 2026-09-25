@@ -91,7 +91,7 @@ This command will:
 1. Build custom Scylla Docker image (testing/scylla)
 2. Compile server, agent and sctool binaries
 3. Start Scylla cluster with 2 DCs 3 nodes each (6 containers)
-4. Start MinIO and Prometheus containers
+4. Start Silo (S3), fake GCS and Prometheus containers
 5. Start dedicated Scylla container for Scylla Manager datastore
 
 Additionally, you can start container with scylla-manager server.

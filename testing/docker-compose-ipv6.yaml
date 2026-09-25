@@ -69,7 +69,7 @@ services:
       second:
         ipv6_address: 2001:0DB9:200::100
 
-  minio:
+  silo:
     networks:
       second:
         ipv6_address: 2001:0DB9:200::99

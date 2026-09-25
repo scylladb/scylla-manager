@@ -1,5 +1,5 @@
 This is just a testing certificate used to validate and show the possibility of setting custom CA certificate for
-S3 compatible storage - Minio.
+S3 compatible storage - Silo.
 
 Password for rootCA.pem: "Test"
 
