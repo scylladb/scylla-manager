@@ -204,7 +204,7 @@ services:
       second:
 
   minio:
-    image: quay.io/minio/minio:${MINIO_VERSION}
+    image: docker.io/pgsty/silo:${MINIO_VERSION}
     privileged: true
     user: ${CURRENT_UID}:${CURRENT_GID}
     command: server /data --console-address ":9001" --certs-dir=/.minio

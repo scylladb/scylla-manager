@@ -8,7 +8,7 @@ set -eu -o pipefail
 source .env
 
 function mc() {
-  docker run -i --rm --network=host -v $(pwd)/minio/mc:/root/.mc/ -v $(pwd)/minio/user-policy.json:/user-policy.json  quay.io/minio/mc:"$MINIO_MC_VERSION" "$@"
+  docker run -i --rm --network=host -v $(pwd)/minio/mc:/root/.mc/ -v $(pwd)/minio/user-policy.json:/user-policy.json  docker.io/pgsty/mc:"$MINIO_MC_VERSION" "$@"
 }
 
 mc --insecure alias set minio-test "$MINIO_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
