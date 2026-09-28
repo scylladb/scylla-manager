@@ -8,8 +8,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -384,5 +386,49 @@ func TestClientTokensIntegration(t *testing.T) {
 			}
 			allTokens.Add(v)
 		}
+	}
+}
+
+// TestClientMetricsFilteringIntegration checks that querying Scylla metrics
+// with a metric name returns only the requested metric family.
+func TestClientMetricsFilteringIntegration(t *testing.T) {
+	testCases := []struct {
+		name   string
+		metric string
+	}{
+		{
+			name:   "shard count metric",
+			metric: "database_total_writes",
+		},
+		{
+			name:   "total memory metric",
+			metric: "memory_total_memory",
+		},
+	}
+
+	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			for _, h := range ManagedClusterHosts() {
+				metrics, err := client.Metrics(t.Context(), h, tc.metric)
+				if err != nil {
+					t.Fatalf("%s: Metrics() error %s", h, err)
+				}
+
+				got := slices.Sorted(maps.Keys(metrics))
+				expected := []string{"scylla_" + tc.metric}
+				if diff := cmp.Diff(expected, got); diff != "" {
+					t.Fatalf("%s: Metrics(%q) returned unexpected metric families, diff %s", h, tc.metric, diff)
+				}
+				if len(metrics["scylla_"+tc.metric].GetMetric()) == 0 {
+					t.Fatalf("%s: Metrics(%q) returned metric family without any metrics", h, tc.metric)
+				}
+			}
+		})
 	}
 }
