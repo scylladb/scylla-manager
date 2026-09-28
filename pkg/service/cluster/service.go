@@ -691,7 +691,7 @@ func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error 
 		return errors.Wrap(err, "delete cluster secrets")
 	}
 
-	s.clientCache.Invalidate(clusterID)
+	s.clientCache.Delete(clusterID)
 
 	return s.notifyChangeListener(ctx, Change{ID: clusterID, Type: Delete})
 }
