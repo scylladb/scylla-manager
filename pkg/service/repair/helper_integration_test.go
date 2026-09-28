@@ -763,17 +763,31 @@ const scyllaPrometheusPort = "9180"
 func nodeRepairWork(t *testing.T, host string) float64 {
 	t.Helper()
 
+	const (
+		repairRxHashesMetric = "scylla_repair_rx_hashes_nr"
+		repairTxHashesMetric = "scylla_repair_tx_hashes_nr"
+	)
 	metricsHost, err := secondNetHost(host)
 	if err != nil {
 		t.Fatalf("Translate %s to the second test network: %s", host, err)
 	}
-	u := "http://" + net.JoinHostPort(metricsHost, scyllaPrometheusPort) + "/metrics?name=repair_hashes_nr"
+	// Older scylla versions don't support multiple '__name__' params,
+	// so we need to filter by all repair metrics.
+	u := "http://" + net.JoinHostPort(metricsHost, scyllaPrometheusPort) + "/metrics?__name__=repair_*"
 
-	resp, err := http.Get(u) //nolint:gosec,noctx
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, u, http.NoBody)
+	if err != nil {
+		t.Fatalf("Create metrics request of %s: %s", host, err)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("Get metrics of %s: %s", host, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Errorf("Close metrics response body of %s: %s", host, err)
+		}
+	}()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Get metrics of %s: status %d", host, resp.StatusCode)
 	}
@@ -786,7 +800,7 @@ func nodeRepairWork(t *testing.T, host string) float64 {
 	var out float64
 	// Scylla registers its metric groups on startup, so a missing metric means
 	// that it was renamed or removed - fail instead of reporting no repair work.
-	for _, name := range []string{"scylla_repair_rx_hashes_nr", "scylla_repair_tx_hashes_nr"} {
+	for _, name := range []string{repairRxHashesMetric, repairTxHashesMetric} {
 		family, ok := families[name]
 		if !ok {
 			t.Fatalf("Scylla on %s does not expose %s metric", host, name)
