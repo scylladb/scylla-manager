@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"time"
+
+	"github.com/scylladb/scylla-manager/v3/pkg/util/prom"
 )
 
 func NoRetry(ctx context.Context) context.Context {
@@ -46,4 +48,8 @@ func ReadListStart(dec *json.Decoder) error {
 
 func ReadListEnd(dec *json.Decoder) error {
 	return readListEnd(dec)
+}
+
+func (c *Client) Metrics(ctx context.Context, host, name string) (map[string]*prom.MetricFamily, error) {
+	return c.metrics(ctx, host, name)
 }

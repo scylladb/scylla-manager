@@ -457,7 +457,7 @@ func (c *Client) metrics(ctx context.Context, host, name string) (map[string]*pr
 
 	if name != "" {
 		q := r.URL.Query()
-		q.Add("name", name)
+		q.Add("__name__", name)
 		r.URL.RawQuery = q.Encode()
 	}
 
