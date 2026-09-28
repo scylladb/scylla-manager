@@ -38,6 +38,13 @@ func (p *CachedProvider) SetValidity(d time.Duration) {
 	p.validity = d
 }
 
+// CachedClients returns the amount of entries kept in the client cache.
+func (p *CachedProvider) CachedClients() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return len(p.clients)
+}
+
 func (c *Client) Hosts(ctx context.Context) ([]string, error) {
 	return c.hosts(ctx)
 }
