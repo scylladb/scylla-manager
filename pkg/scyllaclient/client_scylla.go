@@ -443,7 +443,7 @@ func (c *Client) HostsShardCount(ctx context.Context, hosts []string) (map[strin
 // metrics returns Scylla Prometheus metrics, `name` pattern be used to filter
 // out only subset of metrics.
 // If host is empty it will pick one from the pool.
-func (c *Client) metrics(ctx context.Context, host, name string) (map[string]*prom.MetricFamily, error) {
+func (c *Client) metrics(ctx context.Context, host, name string) (metricFamilies map[string]*prom.MetricFamily, err error) {
 	u := c.newURL(host, "/metrics")
 
 	// In case host is not set select a host from a pool.
@@ -465,7 +465,9 @@ func (c *Client) metrics(ctx context.Context, host, name string) (map[string]*pr
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = stdErrors.Join(err, resp.Body.Close())
+	}()
 
 	return prom.ParseText(resp.Body)
 }
