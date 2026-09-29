@@ -45,4 +45,23 @@ func TestSchedulerMetrics(t *testing.T) {
 			t.Error(diff)
 		}
 	})
+
+	t.Run("DeleteTaskMetrics", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.Init(c, p, t0, "DONE", "ERROR")
+		m.Init(c, p, t1, "DONE", "ERROR")
+		m.BeginRun(c, p, t0)
+		m.BeginRun(c, p, t1)
+		m.EndRun(c, p, t0, "DONE", 1645517563)
+		m.EndRun(c, p, t1, "DONE", 1645517563)
+		m.DeleteTaskMetrics(t1)
+
+		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
 }
