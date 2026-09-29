@@ -1887,6 +1887,7 @@
         }
       },
       "delete": {
+        "description": "Deletes the task. A running task is stopped without awaiting its completion.",
         "responses": {
           "200": {
             "description": "Task deleted"

@@ -660,29 +660,35 @@ func (s *Service) findTaskByID(key Key) (taskInfo, bool) {
 func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "DeleteTask", "task", t)
 
+	// Since DB deletion is the only point of failure in this
+	// method, it's the most safe and idempotent to start with it.
+	// Otherwise, edge-cases where we unschedule task and clean
+	// up its resources, but fail on DB write, results in unexpected
+	// state when inspecting tasks via SM REST API.
 	t.Deleted = true
 	t.Enabled = false
-
 	// Remove the deleted task's name so that new tasks can use it
 	t.Name = ""
-
 	q := table.SchedulerTask.UpdateQuery(s.session, "deleted", "enabled", "name").BindStruct(t)
-
 	if err := q.ExecRelease(); err != nil {
 		return err
 	}
 
 	s.mu.Lock()
-	l, lok := s.scheduler[t.ClusterID]
 	s.resolver.Remove(t.ID)
 	delete(s.noContinue, t.ID)
 	// Metrics of a running task are deleted in Service.run when the run ends.
 	if _, running := s.runs[t.ID]; !running {
 		s.metrics.DeleteTaskMetrics(t.ID)
 	}
+	// Follow the pattern of running cluster scheduler methods
+	// requiring cluster mutex outside of scheduler svc mutex.
+	l, lok := s.scheduler[t.ClusterID]
 	s.mu.Unlock()
+
 	if lok {
 		l.Unschedule(ctx, t.ID)
+		l.Stop(ctx, t.ID)
 	}
 
 	s.logger.Info(ctx, "Task deleted",

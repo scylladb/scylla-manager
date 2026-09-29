@@ -1997,11 +1997,10 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			t.Fatal("Expected no continue to be cleared")
 		}
 
-		Print("When: task run ends")
-		h.runner.Done()
-		h.assertStatus(task, scheduler.StatusDone)
+		Print("And: task is stopped")
+		h.assertStatus(task, scheduler.StatusStopped)
 
-		Print("Then: task metrics are deleted")
+		Print("And: task metrics are deleted")
 		h.assertTaskMetrics(task.ID, false)
 	})
 
