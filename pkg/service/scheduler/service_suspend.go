@@ -183,7 +183,7 @@ func (s *Service) suspend(ctx context.Context, clusterID uuid.UUID, wait bool, p
 	}
 
 	var tasks []Task
-	if err := s.forEachClusterTask(clusterID, func(t *Task) error {
+	if err := s.forEachClusterTask(clusterID, false, func(t *Task) error {
 		tasks = append(tasks, *t)
 		return nil
 	}); err != nil {
@@ -361,7 +361,7 @@ func (s *Service) Resume(ctx context.Context, clusterID uuid.UUID, startTasks, s
 	s.metrics.Resume(clusterID)
 	s.mu.Unlock()
 
-	if err := s.forEachClusterTask(clusterID, func(t *Task) error {
+	if err := s.forEachClusterTask(clusterID, false, func(t *Task) error {
 		if t.Type == si.AllowTask.TaskType {
 			return nil
 		}
@@ -410,10 +410,10 @@ func (s *Service) shouldStartTaskOnResume(si *suspendInfo, task *Task, startTask
 	return false
 }
 
-func (s *Service) forEachClusterTask(clusterID uuid.UUID, f func(t *Task) error) error {
+func (s *Service) forEachClusterTask(clusterID uuid.UUID, includeDeleted bool, f func(t *Task) error) error {
 	q := qb.Select(table.SchedulerTask.Name()).Where(qb.Eq("cluster_id")).Query(s.session).Bind(clusterID)
 	defer q.Release()
-	return forEachTaskWithQuery(q, f)
+	return forEachTaskWithQuery(q, includeDeleted, f)
 }
 
 type suspendRunner struct {
