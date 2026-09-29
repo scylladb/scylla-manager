@@ -40,7 +40,12 @@ func (m SchedulerMetrics) all() []prometheus.Collector {
 
 // MustRegister shall be called to make the metrics visible by prometheus client.
 func (m SchedulerMetrics) MustRegister() SchedulerMetrics {
-	prometheus.MustRegister(m.all()...)
+	return m.MustRegisterWith(prometheus.DefaultRegisterer)
+}
+
+// MustRegisterWith registers all scheduler metrics with the given registerer.
+func (m SchedulerMetrics) MustRegisterWith(reg prometheus.Registerer) SchedulerMetrics {
+	reg.MustRegister(m.all()...)
 	return m
 }
 
@@ -48,6 +53,14 @@ func (m SchedulerMetrics) MustRegister() SchedulerMetrics {
 func (m SchedulerMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range m.all() {
 		setGaugeVecMatching(c.(*prometheus.GaugeVec), unspecifiedValue, clusterMatcher(clusterID))
+	}
+}
+
+// DeleteTaskMetrics removes all metrics labeled with the task.
+func (m SchedulerMetrics) DeleteTaskMetrics(taskID uuid.UUID) {
+	l := prometheus.Labels{"task": taskID.String()}
+	for _, c := range []*prometheus.GaugeVec{m.runIndicator, m.runsTotal, m.lastSuccess} {
+		c.DeletePartialMatch(l)
 	}
 }
 
