@@ -24,14 +24,16 @@ type clientTTL struct {
 	hostsTTL time.Time // time after which client hosts needs to be validated
 }
 
-const hostsValidity = 15 * time.Second
+// DefaultHostsValidity is the default duration after which
+// cached client will have its hosts validity re-checked.
+const DefaultHostsValidity = 15 * time.Second
 
 // isValid checks if client can be safely returned from cache.
 // Client is invalid when it reaches the end of TTL, or when its hosts changed.
 // In order to reduce API calls under mutex when creating many clients
 // (e.g. when healthcheck svc runs pingREST for every node),
 // checking for changed hosts is done only every hostsValidity.
-func (c *clientTTL) isValid(ctx context.Context) (bool, error) {
+func (c *clientTTL) isValid(ctx context.Context, hostsValidity time.Duration) (bool, error) {
 	// Check client TTL (if set)
 	if c.ttl.IsZero() || c.ttl.Before(timeutc.Now()) {
 		return false, nil
@@ -53,20 +55,36 @@ func (c *clientTTL) isValid(ctx context.Context) (bool, error) {
 
 // CachedProvider is a provider implementation that reuses clients.
 type CachedProvider struct {
-	inner    ProviderFunc
-	validity time.Duration
-	clients  map[uuid.UUID]*clientTTL
-	mu       sync.Mutex
-	logger   log.Logger
+	inner         ProviderFunc
+	validity      time.Duration
+	hostsValidity time.Duration
+	clients       map[uuid.UUID]*clientTTL
+	mu            sync.Mutex
+	logger        log.Logger
 }
 
-func NewCachedProvider(f ProviderFunc, cacheInvalidationTimeout time.Duration, logger log.Logger) *CachedProvider {
-	return &CachedProvider{
-		inner:    f,
-		validity: cacheInvalidationTimeout,
-		clients:  make(map[uuid.UUID]*clientTTL),
-		logger:   logger.Named("cache-provider"),
+// NewCachedProvider returns CachedProvider using f to create clients,
+// invalidates cached clients after cacheInvalidationTimeout,
+// and checks whether cached clients' hosts changed every hostsValidity.
+// The cacheInvalidationTimeout must not be negative (0 disables caching),
+// and the hostsValidity must not be negative (0 checks hosts on every Client call).
+func NewCachedProvider(f ProviderFunc, cacheInvalidationTimeout, hostsValidity time.Duration,
+	logger log.Logger,
+) (*CachedProvider, error) {
+	if cacheInvalidationTimeout < 0 {
+		return nil, errors.Errorf("invalid cache invalidation timeout %s: must not be negative", cacheInvalidationTimeout)
 	}
+	if hostsValidity < 0 {
+		return nil, errors.Errorf("invalid hosts validity %s: must not be negative", hostsValidity)
+	}
+
+	return &CachedProvider{
+		inner:         f,
+		validity:      cacheInvalidationTimeout,
+		hostsValidity: hostsValidity,
+		clients:       make(map[uuid.UUID]*clientTTL),
+		logger:        logger.Named("cache-provider"),
+	}, nil
 }
 
 // Client is the cached ProviderFunc.
@@ -75,7 +93,7 @@ func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Clie
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if valid, err := c.isValid(ctx); err != nil {
+	if valid, err := c.isValid(ctx, p.hostsValidity); err != nil {
 		p.logger.Error(ctx, "Cannot check client validity", "error", err)
 	} else if valid {
 		return c.client, nil
@@ -89,7 +107,7 @@ func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Clie
 
 	c.client = client
 	c.ttl = timeutc.Now().Add(p.validity)
-	c.hostsTTL = timeutc.Now().Add(hostsValidity)
+	c.hostsTTL = timeutc.Now().Add(p.hostsValidity)
 	return c.client, nil
 }
 
