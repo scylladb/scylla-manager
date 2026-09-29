@@ -55,7 +55,7 @@ func newFakeClientProvider(t *testing.T) *fakeClientProvider {
 }
 
 // Client is the ProviderFunc.
-func (f *fakeClientProvider) Client(ctx context.Context, clusterID uuid.UUID) (*scyllaclient.Client, error) {
+func (f *fakeClientProvider) Client(_ context.Context, _ uuid.UUID) (*scyllaclient.Client, error) {
 	f.mu.Lock()
 	f.calls++
 	first := f.calls == 1
@@ -117,9 +117,9 @@ func (f *fakeClientProvider) Close() {
 	f.closeServers = nil
 }
 
-func newCachedProvider(t *testing.T, f scyllaclient.ProviderFunc, validity, hostsValidity time.Duration) *scyllaclient.CachedProvider {
+func newCachedProvider(t *testing.T, f scyllaclient.ProviderFunc, validity, hostsValidity, reapInterval time.Duration) *scyllaclient.CachedProvider {
 	t.Helper()
-	p, err := scyllaclient.NewCachedProvider(f, validity, hostsValidity, log.Logger{})
+	p, err := scyllaclient.NewCachedProvider(f, validity, hostsValidity, reapInterval, log.Logger{})
 	if err != nil {
 		t.Fatalf("NewCachedProvider() error: %s", err)
 	}
@@ -140,7 +140,8 @@ func TestCachedProvider(t *testing.T) {
 	m := mockProvider{}
 	// Short hosts validity makes checking for changed hosts quick to test
 	const hostsValidity = 100 * time.Millisecond
-	p := newCachedProvider(t, m.Client, server.DefaultConfig().ClientCacheTimeout, hostsValidity)
+	p := newCachedProvider(t, m.Client, server.DefaultConfig().ClientCacheTimeout, hostsValidity, scyllaclient.DefaultReapInterval)
+	defer p.Close()
 
 	// Error
 	m.err = errMock
@@ -251,7 +252,7 @@ func TestCachedProviderClosesClients(t *testing.T) {
 	ctx := t.Context()
 	// Zero validity ensures that cached clients are always expired,
 	// so that every call replaces the cached client.
-	p := newCachedProvider(t, f.Client, 0, scyllaclient.DefaultHostsValidity)
+	p := newCachedProvider(t, f.Client, 0, scyllaclient.DefaultHostsValidity, time.Hour)
 
 	// Replaced clients are closed
 	id := uuid.MustRandom()
@@ -303,7 +304,7 @@ func TestCachedProviderDeleteDuringClientCreation(t *testing.T) {
 	defer f.Close()
 	release := f.BlockFirstCall()
 
-	p := newCachedProvider(t, f.Client, time.Hour, scyllaclient.DefaultHostsValidity)
+	p := newCachedProvider(t, f.Client, time.Hour, scyllaclient.DefaultHostsValidity, time.Hour)
 	ctx := t.Context()
 	id := uuid.MustRandom()
 
@@ -334,7 +335,7 @@ func TestCachedProviderDeleteAndReAddDuringClientCreation(t *testing.T) {
 
 	f := newFakeClientProvider(t)
 	defer f.Close()
-	p := newCachedProvider(t, f.Client, time.Hour, scyllaclient.DefaultHostsValidity)
+	p := newCachedProvider(t, f.Client, time.Hour, scyllaclient.DefaultHostsValidity, time.Hour)
 	ctx := t.Context()
 	id := uuid.MustRandom()
 
@@ -371,6 +372,144 @@ func TestCachedProviderDeleteAndReAddDuringClientCreation(t *testing.T) {
 	checkCachedClients(t, p, 0)
 }
 
+// TestCachedProviderReap ensures that only expired and invalidated clients
+// are removed from the cache and closed when reaping.
+func TestCachedProviderReap(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	f := newFakeClientProvider(t)
+	defer f.Close()
+
+	const validity = time.Hour
+
+	ctx := t.Context()
+	// Long reap interval ensures that reaping happens only on explicit Reap
+	p := newCachedProvider(t, f.Client, validity, scyllaclient.DefaultHostsValidity, time.Hour)
+	valid, invalidated := uuid.MustRandom(), uuid.MustRandom()
+	for _, id := range []uuid.UUID{valid, invalidated} {
+		if _, err := p.Client(ctx, id); err != nil {
+			t.Fatalf("Client() error: %s", err)
+		}
+	}
+
+	// Valid clients are kept
+	p.Reap()
+	checkCachedClients(t, p, 2)
+
+	// Invalidated client is removed
+	p.Invalidate(invalidated)
+	p.Reap()
+	checkCachedClients(t, p, 1)
+
+	// Empty entry left by failed client creation is removed
+	f.SetErr(errMock)
+	if _, err := p.Client(ctx, uuid.MustRandom()); !errors.Is(err, errMock) {
+		t.Fatalf("Client() error = %s, expected %s", err, errMock)
+	}
+	f.SetErr(nil)
+	checkCachedClients(t, p, 2)
+	p.Reap()
+	checkCachedClients(t, p, 1)
+
+	// Client expired for less than validity is kept,
+	// so that it can be recreated by the next Client call
+	expired := uuid.MustRandom()
+	if _, err := p.Client(ctx, expired); err != nil {
+		t.Fatalf("Client() error: %s", err)
+	}
+	p.SetTTL(expired, time.Now().Add(-validity/2))
+	p.Reap()
+	checkCachedClients(t, p, 2)
+
+	// Client expired for more than validity is removed
+	p.SetTTL(expired, time.Now().Add(-2*validity))
+	p.Reap()
+	checkCachedClients(t, p, 1)
+
+	// Valid client used for the whole test is still cached
+	calls := f.Calls()
+	if _, err := p.Client(ctx, valid); err != nil {
+		t.Fatalf("Client() error: %s", err)
+	}
+	if f.Calls() != calls {
+		t.Fatal("valid client was recreated")
+	}
+
+	if err := p.Close(); err != nil {
+		t.Fatalf("Close() error: %s", err)
+	}
+}
+
+// TestCachedProviderReapDuringClientCreation ensures that reaper skips
+// cache entries of clients which are being created, so that the freshly
+// created client is neither closed nor dropped from the cache.
+func TestCachedProviderReapDuringClientCreation(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	f := newFakeClientProvider(t)
+	defer f.Close()
+
+	p := newCachedProvider(t, f.Client, time.Hour, scyllaclient.DefaultHostsValidity, time.Hour)
+	release := f.BlockFirstCall()
+
+	ctx := t.Context()
+	id := uuid.MustRandom()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if _, err := p.Client(ctx, id); err != nil {
+			t.Error("Client() error", err)
+		}
+	}()
+
+	f.AwaitFirstCall()
+	p.Reap()
+	release()
+	<-done
+
+	checkCachedClients(t, p, 1)
+	// Client created during reap is still cached and valid
+	if _, err := p.Client(ctx, id); err != nil {
+		t.Fatalf("Client() error: %s", err)
+	}
+	if calls := f.Calls(); calls != 1 {
+		t.Fatalf("Calls() = %d, expected 1", calls)
+	}
+	if err := p.Close(); err != nil {
+		t.Fatalf("Close() error: %s", err)
+	}
+}
+
+// TestCachedProviderReaperLoop ensures that reaper periodically removes
+// expired clients from the cache and that it's stopped on Close.
+func TestCachedProviderReaperLoop(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+	f := newFakeClientProvider(t)
+	defer f.Close()
+
+	// Zero validity ensures that cached clients are always expired
+	p := newCachedProvider(t, f.Client, 0, scyllaclient.DefaultHostsValidity, time.Millisecond)
+	for range 3 {
+		if _, err := p.Client(t.Context(), uuid.MustRandom()); err != nil {
+			t.Fatalf("Client() error: %s", err)
+		}
+	}
+
+	deadline := time.Now().Add(5 * time.Second)
+	for p.CachedClients() > 0 {
+		if time.Now().After(deadline) {
+			t.Fatalf("CachedClients() = %d, expected reaper to remove all of them", p.CachedClients())
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	if err := p.Close(); err != nil {
+		t.Fatalf("Close() error: %s", err)
+	}
+}
+
 // TestCachedProviderClosed ensures that closed provider doesn't serve
 // nor cache any clients.
 func TestCachedProviderClosed(t *testing.T) {
@@ -379,7 +518,7 @@ func TestCachedProviderClosed(t *testing.T) {
 	f := newFakeClientProvider(t)
 	defer f.Close()
 
-	p := newCachedProvider(t, f.Client, time.Hour, scyllaclient.DefaultHostsValidity)
+	p := newCachedProvider(t, f.Client, time.Hour, scyllaclient.DefaultHostsValidity, time.Hour)
 	ctx := t.Context()
 	id := uuid.MustRandom()
 
@@ -412,16 +551,17 @@ func TestCachedProviderParallelCalls(t *testing.T) {
 		iterations = 50
 		// Sleeping between iterations ensures that the test
 		// spans multiple client validity periods.
-		sleep    = 200 * time.Microsecond
-		validity = time.Millisecond
+		sleep        = 200 * time.Microsecond
+		validity     = time.Millisecond
+		reapInterval = time.Millisecond
 	)
 
 	f := newFakeClientProvider(t)
 	defer f.Close()
 
-	// Small positive validity results in a mix of cache hits and
-	// client recreations caused by the expired TTL, Invalidate and Delete.
-	p := newCachedProvider(t, f.Client, validity, scyllaclient.DefaultHostsValidity)
+	// Small positive validity results in a mix of cache hits and client
+	// recreations caused by the expired TTL, Invalidate, Delete and reaper.
+	p := newCachedProvider(t, f.Client, validity, scyllaclient.DefaultHostsValidity, reapInterval)
 	ctx := t.Context()
 	ids := []uuid.UUID{uuid.MustRandom(), uuid.MustRandom(), uuid.MustRandom()}
 
@@ -469,33 +609,53 @@ func TestNewCachedProviderValidation(t *testing.T) {
 		name          string
 		validity      time.Duration
 		hostsValidity time.Duration
+		reapInterval  time.Duration
 		err           bool
 	}{
 		{
 			name:          "valid",
 			validity:      time.Minute,
 			hostsValidity: time.Second,
+			reapInterval:  time.Minute,
 		},
 		{
 			name:          "zero validity disables caching",
 			validity:      0,
 			hostsValidity: time.Second,
+			reapInterval:  time.Minute,
 		},
 		{
 			name:          "negative validity",
 			validity:      -time.Minute,
 			hostsValidity: time.Second,
+			reapInterval:  time.Minute,
 			err:           true,
 		},
 		{
 			name:          "zero hosts validity checks hosts on every call",
 			validity:      time.Minute,
 			hostsValidity: 0,
+			reapInterval:  time.Minute,
 		},
 		{
 			name:          "negative hosts validity",
 			validity:      time.Minute,
 			hostsValidity: -time.Second,
+			reapInterval:  time.Minute,
+			err:           true,
+		},
+		{
+			name:          "zero reap interval",
+			validity:      time.Minute,
+			hostsValidity: time.Second,
+			reapInterval:  0,
+			err:           true,
+		},
+		{
+			name:          "negative reap interval",
+			validity:      time.Minute,
+			hostsValidity: time.Second,
+			reapInterval:  -time.Minute,
 			err:           true,
 		},
 	}
@@ -504,7 +664,7 @@ func TestNewCachedProviderValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			p, err := scyllaclient.NewCachedProvider(new(mockProvider).Client, tc.validity, tc.hostsValidity, log.Logger{})
+			p, err := scyllaclient.NewCachedProvider(new(mockProvider).Client, tc.validity, tc.hostsValidity, tc.reapInterval, log.Logger{})
 			if tc.err {
 				if err == nil {
 					t.Fatal("NewCachedProvider() expected error")
