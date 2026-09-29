@@ -35,6 +35,9 @@ type clientTTL struct {
 // cached client will have its hosts validity re-checked.
 const DefaultHostsValidity = 15 * time.Second
 
+// DefaultReapInterval is the default CachedProvider reap interval.
+const DefaultReapInterval = 16 * time.Minute
+
 // isValid checks if client can be safely returned from cache.
 // Client is invalid when it reaches the end of TTL, or when its hosts changed.
 // In order to reduce API calls under mutex when creating many clients
@@ -73,14 +76,18 @@ type CachedProvider struct {
 	clients       map[uuid.UUID]*clientTTL
 	mu            sync.Mutex
 	logger        log.Logger
+	reaperStop    chan struct{}
+	reaperWg      sync.WaitGroup
 }
 
 // NewCachedProvider returns CachedProvider using f to create clients,
 // invalidates cached clients after cacheInvalidationTimeout,
-// and checks whether cached clients' hosts changed every hostsValidity.
+// checks whether cached clients' hosts changed every hostsValidity,
+// and closes expired clients and removes them from the cache every reapInterval.
 // The cacheInvalidationTimeout must not be negative (0 disables caching),
-// and the hostsValidity must not be negative (0 checks hosts on every Client call).
-func NewCachedProvider(f ProviderFunc, cacheInvalidationTimeout, hostsValidity time.Duration,
+// the hostsValidity must not be negative (0 checks hosts on every Client call),
+// and the reapInterval must be positive.
+func NewCachedProvider(f ProviderFunc, cacheInvalidationTimeout, hostsValidity, reapInterval time.Duration,
 	logger log.Logger,
 ) (*CachedProvider, error) {
 	if cacheInvalidationTimeout < 0 {
@@ -89,14 +96,65 @@ func NewCachedProvider(f ProviderFunc, cacheInvalidationTimeout, hostsValidity t
 	if hostsValidity < 0 {
 		return nil, errors.Errorf("invalid hosts validity %s: must not be negative", hostsValidity)
 	}
+	if reapInterval <= 0 {
+		return nil, errors.Errorf("invalid reap interval %s: must be positive", reapInterval)
+	}
 
-	return &CachedProvider{
+	p := &CachedProvider{
 		inner:         f,
 		validity:      cacheInvalidationTimeout,
 		hostsValidity: hostsValidity,
 		clients:       make(map[uuid.UUID]*clientTTL),
 		logger:        logger.Named("cache-provider"),
-	}, nil
+		reaperStop:    make(chan struct{}),
+	}
+	p.reaperWg.Go(func() {
+		p.reaperLoop(reapInterval)
+	})
+	return p, nil
+}
+
+func (p *CachedProvider) reaperLoop(interval time.Duration) {
+	p.logger.Info(context.Background(), "Starting cached clients reaper", "interval", interval)
+	defer p.logger.Info(context.Background(), "Stopped cached clients reaper")
+
+	t := time.NewTicker(interval)
+	defer t.Stop()
+	for {
+		select {
+		case <-p.reaperStop:
+			return
+		case <-t.C:
+			p.reap()
+		}
+	}
+}
+
+// reap removes expired clients from the cache and closes them.
+// To minimize friction between reinitializing just expired clients
+// in CachedProvider.Client and removing cache entry in deleteLocked,
+// reap only targets clients which have been expired for more than validity period.
+func (p *CachedProvider) reap() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.clients == nil {
+		return
+	}
+
+	now := timeutc.Now()
+	for clusterID, c := range p.clients {
+		// Skip clients which are being initialized in CachedProvider.Client,
+		// as removing their cache entry would result in closing the
+		// freshly created client.
+		if !c.mu.TryLock() {
+			continue
+		}
+		if ttl := c.ttl.Load(); ttl.Add(p.validity).Before(now) {
+			p.logger.Info(context.Background(), "Reaping cached client", "cluster_id", clusterID, "ttl", ttl)
+			p.deleteLocked(clusterID)
+		}
+		c.mu.Unlock()
+	}
 }
 
 // Client is the cached ProviderFunc.
@@ -138,7 +196,7 @@ func (p *CachedProvider) Client(ctx context.Context, clusterID uuid.UUID) (*Clie
 	}
 
 	// Reacquire p.mu to verify that cached client entry
-	// wasn't deleted in the meantime by Delete.
+	// wasn't deleted in the meantime by Delete or reaper.
 	// Note that p.mu and c.mu will both be held in the next block.
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -229,15 +287,22 @@ func (p *CachedProvider) deleteLocked(clusterID uuid.UUID) {
 	}
 }
 
-// Close removes all clients and closes them to clear up any resources.
+// Close stops the reaper, removes all clients and closes them to clear up any resources.
 func (p *CachedProvider) Close() error {
 	p.mu.Lock()
-	defer p.mu.Unlock()
+	if p.clients == nil {
+		p.mu.Unlock()
+		return nil
+	}
 
 	for clusterID := range p.clients {
 		p.deleteLocked(clusterID)
 	}
 	// Make next calls to provider return error or be a no-op
 	p.clients = nil
+	p.mu.Unlock()
+
+	close(p.reaperStop)
+	p.reaperWg.Wait()
 	return nil
 }
