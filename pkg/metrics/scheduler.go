@@ -44,10 +44,17 @@ func (m SchedulerMetrics) MustRegister() SchedulerMetrics {
 	return m
 }
 
-// ResetClusterMetrics resets all metrics labeled with the cluster.
-func (m SchedulerMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
+// DeleteClusterMetrics removes all metrics labeled with the cluster.
+func (m SchedulerMetrics) DeleteClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range m.all() {
-		setGaugeVecMatching(c.(*prometheus.GaugeVec), unspecifiedValue, clusterMatcher(clusterID))
+		DeleteMatching(c.(*prometheus.GaugeVec), clusterMatcher(clusterID))
+	}
+}
+
+// DeleteTaskMetrics removes all metrics labeled with the task.
+func (m SchedulerMetrics) DeleteTaskMetrics(taskID uuid.UUID) {
+	for _, c := range []*prometheus.GaugeVec{m.runIndicator, m.runsTotal, m.lastSuccess} {
+		DeleteMatching(c, LabelMatcher("task", taskID.String()))
 	}
 }
 

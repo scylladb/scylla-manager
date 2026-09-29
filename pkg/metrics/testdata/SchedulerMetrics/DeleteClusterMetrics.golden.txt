@@ -1,0 +1,13 @@
+# HELP scylla_manager_scheduler_last_success Start time of the last successful run as a Unix timestamp.
+# TYPE scylla_manager_scheduler_last_success gauge
+scylla_manager_scheduler_last_success{cluster="3c4a8b40-9a2a-4f7c-8b2e-6f1d2f5b9e01",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 1.645517563e+09
+# HELP scylla_manager_scheduler_run_indicator If the task is running the value is 1 otherwise it's 0.
+# TYPE scylla_manager_scheduler_run_indicator gauge
+scylla_manager_scheduler_run_indicator{cluster="3c4a8b40-9a2a-4f7c-8b2e-6f1d2f5b9e01",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 0
+# HELP scylla_manager_scheduler_run_total Total number of task runs parametrized by status.
+# TYPE scylla_manager_scheduler_run_total gauge
+scylla_manager_scheduler_run_total{cluster="3c4a8b40-9a2a-4f7c-8b2e-6f1d2f5b9e01",status="DONE",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 1
+scylla_manager_scheduler_run_total{cluster="3c4a8b40-9a2a-4f7c-8b2e-6f1d2f5b9e01",status="ERROR",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 0
+# HELP scylla_manager_scheduler_suspended If the cluster is suspended the value is 1 otherwise it's 0.
+# TYPE scylla_manager_scheduler_suspended gauge
+scylla_manager_scheduler_suspended{cluster="3c4a8b40-9a2a-4f7c-8b2e-6f1d2f5b9e01"} 1
