@@ -543,7 +543,15 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		if err != nil {
 			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
 		}
-		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
+		// Task might have been deleted during the run (see Service.DeleteTask).
+		// In such case its metrics are deleted here instead of being updated.
+		s.mu.Lock()
+		if _, exists := s.resolver.FindByID(ti.TaskID); exists {
+			s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
+		} else {
+			s.metrics.DeleteTaskMetrics(ti.TaskID)
+		}
+		s.mu.Unlock()
 	}()
 
 	if ctx.Properties.(Properties) == nil {
@@ -667,6 +675,11 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	s.mu.Lock()
 	l, lok := s.scheduler[t.ClusterID]
 	s.resolver.Remove(t.ID)
+	delete(s.noContinue, t.ID)
+	// Metrics of a running task are deleted in Service.run when the run ends.
+	if _, running := s.runs[t.ID]; !running {
+		s.metrics.DeleteTaskMetrics(t.ID)
+	}
 	s.mu.Unlock()
 	if lok {
 		l.Unschedule(ctx, t.ID)

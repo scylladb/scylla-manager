@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"regexp"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
@@ -148,6 +150,9 @@ type schedulerTestHelper struct {
 	client  *scyllaclient.Client
 	service *scheduler.Service
 	runner  *mockRunner
+	// Per-helper metrics and registry allowing to verify metrics behavior during test execution.
+	metrics    metrics.SchedulerMetrics
+	metricsReg *prometheus.Registry
 
 	clusterID uuid.UUID
 	runID     uuid.UUID
@@ -166,14 +171,18 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedulerTestHelp
 		t.Fatal(err)
 	}
 
-	s := newTestService(session)
+	metricsReg := prometheus.NewPedanticRegistry()
+	schedulerMetrics := metrics.NewSchedulerMetrics().MustRegisterWith(metricsReg)
+	s := newTestService(session, schedulerMetrics)
 	h := &schedulerTestHelper{
-		session:   session,
-		client:    client,
-		service:   s,
-		runner:    newMockRunner(),
-		clusterID: uuid.MustRandom(),
-		t:         t,
+		session:    session,
+		client:     client,
+		service:    s,
+		runner:     newMockRunner(),
+		metrics:    schedulerMetrics,
+		metricsReg: metricsReg,
+		clusterID:  uuid.MustRandom(),
+		t:          t,
 	}
 	s.SetRunner(mockTask, h.runner)
 	s.SetRunner(scheduler.HealthCheckTask, h.runner)
@@ -266,6 +275,46 @@ func (h *schedulerTestHelper) getStatus(task *scheduler.Task) scheduler.Status {
 	return r.Status
 }
 
+// metricsCount returns the number of scheduler metric series with the given label value.
+func (h *schedulerTestHelper) metricsCount(label, value string) int {
+	h.t.Helper()
+
+	mfs, err := h.metricsReg.Gather()
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	cnt := 0
+	for _, mf := range mfs {
+		if !strings.HasPrefix(mf.GetName(), "scylla_manager_scheduler_") {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == label && l.GetValue() == value {
+					cnt++
+				}
+			}
+		}
+	}
+	return cnt
+}
+
+// assertMetrics waits for scheduler metric series with the given label value
+// to be present or absent. Waiting is needed as Service.run updates metrics
+// after updating run status in DB.
+func (h *schedulerTestHelper) assertMetrics(label, value string, present bool) {
+	h.t.Helper()
+
+	WaitCond(h.t, func() bool {
+		return (h.metricsCount(label, value) > 0) == present
+	}, _interval, _wait)
+}
+
+func (h *schedulerTestHelper) assertTaskMetrics(taskID uuid.UUID, present bool) {
+	h.t.Helper()
+	h.assertMetrics("task", taskID.String(), present)
+}
+
 func (h *schedulerTestHelper) close() {
 	h.service.Close()
 }
@@ -294,10 +343,10 @@ func (h *schedulerTestHelper) makeTaskOfTypeWithStartDate(tp scheduler.TaskType,
 	}
 }
 
-func newTestService(session gocqlx.Session) *scheduler.Service {
+func newTestService(session gocqlx.Session, m metrics.SchedulerMetrics) *scheduler.Service {
 	s, _ := scheduler.NewService(
 		session,
-		metrics.NewSchedulerMetrics(),
+		m,
 		store.NewTableStore(session, table.Drawer),
 		log.NewDevelopmentWithLevel(zapcore.DebugLevel),
 	)
@@ -1720,7 +1769,7 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("When: service is restarted")
 		h.service.Close()
-		h.service = newTestService(session)
+		h.service = newTestService(session, h.metrics)
 		h.service.SetRunner(mockTask, h.runner)
 
 		Print("And: load tasks")
@@ -1897,6 +1946,63 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("Then: task ends with status error")
 		h.assertStatus(task, scheduler.StatusError)
+	})
+
+	t.Run("delete pending task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		Print("Given: pending task created with metrics")
+		task := h.makeTaskWithStartDate(future)
+		task.ID = uuid.Nil
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+		h.assertTaskMetrics(task.ID, true)
+
+		Print("When: task is deleted")
+		if err := h.service.DeleteTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: task metrics are deleted")
+		h.assertTaskMetrics(task.ID, false)
+
+		Print("And: task is not executed")
+		h.assertNotStatus(task, scheduler.StatusRunning)
+	})
+
+	t.Run("delete running task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		Print("Given: running task marked with no continue")
+		task := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+		h.assertStatus(task, scheduler.StatusRunning)
+		h.service.SetTaskNoContinue(task.ID, true)
+		h.assertTaskMetrics(task.ID, true)
+
+		Print("When: task is deleted")
+		if err := h.service.DeleteTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: no continue is cleared")
+		if h.service.HasNoContinue(task.ID) {
+			t.Fatal("Expected no continue to be cleared")
+		}
+
+		Print("When: task run ends")
+		h.runner.Done()
+		h.assertStatus(task, scheduler.StatusDone)
+
+		Print("Then: task metrics are deleted")
+		h.assertTaskMetrics(task.ID, false)
 	})
 
 	t.Run("load tasks skips deleted tasks", func(t *testing.T) {
