@@ -29,3 +29,17 @@ func (s *Service) PutTestRun(r *Run) error {
 func (s *Service) PutTestTask(t *Task) error {
 	return table.SchedulerTask.InsertQuery(s.session).BindStruct(t).ExecRelease()
 }
+
+func (s *Service) HasClusterScheduler(clusterID uuid.UUID) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.scheduler[clusterID]
+	return ok
+}
+
+func (s *Service) HasNoContinue(taskID uuid.UUID) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.noContinue[taskID]
+	return ok
+}

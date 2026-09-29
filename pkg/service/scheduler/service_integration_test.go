@@ -1898,4 +1898,63 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		Print("Then: task ends with status error")
 		h.assertStatus(task, scheduler.StatusError)
 	})
+
+	t.Run("load tasks skips deleted tasks", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		Print("Given: deleted task")
+		task := h.makeTaskWithStartDate(future)
+		task.Deleted = true
+		task.Enabled = false
+		if err := h.service.PutTestTask(task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: load tasks")
+		if err := h.service.LoadTasks(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: cluster scheduler is not created")
+		if h.service.HasClusterScheduler(h.clusterID) {
+			t.Fatal("Expected no cluster scheduler")
+		}
+	})
+
+	t.Run("suspend and resume skip deleted tasks", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		Print("Given: deleted task")
+		task := h.makeTaskWithStartDate(future)
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+		if err := h.service.DeleteTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: cluster is suspended with no continue")
+		if err := h.service.Suspend(ctx, h.clusterID, "", scheduler.SuspendPolicyStopRunningTasks, true); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: deleted task is not marked with no continue")
+		if h.service.HasNoContinue(task.ID) {
+			t.Fatal("Expected no continue not to be set for deleted task")
+		}
+
+		Print("When: cluster is resumed with no continue")
+		if err := h.service.Resume(ctx, h.clusterID, false, false, true); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: deleted task is not marked with no continue")
+		if h.service.HasNoContinue(task.ID) {
+			t.Fatal("Expected no continue not to be set for deleted task")
+		}
+	})
 }

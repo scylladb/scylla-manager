@@ -168,8 +168,8 @@ func (s *Service) mustRunner(tp TaskType) Runner {
 // It tries to process all tasks before returning any error.
 func (s *Service) UpdateHealthcheckTasks(ctx context.Context, cfg healthcheck.Config) error {
 	var iterErr error
-	err := s.forEachTask(func(t *Task) error {
-		if t.Type != HealthCheckTask || t.Deleted {
+	err := s.forEachActiveTask(func(t *Task) error {
+		if t.Type != HealthCheckTask {
 			return nil
 		}
 		m, err := healthcheck.ModeFromProperties(t.Properties)
@@ -207,7 +207,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	s.logger.Info(ctx, "Loading tasks from database")
 
 	endTime := now()
-	err := s.forEachTask(func(t *Task) error {
+	err := s.forEachActiveTask(func(t *Task) error {
 		s.initMetrics(t)
 		r, err := s.markRunningAsAborted(t, endTime)
 		if err != nil {
@@ -227,10 +227,10 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	return err
 }
 
-func (s *Service) forEachTask(f func(t *Task) error) error {
+func (s *Service) forEachActiveTask(f func(t *Task) error) error {
 	q := qb.Select(table.SchedulerTask.Name()).Query(s.session)
 	defer q.Release()
-	return forEachTaskWithQuery(q, f)
+	return forEachActiveTaskWithQuery(q, f)
 }
 
 func (s *Service) markRunningAsAborted(t *Task, endTime time.Time) (bool, error) {
@@ -793,13 +793,16 @@ func (s *Service) Close() {
 	}
 }
 
-func forEachTaskWithQuery(q *gocqlx.Queryx, f func(t *Task) error) error {
+func forEachActiveTaskWithQuery(q *gocqlx.Queryx, f func(t *Task) error) error {
 	var t Task
 	iter := q.Iter()
 	for iter.StructScan(&t) {
+		if t.Deleted {
+			t = Task{}
+			continue
+		}
 		if err := f(&t); err != nil {
-			iter.Close()
-			return err
+			return stdErr.Join(err, iter.Close())
 		}
 		t = Task{}
 	}
