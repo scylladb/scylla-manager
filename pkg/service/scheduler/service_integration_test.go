@@ -1899,6 +1899,36 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task, scheduler.StatusError)
 	})
 
+	t.Run("delete running task", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		Print("Given: running task marked with no continue")
+		task := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+		h.assertStatus(task, scheduler.StatusRunning)
+		h.service.SetTaskNoContinue(task.ID, true)
+
+		Print("When: task is deleted")
+		if err := h.service.DeleteTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: no continue is cleared")
+		if h.service.HasNoContinue(task.ID) {
+			t.Fatal("Expected no continue to be cleared")
+		}
+
+		Print("When: task run ends")
+		h.runner.Done()
+
+		Print("Then: run status is updated")
+		h.assertStatus(task, scheduler.StatusDone)
+	})
+
 	t.Run("load tasks skips deleted tasks", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
