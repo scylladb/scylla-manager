@@ -99,7 +99,12 @@ func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsS
 		logger:        l,
 		timeoutConfig: timeoutConfig,
 	}
-	s.clientCache = scyllaclient.NewCachedProvider(s.CreateClientNoCache, cacheInvalidationTimeout, l)
+	clientCache, err := scyllaclient.NewCachedProvider(s.CreateClientNoCache, cacheInvalidationTimeout,
+		scyllaclient.DefaultHostsValidity, l)
+	if err != nil {
+		return nil, errors.Wrap(err, "create client cache")
+	}
+	s.clientCache = clientCache
 
 	return s, nil
 }
