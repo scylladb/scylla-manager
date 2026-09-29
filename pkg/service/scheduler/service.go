@@ -23,6 +23,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/multierr"
 )
 
 type (
@@ -685,6 +686,47 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 		"task_type", t.Type,
 		"task_id", t.ID,
 	)
+	return nil
+}
+
+// DeleteClusterTasks deletes all cluster tasks and releases all resources
+// held for the cluster: it closes the cluster scheduler (which cancels
+// running tasks without waiting for them to end), clears the suspend state
+// and the cluster metrics. Metrics of canceled runs are deleted by
+// Service.run when they end, as their tasks are already deleted.
+// It should be called when the cluster is deleted.
+func (s *Service) DeleteClusterTasks(ctx context.Context, clusterID uuid.UUID) error {
+	s.logger.Info(ctx, "Deleting cluster tasks", "cluster_id", clusterID)
+
+	var errs error
+	if err := s.forEachClusterActiveTask(clusterID, func(t *Task) error {
+		errs = multierr.Append(errs, s.DeleteTask(ctx, t))
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "list tasks")
+	}
+	if errs != nil {
+		return errors.Wrap(errs, "delete tasks")
+	}
+
+	s.mu.Lock()
+	l, lok := s.scheduler[clusterID]
+	if lok {
+		l.Close()
+		delete(s.scheduler, clusterID)
+	}
+	_, suspended := s.suspended[clusterID]
+	delete(s.suspended, clusterID)
+	s.mu.Unlock()
+
+	if suspended {
+		if err := s.drawer.Delete(&suspendInfo{ClusterID: clusterID}); err != nil {
+			s.logger.Error(ctx, "Failed to delete suspend info", "cluster_id", clusterID, "error", err)
+		}
+	}
+	s.metrics.DeleteClusterMetrics(clusterID)
+
+	s.logger.Info(ctx, "Cluster tasks deleted", "cluster_id", clusterID)
 	return nil
 }
 

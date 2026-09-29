@@ -1929,6 +1929,75 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task, scheduler.StatusDone)
 	})
 
+	t.Run("delete cluster tasks", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		Print("Given: running, pending and deleted tasks")
+		running := h.makeTaskWithStartDate(now())
+		if err := h.service.PutTask(ctx, running); err != nil {
+			t.Fatal(err)
+		}
+		h.assertStatus(running, scheduler.StatusRunning)
+		pending := h.makeTaskWithStartDate(future)
+		if err := h.service.PutTask(ctx, pending); err != nil {
+			t.Fatal(err)
+		}
+		deleted := h.makeTaskWithStartDate(future)
+		if err := h.service.PutTask(ctx, deleted); err != nil {
+			t.Fatal(err)
+		}
+		if err := h.service.DeleteTask(ctx, deleted); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("And: cluster is suspended with allowed running task type")
+		if err := h.service.Suspend(ctx, h.clusterID, mockTask.String(), scheduler.SuspendPolicyStopRunningTasks, false); err != nil {
+			t.Fatal(err)
+		}
+		h.assertStatus(running, scheduler.StatusRunning)
+
+		Print("When: cluster tasks are deleted")
+		if err := h.service.DeleteClusterTasks(ctx, h.clusterID); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: running task is stopped")
+		h.assertStatus(running, scheduler.StatusStopped)
+
+		Print("And: all tasks are deleted")
+		tasks, err := h.service.ListTasks(ctx, h.clusterID, scheduler.ListFilter{Disabled: true, Deleted: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(tasks) != 3 {
+			t.Fatalf("Expected 3 tasks, got %d", len(tasks))
+		}
+		for _, task := range tasks {
+			if !task.Deleted || task.Enabled {
+				t.Fatalf("Expected task %s to be deleted and disabled", task.ID)
+			}
+		}
+
+		Print("And: cluster scheduler is removed")
+		if h.service.HasClusterScheduler(h.clusterID) {
+			t.Fatal("Expected cluster scheduler to be removed")
+		}
+
+		Print("And: cluster is not suspended")
+		if h.service.IsSuspended(ctx, h.clusterID) {
+			t.Fatal("Expected not suspended")
+		}
+		var suspendInfoCount int
+		if err := session.Query("SELECT COUNT(*) FROM drawer WHERE cluster_id = ?", nil).Bind(h.clusterID).Scan(&suspendInfoCount); err != nil {
+			t.Fatal(err)
+		}
+		if suspendInfoCount != 0 {
+			t.Fatalf("Expected suspend info to be deleted, got %d drawer entries", suspendInfoCount)
+		}
+	})
+
 	t.Run("load tasks skips deleted tasks", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()

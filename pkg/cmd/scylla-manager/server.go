@@ -28,7 +28,6 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/certutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/httppprof"
-	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -213,16 +212,8 @@ func (s *server) onClusterChange(ctx context.Context, c cluster.Change) error {
 		}
 	case cluster.Delete:
 		s.configCacheSvc.RemoveCluster(c.ID)
-		tasks, err := s.schedSvc.ListTasks(ctx, c.ID, scheduler.ListFilter{Disabled: true, Short: true})
-		if err != nil {
-			return errors.Wrapf(err, "find this cluster %s tasks", c.ID)
-		}
-		var errs error
-		for _, t := range tasks {
-			errs = multierr.Append(errs, s.schedSvc.DeleteTask(ctx, &t.Task))
-		}
-		if errs != nil {
-			return errors.Wrapf(errs, "remove cluster %s tasks", c.ID)
+		if err := s.schedSvc.DeleteClusterTasks(ctx, c.ID); err != nil {
+			return errors.Wrapf(err, "remove cluster %s tasks", c.ID)
 		}
 	}
 
