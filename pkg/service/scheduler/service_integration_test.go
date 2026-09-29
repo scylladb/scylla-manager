@@ -1922,11 +1922,8 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			t.Fatal("Expected no continue to be cleared")
 		}
 
-		Print("When: task run ends")
-		h.runner.Done()
-
-		Print("Then: run status is updated")
-		h.assertStatus(task, scheduler.StatusDone)
+		Print("And: task is stopped")
+		h.assertStatus(task, scheduler.StatusStopped)
 	})
 
 	t.Run("delete cluster tasks", func(t *testing.T) {

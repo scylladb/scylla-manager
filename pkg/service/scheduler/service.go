@@ -656,6 +656,12 @@ func (s *Service) findTaskByID(key Key) (taskInfo, bool) {
 func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "DeleteTask", "task", t)
 
+	// Deleted task can't be accessed via API anymore, so it shouldn't
+	// keep running out of anyone's sight and control.
+	if err := s.StopTask(ctx, t, false); err != nil {
+		return errors.Wrap(err, "stop task")
+	}
+
 	t.Deleted = true
 	t.Enabled = false
 
