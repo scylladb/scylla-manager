@@ -99,7 +99,12 @@ func NewService(session gocqlx.Session, metrics metrics.ClusterMetrics, secretsS
 		logger:        l,
 		timeoutConfig: timeoutConfig,
 	}
-	s.clientCache = scyllaclient.NewCachedProvider(s.CreateClientNoCache, cacheInvalidationTimeout, l)
+	clientCache, err := scyllaclient.NewCachedProvider(s.CreateClientNoCache, cacheInvalidationTimeout,
+		scyllaclient.DefaultHostsValidity, scyllaclient.DefaultReapInterval, l)
+	if err != nil {
+		return nil, errors.Wrap(err, "create client cache")
+	}
+	s.clientCache = clientCache
 
 	return s, nil
 }
@@ -686,7 +691,7 @@ func (s *Service) DeleteCluster(ctx context.Context, clusterID uuid.UUID) error 
 		return errors.Wrap(err, "delete cluster secrets")
 	}
 
-	s.clientCache.Invalidate(clusterID)
+	s.clientCache.Delete(clusterID)
 
 	return s.notifyChangeListener(ctx, Change{ID: clusterID, Type: Delete})
 }
