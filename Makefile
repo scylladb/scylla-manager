@@ -193,7 +193,12 @@ pkg-stress-test:
 
 .PHONY: start-dev-env
 start-dev-env: ## Start testing containers
-start-dev-env: .testing-up deploy-agent build-cli
+start-dev-env:
+	@set -e; \
+	$(MAKE) build-agent build-cli & bpid=$$!; \
+	$(MAKE) .testing-up; \
+	wait $$bpid; \
+	IPV6=$(IPV6) $(MAKE) -C testing deploy-agent restart-agent
 
 .PHONY: .testing-up
 .testing-up:
