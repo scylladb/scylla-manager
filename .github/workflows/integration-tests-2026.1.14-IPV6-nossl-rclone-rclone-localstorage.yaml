@@ -2,10 +2,13 @@ concurrency:
     cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
     group: int-${{ github.workflow }}-${{ github.ref }}
 env:
-    scylla-version: scylla:2025.1.14
+    scylla-version: scylla:2026.1.14
     ip-family: IPV6
-    tablets: enabled
+    tablets: disabled
     ssl-enabled: "false"
+    backup-method: rclone
+    restore-method: rclone
+    backup-provider: localstorage
 jobs:
     backup:
         name: Test backup
@@ -111,7 +114,7 @@ jobs:
             - name: Verify SM server startup
               run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
         timeout-minutes: 45
-name: integration-tests-2025.1.14-IPV6-tablets-nossl
+name: integration-tests-2026.1.14-IPV6-nossl-rclone-rclone-localstorage
 "on":
     pull_request:
         paths-ignore:
