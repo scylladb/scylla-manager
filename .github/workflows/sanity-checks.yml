@@ -20,9 +20,11 @@ on:
       - "LICENSE"
       - ".github/workflows/docs-*"
 
+# Cancel superseded runs on pull requests and on pushes to master, but not on
+# the 'branch-**' release branches, where a superseded run should still finish.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
 
 jobs:
   checks:
