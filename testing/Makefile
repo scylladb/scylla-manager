@@ -172,6 +172,16 @@ agent-logs: ## Show logs for the managed scylla cluster
 logs: ## Show logs for a service specified with SRV parameter or all services if not set
 	@$(COMPOSE) logs --tail 10 -f $(SRV)
 
+DUMP_DIR ?= /tmp/scylla-manager-dev-env-logs
+
+.PHONY: dump-logs
+dump-logs: ## Dump logs of all dev env containers to $(DUMP_DIR) without following
+	@mkdir -p $(DUMP_DIR)
+	@for c in $$(docker ps -a --format '{{.Names}}' | grep '^scylla_manager-'); do \
+		echo "==> Dumping logs of $$c"; \
+		docker logs --tail 20000 "$$c" > "$(DUMP_DIR)/$$c.log" 2>&1 || true; \
+	done
+
 .PHONY: cqlsh-manager
 cqlsh-manager: ## CQL shell to manager backend storage
 	@$(CQLSH)

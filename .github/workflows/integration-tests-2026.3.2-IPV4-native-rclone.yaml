@@ -24,6 +24,17 @@ jobs:
                 tablets: ${{ env.tablets }}
             - name: Run tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/backup
+            - if: failure() || cancelled()
+              name: Dump dev env logs
+              run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+            - if: failure() || cancelled()
+              name: Upload dev env logs
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                if-no-files-found: ignore
+                name: dev-env-logs-${{ github.job }}
+                overwrite: true
+                path: /tmp/scylla-manager-dev-env-logs
         timeout-minutes: 60
     repair:
         name: Test repair
@@ -42,6 +53,17 @@ jobs:
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair
             - name: Run tablet repair tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+            - if: failure() || cancelled()
+              name: Dump dev env logs
+              run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+            - if: failure() || cancelled()
+              name: Upload dev env logs
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                if-no-files-found: ignore
+                name: dev-env-logs-${{ github.job }}
+                overwrite: true
+                path: /tmp/scylla-manager-dev-env-logs
         timeout-minutes: 60
     restore-schema:
         name: Test restore schema
@@ -58,6 +80,17 @@ jobs:
                 tablets: ${{ env.tablets }}
             - name: Run tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
+            - if: failure() || cancelled()
+              name: Dump dev env logs
+              run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+            - if: failure() || cancelled()
+              name: Upload dev env logs
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                if-no-files-found: ignore
+                name: dev-env-logs-${{ github.job }}
+                overwrite: true
+                path: /tmp/scylla-manager-dev-env-logs
         timeout-minutes: 30
     restore-tables:
         name: Test restore tables
@@ -74,6 +107,17 @@ jobs:
                 tablets: ${{ env.tablets }}
             - name: Run tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
+            - if: failure() || cancelled()
+              name: Dump dev env logs
+              run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+            - if: failure() || cancelled()
+              name: Upload dev env logs
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                if-no-files-found: ignore
+                name: dev-env-logs-${{ github.job }}
+                overwrite: true
+                path: /tmp/scylla-manager-dev-env-logs
         timeout-minutes: 35
     small-pkg:
         name: Test other, smaller packages
@@ -112,6 +156,17 @@ jobs:
               run: make pkg-integration-test TABLETS=${{ env.tablets }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/one2onerestore
             - name: Verify SM server startup
               run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
+            - if: failure() || cancelled()
+              name: Dump dev env logs
+              run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+            - if: failure() || cancelled()
+              name: Upload dev env logs
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                if-no-files-found: ignore
+                name: dev-env-logs-${{ github.job }}
+                overwrite: true
+                path: /tmp/scylla-manager-dev-env-logs
         timeout-minutes: 45
 name: integration-tests-2026.3.2-IPV4-native-rclone
 "on":
