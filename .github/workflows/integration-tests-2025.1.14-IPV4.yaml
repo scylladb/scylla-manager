@@ -22,6 +22,7 @@ jobs:
                 tablets: ${{ env.tablets }}
             - name: Run tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/backup
+        timeout-minutes: 60
     repair:
         name: Test repair
         runs-on: ubuntu-latest
@@ -39,6 +40,7 @@ jobs:
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair
             - name: Run tablet repair tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+        timeout-minutes: 60
     restore-schema:
         name: Test restore schema
         runs-on: ubuntu-latest
@@ -54,6 +56,7 @@ jobs:
                 tablets: ${{ env.tablets }}
             - name: Run tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
+        timeout-minutes: 30
     restore-tables:
         name: Test restore tables
         runs-on: ubuntu-latest
@@ -69,6 +72,7 @@ jobs:
                 tablets: ${{ env.tablets }}
             - name: Run tests
               run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
+        timeout-minutes: 35
     small-pkg:
         name: Test other, smaller packages
         runs-on: ubuntu-latest
@@ -106,6 +110,7 @@ jobs:
               run: make pkg-integration-test TABLETS=${{ env.tablets }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/one2onerestore
             - name: Verify SM server startup
               run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
+        timeout-minutes: 45
 name: integration-tests-2025.1.14-IPV4
 "on":
     pull_request:
