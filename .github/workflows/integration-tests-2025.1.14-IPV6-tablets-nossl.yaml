@@ -116,6 +116,10 @@ name: integration-tests-2025.1.14-IPV6-tablets-nossl
     pull_request:
         paths-ignore:
             - docs/**
+            - '**/*.md'
+            - '**/*.rst'
+            - LICENSE
+            - .github/workflows/docs-*
         types:
             - opened
             - synchronize
@@ -126,5 +130,9 @@ name: integration-tests-2025.1.14-IPV6-tablets-nossl
             - branch-**
         paths-ignore:
             - docs/**
+            - '**/*.md'
+            - '**/*.rst'
+            - LICENSE
+            - .github/workflows/docs-*
 permissions:
     contents: read

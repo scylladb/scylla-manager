@@ -119,6 +119,10 @@ name: integration-tests-2026.3.0-rc2-IPV6-tablets-nossl-rclone-rclone-gcs
     pull_request:
         paths-ignore:
             - docs/**
+            - '**/*.md'
+            - '**/*.rst'
+            - LICENSE
+            - .github/workflows/docs-*
         types:
             - opened
             - synchronize
@@ -129,5 +133,9 @@ name: integration-tests-2026.3.0-rc2-IPV6-tablets-nossl-rclone-rclone-gcs
             - branch-**
         paths-ignore:
             - docs/**
+            - '**/*.md'
+            - '**/*.rst'
+            - LICENSE
+            - .github/workflows/docs-*
 permissions:
     contents: read

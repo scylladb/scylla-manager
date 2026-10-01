@@ -5,10 +5,18 @@ on:
       - 'branch-**'
     paths-ignore:
       - "docs/**"
+      - "**/*.md"
+      - "**/*.rst"
+      - "LICENSE"
+      - ".github/workflows/docs-*"
   pull_request:
     types: [ opened, synchronize, reopened ]
     paths-ignore:
       - "docs/**"
+      - "**/*.md"
+      - "**/*.rst"
+      - "LICENSE"
+      - ".github/workflows/docs-*"
 
 concurrency:
   group: int-${{ github.workflow }}-${{ github.ref }}
