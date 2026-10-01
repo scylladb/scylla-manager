@@ -1,5 +1,5 @@
 concurrency:
-    cancel-in-progress: true
+    cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
     group: int-${{ github.workflow }}-${{ github.ref }}
 env:
     scylla-version: scylla-nightly:latest
