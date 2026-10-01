@@ -64,10 +64,7 @@ build: ## Build custom docker image
 up: ## Start docker containers
 up:
 	@echo "==> Starting testing env with SCYLLA_VERSION=$(SCYLLA_VERSION) and IP_FAMILY=$(IP_FAMILY) and TABLETS=$(TABLETS) and SSL_ENABLED=$(SSL_ENABLED)"
-# Scylla bootstrap procedure have requirements that leads us to follow certain recipe:
-# 1. Spin up first node on the cluster
-# 2. Spin up and join other seed node, which is first node from DC2
-# 3. Spin up rest of the nodes
+# Start the first node, wait for it, then start the rest at once
 	@echo "==> Generating encryption files"
 	@cd scylla/certs && ./generate.sh
 	@echo "==> Generating Scylla configuration"
@@ -118,11 +115,9 @@ endif
 	@until [ 1 -le $$($(SECOND_NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
 	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d second_cluster_dc1_node_2
 
-	@cnt=1; for node in dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3; do \
-  		. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d $$node; \
-		cnt=$$(expr $$cnt + 1); \
-		echo "==> Waiting node $$node number $$cnt"; \
-		until [ $$cnt -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""; done
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose.yaml -f $(COMPOSE_FILE) up -d dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3
+	@echo "==> Waiting for all 6 nodes"
+	@until [ 6 -le $$($(NODETOOL) status | grep -c "UN") ]; do echo -n "."; sleep 2; done ; echo ""
 
 	@echo "==> Start ssh servers"
 	@for node in dc1_node_1 dc1_node_2 dc1_node_3 dc2_node_1 dc2_node_2 dc2_node_3 second_cluster_dc1_node_1 second_cluster_dc1_node_2; do \
