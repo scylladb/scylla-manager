@@ -49,6 +49,19 @@ jobs:
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore RUN='"TestRestoreTables.*Integration"'
 
+      - name: Dump dev env logs
+        if: failure() || cancelled()
+        run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+
+      - name: Upload dev env logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-env-logs-${{ github.job }}
+          path: /tmp/scylla-manager-dev-env-logs
+          overwrite: true
+          if-no-files-found: ignore
+
   restore-schema:
     name: Test restore schema
     runs-on: ubuntu-latest
@@ -69,6 +82,19 @@ jobs:
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore RUN='"TestRestore([^T]|.{1}[^a]|.{2}[^b]|.{3}[^l]|.{4}[^e]|.{5}[^s]).*Integration"'
 
+      - name: Dump dev env logs
+        if: failure() || cancelled()
+        run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+
+      - name: Upload dev env logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-env-logs-${{ github.job }}
+          path: /tmp/scylla-manager-dev-env-logs
+          overwrite: true
+          if-no-files-found: ignore
+
   backup:
     name: Test backup
     runs-on: ubuntu-latest
@@ -87,6 +113,19 @@ jobs:
 
       - name: Run tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/backup
+
+      - name: Dump dev env logs
+        if: failure() || cancelled()
+        run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+
+      - name: Upload dev env logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-env-logs-${{ github.job }}
+          path: /tmp/scylla-manager-dev-env-logs
+          overwrite: true
+          if-no-files-found: ignore
 
   repair:
     name: Test repair
@@ -109,6 +148,19 @@ jobs:
 
       - name: Run tablet repair tests
         run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+
+      - name: Dump dev env logs
+        if: failure() || cancelled()
+        run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+
+      - name: Upload dev env logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-env-logs-${{ github.job }}
+          path: /tmp/scylla-manager-dev-env-logs
+          overwrite: true
+          if-no-files-found: ignore
 
   small-pkg:
     name: Test other, smaller packages
@@ -160,3 +212,16 @@ jobs:
 
       - name: Verify SM server startup
         run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
+
+      - name: Dump dev env logs
+        if: failure() || cancelled()
+        run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+
+      - name: Upload dev env logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-env-logs-${{ github.job }}
+          path: /tmp/scylla-manager-dev-env-logs
+          overwrite: true
+          if-no-files-found: ignore
