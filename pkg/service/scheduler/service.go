@@ -23,6 +23,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/jsonutil"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/schedules"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"go.uber.org/multierr"
 )
 
 type (
@@ -168,8 +169,8 @@ func (s *Service) mustRunner(tp TaskType) Runner {
 // It tries to process all tasks before returning any error.
 func (s *Service) UpdateHealthcheckTasks(ctx context.Context, cfg healthcheck.Config) error {
 	var iterErr error
-	err := s.forEachTask(func(t *Task) error {
-		if t.Type != HealthCheckTask || t.Deleted {
+	err := s.forEachActiveTask(func(t *Task) error {
+		if t.Type != HealthCheckTask {
 			return nil
 		}
 		m, err := healthcheck.ModeFromProperties(t.Properties)
@@ -207,7 +208,7 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	s.logger.Info(ctx, "Loading tasks from database")
 
 	endTime := now()
-	err := s.forEachTask(func(t *Task) error {
+	err := s.forEachActiveTask(func(t *Task) error {
 		s.initMetrics(t)
 		r, err := s.markRunningAsAborted(t, endTime)
 		if err != nil {
@@ -227,10 +228,10 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	return err
 }
 
-func (s *Service) forEachTask(f func(t *Task) error) error {
+func (s *Service) forEachActiveTask(f func(t *Task) error) error {
 	q := qb.Select(table.SchedulerTask.Name()).Query(s.session)
 	defer q.Release()
-	return forEachTaskWithQuery(q, f)
+	return forEachActiveTaskWithQuery(q, f)
 }
 
 func (s *Service) markRunningAsAborted(t *Task, endTime time.Time) (bool, error) {
@@ -538,7 +539,15 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		if err != nil {
 			logger.Error(runCtx, "Cannot update the run", "task", ti, "run", r, "error", err)
 		}
-		s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
+		// Task might have been deleted during the run (see Service.DeleteTask).
+		// In such case its metrics are deleted here instead of being updated.
+		s.mu.Lock()
+		if _, exists := s.resolver.FindByID(ti.TaskID); exists {
+			s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
+		} else {
+			s.metrics.DeleteTaskMetrics(ti.TaskID)
+		}
+		s.mu.Unlock()
 	}()
 
 	if ctx.Properties.(Properties) == nil {
@@ -647,6 +656,12 @@ func (s *Service) findTaskByID(key Key) (taskInfo, bool) {
 func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	s.logger.Debug(ctx, "DeleteTask", "task", t)
 
+	// Deleted task can't be accessed via API anymore, so it shouldn't
+	// keep running out of anyone's sight and control.
+	if err := s.StopTask(ctx, t, false); err != nil {
+		return errors.Wrap(err, "stop task")
+	}
+
 	t.Deleted = true
 	t.Enabled = false
 
@@ -662,6 +677,11 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 	s.mu.Lock()
 	l, lok := s.scheduler[t.ClusterID]
 	s.resolver.Remove(t.ID)
+	delete(s.noContinue, t.ID)
+	// Metrics of a running task are deleted in Service.run when the run ends.
+	if _, running := s.runs[t.ID]; !running {
+		s.metrics.DeleteTaskMetrics(t.ID)
+	}
 	s.mu.Unlock()
 	if lok {
 		l.Unschedule(ctx, t.ID)
@@ -672,6 +692,47 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 		"task_type", t.Type,
 		"task_id", t.ID,
 	)
+	return nil
+}
+
+// DeleteClusterTasks deletes all cluster tasks and releases all resources
+// held for the cluster: it closes the cluster scheduler (which cancels
+// running tasks without waiting for them to end), clears the suspend state
+// and the cluster metrics. Metrics of canceled runs are deleted by
+// Service.run when they end, as their tasks are already deleted.
+// It should be called when the cluster is deleted.
+func (s *Service) DeleteClusterTasks(ctx context.Context, clusterID uuid.UUID) error {
+	s.logger.Info(ctx, "Deleting cluster tasks", "cluster_id", clusterID)
+
+	var errs error
+	if err := s.forEachClusterActiveTask(clusterID, func(t *Task) error {
+		errs = multierr.Append(errs, s.DeleteTask(ctx, t))
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "list tasks")
+	}
+	if errs != nil {
+		return errors.Wrap(errs, "delete tasks")
+	}
+
+	s.mu.Lock()
+	l, lok := s.scheduler[clusterID]
+	if lok {
+		l.Close()
+		delete(s.scheduler, clusterID)
+	}
+	_, suspended := s.suspended[clusterID]
+	delete(s.suspended, clusterID)
+	s.mu.Unlock()
+
+	if suspended {
+		if err := s.drawer.Delete(&suspendInfo{ClusterID: clusterID}); err != nil {
+			s.logger.Error(ctx, "Failed to delete suspend info", "cluster_id", clusterID, "error", err)
+		}
+	}
+	s.metrics.DeleteClusterMetrics(clusterID)
+
+	s.logger.Info(ctx, "Cluster tasks deleted", "cluster_id", clusterID)
 	return nil
 }
 
@@ -793,13 +854,16 @@ func (s *Service) Close() {
 	}
 }
 
-func forEachTaskWithQuery(q *gocqlx.Queryx, f func(t *Task) error) error {
+func forEachActiveTaskWithQuery(q *gocqlx.Queryx, f func(t *Task) error) error {
 	var t Task
 	iter := q.Iter()
 	for iter.StructScan(&t) {
+		if t.Deleted {
+			t = Task{}
+			continue
+		}
 		if err := f(&t); err != nil {
-			iter.Close()
-			return err
+			return stdErr.Join(err, iter.Close())
 		}
 		t = Task{}
 	}
