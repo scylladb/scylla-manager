@@ -16,19 +16,26 @@ import (
 
 // Service for the tablet repair.
 type Service struct {
-	logger       log.Logger
-	metrics      metrics.TabletRepairMetrics
-	smSession    gocqlx.Session
-	scyllaClient scyllaclient.ProviderFunc
+	logger log.Logger
+	// metrics describes per table tablet repair progress.
+	metrics metrics.TabletRepairMetrics
+	// repairMetrics describes per task repair progress shared
+	// with the general repair task.
+	repairMetrics metrics.RepairMetrics
+	smSession     gocqlx.Session
+	scyllaClient  scyllaclient.ProviderFunc
 }
 
 // NewService creates new tablet repair service.
-func NewService(smSession gocqlx.Session, metrics metrics.TabletRepairMetrics, scyllaClient scyllaclient.ProviderFunc, logger log.Logger) *Service {
+func NewService(smSession gocqlx.Session, metrics metrics.TabletRepairMetrics, repairMetrics metrics.RepairMetrics,
+	scyllaClient scyllaclient.ProviderFunc, logger log.Logger,
+) *Service {
 	return &Service{
-		logger:       logger.Named("tablet_repair"),
-		metrics:      metrics,
-		smSession:    smSession,
-		scyllaClient: scyllaClient,
+		logger:        logger.Named("tablet_repair"),
+		metrics:       metrics,
+		repairMetrics: repairMetrics,
+		smSession:     smSession,
+		scyllaClient:  scyllaClient,
 	}
 }
 

@@ -65,7 +65,7 @@ func NewService(session gocqlx.Session, config Config, m metrics.RepairMetrics, 
 	}
 
 	return &Service{
-		TabletService:     tablet.NewService(session, tm, scyllaClient, logger),
+		TabletService:     tablet.NewService(session, tm, m, scyllaClient, logger),
 		session:           session,
 		config:            config,
 		metrics:           m,
@@ -413,6 +413,8 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Ensure that not interrupted repair has 100% progress (invalidate rounding errors).
 	if ctx.Err() == nil && (!target.FailFast || err == nil) {
 		s.metrics.SetProgress(clusterID, 100)
+		s.metrics.SetTaskProgress(clusterID, run.TaskID, metrics.RepairTypeVnode,
+			metrics.RepairMode(target.IncrementalMode), 100)
 	}
 
 	return multierr.Append(err, ctx.Err())

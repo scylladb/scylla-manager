@@ -21,10 +21,13 @@ type worker struct {
 	taskID    uuid.UUID
 	runID     uuid.UUID
 
-	logger    log.Logger
-	metrics   metrics.TabletRepairMetrics
-	smSession gocqlx.Session
-	client    *scyllaclient.Client
+	logger        log.Logger
+	metrics       metrics.TabletRepairMetrics
+	repairMetrics metrics.RepairMetrics
+	smSession     gocqlx.Session
+	client        *scyllaclient.Client
+	// progress is the task progress in percents (0-100).
+	progress float64
 }
 
 func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.UUID) (*worker, error) {
@@ -33,17 +36,19 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 		return nil, errors.Wrap(err, "get scylla client")
 	}
 	return &worker{
-		clusterID: clusterID,
-		taskID:    taskID,
-		runID:     runID,
-		logger:    s.logger.Named("worker"),
-		metrics:   s.metrics,
-		smSession: s.smSession,
-		client:    client,
+		clusterID:     clusterID,
+		taskID:        taskID,
+		runID:         runID,
+		logger:        s.logger.Named("worker"),
+		metrics:       s.metrics,
+		repairMetrics: s.repairMetrics,
+		smSession:     s.smSession,
+		client:        client,
 	}, nil
 }
 
 func (w *worker) repairAll(ctx context.Context, target Target) error {
+	w.setTaskProgress(0)
 	w.init(ctx, target)
 	// We need to make sure that leftover scylla tablet repair tasks are not running,
 	// as scheduling new scylla tablet repair tasks on a table with an ongoing tablet repair
@@ -54,14 +59,46 @@ func (w *worker) repairAll(ctx context.Context, target Target) error {
 		w.logger.Error(ctx, "Failed to abort tablet repair tasks", "error", err)
 	}
 
+	// Every table counts the same. Weighting them by their on disk size
+	// would describe the work better on a cluster with one dominant table,
+	// but it costs a table size report over every live host at the start of
+	// every run, and the measure stays coarse either way - the progress only
+	// moves when a whole table is done (CLOUD-2990).
+	tables := 0
+	for _, tabs := range target.KsTabs {
+		tables += len(tabs)
+	}
+
 	for ks, tabs := range target.KsTabs {
 		for _, tab := range tabs {
 			if err := w.repairTable(ctx, w.client, ks, tab); err != nil {
 				return errors.Wrapf(err, "%s.%s: run repair", ks, tab)
 			}
+			w.addTaskProgress(100 / float64(tables))
 		}
 	}
+	// Invalidate the rounding errors of the per table progress.
+	w.setTaskProgress(100)
 	return nil
+}
+
+// tabletRepairMode is the value of the "mode" label of the repair task
+// progress metric reported by the tablet repair task.
+// The task always relies on the Scylla side default incremental mode (#4683).
+var tabletRepairMode = metrics.RepairMode("")
+
+// setTaskProgress updates the per task repair progress metric.
+func (w *worker) setTaskProgress(progress float64) {
+	w.progress = progress
+	w.repairMetrics.SetTaskProgress(w.clusterID, w.taskID, metrics.RepairTypeTablet, tabletRepairMode, progress)
+}
+
+// addTaskProgress advances the per task repair progress metric by delta.
+func (w *worker) addTaskProgress(delta float64) {
+	// Watch out for rounding over 100% errors.
+	if total := w.progress + delta; total <= 100 {
+		w.setTaskProgress(total)
+	}
 }
 
 func (w *worker) init(ctx context.Context, target Target) {
