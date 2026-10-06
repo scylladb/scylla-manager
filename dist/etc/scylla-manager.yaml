@@ -12,8 +12,7 @@ http: 127.0.0.1:5080
 # ECDHE-ECDSA-WITH-AES-128-GCM-SHA256, ECDHE-RSA-WITH-AES-128-GCM-SHA256,
 # ECDHE-ECDSA-WITH-AES-256-GCM-SHA384, ECDHE-RSA-WITH-AES-256-GCM-SHA384,
 # ECDHE-ECDSA-WITH-CHACHA20-POLY1305, ECDHE-RSA-WITH-CHACHA20-POLY1305.
-# The TLSv1.0 should never be used as it's deprecated.
-#tls_mode: TLSv1.2
+#tls_version: TLSv1.2
 
 # TLS certificate and key files to use with HTTPS. The files must contain PEM
 # encoded data. If not set a self-signed certificate will be generated,
