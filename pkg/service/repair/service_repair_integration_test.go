@@ -156,6 +156,9 @@ const (
 	longWait = 2 * shortWait
 
 	_interval = 500 * time.Millisecond
+	// _stallWait is how long the ScyllaDB Core tablet repair task must make no
+	// progress before it is considered blocked (e.g. on a read barrier, #4529).
+	_stallWait = 5 * time.Second
 )
 
 func (h *repairTestHelper) assertRunning(wait time.Duration) {
@@ -185,19 +188,72 @@ func (h *repairTestHelper) assertDone(wait time.Duration) {
 // and vnode repairs when operating on a cluster with subset of
 // nodes down. Vnode repair should finish just fine, but tablet
 // repair might get stuck on making read barrier, which requires
-// all nodes to be up. Because of that, in tablet repair, we need
-// to start the down node before expecting repair to finish.
+// all nodes to be up. Because of that, in tablet repair, we need to
+// start the down node before expecting repair to finish.
+//
+// Instead of waiting a fixed shortWait for a completion that cannot happen
+// while the repair is blocked, watch the ScyllaDB Core tablet repair task and
+// start the down node as soon as the task stops making progress.
 func (h *repairTestHelper) assertDonePartialTabletRepair(wait time.Duration, startNode func()) {
 	h.T.Helper()
-	err := WaitCondError(func() bool {
-		h.mu.RLock()
-		defer h.mu.RUnlock()
-		return h.done
-	}, _interval, shortWait)
-	if err != nil {
+	if !h.waitTabletRepairDoneOrStalled(context.Background(), shortWait, _stallWait) {
 		startNode()
 	}
 	h.assertDone(wait)
+}
+
+// waitTabletRepairDoneOrStalled reports whether the tablet repair finished
+// before it was deemed blocked. It returns false when the ScyllaDB Core tablet
+// (user_repair) task makes no progress for stallWait, or when wait elapses.
+func (h *repairTestHelper) waitTabletRepairDoneOrStalled(ctx context.Context, wait, stallWait time.Duration) bool {
+	h.T.Helper()
+	deadline := time.Now().Add(wait)
+	var (
+		lastCompleted float64
+		lastChange    time.Time
+		observed      bool
+	)
+	for time.Now().Before(deadline) {
+		h.mu.RLock()
+		done := h.done
+		h.mu.RUnlock()
+		if done {
+			return true
+		}
+		completed, total, ok := h.runningTabletRepairProgress(ctx)
+		if ok && total > 0 {
+			if !observed || completed != lastCompleted {
+				observed = true
+				lastCompleted = completed
+				lastChange = time.Now()
+			} else if time.Since(lastChange) >= stallWait {
+				Print("And: tablet repair is blocked, starting the down node")
+				return false
+			}
+		}
+		time.Sleep(_interval)
+	}
+	return false
+}
+
+// runningTabletRepairProgress returns the progress of the active ScyllaDB Core
+// tablet (user_repair) task, if there is one. A scheduled task reports
+// total == 0, which the caller treats as "not started yet".
+func (h *repairTestHelper) runningTabletRepairProgress(ctx context.Context) (completed, total float64, ok bool) {
+	tasks, err := h.Client.ActiveTabletRepairs(ctx)
+	if err != nil {
+		h.T.Logf("list tablet repair tasks: %v", err)
+		return 0, 0, false
+	}
+	if len(tasks) == 0 {
+		return 0, 0, false
+	}
+	p, err := h.Client.ScyllaTaskProgress(ctx, "", tasks[0].TaskID)
+	if err != nil {
+		h.T.Logf("get tablet task %s progress: %v", tasks[0].TaskID, err)
+		return 0, 0, false
+	}
+	return p.ProgressCompleted, p.ProgressTotal, true
 }
 
 func (h *repairTestHelper) assertProgressSuccess() {
