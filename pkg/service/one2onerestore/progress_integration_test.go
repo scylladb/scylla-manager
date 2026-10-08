@@ -62,7 +62,7 @@ func TestGetProgressIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected err, prepareHostWorkload: %v", err)
 	}
-	pr, err := w.getProgress(context.Background())
+	pr, err := getProgress(context.Background(), h.clusterID, h.taskID, h.runID, w.managerSession)
 	if err != nil {
 		t.Fatalf("Unexpected err, getProgress: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestGetProgressIntegration(t *testing.T) {
 
 	w.initProgressAndMetrics(context.Background(), workload)
 
-	pr, err = w.getProgress(context.Background())
+	pr, err = getProgress(context.Background(), h.clusterID, h.taskID, h.runID, w.managerSession)
 	if err != nil {
 		t.Fatalf("Unexpected err, getProgress: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestGetProgressIntegration(t *testing.T) {
 		t.Fatalf("Unexpected err, restoreTables: %v", err)
 	}
 
-	pr, err = w.getProgress(context.Background())
+	pr, err = getProgress(context.Background(), h.clusterID, h.taskID, h.runID, w.managerSession)
 	if err != nil {
 		t.Fatalf("Unexpected err, getProgress: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestGetProgressIntegration(t *testing.T) {
 		t.Fatalf("Unexpected err, reCreateViews: %v", err)
 	}
 
-	pr, err = w.getProgress(context.Background())
+	pr, err = getProgress(context.Background(), h.clusterID, h.taskID, h.runID, w.managerSession)
 	if err != nil {
 		t.Fatalf("Unexpected err, getProgress: %v", err)
 	}
