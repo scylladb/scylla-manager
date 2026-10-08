@@ -149,11 +149,7 @@ func (s *Service) newWorker(ctx context.Context, clusterID, taskID, runID uuid.U
 
 // GetProgress aggregates progress for the run of the task.
 func (s *Service) GetProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID, _ json.RawMessage) (Progress, error) {
-	w, err := s.newWorker(ctx, clusterID, taskID, runID)
-	if err != nil {
-		return Progress{}, errors.Wrap(err, "new worker")
-	}
-	pr, err := w.getProgress(ctx)
+	pr, err := getProgress(ctx, clusterID, taskID, runID, s.session)
 	if err != nil {
 		return Progress{}, errors.Wrap(err, "get progress")
 	}

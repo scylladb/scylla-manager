@@ -118,7 +118,7 @@ func TestAggregateProgress(t *testing.T) {
 			viewIter, viewStop := newDBTest[RunViewProgress](t, tc.viewRows)
 			defer viewStop()
 
-			pr := (&worker{}).aggregateProgress(tableIter, viewIter)
+			pr := aggregateProgress(tableIter, viewIter)
 
 			testutils.SaveGoldenJSONFileIfNeeded(t, &pr)
 			var expectedProgress Progress

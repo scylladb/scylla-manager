@@ -4,11 +4,11 @@ package one2onerestore
 
 import (
 	"context"
+	stderr "errors"
 	"time"
 
-	stderr "errors"
-
 	"github.com/pkg/errors"
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -179,22 +179,22 @@ func (w *worker) insertRunViewProgress(ctx context.Context, pr *RunViewProgress)
 	return q.ExecRelease()
 }
 
-func (w *worker) getProgress(ctx context.Context) (Progress, error) {
-	qt := table.One2onerestoreRunTableProgress.SelectQueryContext(ctx, w.managerSession)
+func getProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID, managerSession gocqlx.Session) (Progress, error) {
+	qt := table.One2onerestoreRunTableProgress.SelectQueryContext(ctx, managerSession)
 	tableIter := qt.BindMap(qb.M{
-		"cluster_id": w.runInfo.ClusterID,
-		"task_id":    w.runInfo.TaskID,
-		"run_id":     w.runInfo.RunID,
+		"cluster_id": clusterID,
+		"task_id":    taskID,
+		"run_id":     runID,
 	}).Iter()
 
-	qv := table.One2onerestoreRunViewProgress.SelectQueryContext(ctx, w.managerSession)
+	qv := table.One2onerestoreRunViewProgress.SelectQueryContext(ctx, managerSession)
 	viewIter := qv.BindMap(qb.M{
-		"cluster_id": w.runInfo.ClusterID,
-		"task_id":    w.runInfo.TaskID,
-		"run_id":     w.runInfo.RunID,
+		"cluster_id": clusterID,
+		"task_id":    taskID,
+		"run_id":     runID,
 	}).Iter()
 
-	pr := w.aggregateProgress(tableIter, viewIter)
+	pr := aggregateProgress(tableIter, viewIter)
 
 	var closeErrs error
 	if err := tableIter.Close(); err != nil {
@@ -210,7 +210,7 @@ type dbIterator interface {
 	StructScan(v any) bool
 }
 
-func (w *worker) aggregateProgress(tableIter, viewIter dbIterator) Progress {
+func aggregateProgress(tableIter, viewIter dbIterator) Progress {
 	var (
 		rtp RunTableProgress
 		rvp RunViewProgress
