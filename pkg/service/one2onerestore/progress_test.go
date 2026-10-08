@@ -113,10 +113,8 @@ func TestAggregateProgress(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tableIter, stop := newDBTest[RunTableProgress](t, tc.tableRows)
-			defer stop()
-			viewIter, viewStop := newDBTest[RunViewProgress](t, tc.viewRows)
-			defer viewStop()
+			tableIter := newDBTest[RunTableProgress](t, tc.tableRows)
+			viewIter := newDBTest[RunViewProgress](t, tc.viewRows)
 
 			pr := aggregateProgress(tableIter, viewIter)
 
@@ -126,10 +124,10 @@ func TestAggregateProgress(t *testing.T) {
 
 			unexportedOpts := cmp.AllowUnexported(TableProgress{}, ViewProgress{})
 			sortTables := cmpopts.SortSlices(func(a, b TableProgress) bool {
-				return a.Keyspace <= b.Keyspace && a.Table <= b.Table
+				return a.Keyspace+"."+a.Table < b.Keyspace+"."+b.Table
 			})
 			sortViews := cmpopts.SortSlices(func(a, b ViewProgress) bool {
-				return a.Keyspace <= b.Keyspace && a.Table <= b.Table
+				return a.Keyspace+":"+a.Table+":"+a.View < b.Keyspace+":"+b.Table+":"+b.View
 			})
 			opts := []cmp.Option{
 				sortTables,
@@ -147,20 +145,21 @@ type runProgress interface {
 	RunTableProgress | RunViewProgress
 }
 
-func newDBTest[T runProgress](t *testing.T, dataPath string) (it *dbIterTest[T], stop func()) {
+func newDBTest[T runProgress](t *testing.T, dataPath string) *dbIterTest[T] {
 	t.Helper()
 	data, err := os.ReadFile(dataPath)
 	if err != nil {
-		t.Fatalf("open test data file: %v", err)
+		t.Fatalf("open test data file: %s: %v", dataPath, err)
 	}
 	var rows []T
 	if err := json.Unmarshal(data, &rows); err != nil {
 		t.Fatalf("unmarshal test data file: %s: %v", dataPath, err)
 	}
 	next, stop := iter.Pull(slices.Values(rows))
+	t.Cleanup(stop)
 	return &dbIterTest[T]{
 		next: next,
-	}, stop
+	}
 }
 
 type dbIterTest[T runProgress] struct {
@@ -178,8 +177,4 @@ func (db *dbIterTest[T]) StructScan(v any) bool {
 	}
 	*pr = row
 	return true
-}
-
-func toPtr[T any](t T) *T {
-	return &t
 }

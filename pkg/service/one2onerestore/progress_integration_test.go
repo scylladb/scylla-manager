@@ -5,7 +5,6 @@
 package one2onerestore
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -33,6 +32,7 @@ func TestGetProgressIntegration(t *testing.T) {
 		RunID:     h.runID,
 	}
 	clusterSession := db.CreateSessionAndDropAllKeyspaces(t, h.client)
+	defer clusterSession.Close()
 	ksName := "testgetprogress"
 	db.WriteData(t, clusterSession, ksName, 10)
 	mvName := "testmv"
@@ -53,16 +53,16 @@ func TestGetProgressIntegration(t *testing.T) {
 		Location:        []backupspec.Location{loc},
 		NodesMapping:    getNodeMappings(t, w.client),
 	}
-	manifests, hosts, err := w.getAllSnapshotManifestsAndTargetHosts(context.Background(), target)
+	manifests, hosts, err := w.getAllSnapshotManifestsAndTargetHosts(t.Context(), target)
 	if err != nil {
 		t.Fatalf("Unexpected err, getAllSnapshotManifestsAndTargetHosts: %v", err)
 	}
 
-	workload, err := w.prepareHostWorkload(context.Background(), manifests, hosts, target)
+	workload, err := w.prepareHostWorkload(t.Context(), manifests, hosts, target)
 	if err != nil {
 		t.Fatalf("Unexpected err, prepareHostWorkload: %v", err)
 	}
-	pr, err := getProgress(context.Background(), h.clusterID, h.taskID, h.runID, w.managerSession)
+	pr, err := getProgress(t.Context(), h.clusterID, h.taskID, h.runID, w.managerSession)
 	if err != nil {
 		t.Fatalf("Unexpected err, getProgress: %v", err)
 	}
@@ -70,9 +70,11 @@ func TestGetProgressIntegration(t *testing.T) {
 		t.Fatalf("Expected empty progress, but got: %v", pr)
 	}
 
-	w.initProgressAndMetrics(context.Background(), workload)
+	if err := w.initProgressAndMetrics(t.Context(), workload); err != nil {
+		t.Fatalf("Unexpected err, initProgressAndMetrics: %v", err)
+	}
 
-	pr, err = getProgress(context.Background(), h.clusterID, h.taskID, h.runID, w.managerSession)
+	pr, err = getProgress(t.Context(), h.clusterID, h.taskID, h.runID, w.managerSession)
 	if err != nil {
 		t.Fatalf("Unexpected err, getProgress: %v", err)
 	}
@@ -82,23 +84,22 @@ func TestGetProgressIntegration(t *testing.T) {
 	expectProgressStatus(t, pr, ProgressStatusNotStarted)
 
 	testutils.Print("ALTER_TGC Stage")
-	err = w.setTombstoneGCModeRepair(context.Background(), workload)
-	if err != nil {
+	if err := w.setTombstoneGCModeRepair(t.Context(), workload); err != nil {
 		t.Fatalf("Unexpected err, setTombstoneGCModeRepair: %v", err)
 	}
 
 	testutils.Print("DROP_VIEWS Stage")
-	views, err := w.dropViews(context.Background(), workload)
+	views, err := w.dropViews(t.Context(), workload)
 	if err != nil {
 		t.Fatalf("Unexpected err, dropViews: %v", err)
 	}
 
 	testutils.Print("DATA Stage")
-	if err := w.restoreTables(context.Background(), workload, target.Keyspace); err != nil {
+	if err := w.restoreTables(t.Context(), workload, target.Keyspace); err != nil {
 		t.Fatalf("Unexpected err, restoreTables: %v", err)
 	}
 
-	pr, err = getProgress(context.Background(), h.clusterID, h.taskID, h.runID, w.managerSession)
+	pr, err = getProgress(t.Context(), h.clusterID, h.taskID, h.runID, w.managerSession)
 	if err != nil {
 		t.Fatalf("Unexpected err, getProgress: %v", err)
 	}
@@ -109,11 +110,11 @@ func TestGetProgressIntegration(t *testing.T) {
 	expectViewsStatus(t, pr.Views, ProgressStatusNotStarted)
 
 	testutils.Print("RECREATE_VIEWS Stage")
-	if err := w.reCreateViews(context.Background(), views); err != nil {
+	if err := w.reCreateViews(t.Context(), views); err != nil {
 		t.Fatalf("Unexpected err, reCreateViews: %v", err)
 	}
 
-	pr, err = getProgress(context.Background(), h.clusterID, h.taskID, h.runID, w.managerSession)
+	pr, err = getProgress(t.Context(), h.clusterID, h.taskID, h.runID, w.managerSession)
 	if err != nil {
 		t.Fatalf("Unexpected err, getProgress: %v", err)
 	}
