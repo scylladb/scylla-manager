@@ -1,0 +1,230 @@
+# ScyllaDB Manager Agent Config
+
+ScyllaDB Manager Agent configuration file `/etc/scylla-manager-agent/scylla-manager-agent.yaml`.
+
+```yaml
+# Scylla Manager Agent config YAML
+
+# Specify authentication token, the auth_token needs to be the same for all the
+# nodes in a cluster. Use scyllamgr_auth_token_gen to generate the auth_token
+# value.
+#auth_token:
+
+# Bind REST API to the specified TCP address using HTTPS protocol. By default
+# Scylla Manager Agent uses Scylla listen/broadcast address that is read from
+# the Scylla API (see scylla section).
+#https: 0.0.0.0:10001
+
+# Use custom port instead of default 10001.
+#https_port:
+
+# Version of TLS protocol and cipher suites to use with HTTPS.
+# The supported versions are: TLSv1.3, TLSv1.2, TLSv1.0.
+# The TLSv1.2 is restricted to the following cipher suites:
+# ECDHE-ECDSA-WITH-AES-128-GCM-SHA256, ECDHE-RSA-WITH-AES-128-GCM-SHA256,
+# ECDHE-ECDSA-WITH-AES-256-GCM-SHA384, ECDHE-RSA-WITH-AES-256-GCM-SHA384,
+# ECDHE-ECDSA-WITH-CHACHA20-POLY1305, ECDHE-RSA-WITH-CHACHA20-POLY1305.
+# The TLSv1.0 should never be used as it's deprecated.
+#tls_mode: TLSv1.2
+
+# TLS certificate and key files to use with HTTPS. The files must contain PEM
+# encoded data. If not set a self-signed certificate will be generated,
+# the certificate is valid for 1 year after start and uses EC P256 private key.
+#tls_cert_file:
+#tls_key_file:
+
+# Bind prometheus API to the specified TCP address using HTTP protocol.
+# By default it binds to all network interfaces but you can restrict it
+# by specifying it like this 127:0.0.1:5090 or any other combination
+# of ip and port.
+#prometheus: ':5090'
+
+# Debug server that allows to run pporf profiling on demand on a live system.
+#debug: 127.0.0.1:5112
+
+# CPU to run Scylla Manager Agent on. By default the agent would read Scylla
+# configuration at /etc/scylla.d/cpuset.conf and try to find a core not used by
+# Scylla. If that's not possible user can specify a core to run agent on.
+# It's possible to specify a list of CPUs instead of a single value.
+#cpu: 0
+
+# Logging configuration.
+#logger:
+# Where to print logs, stderr or stdout.
+#  mode: stderr
+# How much logs to print, available levels are: error, info, debug.
+#  level: info
+# Sampling reduces number of logs by not printing duplicated log entries within
+# a second. The first N (initial) entries with a given level and message are
+# printed. If more entries with the same level and message are seen during
+# the same interval, every Mth (thereafter) message is logged and the rest is
+# dropped.
+#  sampling:
+#    initial: 1
+#    thereafter: 100
+
+# Copy api_address and api_port values from /etc/scylla/scylla.yaml. All the
+# needed Scylla configuration options are read from the API.
+#scylla:
+#  api_address: 0.0.0.0
+#  api_port: 10000
+
+# Backup general configuration.
+#rclone:
+# The number of checkers to run in parallel. Checkers do the equality checking
+# of files (local vs. backup location) at the beginning of backup.
+#  checkers: 100
+#
+# The number of file transfers to run in parallel. It can sometimes be useful
+# to set this to a smaller number if the remote is giving a lot of timeouts or
+# bigger if you have lots of bandwidth and a fast remote.
+#  transfers: 2
+#
+# Number of low level retries to do. This applies to operations like file chunk upload.
+#  low_level_retries: 20
+
+# Backup S3 configuration.
+#
+# Note that when running in AWS Scylla Manager Agent can read hosts IAM role.
+# It's recommended to define access rules based on IAM roles.
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
+#
+# To test bucket accessibility use `scylla-manager-agent check-location` command.
+# Example:
+# scylla-manager-agent check-location --location s3:scylla-manager-backup
+#
+# Sample IAM policy for "scylla-manager-backup" bucket:
+#
+# {
+#      "Version": "2012-10-17",
+#      "Statement": [
+#          {
+#              "Effect": "Allow",
+#              "Action": [
+#                  "s3:GetBucketLocation",
+#                  "s3:ListBucket",
+#                  "s3:ListBucketMultipartUploads"
+#              ],
+#              "Resource": [
+#                  "arn:aws:s3:::scylla-manager-backup"
+#              ]
+#          },
+#          {
+#              "Effect": "Allow",
+#              "Action": [
+#                  "s3:PutObject",
+#                  "s3:GetObject",
+#                  "s3:DeleteObject",
+#                  "s3:AbortMultipartUpload",
+#                  "s3:ListMultipartUploadParts"
+#              ],
+#              "Resource": [
+#                  "arn:aws:s3:::scylla-manager-backup/*"
+#              ]
+#          }
+#      ]
+#  }
+#
+#s3:
+# S3 credentials, it's recommended to use IAM roles if possible, otherwise set
+# your AWS Access Key ID and AWS Secret Access Key (password) here.
+#  access_key_id:
+#  secret_access_key:
+#
+# Provider of the S3 service. By default this is AWS. There are multiple S3
+# API compatible providers that can be used instead. Due to minor differences
+# between them we require that exact provider is specified here for full
+# compatibility. Supported and tested options are: AWS and Minio.
+# The available providers are: Alibaba, AWS, Ceph, DigitalOcean, IBMCOS, Minio, 
+# Wasabi, Dreamhost, Netease.
+#  provider: AWS
+#
+# Region to connect to, if running in AWS EC2 instance region is set
+# to the local region by default.
+#  region:
+#
+# Endpoint for S3 API, only relevant when using S3 compatible API.
+#  endpoint:
+#
+# The server-side encryption algorithm used when storing this object in S3.
+# If using KMS ID you must provide the ARN of Key.
+#  server_side_encryption:
+#  sse_kms_key_id:
+#
+# The storage class to use when storing new objects in S3.
+#  storage_class:
+#
+# Concurrency for multipart uploads.
+#  upload_concurrency: 2
+#
+# AWS S3 Transfer acceleration
+# https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration-examples.html
+#  use_accelerate_endpoint: false
+
+# Backup GCS configuration.
+#
+# Note that when running in GCP Scylla Manager Agent can use instance
+# Service Account. It's recommended to define access rules based on IAM roles
+# attached to Service Account.
+# https://cloud.google.com/docs/authentication/production
+#
+# To test bucket accessibility use `scylla-manager-agent check-location` command.
+# Example:
+# scylla-manager-agent check-location --location gcs:scylla-manager-backup
+#
+#gcs:
+# GCS credentials, it's recommended to use Service Account authentication
+# if possible, otherwise set path to credentials here.
+#  service_account_file: /etc/scylla-manager-agent/gcs-service-account.json
+#
+# Endpoint for GCS API, only relevant when using GCS compatible API.
+# Example default endpoint: https://storage.googleapis.com.
+# Example custom endpoint: http://localhost:32811.
+#  endpoint:
+#
+# The storage class to use when storing new objects in Google Cloud Storage.
+#  storage_class:
+
+# Backup Microsoft Azure blob storage configuration.
+#
+# Access can be provided with account/key pair but it is recommended to use
+# Azure RBAC to the backup storage with IAM policy defined.
+# More about role based access https://docs.microsoft.com/en-us/azure/role-based-access-control/.
+#
+# Sample role JSON definition scoped to the *ScyllaManagerBackup* resource group:
+#
+# {
+#   "properties": {
+#     "roleName": "Scylla Backup Storage Contributor",
+#     "description": "Contributor access to the blob service for Scylla cluster backups",
+#     "assignableScopes": [
+#       "/subscriptions/<subscription_uuid>/resourceGroups/ScyllaManagerBackup"
+#     ],
+#     "permissions": [
+#       {
+#         "actions": [
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/delete",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/read",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/write",
+#           "Microsoft.Storage/storageAccounts/blobServices/generateUserDelegationKey/action"
+#         ],
+#         "notActions": [],
+#         "dataActions": [
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/delete",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/move/action",
+#           "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/add/action"
+#         ],
+#         "notDataActions": []
+#       }
+#     ]
+#   }
+# }
+#
+#azure:
+# Storage account name.
+#  account:
+# Storage account authentication key.
+#  key:
+```
