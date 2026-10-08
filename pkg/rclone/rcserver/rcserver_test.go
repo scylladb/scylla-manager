@@ -16,6 +16,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -431,6 +432,106 @@ func TestOperationsListFsCache(t *testing.T) {
 	}
 	if !cached("fscache:as_fs") {
 		t.Error("expected directory listed as fs to be cached")
+	}
+}
+
+// TestRemoteEscapingRootRejected verifies that a remote path escaping
+// fs root is rejected before reaching the backend.
+func TestRemoteEscapingRootRejected(t *testing.T) {
+	root := t.TempDir()
+	jail := path.Join(root, "jail")
+	if err := os.MkdirAll(path.Join(jail, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{path.Join(root, "outside.txt"), path.Join(jail, "inside.txt")} {
+		if err := os.WriteFile(f, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	rclone.InitFsConfig()
+	if err := rclone.RegisterLocalDirProvider("escape", "testing provider", jail); err != nil {
+		t.Fatal(err)
+	}
+
+	rcServer := New()
+	call := func(t *testing.T, endpoint string, in map[string]any) (int, string) {
+		t.Helper()
+		buf := bytes.NewBuffer(nil)
+		if err := json.NewEncoder(buf).Encode(in); err != nil {
+			t.Fatal(err)
+		}
+		req := httptest.NewRequest(http.MethodPost, "http://1.2.3.4/"+endpoint, buf)
+		req.Header.Add("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		rcServer.ServeHTTP(rec, req)
+		return rec.Code, rec.Body.String()
+	}
+
+	testCases := []struct {
+		Name     string
+		Endpoint string
+		In       map[string]any
+		Code     int
+	}{
+		{
+			Name:     "list parent of fs root",
+			Endpoint: "operations/list",
+			In:       map[string]any{"fs": "escape:sub", "remote": ".."},
+			Code:     http.StatusBadRequest,
+		},
+		{
+			Name:     "list above jail",
+			Endpoint: "operations/list",
+			In:       map[string]any{"fs": "escape:sub", "remote": "../.."},
+			Code:     http.StatusBadRequest,
+		},
+		{
+			Name:     "fileinfo above jail",
+			Endpoint: "operations/fileinfo",
+			In:       map[string]any{"fs": "escape:", "remote": "../outside.txt"},
+			Code:     http.StatusBadRequest,
+		},
+		{
+			Name:     "deletepaths above jail",
+			Endpoint: "operations/deletepaths",
+			In:       map[string]any{"fs": "escape:", "remote": "sub", "paths": []string{"../../outside.txt"}},
+			Code:     http.StatusBadRequest,
+		},
+		{
+			Name:     "list within fs root",
+			Endpoint: "operations/list",
+			In:       map[string]any{"fs": "escape:", "remote": "sub/.."},
+			Code:     http.StatusOK,
+		},
+		{
+			Name:     "fileinfo within jail",
+			Endpoint: "operations/fileinfo",
+			In:       map[string]any{"fs": "escape:", "remote": "inside.txt"},
+			Code:     http.StatusOK,
+		},
+		{
+			Name:     "fs above jail is still clamped by the provider",
+			Endpoint: "operations/list",
+			In:       map[string]any{"fs": "escape:sub/../..", "remote": ""},
+			Code:     http.StatusNotFound,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.Name, func(t *testing.T) {
+			code, body := call(t, test.Endpoint, test.In)
+			if code != test.Code {
+				t.Fatalf("status %d, expected %d, body %s", code, test.Code, body)
+			}
+			if code == http.StatusOK && strings.Contains(body, "outside.txt") {
+				t.Fatalf("response leaks content above jail: %s", body)
+			}
+		})
+	}
+
+	if _, err := os.Stat(path.Join(root, "outside.txt")); err != nil {
+		t.Fatalf("file above jail was removed: %s", err)
 	}
 }
 

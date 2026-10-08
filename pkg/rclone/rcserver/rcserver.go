@@ -13,6 +13,7 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -229,6 +230,10 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.writeError(path, in, w, err, http.StatusBadRequest)
 		return
 	}
+	if err := validateRemotePaths(in); err != nil {
+		s.writeError(path, in, w, err, http.StatusBadRequest)
+		return
+	}
 
 	// Check to see if it is async or not
 	isAsync, err := in.GetBool("_async")
@@ -312,6 +317,41 @@ func validateFsName(in rc.Params) error {
 		}
 	}
 	return nil
+}
+
+// validateRemotePaths ensures that no remote path escapes fs root.
+func validateRemotePaths(in rc.Params) error {
+	for _, name := range []string{"remote", "srcRemote", "dstRemote"} {
+		remote, err := in.GetString(name)
+		if err != nil {
+			if rc.IsErrParamNotFound(err) {
+				continue
+			}
+			return err
+		}
+		if escapesRoot(remote) {
+			return paramInvalidError{errors.Errorf("%s param %q escapes file system root", name, remote)}
+		}
+	}
+
+	paths, err := getStringSlice(in, "paths")
+	if err != nil {
+		if rc.IsErrParamNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	for _, p := range paths {
+		if escapesRoot(p) {
+			return paramInvalidError{errors.Errorf("paths param %q escapes file system root", p)}
+		}
+	}
+	return nil
+}
+
+func escapesRoot(p string) bool {
+	p = path.Clean(p)
+	return p == ".." || strings.HasPrefix(p, "../")
 }
 
 type paramInvalidError struct {
