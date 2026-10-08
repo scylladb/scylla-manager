@@ -16,10 +16,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/scylladb/go-log"
-	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/pointer"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 // TestRcloneLocaldirPrefixCollisionIntegration validates that the localdir
@@ -45,15 +46,8 @@ func TestRcloneLocaldirPrefixCollisionIntegration(t *testing.T) {
 	testHost := ManagedClusterHost()
 	ctx := context.Background()
 
-	// We also need the scyllaclient for the list operation which passes fs directly.
-	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// Raw HTTP client for direct agent API calls that bypass the Go client's
-	// path splitting (which masks the vulnerability for some operations).
+	// path splitting (which never sends an absolute path as fs).
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
@@ -63,7 +57,7 @@ func TestRcloneLocaldirPrefixCollisionIntegration(t *testing.T) {
 	authToken := AgentAuthToken()
 
 	// Helper for making authenticated POST requests to the agent rclone API.
-	agentPost := func(t *testing.T, endpoint string, body map[string]interface{}) (int, string) {
+	agentPost := func(t *testing.T, endpoint string, body any) (int, string) {
 		t.Helper()
 		b, _ := json.Marshal(body)
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, agentBaseURL+"/"+endpoint, bytes.NewReader(b))
@@ -152,19 +146,32 @@ func TestRcloneLocaldirPrefixCollisionIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("list via client rejects prefix-collision sibling", func(t *testing.T) {
+	t.Run("list via raw HTTP rejects prefix-collision sibling", func(t *testing.T) {
 		// Ensure sibling exists with content.
 		setupCmd := "mkdir -p " + siblingDir + " && echo -n 'secret' > " + siblingDir + "/secret.txt"
 		if _, _, err := ExecOnHost(testHost, setupCmd); err != nil {
 			t.Fatal("setup failed:", err)
 		}
 
-		// RcloneListDir passes the full remotePath as Fs, triggering the
-		// prefix collision when the path starts with the jail root prefix.
-		items, err := client.RcloneListDir(ctx, testHost, "data:"+siblingDir, nil)
-		if err == nil && len(items) > 0 {
-			t.Fatalf("SECURITY VIOLATION: listed %d items from prefix-collision sibling %s outside the jail",
-				len(items), siblingDir)
+		// Real RcloneListDir can't be called here, as it properly
+		// divides fs from remote and sends them separately.
+		status, respBody := agentPost(t, "operations/list", &models.ListOptions{
+			Fs:     pointer.StringPtr("data:" + siblingDir),
+			Remote: pointer.StringPtr(""),
+		})
+
+		// Verify that no sibling content was listed.
+		if status == http.StatusOK {
+			var out operations.OperationsListOKBody
+			if err := json.Unmarshal([]byte(respBody), &out); err != nil {
+				t.Fatalf("decode list response: %s (body=%s)", err, respBody)
+			}
+			if len(out.List) > 0 {
+				t.Fatalf("SECURITY VIOLATION: listed %d items from prefix-collision sibling %s outside the jail "+
+					"(first item=%s)", len(out.List), siblingDir, out.List[0].Path)
+			}
+		} else if status != http.StatusNotFound {
+			t.Fatalf("unexpected status %d for list of prefix-collision sibling %s (body=%s)", status, siblingDir, respBody)
 		}
 	})
 
