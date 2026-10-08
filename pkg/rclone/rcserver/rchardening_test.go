@@ -199,3 +199,79 @@ func TestSameDir(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateRemotePaths(t *testing.T) {
+	testCases := []struct {
+		Name  string
+		In    rc.Params
+		Error bool
+	}{
+		{
+			Name: "no remote params",
+			In:   rc.Params{"fs": "s3:bla"},
+		},
+		{
+			Name: "remote within root",
+			In:   rc.Params{"fs": "s3:bla", "remote": "backup/meta/../sst/file"},
+		},
+		{
+			Name: "empty remote",
+			In:   rc.Params{"fs": "data:", "remote": ""},
+		},
+		{
+			Name: "absolute remote is resolved under root",
+			In:   rc.Params{"fs": "data:", "remote": "/etc/passwd"},
+		},
+		{
+			Name:  "remote parent",
+			In:    rc.Params{"fs": "data:sub", "remote": ".."},
+			Error: true,
+		},
+		{
+			Name:  "remote above root",
+			In:    rc.Params{"fs": "data:sub", "remote": "../../etc/passwd"},
+			Error: true,
+		},
+		{
+			Name:  "remote escaping after descending",
+			In:    rc.Params{"fs": "data:", "remote": "sub/../../etc"},
+			Error: true,
+		},
+		{
+			Name:  "src remote escaping",
+			In:    rc.Params{"srcFs": "data:", "srcRemote": "../x", "dstFs": "s3:bla", "dstRemote": "x"},
+			Error: true,
+		},
+		{
+			Name:  "dst remote escaping",
+			In:    rc.Params{"srcFs": "s3:bla", "srcRemote": "x", "dstFs": "data:", "dstRemote": "../x"},
+			Error: true,
+		},
+		{
+			Name: "paths within remote",
+			In:   rc.Params{"fs": "data:", "remote": "dir", "paths": []any{"a", "sub/b", "sub/../c"}},
+		},
+		{
+			Name:  "paths escaping remote",
+			In:    rc.Params{"fs": "data:", "remote": "dir", "paths": []any{"a", "../../x"}},
+			Error: true,
+		},
+		{
+			Name:  "paths not a list of strings",
+			In:    rc.Params{"fs": "data:", "remote": "dir", "paths": []any{1}},
+			Error: true,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.Name, func(t *testing.T) {
+			err := validateRemotePaths(test.In)
+			if test.Error && err == nil {
+				t.Fatal("expected error")
+			}
+			if !test.Error && err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+		})
+	}
+}
