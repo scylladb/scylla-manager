@@ -595,14 +595,29 @@ func (opts *RcloneListDirOpts) propagateNotFound() bool {
 }
 
 // asListOptions builds the operations/list request body for listing remotePath.
-func (opts *RcloneListDirOpts) asListOptions(remotePath string) *models.ListOptions {
+func (opts *RcloneListDirOpts) asListOptions(remotePath string) (*models.ListOptions, error) {
+	// Rclone returns list items relative to fs.
+	// RcloneListDir/Iter promise to return items relative to remote path.
+	// Even though it might be tempting to solve this by sending remote path
+	// as fs with empty remote, this results in caching new fs on rclone side.
+	// Rclone fs cache is permanent, so this would lead to unbound memory usage.
+	fs, remote, err := rcloneSplitRemotePath(remotePath)
+	if err != nil {
+		return nil, err
+	}
 	return &models.ListOptions{
-		Fs:            &remotePath,
-		Remote:        new(""),
+		Fs:            &fs,
+		Remote:        &remote,
 		Opt:           opts.asModelOpts(),
 		NewestOnly:    opts != nil && opts.NewestOnly,
 		VersionedOnly: opts != nil && opts.VersionedOnly,
-	}
+	}, nil
+}
+
+// relativeItemPath trims dir from item.Path making it relative to it.
+// In case item.Path is not relative to dir, item.Path is unchanged.
+func relativeItemPath(item *RcloneListDirItem, dir string) {
+	item.Path = strings.TrimPrefix(item.Path, dir+"/")
 }
 
 // RcloneListDirItem represents a file in a listing with RcloneListDir.
@@ -619,9 +634,13 @@ type RcloneListDirItem = models.ListItem
 // This function must execute in the standard Timeout (15s by default) and
 // will be retried if failed.
 func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opts *RcloneListDirOpts) ([]*RcloneListDirItem, error) {
+	listOpts, err := opts.asListOptions(remotePath)
+	if err != nil {
+		return nil, err
+	}
 	p := operations.OperationsListParams{
 		Context:  forceHost(ctx, host),
-		ListOpts: opts.asListOptions(remotePath),
+		ListOpts: listOpts,
 	}
 	resp, err := c.agentOps.OperationsList(&p)
 	if err != nil {
@@ -630,7 +649,12 @@ func (c *Client) RcloneListDir(ctx context.Context, host, remotePath string, opt
 		}
 		return nil, err
 	}
-
+	// Rclone returns item.Path relative to sent fs ("provider:bucket"), not remote ("path").
+	// To maintain user contract of returning item.Path relative to remote path,
+	// we need to manually trim the remote path prefix from item.Path.
+	for _, item := range resp.Payload.List {
+		relativeItemPath(item, *listOpts.Remote)
+	}
 	return resp.Payload.List, nil
 }
 
@@ -667,7 +691,10 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 	// object to stream process the response body.
 	const urlPath = agentClient.DefaultBasePath + "/rclone/operations/list"
 
-	listOpts := opts.asListOptions(remotePath)
+	listOpts, err := opts.asListOptions(remotePath)
+	if err != nil {
+		return err
+	}
 	b, err := listOpts.MarshalBinary()
 	if err != nil {
 		return err
@@ -726,6 +753,10 @@ func (c *Client) RcloneListDirIter(ctx context.Context, host, remotePath string,
 		if !inactivity.Stop() {
 			return ErrRcloneListDirTimeout
 		}
+		// Rclone returns item.Path relative to sent fs ("provider:bucket"), not remote ("path").
+		// To maintain user contract of returning item.Path relative to remote path,
+		// we need to manually trim the remote path prefix from item.Path.
+		relativeItemPath(&v, *listOpts.Remote)
 		f(&v)
 		inactivity.Reset(resetTimeout)
 	}
@@ -984,19 +1015,24 @@ func (c *Client) RcloneEventBasedHold(ctx context.Context, host, remotePath stri
 	return err
 }
 
-// rcloneSplitRemotePath splits string path into file system and file path.
-func rcloneSplitRemotePath(remotePath string) (fs, path string, err error) {
+// rcloneSplitRemotePath splits "provider:bucket/path" into file system
+// "provider:bucket" and clean remote "path" within it.
+func rcloneSplitRemotePath(remotePath string) (fs, remote string, err error) {
 	parts := strings.Split(remotePath, ":")
 	if len(parts) != 2 {
 		err = errors.New("remote path without file system name")
 		return
 	}
 
-	dirParts := strings.SplitN(parts[1], "/", 2)
-	root := dirParts[0]
-	fs = fmt.Sprintf("%s:%s", parts[0], root)
-	if len(dirParts) > 1 {
-		path = dirParts[1]
+	bucketAndPath := path.Clean(parts[1])
+	if bucketAndPath == "." {
+		bucketAndPath = ""
+	}
+	bucketAndPathParts := strings.SplitN(bucketAndPath, "/", 2)
+	bucket := bucketAndPathParts[0]
+	fs = fmt.Sprintf("%s:%s", parts[0], bucket)
+	if len(bucketAndPathParts) > 1 {
+		remote = bucketAndPathParts[1]
 	}
 	return
 }

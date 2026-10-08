@@ -173,7 +173,7 @@ func (i *eventBasedHoldInterceptor) interceptResp(resp *http.Response, err error
 			if item.IsDir {
 				continue
 			}
-			key := path.Join(*opts.Fs, *opts.Remote, item.Path)
+			key := path.Join(*opts.Fs, item.Path)
 			hold, retainUntil, mode := i.resolveState(key, time.Time(item.RetainUntil), item.RetentionMode)
 			item.EventBasedHold = hold
 			item.RetainUntil = strfmt.DateTime(retainUntil)

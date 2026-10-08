@@ -159,8 +159,6 @@ func TestRcloneLocaldirPrefixCollisionIntegration(t *testing.T) {
 			t.Fatal("setup failed:", err)
 		}
 
-		// RcloneListDir passes the full remotePath as Fs, triggering the
-		// prefix collision when the path starts with the jail root prefix.
 		items, err := client.RcloneListDir(ctx, testHost, "data:"+siblingDir, nil)
 		if err == nil && len(items) > 0 {
 			t.Fatalf("SECURITY VIOLATION: listed %d items from prefix-collision sibling %s outside the jail",

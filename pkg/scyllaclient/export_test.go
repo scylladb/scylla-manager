@@ -71,6 +71,6 @@ func (c *Client) Metrics(ctx context.Context, host, name string) (map[string]*pr
 	return c.metrics(ctx, host, name)
 }
 
-func (opts *RcloneListDirOpts) AsListOptions(remotePath string) *models.ListOptions {
+func (opts *RcloneListDirOpts) AsListOptions(remotePath string) (*models.ListOptions, error) {
 	return opts.asListOptions(remotePath)
 }

@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rclone/rclone/fs"
+	"github.com/rclone/rclone/fs/cache"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone"
 	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver/internal"
@@ -366,6 +368,69 @@ func TestOperationsList(t *testing.T) {
 			t.Errorf("Expected %d items, got %d", count, len(v.List))
 			t.Log(v.List)
 		}
+	}
+}
+
+// TestOperationsListFsCache documents how selecting fs and remote during listing
+// affects rclone permanent fs cache. More precisely, it that fs is the cache key,
+// so that listing different remotes in the same fs does not grow the cache.
+func TestOperationsListFsCache(t *testing.T) {
+	root := t.TempDir()
+	for _, d := range []string{"as_remote_a", "as_remote_b", "as_fs"} {
+		if err := os.MkdirAll(path.Join(root, d), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	rclone.InitFsConfig()
+	if err := rclone.RegisterLocalDirProvider("fscache", "testing provider", root); err != nil {
+		t.Fatal(err)
+	}
+
+	rcServer := New()
+	list := func(t *testing.T, fs, remote string) {
+		t.Helper()
+		buf := bytes.NewBuffer(nil)
+		err := json.NewEncoder(buf).Encode(map[string]any{
+			"fs":     fs,
+			"remote": remote,
+		})
+		if err != nil {
+			t.Error(err)
+		}
+		req := httptest.NewRequest(http.MethodPost, "http://1.2.3.4/operations/list", buf)
+		req.Header.Add("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		rcServer.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("list %q %q: status %d body %s", fs, remote, rec.Code, rec.Body.String())
+		}
+	}
+	// cached reports whether file system fsString is in the cache.
+	// The create function is called only on a miss (and its error is not cached).
+	cached := func(fsString string) bool {
+		miss := false
+		_, _ = cache.GetFn(t.Context(), fsString, func(context.Context, string) (fs.Fs, error) {
+			miss = true
+			return nil, fmt.Errorf("probe")
+		})
+		return !miss
+	}
+
+	list(t, "fscache:", "as_remote_a")
+	list(t, "fscache:", "as_remote_b")
+	list(t, "fscache:as_fs", "")
+
+	if !cached("fscache:") {
+		t.Error("expected fs root to be cached after listing directories as remote")
+	}
+	for _, d := range []string{"fscache:as_remote_a", "fscache:as_remote_b"} {
+		if cached(d) {
+			t.Errorf("expected %q not to be cached when listed as remote", d)
+		}
+	}
+	if !cached("fscache:as_fs") {
+		t.Error("expected directory listed as fs to be cached")
 	}
 }
 
