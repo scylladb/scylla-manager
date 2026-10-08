@@ -185,10 +185,6 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 	if err != nil {
 		return worker{}, errors.Wrap(err, "get client")
 	}
-	clusterSession, err := s.clusterSession(ctx, clusterID)
-	if err != nil {
-		return worker{}, errors.Wrap(err, "get CQL cluster session")
-	}
 	if ok := s.configCache.ForceUpdateCluster(ctx, clusterID); !ok {
 		return worker{}, errors.New("failed to force update cluster config cache")
 	}
@@ -208,6 +204,12 @@ func (s *Service) newWorker(ctx context.Context, clusterID uuid.UUID) (worker, e
 		if err != nil {
 			return worker{}, errors.Wrap(err, "create alternator client")
 		}
+	}
+	// Session is the only thing potentially needing premature cleanup on
+	// worker initialization error, so create it last to avoid such problems.
+	clusterSession, err := s.clusterSession(ctx, clusterID)
+	if err != nil {
+		return worker{}, errors.Wrap(err, "get CQL cluster session")
 	}
 
 	return worker{
