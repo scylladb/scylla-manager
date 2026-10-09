@@ -85,6 +85,12 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := clusterSvc.DeleteCluster(context.Background(), testCluster.ID); err != nil {
+			t.Errorf("delete test cluster: %v", err)
+		}
+		clusterSvc.Close()
+	})
 
 	configCacheSvc := configcache.NewService(configcache.DefaultConfig(), clusterSvc, scyllaClientProvider, s, logger.Named("config-cache"))
 	configCacheSvc.Init(context.Background())
@@ -170,6 +176,12 @@ func TestStatusIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := clusterSvc.DeleteCluster(context.Background(), c.ID); err != nil {
+			t.Errorf("delete test cluster: %v", err)
+		}
+		clusterSvc.Close()
+	})
 
 	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s, IsSSLEnabled())
 }
@@ -200,6 +212,12 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := clusterSvc.DeleteCluster(context.Background(), c.ID); err != nil {
+			t.Errorf("delete test cluster: %v", err)
+		}
+		clusterSvc.Close()
+	})
 
 	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s, IsSSLEnabled())
 }
