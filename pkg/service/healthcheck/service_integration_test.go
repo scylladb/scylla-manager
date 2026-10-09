@@ -59,7 +59,6 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
 	session := CreateScyllaManagerDBSession(t)
-	defer session.Close()
 
 	s := store.NewTableStore(session, table.Secrets)
 	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(),
@@ -153,7 +152,6 @@ func TestStatusIntegration(t *testing.T) {
 	}
 
 	session := CreateScyllaManagerDBSession(t)
-	defer session.Close()
 
 	s := store.NewTableStore(session, table.Secrets)
 	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(),
@@ -183,7 +181,6 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 	username, password := ManagedClusterCredentials()
 
 	session := CreateScyllaManagerDBSession(t)
-	defer session.Close()
 
 	s := store.NewTableStore(session, table.Secrets)
 	clusterSvc, err := cluster.NewService(session, metrics.NewClusterMetrics(), s, scyllaclient.DefaultTimeoutConfig(),
