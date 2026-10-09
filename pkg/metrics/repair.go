@@ -7,8 +7,23 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
+// RepairTaskProperties describes the configured properties of a repair task
+// reported by the "repair_task_properties" metric. They are the task
+// properties as the repair service resolved them, so the Scylla Manager side
+// defaults are already filled in.
+type RepairTaskProperties struct {
+	Keyspace            string
+	DC                  string
+	KeyspaceReplication string
+	IncrementalMode     string
+	Host                string
+	FailFast            string
+}
+
 type RepairMetrics struct {
+	taskProperties      *prometheus.GaugeVec
 	progress            *prometheus.GaugeVec
+	taskProgress        *prometheus.GaugeVec
 	tokenRangesTotal    *prometheus.GaugeVec
 	tokenRangesSuccess  *prometheus.GaugeVec
 	tokenRangesError    *prometheus.GaugeVec
@@ -20,7 +35,20 @@ func NewRepairMetrics() RepairMetrics {
 	g := gaugeVecCreator("repair")
 
 	return RepairMetrics{
+		taskProperties: g("Configured properties of a repair task, always 1. "+
+			"Join it to the other task metrics on the \"task\" label. "+
+			"The name and the schedule of the task are reported by "+
+			"\"scylla_manager_scheduler_task_properties\". "+
+			"A property that was not configured and has no Scylla Manager side "+
+			"default is reported as \"-\" - the incremental mode is one, because "+
+			"Scylla Manager leaves it to Scylla.",
+			"task_properties", "cluster", "task", "keyspace", "dc",
+			"keyspace_replication", "incremental_mode", "host", "fail_fast"),
 		progress: g("Total percentage repair progress.", "progress", "cluster"),
+		taskProgress: g("Repair task progress in percents (0-100). "+
+			"It describes the repair task - the tablet repair task reports its own "+
+			"progress as \"scylla_manager_tablet_repair_progress\".",
+			"task_progress", "cluster", "task"),
 		tokenRangesTotal: g("Total number of token ranges to repair.",
 			"token_ranges_total", "cluster", "keyspace", "table", "host"),
 		tokenRangesSuccess: g("Number of repaired token ranges.",
@@ -36,7 +64,9 @@ func NewRepairMetrics() RepairMetrics {
 
 func (m RepairMetrics) all() []prometheus.Collector {
 	return []prometheus.Collector{
+		m.taskProperties,
 		m.progress,
+		m.taskProgress,
 		m.tokenRangesTotal,
 		m.tokenRangesSuccess,
 		m.tokenRangesError,
@@ -54,6 +84,13 @@ func (m RepairMetrics) MustRegister() RepairMetrics {
 // ResetClusterMetrics resets all metrics labeled with the cluster.
 func (m RepairMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range m.all() {
+		if c == prometheus.Collector(m.taskProgress) {
+			// "task_progress" is scoped to a single task, while this method
+			// is called at the beginning of every repair run. Resetting it
+			// here would wipe the progress of every other repair task of
+			// the cluster. Each task overwrites its own series on run start.
+			continue
+		}
 		setGaugeVecMatching(c.(*prometheus.GaugeVec), unspecifiedValue, clusterMatcher(clusterID))
 	}
 }
@@ -97,6 +134,33 @@ func (m RepairMetrics) SetProgress(clusterID uuid.UUID, progress float64) {
 		"cluster": clusterID.String(),
 	}
 	m.progress.With(l).Set(progress)
+}
+
+// SetTaskProgress sets "task_progress" metric.
+func (m RepairMetrics) SetTaskProgress(clusterID, taskID uuid.UUID, progress float64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"task":    taskID.String(),
+	}
+	m.taskProgress.With(l).Set(progress)
+}
+
+// SetTaskProperties updates "task_properties" with the resolved properties of
+// the task. See the backup metric of the same name.
+func (m RepairMetrics) SetTaskProperties(clusterID, taskID uuid.UUID, p RepairTaskProperties) {
+	m.taskProperties.DeletePartialMatch(prometheus.Labels{"task": taskID.String()})
+	m.taskProperties.WithLabelValues(
+		clusterID.String(), taskID.String(), orUnset(p.Keyspace), orUnset(p.DC),
+		orUnset(p.KeyspaceReplication), orUnset(p.IncrementalMode),
+		orUnset(p.Host), orUnset(p.FailFast),
+	).Set(1)
+}
+
+// ResetTaskMetrics resets the metrics of a single repair task.
+// It is called when the task starts, so that the progress of its previous
+// run does not linger until the new run reports for the first time.
+func (m RepairMetrics) ResetTaskMetrics(clusterID, taskID uuid.UUID) {
+	m.SetTaskProgress(clusterID, taskID, 0)
 }
 
 // AddProgress updates "progress" metric.
