@@ -17,10 +17,7 @@ import (
 )
 
 func TestCheckHostsConnectivityIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 
 	hosts := []string{ManagedClusterHost(), "xx.xx.xx.xx"}
 	errs := client.CheckHostsConnectivity(context.Background(), hosts)
@@ -36,10 +33,7 @@ func TestCheckHostsConnectivityIntegration(t *testing.T) {
 }
 
 func TestClientClosestDCIntegration(t *testing.T) {
-	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 
 	dcs := map[string][]string{
 		"dc1": ManagedClusterHosts(),
@@ -58,13 +52,10 @@ func TestClientClosestDCIntegration(t *testing.T) {
 func TestPingAuthIntegration(t *testing.T) {
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), "wrong auth token")
 
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, config, log.NewDevelopment())
 
 	ctx := context.Background()
-	_, err = client.Ping(ctx, ManagedClusterHost(), 0)
+	_, err := client.Ping(ctx, ManagedClusterHost(), 0)
 	if scyllaclient.StatusCodeOf(err) != http.StatusUnauthorized {
 		t.Error("expected 401 got", err)
 	}

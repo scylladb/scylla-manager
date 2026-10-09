@@ -54,11 +54,17 @@ func TestValidateHostConnectivityIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(s.Close)
 
 	err = s.PutCluster(context.Background(), c)
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := s.DeleteCluster(context.Background(), c.ID); err != nil {
+			t.Errorf("delete test cluster: %v", err)
+		}
+	})
 
 	allHosts := ManagedClusterHosts()
 	for _, tc := range []struct {
@@ -170,6 +176,7 @@ func TestClientIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(s.Close)
 
 	c := &cluster.Cluster{
 		AuthToken: "token",
@@ -179,6 +186,11 @@ func TestClientIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := s.DeleteCluster(context.Background(), c.ID); err != nil {
+			t.Errorf("delete test cluster: %v", err)
+		}
+	})
 	c, err = s.GetClusterByID(context.Background(), c.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -231,7 +243,6 @@ func ipsNotInSlice(a []string, b []string) []string {
 
 func TestAlternatorClientIntegration(t *testing.T) {
 	smSession := CreateScyllaManagerDBSession(t)
-	defer smSession.Close()
 
 	secretsStore := store.NewTableStore(smSession, table.Secrets)
 	s, err := cluster.NewService(smSession, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(),
@@ -239,6 +250,7 @@ func TestAlternatorClientIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(s.Close)
 
 	c := &cluster.Cluster{
 		AuthToken: "token",
@@ -247,6 +259,11 @@ func TestAlternatorClientIntegration(t *testing.T) {
 	if err = s.PutCluster(context.Background(), c); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := s.DeleteCluster(context.Background(), c.ID); err != nil {
+			t.Errorf("delete test cluster: %v", err)
+		}
+	})
 
 	scClient, err := s.CreateClientNoCache(context.Background(), c.ID)
 	if err != nil {
@@ -255,7 +272,6 @@ func TestAlternatorClientIntegration(t *testing.T) {
 	defer scClient.Close()
 
 	clusterSession := CreateManagedClusterSession(t, false, scClient, "", "")
-	defer clusterSession.Close()
 
 	c.AlternatorAccessKeyID, c.AlternatorSecretAccessKey = GetAlternatorCreds(t, clusterSession, "")
 	if err = s.PutCluster(context.Background(), c); err != nil {
@@ -297,6 +313,7 @@ func TestServiceStorageIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(s.Close)
 
 	var change cluster.Change
 	s.SetOnChangeListener(func(ctx context.Context, c cluster.Change) error {
@@ -308,6 +325,9 @@ func TestServiceStorageIntegration(t *testing.T) {
 		t.Helper()
 		ExecStmt(t, session, "TRUNCATE cluster")
 	}
+	t.Cleanup(func() {
+		ExecStmt(t, session, "TRUNCATE cluster")
+	})
 
 	ctx := context.Background()
 
