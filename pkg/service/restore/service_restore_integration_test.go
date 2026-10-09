@@ -141,6 +141,11 @@ func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, c
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := c.Close(); err != nil {
+			t.Errorf("close scylla client: %v", err)
+		}
+	})
 	return c
 }
 

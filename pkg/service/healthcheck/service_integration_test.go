@@ -67,12 +67,7 @@ func TestStatus_Ping_Independent_From_REST_Integration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scyllaClientProvider := func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-		sc := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-		sc.Timeout = time.Second
-		sc.Transport = NewHackableRoundTripper(scyllaclient.DefaultTransport())
-		return scyllaclient.NewClient(sc, logger.Named("scylla"))
-	}
+	scyllaClientProvider := newTestClientProvider(t, NewHackableRoundTripper(scyllaclient.DefaultTransport()), logger)
 
 	hostWithUnresponsiveREST := ToCanonicalIP(IPFromTestNet("11"))
 	testCluster := &cluster.Cluster{
@@ -204,6 +199,28 @@ func TestStatusWithCQLCredentialsIntegration(t *testing.T) {
 	testStatusIntegration(t, c.ID, clusterSvc, clusterSvc.GetClusterByID, s, IsSSLEnabled())
 }
 
+// newTestClientProvider returns scylla client provider creating a new client on each call.
+// Every created client is closed on test cleanup. This is safe, as closing a client is idempotent.
+func newTestClientProvider(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) scyllaclient.ProviderFunc {
+	t.Helper()
+
+	return func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+		sc := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+		sc.Timeout = time.Second
+		sc.Transport = hrt
+		c, err := scyllaclient.NewClient(sc, logger.Named("scylla"))
+		if err != nil {
+			return nil, err
+		}
+		t.Cleanup(func() {
+			if err := c.Close(); err != nil {
+				t.Errorf("close scylla client: %v", err)
+			}
+		})
+		return c, nil
+	}
+}
+
 func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster.Servicer, clusterProvider cluster.ProviderFunc, secretsStore store.Store, sslEnabled bool) {
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("healthcheck")
 
@@ -223,12 +240,7 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 	}()
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	scyllaClientProvider := func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
-		sc := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-		sc.Timeout = time.Second
-		sc.Transport = hrt
-		return scyllaclient.NewClient(sc, logger.Named("scylla"))
-	}
+	scyllaClientProvider := newTestClientProvider(t, hrt, logger)
 	configCacheSvc := configcache.NewService(configcache.DefaultConfig(), clusterSvc, scyllaClientProvider,
 		secretsStore, logger.Named("config-cache"))
 	configCacheSvc.Init(context.Background())
