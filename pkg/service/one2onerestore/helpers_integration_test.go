@@ -43,6 +43,11 @@ func newTestHelper(t *testing.T, hosts []string) *testHelper {
 	if err != nil {
 		t.Fatalf("Unexpected err: %v", err)
 	}
+	t.Cleanup(func() {
+		if err := sc.Close(); err != nil {
+			t.Errorf("close scylla client: %v", err)
+		}
+	})
 	session := CreateScyllaManagerDBSession(t)
 
 	clusterID := uuid.NewTime()

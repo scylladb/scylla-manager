@@ -165,6 +165,11 @@ func newSchedTestHelper(t *testing.T, session gocqlx.Session) *schedulerTestHelp
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := client.Close(); err != nil {
+			t.Errorf("close scylla client: %v", err)
+		}
+	})
 
 	s := newTestService(session)
 	h := &schedulerTestHelper{

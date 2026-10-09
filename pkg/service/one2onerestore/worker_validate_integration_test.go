@@ -351,6 +351,11 @@ func newTestWorker(t *testing.T, hosts []string) (*worker, *testutils.HackableRo
 	if err != nil {
 		t.Fatalf("new scylla client: %v", err)
 	}
+	t.Cleanup(func() {
+		if err := sc.Close(); err != nil {
+			t.Errorf("close scylla client: %v", err)
+		}
+	})
 
 	managerSession := db.CreateScyllaManagerDBSession(t)
 	clusterSession := db.CreateSession(t, sc)

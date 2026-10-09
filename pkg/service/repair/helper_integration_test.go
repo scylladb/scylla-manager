@@ -60,6 +60,9 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		logger.Fatal(context.Background(), "Failed to get global node info", "error", err)
 	}
+	if err := c.Close(); err != nil {
+		logger.Fatal(context.Background(), "Failed to close client", "error", err)
+	}
 
 	os.Exit(m.Run())
 }
