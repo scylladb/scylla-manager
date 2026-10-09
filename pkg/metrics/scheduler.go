@@ -13,7 +13,8 @@ type SchedulerMetrics struct {
 	runsTotal    *prometheus.GaugeVec
 	lastSuccess  *prometheus.GaugeVec
 
-	taskState *prometheus.GaugeVec
+	taskState           *prometheus.GaugeVec
+	taskRunStartSeconds *prometheus.GaugeVec
 }
 
 func NewSchedulerMetrics() SchedulerMetrics {
@@ -26,7 +27,11 @@ func NewSchedulerMetrics() SchedulerMetrics {
 			"run_indicator", "cluster", "type", "task"),
 		runsTotal: g("Total number of task runs parametrized by status.",
 			"run_total", "cluster", "type", "task", "status"),
-		lastSuccess: g("Start time of the last successful run as a Unix timestamp.",
+		lastSuccess: g("Start time of the last successful run as a Unix timestamp. "+
+			"The start time is reported, and not the end time, because it describes "+
+			"the state of the data the run worked on - a repair makes the data as "+
+			"fresh as of the moment it started, and a backup stores the snapshot "+
+			"taken at that moment.",
 			"last_success", "cluster", "type", "task"),
 		taskState: g("State of the task, as \"sctool tasks\" reports it: "+
 			"0 - never run, 1 - currently running, 2 - last run is done, "+
@@ -34,6 +39,9 @@ func NewSchedulerMetrics() SchedulerMetrics {
 			"A run aborted by a Scylla Manager restart, or cut short by the end "+
 			"of its maintenance window, reads as stopped.",
 			"task_state", "cluster", "type", "task"),
+		taskRunStartSeconds: g("Start time of the last task run as a Unix timestamp. "+
+			"Together with \"task_state\" it tells for how long a task has been running.",
+			"task_run_start_seconds", "cluster", "type", "task"),
 	}
 }
 
@@ -44,6 +52,7 @@ func (m SchedulerMetrics) all() []prometheus.Collector {
 		m.runsTotal,
 		m.lastSuccess,
 		m.taskState,
+		m.taskRunStartSeconds,
 	}
 }
 
@@ -69,7 +78,7 @@ func (m SchedulerMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 func (m SchedulerMetrics) DeleteTaskMetrics(taskID uuid.UUID) {
 	l := prometheus.Labels{"task": taskID.String()}
 	for _, c := range []*prometheus.GaugeVec{
-		m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState,
+		m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState, m.taskRunStartSeconds,
 	} {
 		c.DeletePartialMatch(l)
 	}
@@ -88,10 +97,21 @@ func (m SchedulerMetrics) SetTaskState(clusterID uuid.UUID, taskType string, tas
 	m.taskState.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(state))
 }
 
-// BeginRun updates "run_indicator" and "task_state".
-func (m SchedulerMetrics) BeginRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID) {
+// SetLastSuccess sets "last_success" to the start of the given run.
+func (m SchedulerMetrics) SetLastSuccess(clusterID uuid.UUID, taskType string, taskID uuid.UUID, startTime int64) {
+	m.lastSuccess.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(startTime))
+}
+
+// SetTaskRunStart sets "task_run_start_seconds" to the start of the given run.
+func (m SchedulerMetrics) SetTaskRunStart(clusterID uuid.UUID, taskType string, taskID uuid.UUID, startTime int64) {
+	m.taskRunStartSeconds.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(startTime))
+}
+
+// BeginRun updates "run_indicator", "task_state" and "task_run_start_seconds".
+func (m SchedulerMetrics) BeginRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID, startTime int64) {
 	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Inc()
 	m.SetTaskState(clusterID, taskType, taskID, TaskStateRunning)
+	m.SetTaskRunStart(clusterID, taskType, taskID, startTime)
 }
 
 // EndRun updates "run_indicator", "runs_total", and "last_success".
@@ -99,7 +119,7 @@ func (m SchedulerMetrics) EndRun(clusterID uuid.UUID, taskType string, taskID uu
 	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Dec()
 	m.runsTotal.WithLabelValues(clusterID.String(), taskType, taskID.String(), status).Inc()
 	if status == "DONE" {
-		m.lastSuccess.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(startTime))
+		m.SetLastSuccess(clusterID, taskType, taskID, startTime)
 	}
 }
 

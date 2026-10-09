@@ -425,6 +425,40 @@ func (s *Service) initMetrics(t *Task) {
 	if state, ok := taskStateFromStatus(t.Status); ok {
 		s.metrics.SetTaskState(t.ClusterID, t.Type.String(), t.ID, state)
 	}
+	// Restore what the runs say. Neither the start of the last run nor the
+	// start of the last successful one is kept on the task, so both come from
+	// the run history - read once here and used twice.
+	//
+	// Without the first, every restart makes "task_run_start_seconds"
+	// disappear until the task runs again, which is exactly when "running for
+	// too long" needs it. Without the second, a restart reads as if the task
+	// had never succeeded.
+	runs, err := s.recentRuns(t)
+	if err != nil {
+		return
+	}
+	if len(runs) > 0 && !runs[0].StartTime.IsZero() {
+		s.metrics.SetTaskRunStart(t.ClusterID, t.Type.String(), t.ID, runs[0].StartTime.Unix())
+	}
+	for _, r := range runs {
+		if r.Status == StatusDone {
+			s.metrics.SetLastSuccess(t.ClusterID, t.Type.String(), t.ID, r.StartTime.Unix())
+			break
+		}
+	}
+}
+
+// recentRunsScanLimit bounds the run history read on start. A task whose last
+// success is older than this reports no last success until it succeeds again,
+// which is not worse than what it reported before the metric was restored at
+// all.
+const recentRunsScanLimit = 50
+
+// recentRuns returns the most recent runs of the task, newest first.
+func (s *Service) recentRuns(t *Task) ([]*Run, error) {
+	q := s.getLastRunQuery(t, recentRunsScanLimit)
+	var runs []*Run
+	return runs, q.SelectRelease(&runs)
 }
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
@@ -511,7 +545,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 	if err := s.putRunAndUpdateTask(r); err != nil {
 		return errors.Wrap(err, "put run")
 	}
-	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID)
+	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.StartTime.Unix())
 
 	defer func() {
 		r.Status, r.Cause = statusAndCauseFromCtxAndErr(runCtx, runErr)

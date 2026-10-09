@@ -1,4 +1,4 @@
-# HELP scylla_manager_scheduler_last_success Start time of the last successful run as a Unix timestamp.
+# HELP scylla_manager_scheduler_last_success Start time of the last successful run as a Unix timestamp. The start time is reported, and not the end time, because it describes the state of the data the run worked on - a repair makes the data as fresh as of the moment it started, and a backup stores the snapshot taken at that moment.
 # TYPE scylla_manager_scheduler_last_success gauge
 scylla_manager_scheduler_last_success{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 1.645517563e+09
 # HELP scylla_manager_scheduler_run_indicator If the task is running the value is 1 otherwise it's 0.
