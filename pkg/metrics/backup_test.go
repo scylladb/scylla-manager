@@ -29,6 +29,38 @@ func TestBackupMetrics(t *testing.T) {
 		}
 	})
 
+	t.Run("SetTaskProperties", func(t *testing.T) {
+		task := uuid.MustParse("965f4f5c-c7d1-4ae6-b770-a2225df4ef49")
+		m.SetTaskProperties(c, task, BackupTaskProperties{
+			Keyspace:  "all",
+			DC:        "all",
+			Location:  "s3:backups",
+			Retention: "7",
+			Method:    "rclone",
+		})
+
+		text := Dump(t, m.taskProperties)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("SetTaskProgress", func(t *testing.T) {
+		task := uuid.MustParse("965f4f5c-c7d1-4ae6-b770-a2225df4ef49")
+		m.SetTaskProgress(c, task, 42)
+
+		text := Dump(t, m.taskProgress)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
 	t.Run("SetFilesProgress", func(t *testing.T) {
 		m.SetFilesProgress(c, "k", "t", "h", 10, 5, 3, 2, 7, 3)
 
@@ -79,11 +111,13 @@ func TestBackupMetrics(t *testing.T) {
 		}
 	})
 
-	t.Run("ResetClusterMetrics", func(t *testing.T) {
+	t.Run("ResetMetrics", func(t *testing.T) {
 		// Use a dedicated metrics instance, so that this subtest
 		// doesn't depend on series created by the other subtests.
 		m := NewBackupMetrics()
 		c2 := uuid.MustParse("400d09d8-b3ce-4023-102c-6912671b051a")
+		task := uuid.MustParse("965f4f5c-c7d1-4ae6-b770-a2225df4ef49")
+		other := uuid.MustParse("8fd16af1-815b-46db-bb2d-bd0a42ee9f92")
 		// Set all metrics for two clusters
 		for _, cluster := range []uuid.UUID{c, c2} {
 			m.SetSnapshot(cluster, "k", "h", true)
@@ -94,12 +128,17 @@ func TestBackupMetrics(t *testing.T) {
 			m.IncreaseEventBasedHolds(cluster, "n", "k", "t", "h", true, 2)
 			m.IncreaseEventBasedHolds(cluster, "n", "k", "t", "h", false, 1)
 		}
+		// The task that is about to run and one that is not
+		m.SetTaskProgress(c, task, 42)
+		m.SetTaskProgress(c, other, 50)
 		// Reset all metrics for the first cluster
-		m.ResetClusterMetrics(c)
+		m.ResetMetrics(c, task)
 		// Expect:
 		// - second cluster metrics to be intact
 		// - older first cluster metrics to be set to -1
 		// - newer first cluster metrics to be deleted
+		// - the progress of the task that is about to run to be 0
+		// - the progress of the other task to be intact
 		text := Dump(t, m.all()...)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)

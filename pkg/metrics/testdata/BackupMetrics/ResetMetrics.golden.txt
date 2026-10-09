@@ -44,6 +44,10 @@ scylla_manager_backup_set_event_based_holds{cluster="400d09d8-b3ce-4023-102c-691
 # TYPE scylla_manager_backup_snapshot gauge
 scylla_manager_backup_snapshot{cluster="400d09d8-b3ce-4023-102c-6912671b051a",host="h",keyspace="k"} 1
 scylla_manager_backup_snapshot{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",host="h",keyspace="k"} -1
+# HELP scylla_manager_backup_task_progress Backup task progress in percents (0-100), calculated as (uploaded + skipped) / size over every backed up table.
+# TYPE scylla_manager_backup_task_progress gauge
+scylla_manager_backup_task_progress{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="8fd16af1-815b-46db-bb2d-bd0a42ee9f92"} 50
+scylla_manager_backup_task_progress{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 0
 # HELP scylla_manager_backup_versioned_files_count Number of versioned snapshot files that will be created on snapshot upload.
 # TYPE scylla_manager_backup_versioned_files_count gauge
 scylla_manager_backup_versioned_files_count{cluster="400d09d8-b3ce-4023-102c-6912671b051a",keyspace="k",node="n",table="t"} 2
