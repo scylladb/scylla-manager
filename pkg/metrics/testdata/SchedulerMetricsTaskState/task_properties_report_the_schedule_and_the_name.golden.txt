@@ -1,0 +1,3 @@
+# HELP scylla_manager_scheduler_task_properties Scheduler properties of a task, always 1. Join it to other task metrics on the "task" label, e.g. "task_state * on(task) group_left(name) scheduler_task_properties". The properties the task type owns are reported by that type - see "scylla_manager_repair_task_properties" and "scylla_manager_backup_task_properties". The "name" label falls back to the task ID for unnamed tasks, so that two unnamed tasks stay apart when a panel groups by name.
+# TYPE scylla_manager_scheduler_task_properties gauge
+scylla_manager_scheduler_task_properties{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",cron="0 23 * * *",name="daily",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 1

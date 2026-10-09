@@ -15,7 +15,20 @@ type SchedulerMetrics struct {
 
 	taskState           *prometheus.GaugeVec
 	taskRunStartSeconds *prometheus.GaugeVec
+	taskProperties      *prometheus.GaugeVec
 }
+
+// PropertyUnset is reported for a property that was not configured and has
+// no Scylla Manager side default.
+// An empty label value cannot be used, because Prometheus treats an empty
+// label as an absent one, which would drop the property from the series
+// entirely and make it impossible to render as a fixed table column.
+const PropertyUnset = "-"
+
+// TaskScheduleAdHoc is reported in the "cron" label of a task that is not
+// scheduled at all. It sorts after any cron specification, so a list
+// ordered by schedule keeps ad-hoc tasks at the end.
+const TaskScheduleAdHoc = "ad-hoc"
 
 func NewSchedulerMetrics() SchedulerMetrics {
 	g := gaugeVecCreator("scheduler")
@@ -42,6 +55,15 @@ func NewSchedulerMetrics() SchedulerMetrics {
 		taskRunStartSeconds: g("Start time of the last task run as a Unix timestamp. "+
 			"Together with \"task_state\" it tells for how long a task has been running.",
 			"task_run_start_seconds", "cluster", "type", "task"),
+		taskProperties: g("Scheduler properties of a task, always 1. "+
+			"Join it to other task metrics on the \"task\" label, e.g. "+
+			"\"task_state * on(task) group_left(name) scheduler_task_properties\". "+
+			"The properties the task type owns are reported by that type - see "+
+			"\"scylla_manager_repair_task_properties\" and "+
+			"\"scylla_manager_backup_task_properties\". "+
+			"The \"name\" label falls back to the task ID for unnamed tasks, so "+
+			"that two unnamed tasks stay apart when a panel groups by name.",
+			"task_properties", "cluster", "type", "task", "name", "cron"),
 	}
 }
 
@@ -53,6 +75,7 @@ func (m SchedulerMetrics) all() []prometheus.Collector {
 		m.lastSuccess,
 		m.taskState,
 		m.taskRunStartSeconds,
+		m.taskProperties,
 	}
 }
 
@@ -78,7 +101,8 @@ func (m SchedulerMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 func (m SchedulerMetrics) DeleteTaskMetrics(taskID uuid.UUID) {
 	l := prometheus.Labels{"task": taskID.String()}
 	for _, c := range []*prometheus.GaugeVec{
-		m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState, m.taskRunStartSeconds,
+		m.runIndicator, m.runsTotal, m.lastSuccess,
+		m.taskState, m.taskRunStartSeconds, m.taskProperties,
 	} {
 		c.DeletePartialMatch(l)
 	}
@@ -107,6 +131,33 @@ func (m SchedulerMetrics) SetTaskRunStart(clusterID uuid.UUID, taskType string, 
 	m.taskRunStartSeconds.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(startTime))
 }
 
+// SetTaskProperties updates "task_properties" with the scheduler properties
+// of the task. The previous series of the task is removed first, so that
+// renaming or rescheduling replaces it instead of leaving a stale one behind.
+func (m SchedulerMetrics) SetTaskProperties(clusterID uuid.UUID, taskType string, taskID uuid.UUID, name, cron string) {
+	m.taskProperties.DeletePartialMatch(prometheus.Labels{"task": taskID.String()})
+	m.taskProperties.WithLabelValues(
+		clusterID.String(), taskType, taskID.String(), taskName(name, taskID), orUnset(cron),
+	).Set(1)
+}
+
+// taskName falls back to the task ID for unnamed tasks. A task does not have
+// to be named - an ad-hoc one usually isn't - and sctool falls back to the
+// task ID in that case, so the "name" label does the same.
+func taskName(name string, taskID uuid.UUID) string {
+	if name == "" {
+		return taskID.String()
+	}
+	return name
+}
+
+func orUnset(v string) string {
+	if v == "" {
+		return PropertyUnset
+	}
+	return v
+}
+
 // BeginRun updates "run_indicator", "task_state" and "task_run_start_seconds".
 func (m SchedulerMetrics) BeginRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID, startTime int64) {
 	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Inc()
@@ -114,7 +165,9 @@ func (m SchedulerMetrics) BeginRun(clusterID uuid.UUID, taskType string, taskID 
 	m.SetTaskRunStart(clusterID, taskType, taskID, startTime)
 }
 
-// EndRun updates "run_indicator", "runs_total", and "last_success".
+// EndRun updates "run_indicator", "runs_total" and "last_success".
+// The task state is set by the caller, which owns the task statuses and
+// their mapping to the reported state.
 func (m SchedulerMetrics) EndRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID, status string, startTime int64) {
 	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Dec()
 	m.runsTotal.WithLabelValues(clusterID.String(), taskType, taskID.String(), status).Inc()
