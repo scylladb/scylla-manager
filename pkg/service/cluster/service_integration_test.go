@@ -231,7 +231,6 @@ func ipsNotInSlice(a []string, b []string) []string {
 
 func TestAlternatorClientIntegration(t *testing.T) {
 	smSession := CreateScyllaManagerDBSession(t)
-	defer smSession.Close()
 
 	secretsStore := store.NewTableStore(smSession, table.Secrets)
 	s, err := cluster.NewService(smSession, metrics.NewClusterMetrics(), secretsStore, scyllaclient.DefaultTimeoutConfig(),
@@ -255,7 +254,6 @@ func TestAlternatorClientIntegration(t *testing.T) {
 	defer scClient.Close()
 
 	clusterSession := CreateManagedClusterSession(t, false, scClient, "", "")
-	defer clusterSession.Close()
 
 	c.AlternatorAccessKeyID, c.AlternatorSecretAccessKey = GetAlternatorCreds(t, clusterSession, "")
 	if err = s.PutCluster(context.Background(), c); err != nil {
