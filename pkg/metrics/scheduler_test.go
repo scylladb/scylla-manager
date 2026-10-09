@@ -3,6 +3,7 @@
 package metrics
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -35,9 +36,11 @@ func TestSchedulerMetrics(t *testing.T) {
 		m.BeginRun(c, p, t1)
 		m.BeginRun(c, p, t2)
 		m.EndRun(c, p, t0, "DONE", 1645517563)
+		m.SetTaskState(c, p, t0, TaskStateDone)
 		m.EndRun(c, p, t1, "ERROR", 1645517563)
+		m.SetTaskState(c, p, t1, TaskStateError)
 
-		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess)
+		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
@@ -57,6 +60,34 @@ func TestSchedulerMetrics(t *testing.T) {
 		m.DeleteTaskMetrics(t1)
 
 		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+}
+
+func TestSchedulerMetricsTaskState(t *testing.T) {
+	c := uuid.MustParse("b703df56-c428-46a7-bfba-cfa6ee91b976")
+	taskID := uuid.MustParse("965f4f5c-c7d1-4ae6-b770-a2225df4ef49")
+
+	t.Run("tablet repair keeps its own task type", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.BeginRun(c, "tablet_repair", taskID)
+
+		if text := Dump(t, m.taskState); !strings.Contains(text, `type="tablet_repair"`) {
+			t.Errorf("expected the tablet repair task type, got %q", text)
+		}
+	})
+
+	t.Run("state is latched after the run", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.BeginRun(c, "backup", taskID)
+		m.SetTaskState(c, "backup", taskID, TaskStateError)
+
+		text := Dump(t, m.taskState)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
