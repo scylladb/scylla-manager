@@ -123,7 +123,6 @@ func TestClientDescribeRingIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	clusterSession := db.CreateSessionAndDropAllKeyspaces(t, client)
-	defer clusterSession.Close()
 
 	ringDescriber := scyllaclient.NewRingDescriber(context.Background(), client)
 	for i := range testCases {

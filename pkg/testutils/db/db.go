@@ -37,7 +37,7 @@ import (
 var initOnce sync.Once
 
 // CreateScyllaManagerDBSession recreates the database on scylla manager cluster and returns
-// a new gocql.Session.
+// a new gocql.Session. The session is closed on tb.Cleanup.
 func CreateScyllaManagerDBSession(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
@@ -57,6 +57,7 @@ func CreateScyllaManagerDBSession(tb testing.TB) gocqlx.Session {
 // CreateSessionWithoutMigration clears the database on scylla manager cluster
 // and returns a new gocqlx.Session. This is only useful for testing migrations
 // you probably should be using CreateScyllaManagerDBSession instead.
+// The session is closed on tb.Cleanup.
 func CreateSessionWithoutMigration(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
@@ -67,13 +68,14 @@ func CreateSessionWithoutMigration(tb testing.TB) gocqlx.Session {
 
 // CreateSessionAndDropAllKeyspaces returns a new gocqlx.Session
 // to the managed data cluster and clears all keyspaces.
+// The session is closed on tb.Cleanup.
 func CreateSessionAndDropAllKeyspaces(tb testing.TB, client *scyllaclient.Client) gocqlx.Session {
 	tb.Helper()
 	return CreateManagedClusterSession(tb, true, client, "", "")
 }
 
 // CreateSession returns a new gocqlx.Session to the managed data
-// cluster without clearing it.
+// cluster without clearing it. The session is closed on tb.Cleanup.
 func CreateSession(tb testing.TB, client *scyllaclient.Client) gocqlx.Session {
 	tb.Helper()
 	return CreateManagedClusterSession(tb, false, client, "", "")
@@ -81,6 +83,7 @@ func CreateSession(tb testing.TB, client *scyllaclient.Client) gocqlx.Session {
 
 // CreateManagedClusterSession return a new gocqlx.Session to the managed cluster.
 // It allows to specify cql user and decide if cluster should be cleared.
+// The session is closed on tb.Cleanup.
 func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient.Client, user, pass string) gocqlx.Session {
 	tb.Helper()
 
@@ -107,6 +110,7 @@ func CreateManagedClusterSession(tb testing.TB, empty bool, client *scyllaclient
 	if err != nil {
 		tb.Fatal("createSession:", err)
 	}
+	tb.Cleanup(session.Close)
 	if empty {
 		dropAllKeyspaces(tb, session)
 	}
@@ -136,6 +140,7 @@ func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) gocql
 	if err != nil {
 		tb.Fatal("createSession:", err)
 	}
+	tb.Cleanup(session.Close)
 
 	return session
 }
