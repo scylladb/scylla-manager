@@ -27,10 +27,7 @@ var longPollingTimeoutSeconds = 1
 func TestRcloneS3ListDirAgentIntegration(t *testing.T) {
 	testHost := ManagedClusterHost()
 
-	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
 
 	InitBucket(t, testBucket)
 
@@ -53,10 +50,7 @@ func TestRcloneDeletePathsInBatchesAgentIntegration(t *testing.T) {
 	)
 
 	InitBucket(t, testBucket)
-	client, err := scyllaclient.NewClient(scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopmentWithLevel(zapcore.ErrorLevel))
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopmentWithLevel(zapcore.ErrorLevel))
 
 	const bigSize = 3456
 	lotsOfFiles := make([]string, 0, bigSize)
@@ -182,10 +176,7 @@ func TestRcloneDeletePathsInBatchesAgentIntegration(t *testing.T) {
 
 func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, config, log.NewDevelopment())
 
 	testHost := ManagedClusterHost()
 
@@ -195,7 +186,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 
 	// Create test directory with files on the test host.
 	cmd := injectDataDir("rm -rf %s/tmp/copy && mkdir -p %s/tmp/copy && echo 'bar' > %s/tmp/copy/foo && echo 'foo' > %s/tmp/copy/bar")
-	_, _, err = ExecOnHost(testHost, cmd)
+	_, _, err := ExecOnHost(testHost, cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,10 +238,7 @@ func TestRcloneSkippingFilesAgentIntegration(t *testing.T) {
 
 func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, config, log.NewDevelopment())
 
 	testHost := ManagedClusterHost()
 
@@ -267,7 +255,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 	// Create big enough file on the test host to keep running for long enough
 	// 100MiB = 1024 * 102400.
 	cmd := injectDataDir("rm -rf %s/tmp/copy && mkdir -p %s/tmp/ && dd if=/dev/zero of=%s/tmp/copy count=1024 bs=102400")
-	_, _, err = ExecOnHost(testHost, cmd)
+	_, _, err := ExecOnHost(testHost, cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,10 +302,7 @@ func TestRcloneStoppingTransferIntegration(t *testing.T) {
 
 func TestRcloneJobProgressIntegration(t *testing.T) {
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, config, log.NewDevelopment())
 
 	testHost := ManagedClusterHost()
 	InitBucket(t, testBucket)
@@ -331,7 +316,7 @@ func TestRcloneJobProgressIntegration(t *testing.T) {
 
 	firstBatchSize := 1024 * 1024
 	cmd := injectDataDir("rm -rf %s/tmp/copy && mkdir -p %s/tmp/ && dd if=/dev/zero of=%s/tmp/copy1 count=1024 bs=1024")
-	_, _, err = ExecOnHost(testHost, cmd)
+	_, _, err := ExecOnHost(testHost, cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,10 +428,7 @@ func TestRcloneSuffixOptionIntegration(t *testing.T) {
 	)
 
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, config, log.NewDevelopment())
 
 	testHost := ManagedClusterHost()
 	InitBucket(t, testBucket)
@@ -463,7 +445,7 @@ func TestRcloneSuffixOptionIntegration(t *testing.T) {
 	Print("Put first file in src dir")
 
 	b := bytes.NewBuffer([]byte(firstContents))
-	if err = client.RclonePut(ctx, testHost, srcFile, b); err != nil {
+	if err := client.RclonePut(ctx, testHost, srcFile, b); err != nil {
 		t.Fatal(err)
 	}
 	// Validate contents of src and dst dirs after each step

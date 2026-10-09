@@ -47,10 +47,7 @@ func TestRcloneLocaldirPrefixCollisionIntegration(t *testing.T) {
 
 	// We also need the scyllaclient for the list operation which passes fs directly.
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := newTestClient(t, config, log.NewDevelopment())
 
 	// Raw HTTP client for direct agent API calls that bypass the Go client's
 	// path splitting (which masks the vulnerability for some operations).
