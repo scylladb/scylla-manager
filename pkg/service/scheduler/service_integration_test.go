@@ -315,6 +315,30 @@ func (h *schedulerTestHelper) assertTaskMetrics(taskID uuid.UUID, present bool) 
 	h.assertMetrics("task", taskID.String(), present)
 }
 
+// taskStateValue returns the value of the "scheduler_task_state" metric of
+// the task, or -1 when the task reports no state at all.
+func (h *schedulerTestHelper) taskStateValue(taskID uuid.UUID) float64 {
+	h.t.Helper()
+
+	mfs, err := h.metricsReg.Gather()
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	for _, mf := range mfs {
+		if mf.GetName() != "scylla_manager_scheduler_task_state" {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "task" && l.GetValue() == taskID.String() {
+					return m.GetGauge().GetValue()
+				}
+			}
+		}
+	}
+	return -1
+}
+
 func (h *schedulerTestHelper) close() {
 	h.service.Close()
 }
@@ -2002,6 +2026,41 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("And: task metrics are deleted")
 		h.assertTaskMetrics(task.ID, false)
+	})
+
+	t.Run("load tasks reports an interrupted run as stopped", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		Print("Given: disabled task with a last run left in status RUNNING by an SM crash")
+		// Disabled, because loading a task whose run was interrupted schedules
+		// that run again - the metric would be back at running before it could
+		// be read.
+		task := h.makeTaskWithStartDate(future)
+		task.Enabled = false
+		task.Status = scheduler.StatusRunning
+		if err := h.service.PutTestTask(task); err != nil {
+			t.Fatal(err)
+		}
+		run := task.NewRun()
+		run.Status = scheduler.StatusRunning
+		if err := h.service.PutTestRun(run); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: load tasks")
+		if err := h.service.LoadTasks(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("Then: its last run is marked as aborted")
+		h.assertStatus(task, scheduler.StatusAborted)
+
+		Print("And: the task state metric reports it as stopped, not as running")
+		if v := h.taskStateValue(task.ID); v != float64(metrics.TaskStateStopped) {
+			t.Fatalf("task state = %v, expected %v", v, metrics.TaskStateStopped)
+		}
 	})
 
 	t.Run("load tasks skips deleted tasks", func(t *testing.T) {
