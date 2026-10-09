@@ -150,7 +150,8 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 
 	c := *cluster
 	c.Keyspace = "system"
-	c.Timeout = testconfig.CQLTimeout()
+	// DROP KEYSPACE can take a while, so extend the timeout
+	c.Timeout = 5 * time.Minute
 	session, err := gocqlx.WrapSession(c.CreateSession())
 	if err != nil {
 		tb.Fatal(err)
