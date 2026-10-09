@@ -23,7 +23,6 @@ import (
 
 func TestPingIntegration(t *testing.T) {
 	client := newTestClient(t, log.NewDevelopmentWithLevel(zapcore.InfoLevel).Named("client"), nil)
-	defer client.Close()
 
 	sessionHosts, err := cluster.GetRPCAddresses(context.Background(), client, []string{testconfig.ManagedClusterHost()}, !testconfig.IsSSLEnabled())
 	if err != nil {
@@ -112,5 +111,10 @@ func newTestClient(t *testing.T, logger log.Logger, config *scyllaclient.Config)
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := c.Close(); err != nil {
+			t.Errorf("close scylla client: %v", err)
+		}
+	})
 	return c
 }
