@@ -50,20 +50,6 @@ func TestSchedulerMetrics(t *testing.T) {
 		}
 	})
 
-	t.Run("last success reports the run start time", func(t *testing.T) {
-		m := NewSchedulerMetrics()
-		m.BeginRun(c, p, t0, 1645600000)
-		m.EndRun(c, p, t0, "DONE", 1645600000)
-
-		text := Dump(t, m.taskRunStartSeconds, m.lastSuccess)
-
-		testutils.SaveGoldenTextFileIfNeeded(t, text)
-		golden := testutils.LoadGoldenTextFile(t)
-		if diff := cmp.Diff(text, golden); diff != "" {
-			t.Error(diff)
-		}
-	})
-
 	t.Run("DeleteTaskMetrics", func(t *testing.T) {
 		m := NewSchedulerMetrics()
 		m.Init(c, p, t0, "DONE", "ERROR")
@@ -75,6 +61,20 @@ func TestSchedulerMetrics(t *testing.T) {
 		m.DeleteTaskMetrics(t1)
 
 		text := Dump(t, m.runIndicator, m.runsTotal, m.lastSuccess)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("last success reports the run start time", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.BeginRun(c, p, t0, 1645600000)
+		m.EndRun(c, p, t0, "DONE", 1645600000)
+
+		text := Dump(t, m.taskRunStartSeconds, m.lastSuccess)
 
 		testutils.SaveGoldenTextFileIfNeeded(t, text)
 		golden := testutils.LoadGoldenTextFile(t)
@@ -108,6 +108,44 @@ func TestSchedulerMetricsTaskState(t *testing.T) {
 		golden := testutils.LoadGoldenTextFile(t)
 		if diff := cmp.Diff(text, golden); diff != "" {
 			t.Error(diff)
+		}
+	})
+
+	t.Run("task properties report the schedule and the name", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.SetTaskProperties(c, "backup", taskID, "daily", "0 23 * * *")
+
+		text := Dump(t, m.taskProperties)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("task properties fall back to the task ID for an unnamed task", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.SetTaskProperties(c, "repair", taskID, "", "1d")
+
+		// Two unnamed tasks must stay apart, otherwise a panel grouping by
+		// name merges them into one row.
+		if text := Dump(t, m.taskProperties); !strings.Contains(text, `name="`+taskID.String()+`"`) {
+			t.Errorf("expected the task ID as name, got %q", text)
+		}
+	})
+
+	t.Run("task properties replace the series when the task is renamed", func(t *testing.T) {
+		m := NewSchedulerMetrics()
+		m.SetTaskProperties(c, "repair", taskID, "old", "1d")
+		m.SetTaskProperties(c, "repair", taskID, "new", "1d")
+
+		text := Dump(t, m.taskProperties)
+		if strings.Contains(text, `name="old"`) {
+			t.Errorf("stale series kept: %q", text)
+		}
+		if !strings.Contains(text, `name="new"`) {
+			t.Errorf("new series missing: %q", text)
 		}
 	})
 }
