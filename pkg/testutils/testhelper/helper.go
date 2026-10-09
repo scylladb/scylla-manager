@@ -180,6 +180,8 @@ func execOnAllHosts(h *CommonTestHelper, cmd string) {
 
 // NewTestConfigCacheSvc creates default config cache service which can be used
 // for testing other services relaying on it.
+// It registers t.Cleanup which removes the test cluster from SM DB
+// and closes all resources created by this function.
 func NewTestConfigCacheSvc(t *testing.T, clusterID uuid.UUID, hosts []string) configcache.ConfigCacher {
 	t.Helper()
 
@@ -205,6 +207,18 @@ func NewTestConfigCacheSvc(t *testing.T, clusterID uuid.UUID, hosts []string) co
 
 	svc := configcache.NewService(configcache.DefaultConfig(), clusterSvc, scyllaClientProvider, secretsStore, log.NewDevelopment())
 	svc.Init(t.Context())
+
+	t.Cleanup(func() {
+		// Mark cluster as deleted in SM DB, so that it's not picked
+		// up by config caches initialized in a different tests.
+		// Note that t.Context() is already canceled at this point.
+		if err := clusterSvc.DeleteCluster(context.Background(), clusterID); err != nil {
+			t.Errorf("delete test cluster: %v", err)
+		}
+		clusterSvc.Close()
+		session.Close()
+	})
+
 	return svc
 }
 
