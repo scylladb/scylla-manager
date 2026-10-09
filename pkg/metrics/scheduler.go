@@ -12,6 +12,8 @@ type SchedulerMetrics struct {
 	runIndicator *prometheus.GaugeVec
 	runsTotal    *prometheus.GaugeVec
 	lastSuccess  *prometheus.GaugeVec
+
+	taskState *prometheus.GaugeVec
 }
 
 func NewSchedulerMetrics() SchedulerMetrics {
@@ -26,6 +28,12 @@ func NewSchedulerMetrics() SchedulerMetrics {
 			"run_total", "cluster", "type", "task", "status"),
 		lastSuccess: g("Start time of the last successful run as a Unix timestamp.",
 			"last_success", "cluster", "type", "task"),
+		taskState: g("State of the task, as \"sctool tasks\" reports it: "+
+			"0 - never run, 1 - currently running, 2 - last run is done, "+
+			"3 - last run ended in error, 4 - last run was stopped. "+
+			"A run aborted by a Scylla Manager restart, or cut short by the end "+
+			"of its maintenance window, reads as stopped.",
+			"task_state", "cluster", "type", "task"),
 	}
 }
 
@@ -35,6 +43,7 @@ func (m SchedulerMetrics) all() []prometheus.Collector {
 		m.runIndicator,
 		m.runsTotal,
 		m.lastSuccess,
+		m.taskState,
 	}
 }
 
@@ -59,7 +68,9 @@ func (m SchedulerMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 // DeleteTaskMetrics removes all metrics labeled with the task.
 func (m SchedulerMetrics) DeleteTaskMetrics(taskID uuid.UUID) {
 	l := prometheus.Labels{"task": taskID.String()}
-	for _, c := range []*prometheus.GaugeVec{m.runIndicator, m.runsTotal, m.lastSuccess} {
+	for _, c := range []*prometheus.GaugeVec{
+		m.runIndicator, m.runsTotal, m.lastSuccess, m.taskState,
+	} {
 		c.DeletePartialMatch(l)
 	}
 }
@@ -72,9 +83,15 @@ func (m SchedulerMetrics) Init(clusterID uuid.UUID, taskType string, taskID uuid
 	}
 }
 
-// BeginRun updates "run_indicator".
+// SetTaskState sets "task_state" to the given state.
+func (m SchedulerMetrics) SetTaskState(clusterID uuid.UUID, taskType string, taskID uuid.UUID, state TaskState) {
+	m.taskState.WithLabelValues(clusterID.String(), taskType, taskID.String()).Set(float64(state))
+}
+
+// BeginRun updates "run_indicator" and "task_state".
 func (m SchedulerMetrics) BeginRun(clusterID uuid.UUID, taskType string, taskID uuid.UUID) {
 	m.runIndicator.WithLabelValues(clusterID.String(), taskType, taskID.String()).Inc()
+	m.SetTaskState(clusterID, taskType, taskID, TaskStateRunning)
 }
 
 // EndRun updates "run_indicator", "runs_total", and "last_success".

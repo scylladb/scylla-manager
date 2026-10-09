@@ -210,6 +210,9 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	// Include deleted tasks just for the sake of updating
 	// their status to aborted, if they were interrupted.
 	err := s.forEachTask(true, func(t *Task) error {
+		// markRunningAsAborted runs first, so that a task left RUNNING by an
+		// SM crash is already marked as aborted and the metrics can simply
+		// report its status rather than special case it.
 		r, err := s.markRunningAsAborted(t, endTime)
 		if err != nil {
 			return errors.Wrap(err, "fix last run status")
@@ -417,6 +420,11 @@ func (s *Service) shouldPutTask(create bool, t *Task) error {
 
 func (s *Service) initMetrics(t *Task) {
 	s.metrics.Init(t.ClusterID, t.Type.String(), t.ID, *(*[]string)(unsafe.Pointer(&allStatuses))...)
+	// Restore the task state metric, so that a task that failed before
+	// SM restart is still reported as failed after it.
+	if state, ok := taskStateFromStatus(t.Status); ok {
+		s.metrics.SetTaskState(t.ClusterID, t.Type.String(), t.ID, state)
+	}
 }
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
@@ -548,6 +556,9 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		s.mu.Lock()
 		if _, exists := s.resolver.FindByID(ti.TaskID); exists {
 			s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
+			if state, ok := taskStateFromStatus(r.Status); ok {
+				s.metrics.SetTaskState(ti.ClusterID, ti.TaskType.String(), ti.TaskID, state)
+			}
 		} else {
 			s.metrics.DeleteTaskMetrics(ti.TaskID)
 		}

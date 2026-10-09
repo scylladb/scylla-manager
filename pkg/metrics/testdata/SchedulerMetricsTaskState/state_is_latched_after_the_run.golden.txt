@@ -1,0 +1,3 @@
+# HELP scylla_manager_scheduler_task_state State of the task, as "sctool tasks" reports it: 0 - never run, 1 - currently running, 2 - last run is done, 3 - last run ended in error, 4 - last run was stopped. A run aborted by a Scylla Manager restart, or cut short by the end of its maintenance window, reads as stopped.
+# TYPE scylla_manager_scheduler_task_state gauge
+scylla_manager_scheduler_task_state{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49",type="backup"} 3
