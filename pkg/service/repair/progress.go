@@ -74,7 +74,7 @@ func NewDBProgressManager(run *Run, session gocqlx.Session, metrics metrics.Repa
 func (pm *dbProgressManager) Init(plan *plan, prevID uuid.UUID) error {
 	pm.run.PrevID = prevID
 	pm.total.Store(0)
-	pm.metrics.SetProgress(pm.run.ClusterID, 0)
+	pm.metrics.SetProgress(pm.run.ClusterID, pm.run.TaskID, 0)
 
 	pm.tableSize = make(map[tableKey]int64)
 	pm.totalTableSize = 0
@@ -389,7 +389,7 @@ func (pm *dbProgressManager) updateTotalProgress(keyspace, table string, ranges 
 
 	// Watch out for rounding over 100% errors
 	if total := pm.total.Add(delta); total <= 100 {
-		pm.metrics.AddProgress(pm.run.ClusterID, delta)
+		pm.metrics.AddProgress(pm.run.ClusterID, pm.run.TaskID, delta)
 	}
 }
 
