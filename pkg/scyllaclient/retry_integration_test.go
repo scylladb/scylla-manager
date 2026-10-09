@@ -68,6 +68,7 @@ func allHosts() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer client.Close()
 	return client.Hosts(context.Background())
 }
 
@@ -104,16 +105,13 @@ func testRetry(t *testing.T, hosts []string, n int, shouldTimeout bool) error {
 		return err
 	}
 
-	client, err := scyllaclient.NewClient(config, log.NewDevelopment())
-	if err != nil {
-		return err
-	}
+	client := newTestClient(t, config, log.NewDevelopment())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(n+1)*config.Timeout)
 	defer cancel()
 	defer unblock(context.Background())
 
-	if _, err = client.Hosts(ctx); err != nil {
+	if _, err := client.Hosts(ctx); err != nil {
 		if shouldTimeout {
 			if !strings.HasSuffix(err.Error(), fmt.Sprintf("after %s: context deadline exceeded", client.Config().Timeout)) {
 				return errors.Errorf("call error %s, expected timeout", err)
