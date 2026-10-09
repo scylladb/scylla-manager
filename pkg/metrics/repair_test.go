@@ -3,6 +3,7 @@
 package metrics
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -23,6 +24,52 @@ func TestRepairMetrics(t *testing.T) {
 		golden := testutils.LoadGoldenTextFile(t)
 		if diff := cmp.Diff(text, golden); diff != "" {
 			t.Error(diff)
+		}
+	})
+
+	t.Run("SetTaskProperties", func(t *testing.T) {
+		task := uuid.MustParse("965f4f5c-c7d1-4ae6-b770-a2225df4ef49")
+		m.SetTaskProperties(c, task, RepairTaskProperties{
+			Keyspace:            "*,!system_traces",
+			DC:                  "all",
+			KeyspaceReplication: "all",
+			Host:                "all",
+			FailFast:            "false",
+		})
+
+		text := Dump(t, m.taskProperties)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("SetTaskProgress", func(t *testing.T) {
+		task := uuid.MustParse("965f4f5c-c7d1-4ae6-b770-a2225df4ef49")
+		other := uuid.MustParse("8fd16af1-815b-46db-bb2d-bd0a42ee9f92")
+		m.SetTaskProgress(c, task, 42)
+		m.SetTaskProgress(c, other, 100)
+
+		text := Dump(t, m.taskProgress)
+
+		testutils.SaveGoldenTextFileIfNeeded(t, text)
+		golden := testutils.LoadGoldenTextFile(t)
+		if diff := cmp.Diff(text, golden); diff != "" {
+			t.Error(diff)
+		}
+	})
+
+	t.Run("ResetClusterMetrics keeps per task progress", func(t *testing.T) {
+		// ResetClusterMetrics runs at the beginning of every repair run,
+		// so it must not touch the progress of other repair tasks.
+		other := uuid.MustParse("1b967567-8bc4-4407-9e1d-c7f37069415e")
+		m.SetTaskProgress(c, other, 50)
+		m.ResetClusterMetrics(c)
+
+		if text := Dump(t, m.taskProgress); !strings.Contains(text, other.String()) {
+			t.Errorf("expected task progress of %s to be kept, got %q", other, text)
 		}
 	})
 

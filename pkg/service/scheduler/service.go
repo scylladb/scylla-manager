@@ -210,6 +210,9 @@ func (s *Service) LoadTasks(ctx context.Context) error {
 	// Include deleted tasks just for the sake of updating
 	// their status to aborted, if they were interrupted.
 	err := s.forEachTask(true, func(t *Task) error {
+		// markRunningAsAborted runs first, so that a task left RUNNING by an
+		// SM crash is already marked as aborted and the metrics can simply
+		// report its status rather than special case it.
 		r, err := s.markRunningAsAborted(t, endTime)
 		if err != nil {
 			return errors.Wrap(err, "fix last run status")
@@ -391,6 +394,12 @@ func (s *Service) PutTask(ctx context.Context, t *Task) error {
 		if err := table.SchedulerTaskUpdate.InsertQuery(s.session).BindStruct(t).ExecRelease(); err != nil {
 			return err
 		}
+		// The update rewrites the name and the schedule, which is everything
+		// this metric reports, so it has to be rewritten too - otherwise it
+		// keeps describing the task as it was created until the next restart.
+		// Only this metric is refreshed here: the others describe runs, and
+		// an update is not one.
+		s.metrics.SetTaskProperties(t.ClusterID, t.Type.String(), t.ID, t.Name, taskSchedule(t))
 		s.schedule(ctx, t, false)
 	}
 
@@ -417,6 +426,46 @@ func (s *Service) shouldPutTask(create bool, t *Task) error {
 
 func (s *Service) initMetrics(t *Task) {
 	s.metrics.Init(t.ClusterID, t.Type.String(), t.ID, *(*[]string)(unsafe.Pointer(&allStatuses))...)
+	// Restore the task state metric, so that a task that failed before
+	// SM restart is still reported as failed after it.
+	if state, ok := taskStateFromStatus(t.Status); ok {
+		s.metrics.SetTaskState(t.ClusterID, t.Type.String(), t.ID, state)
+	}
+	s.metrics.SetTaskProperties(t.ClusterID, t.Type.String(), t.ID, t.Name, taskSchedule(t))
+	// Restore what the runs say. Neither the start of the last run nor the
+	// start of the last successful one is kept on the task, so both come from
+	// the run history - read once here and used twice.
+	//
+	// Without the first, every restart makes "task_run_start_seconds"
+	// disappear until the task runs again, which is exactly when "running for
+	// too long" needs it. Without the second, a restart reads as if the task
+	// had never succeeded.
+	runs, err := s.recentRuns(t)
+	if err != nil {
+		return
+	}
+	if len(runs) > 0 && !runs[0].StartTime.IsZero() {
+		s.metrics.SetTaskRunStart(t.ClusterID, t.Type.String(), t.ID, runs[0].StartTime.Unix())
+	}
+	for _, r := range runs {
+		if r.Status == StatusDone {
+			s.metrics.SetLastSuccess(t.ClusterID, t.Type.String(), t.ID, r.StartTime.Unix())
+			break
+		}
+	}
+}
+
+// recentRunsScanLimit bounds the run history read on start. A task whose last
+// success is older than this reports no last success until it succeeds again,
+// which is not worse than what it reported before the metric was restored at
+// all.
+const recentRunsScanLimit = 50
+
+// recentRuns returns the most recent runs of the task, newest first.
+func (s *Service) recentRuns(t *Task) ([]*Run, error) {
+	q := s.getLastRunQuery(t, recentRunsScanLimit)
+	var runs []*Run
+	return runs, q.SelectRelease(&runs)
 }
 
 func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
@@ -503,7 +552,7 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 	if err := s.putRunAndUpdateTask(r); err != nil {
 		return errors.Wrap(err, "put run")
 	}
-	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID)
+	s.metrics.BeginRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.StartTime.Unix())
 
 	defer func() {
 		r.Status, r.Cause = statusAndCauseFromCtxAndErr(runCtx, runErr)
@@ -548,6 +597,9 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 		s.mu.Lock()
 		if _, exists := s.resolver.FindByID(ti.TaskID); exists {
 			s.metrics.EndRun(ti.ClusterID, ti.TaskType.String(), ti.TaskID, r.Status.String(), r.StartTime.Unix())
+			if state, ok := taskStateFromStatus(r.Status); ok {
+				s.metrics.SetTaskState(ti.ClusterID, ti.TaskType.String(), ti.TaskID, state)
+			}
 		} else {
 			s.metrics.DeleteTaskMetrics(ti.TaskID)
 		}

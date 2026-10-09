@@ -8,7 +8,25 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
+// BackupTaskProperties describes the configured properties of a backup task
+// reported by the "backup_task_properties" metric. They are the task
+// properties as the backup service resolved them, so the Scylla Manager side
+// defaults are already filled in.
+type BackupTaskProperties struct {
+	Keyspace          string
+	DC                string
+	Location          string
+	Retention         string
+	RetentionDays     string
+	Method            string
+	PurgeOnly         string
+	SkipSchema        string
+	RetentionLockMode string
+}
+
 type BackupMetrics struct {
+	taskProperties         *prometheus.GaugeVec
+	taskProgress           *prometheus.GaugeVec
 	snapshot               *prometheus.GaugeVec
 	filesSizeBytes         *prometheus.GaugeVec
 	filesUploadedBytes     *prometheus.GaugeVec
@@ -28,6 +46,18 @@ func NewBackupMetrics() BackupMetrics {
 	g := gaugeVecCreator("backup")
 
 	return BackupMetrics{
+		taskProperties: g("Configured properties of a backup task, always 1. "+
+			"Join it to the other task metrics on the \"task\" label. "+
+			"The name and the schedule of the task are reported by "+
+			"\"scylla_manager_scheduler_task_properties\". "+
+			"A property that was not configured and has no Scylla Manager side "+
+			"default is reported as \"-\".",
+			"task_properties", "cluster", "task", "keyspace", "dc", "location",
+			"retention", "retention_days", "method", "purge_only", "skip_schema",
+			"retention_lock_mode"),
+		taskProgress: g("Backup task progress in percents (0-100), "+
+			"calculated as (uploaded + skipped) / size over every backed up table.",
+			"task_progress", "cluster", "task"),
 		snapshot: g("Indicates if snapshot was taken.",
 			"snapshot", "cluster", "keyspace", "host"),
 		filesSizeBytes: g("Total size of backup files in bytes.",
@@ -74,6 +104,8 @@ func (m BackupMetrics) MustRegisterWith(reg prometheus.Registerer) BackupMetrics
 
 func (m BackupMetrics) all() []prometheus.Collector {
 	return []prometheus.Collector{
+		m.taskProperties,
+		m.taskProgress,
 		m.snapshot,
 		m.filesSizeBytes,
 		m.filesUploadedBytes,
@@ -116,6 +148,35 @@ func (m BackupMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 	} {
 		DeleteMatching(c, clusterMatcher(clusterID))
 	}
+}
+
+// SetTaskProperties updates "task_properties" with the resolved properties of
+// the task. The previous series of the task is removed first, so that editing
+// a property replaces it instead of leaving a stale one behind.
+func (m BackupMetrics) SetTaskProperties(clusterID, taskID uuid.UUID, p BackupTaskProperties) {
+	m.taskProperties.DeletePartialMatch(prometheus.Labels{"task": taskID.String()})
+	m.taskProperties.WithLabelValues(
+		clusterID.String(), taskID.String(), orUnset(p.Keyspace), orUnset(p.DC),
+		orUnset(p.Location), orUnset(p.Retention), orUnset(p.RetentionDays),
+		orUnset(p.Method), orUnset(p.PurgeOnly), orUnset(p.SkipSchema),
+		orUnset(p.RetentionLockMode),
+	).Set(1)
+}
+
+// ResetTaskMetrics resets the metrics of a single backup task.
+// It is called when the task starts, so that the progress of its previous
+// run does not linger until the new run reports for the first time.
+func (m BackupMetrics) ResetTaskMetrics(clusterID, taskID uuid.UUID) {
+	m.SetTaskProgress(clusterID, taskID, 0)
+}
+
+// SetTaskProgress updates backup "task_progress" metric.
+func (m BackupMetrics) SetTaskProgress(clusterID, taskID uuid.UUID, progress float64) {
+	l := prometheus.Labels{
+		"cluster": clusterID.String(),
+		"task":    taskID.String(),
+	}
+	m.taskProgress.With(l).Set(progress)
 }
 
 // SetSnapshot updates backup "snapshot" metric.

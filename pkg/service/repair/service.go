@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/netip"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -413,6 +414,7 @@ func (s *Service) Repair(ctx context.Context, clusterID, taskID, runID uuid.UUID
 	// Ensure that not interrupted repair has 100% progress (invalidate rounding errors).
 	if ctx.Err() == nil && (!target.FailFast || err == nil) {
 		s.metrics.SetProgress(clusterID, 100)
+		s.metrics.SetTaskProgress(clusterID, run.TaskID, 100)
 	}
 
 	return multierr.Append(err, ctx.Err())
@@ -730,4 +732,50 @@ func (s *Service) GetTabletTarget(ctx context.Context, clusterID uuid.UUID, prop
 // GetTabletProgress returns tablet repair progress.
 func (s *Service) GetTabletProgress(ctx context.Context, clusterID, taskID, runID uuid.UUID) (tablet.Progress, error) {
 	return s.TabletService.GetProgress(ctx, clusterID, taskID, runID)
+}
+
+// setTaskPropertiesMetric reports the properties the task will run with.
+// It is the repair service that owns them, so the defaults are the real ones
+// rather than a copy kept somewhere else.
+func (s *Service) setTaskPropertiesMetric(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage) {
+	p, err := parseTaskProperties(properties)
+	if err != nil {
+		// The run itself will fail on the same properties and say why. The
+		// metric is informational, so it just stays as it was.
+		s.logger.Info(ctx, "Cannot report task properties", "task", taskID, "error", err)
+		return
+	}
+
+	s.metrics.SetTaskProperties(clusterID, taskID, taskPropertiesMetric(p))
+}
+
+// taskPropertiesMetric describes the properties for the metric. It takes them
+// after parseTaskProperties, so what it reports is what the run will use.
+func taskPropertiesMetric(p *taskProperties) metrics.RepairTaskProperties {
+	return metrics.RepairTaskProperties{
+		// An empty filter means every keyspace, datacenter or host.
+		Keyspace:            joinOrAll(p.Keyspace),
+		DC:                  joinOrAll(p.DC),
+		KeyspaceReplication: string(p.KeyspaceReplication),
+		// Left unset on purpose when the task does not set it: Scylla Manager
+		// does not send the parameter and Scylla applies its own default,
+		// which it has had to change before.
+		IncrementalMode: p.IncrementalMode,
+		Host:            orAll(p.Host),
+		FailFast:        strconv.FormatBool(p.FailFast),
+	}
+}
+
+func joinOrAll(v []string) string {
+	if len(v) == 0 {
+		return "all"
+	}
+	return strings.Join(v, ",")
+}
+
+func orAll(v string) string {
+	if v == "" {
+		return "all"
+	}
+	return v
 }

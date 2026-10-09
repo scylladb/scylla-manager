@@ -390,7 +390,13 @@ func (pm *dbProgressManager) updateTotalProgress(keyspace, table string, ranges 
 	// Watch out for rounding over 100% errors
 	if total := pm.total.Add(delta); total <= 100 {
 		pm.metrics.AddProgress(pm.run.ClusterID, delta)
+		pm.setTaskProgress(total)
 	}
+}
+
+// setTaskProgress updates the per task repair progress metric.
+func (pm *dbProgressManager) setTaskProgress(progress float64) {
+	pm.metrics.SetTaskProgress(pm.run.ClusterID, pm.run.TaskID, progress)
 }
 
 type tableKey struct {

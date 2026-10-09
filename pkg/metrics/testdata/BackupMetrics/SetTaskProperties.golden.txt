@@ -1,0 +1,3 @@
+# HELP scylla_manager_backup_task_properties Configured properties of a backup task, always 1. Join it to the other task metrics on the "task" label. The name and the schedule of the task are reported by "scylla_manager_scheduler_task_properties". A property that was not configured and has no Scylla Manager side default is reported as "-".
+# TYPE scylla_manager_backup_task_properties gauge
+scylla_manager_backup_task_properties{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",dc="all",keyspace="all",location="s3:backups",method="rclone",purge_only="-",retention="7",retention_days="-",retention_lock_mode="-",skip_schema="-",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 1

@@ -1,0 +1,4 @@
+# HELP scylla_manager_repair_task_progress Repair task progress in percents (0-100). It describes the repair task - the tablet repair task reports its own progress as "scylla_manager_tablet_repair_progress".
+# TYPE scylla_manager_repair_task_progress gauge
+scylla_manager_repair_task_progress{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="8fd16af1-815b-46db-bb2d-bd0a42ee9f92"} 100
+scylla_manager_repair_task_progress{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 42

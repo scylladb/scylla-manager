@@ -80,8 +80,10 @@ type workerTools struct {
 type worker struct {
 	workerTools
 
-	PrevStage        Stage
-	Metrics          metrics.BackupMetrics
+	PrevStage Stage
+	Metrics   metrics.BackupMetrics
+	// TaskMetrics aggregates per table progress into per task metrics.
+	TaskMetrics      *taskMetricsAggregator
 	Units            []Unit
 	Schema           bytes.Buffer
 	SchemaFilePath   string
