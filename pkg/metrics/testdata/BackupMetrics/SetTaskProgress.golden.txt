@@ -1,0 +1,3 @@
+# HELP scylla_manager_backup_task_progress Backup task progress in percents (0-100), calculated as (uploaded + skipped) / size over every backed up table.
+# TYPE scylla_manager_backup_task_progress gauge
+scylla_manager_backup_task_progress{cluster="b703df56-c428-46a7-bfba-cfa6ee91b976",task="965f4f5c-c7d1-4ae6-b770-a2225df4ef49"} 42

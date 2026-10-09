@@ -883,6 +883,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		},
 		PrevStage:            run.Stage,
 		Metrics:              s.metrics,
+		TaskMetrics:          newTaskMetricsAggregator(clusterID, taskID, s.metrics),
 		Units:                run.Units,
 		OnRunProgress:        s.putRunProgressLogError,
 		ResumeUploadProgress: s.resumeUploadProgress(run.PrevID),
