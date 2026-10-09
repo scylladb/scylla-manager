@@ -59,6 +59,41 @@ func TestRcloneSplitRemotePath(t *testing.T) {
 			Remote: "",
 		},
 		{
+			Input:  "rclonetest:/",
+			Fs:     "rclonetest:",
+			Remote: "",
+		},
+		{
+			Input:  "rclonetest:.",
+			Fs:     "rclonetest:",
+			Remote: "",
+		},
+		{
+			Input:  "rclonetest:bucket/dir/subdir/",
+			Fs:     "rclonetest:bucket",
+			Remote: "dir/subdir",
+		},
+		{
+			Input:  "rclonetest:bucket/./dir//subdir/../other",
+			Fs:     "rclonetest:bucket",
+			Remote: "dir/other",
+		},
+		{
+			Input:  "rclonetest:bucket/dir/..",
+			Fs:     "rclonetest:bucket",
+			Remote: "",
+		},
+		{
+			Input:  "rclonetest:bucket/dir/../..",
+			Fs:     "rclonetest:",
+			Remote: "",
+		},
+		{
+			Input:  "rclonetest:bucket/dir/../../../other",
+			Fs:     "rclonetest:..",
+			Remote: "other",
+		},
+		{
 			Error: true,
 		},
 		{
@@ -82,6 +117,93 @@ func TestRcloneSplitRemotePath(t *testing.T) {
 			}
 			if file != test.Remote {
 				t.Errorf("Expected dir path %q, got %q", test.Remote, file)
+			}
+		})
+	}
+}
+
+func TestRcloneListDirOptsAsListOptions(t *testing.T) {
+	t.Parallel()
+
+	const (
+		remotePath = "s3:bucket/backup/sst/cluster/id/dc/dc1/node/id/keyspace/ks/table/t/v"
+		fs         = "s3:bucket"
+		dir        = "backup/sst/cluster/id/dc/dc1/node/id/keyspace/ks/table/t/v"
+	)
+
+	table := []struct {
+		Name       string
+		RemotePath string
+		Opts       *scyllaclient.RcloneListDirOpts
+		Want       *models.ListOptions
+		Err        bool
+	}{
+		{
+			Name:       "nil opts",
+			RemotePath: remotePath,
+			Opts:       nil,
+			Want: &models.ListOptions{
+				Fs:     new(fs),
+				Remote: new(dir),
+				Opt: &models.ListOptionsOpt{
+					NoModTime:  true,
+					NoMimeType: true,
+				},
+			},
+		},
+		{
+			Name:       "all opts",
+			RemotePath: remotePath,
+			Opts: &scyllaclient.RcloneListDirOpts{
+				DirsOnly:           true,
+				FilesOnly:          true,
+				Recurse:            true,
+				ShowModTime:        true,
+				NewestOnly:         true,
+				VersionedOnly:      true,
+				ShowRetentionInfo:  true,
+				ShowEventBasedHold: true,
+				PropagateNotFound:  true,
+			},
+			Want: &models.ListOptions{
+				Fs:     new(fs),
+				Remote: new(dir),
+				Opt: &models.ListOptionsOpt{
+					DirsOnly:           true,
+					FilesOnly:          true,
+					Recurse:            true,
+					NoModTime:          false,
+					NoMimeType:         true,
+					ShowRetentionInfo:  true,
+					ShowEventBasedHold: true,
+				},
+				NewestOnly:    true,
+				VersionedOnly: true,
+			},
+		},
+		{
+			Name:       "no provider",
+			RemotePath: "bucket/backup",
+			Err:        true,
+		},
+	}
+
+	for _, test := range table {
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := test.Opts.AsListOptions(test.RemotePath)
+			if test.Err {
+				if err == nil {
+					t.Fatalf("AsListOptions() expected error, got %+v", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("AsListOptions() error %s", err)
+			}
+			if diff := cmp.Diff(test.Want, got); diff != "" {
+				t.Fatalf("AsListOptions() diff (-want +got):\n%s", diff)
 			}
 		})
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/scylladb/scylla-manager/v3/pkg/util/prom"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 func NoRetry(ctx context.Context) context.Context {
@@ -68,4 +69,8 @@ func ReadListEnd(dec *json.Decoder) error {
 
 func (c *Client) Metrics(ctx context.Context, host, name string) (map[string]*prom.MetricFamily, error) {
 	return c.metrics(ctx, host, name)
+}
+
+func (opts *RcloneListDirOpts) AsListOptions(remotePath string) (*models.ListOptions, error) {
+	return opts.asListOptions(remotePath)
 }
