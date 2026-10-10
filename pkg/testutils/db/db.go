@@ -145,7 +145,8 @@ func createTestKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace st
 
 	c := *cluster
 	c.Keyspace = "system"
-	c.Timeout = testconfig.CQLTimeout()
+	// Dropping the SM keyspace takes ~9s on a 1-CPU node.
+	c.Timeout = max(testconfig.CQLTimeout(), time.Minute)
 	session, err := gocqlx.WrapSession(c.CreateSession())
 	if err != nil {
 		tb.Fatal(err)
