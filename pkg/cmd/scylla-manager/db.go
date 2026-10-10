@@ -22,6 +22,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/topology"
 	"github.com/scylladb/scylla-manager/v3/schema"
+	"github.com/scylladb/scylla-manager/v3/schema/snapshot"
 )
 
 func keyspaceExists(ctx context.Context, c config.Config, logger log.Logger) (bool, error) {
@@ -152,6 +153,11 @@ func migrateSchema(ctx context.Context, c config.Config, logger log.Logger) erro
 		return err
 	}
 	defer session.Close()
+
+	// Fresh keyspace: create final schema at once instead of replaying every migration DDL.
+	if err := snapshot.Apply(ctx, session, schema.Files, logger); err != nil {
+		return errors.Wrap(err, "apply schema snapshot")
+	}
 
 	// Run migrations
 	schemamigrate.Logger = logger
