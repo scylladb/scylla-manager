@@ -67,7 +67,7 @@ type eventBasedHoldState struct {
 func newEventBasedHoldInterceptor(t *testing.T, hrt *HackableRoundTripper) *eventBasedHoldInterceptor {
 	i := &eventBasedHoldInterceptor{
 		t:     t,
-		now:   time.Now,
+		now:   timeutc.Now,
 		state: make(map[string]eventBasedHoldState),
 	}
 	hrt.SetInterceptor(httpx.RoundTripperFunc(i.interceptReq))
