@@ -13,6 +13,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/config/server"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient/scyllaclienttest"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/goleak"
 )
@@ -417,12 +418,12 @@ func TestCachedProviderReap(t *testing.T) {
 	if _, err := p.Client(ctx, expired); err != nil {
 		t.Fatalf("Client() error: %s", err)
 	}
-	p.SetTTL(expired, time.Now().Add(-validity/2))
+	p.SetTTL(expired, timeutc.Now().Add(-validity/2))
 	p.Reap()
 	checkCachedClients(t, p, 2)
 
 	// Client expired for more than validity is removed
-	p.SetTTL(expired, time.Now().Add(-2*validity))
+	p.SetTTL(expired, timeutc.Now().Add(-2*validity))
 	p.Reap()
 	checkCachedClients(t, p, 1)
 
