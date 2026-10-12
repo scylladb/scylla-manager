@@ -93,6 +93,9 @@ func aggregateProgress(run *Run, seq iter.Seq[*RunProgress], now time.Time) Prog
 
 			kp.Tables = append(kp.Tables, tp)
 			kp.updateParentProgress(tp.progress)
+			for _, m := range tp.Method {
+				kp.Method = addMethod(kp.Method, m)
+			}
 		}
 
 		if kp.Restored < kp.Size {
@@ -130,6 +133,14 @@ func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[stri
 	} else if pr.Error != "" {
 		tp.Error = tp.Error + "\n" + pr.Error
 	}
+	// Rows without Scylla task ID or agent job ID (e.g. schema restore)
+	// don't contribute any method.
+	switch {
+	case pr.ScyllaTaskID != "":
+		tp.Method = addMethod(tp.Method, MethodNative)
+	case pr.AgentJobID != 0:
+		tp.Method = addMethod(tp.Method, MethodRclone)
+	}
 	tableProgress[tn] = tp
 
 	// Update host progress
@@ -153,6 +164,21 @@ func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[stri
 		}
 	}
 	hostProgress[pr.Host] = hp
+}
+
+// methodOrder defines the order in which methods are reported in progress.
+var methodOrder = []Method{MethodNative, MethodRclone}
+
+// addMethod adds method to the set of methods preserving methodOrder.
+func addMethod(methods []Method, m Method) []Method {
+	if slices.Contains(methods, m) {
+		return methods
+	}
+	methods = append(methods, m)
+	slices.SortFunc(methods, func(a, b Method) int {
+		return slices.Index(methodOrder, a) - slices.Index(methodOrder, b)
+	})
+	return methods
 }
 
 // minTime chooses the smaller set time.
