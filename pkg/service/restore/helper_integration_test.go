@@ -12,6 +12,7 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -528,22 +529,80 @@ func grantRestoreSchemaPermissions(t *testing.T, s gocqlx.Session, user string) 
 }
 
 func validateCompleteProgress(t *testing.T, pr Progress, tables []table) {
+	t.Helper()
+
+	validateProgressTables(t, pr, tables)
 	if pr.Size != pr.Restored {
 		t.Fatal("Expected complete restore")
 	}
-	encountered := make(map[table]struct{})
 	for _, kpr := range pr.Keyspaces {
 		if kpr.Size != kpr.Restored {
 			t.Fatalf("Expected complete keyspace restore (%s)", kpr.Keyspace)
 		}
 		for _, tpr := range kpr.Tables {
-			encountered[table{ks: kpr.Keyspace, tab: tpr.Table}] = struct{}{}
+			name := kpr.Keyspace + "." + tpr.Table
 			if tpr.Size != tpr.Restored {
-				t.Fatalf("Expected complete table restore (%s)", tpr.Table)
+				t.Fatalf("Table %s: expected complete restore, got %d/%d bytes", name, tpr.Restored, tpr.Size)
+			}
+			if tpr.StartedAt == nil || tpr.CompletedAt == nil || tpr.StartedAt.After(*tpr.CompletedAt) {
+				t.Fatalf("Table %s: unset/incorrect timestamps (started_at: %v, completed_at: %v)", name, tpr.StartedAt, tpr.CompletedAt)
+			}
+			if tpr.Error != "" {
+				t.Fatalf("Table %s: unexpected error %q", name, tpr.Error)
 			}
 		}
 	}
+}
 
+// validateInterruptedProgress validates that the aggregated restore progress
+// reports exactly the given tables as started, but not completed, with error
+// containing expectedErr. Table restored bytes are expected to be proportional
+// to the restored sstables, and keyspace and total restored bytes are expected
+// to sum up table restored bytes.
+func validateInterruptedProgress(t *testing.T, pr Progress, tables []table, expectedErr string, restoredSSTables, totalSSTables int64) {
+	t.Helper()
+
+	validateProgressTables(t, pr, tables)
+	var restored int64
+	for _, kpr := range pr.Keyspaces {
+		var ksRestored int64
+		for _, tpr := range kpr.Tables {
+			name := kpr.Keyspace + "." + tpr.Table
+			if expected := tpr.Size * restoredSSTables / totalSSTables; tpr.Restored != expected {
+				t.Errorf("Table %s: expected %d restored bytes, got %d", name, expected, tpr.Restored)
+			}
+			if tpr.StartedAt == nil {
+				t.Errorf("Table %s: expected started_at to be set", name)
+			}
+			if tpr.CompletedAt != nil {
+				t.Errorf("Table %s: expected no completed_at, got %v", name, tpr.CompletedAt)
+			}
+			if !strings.Contains(tpr.Error, expectedErr) {
+				t.Errorf("Table %s: expected error containing %q, got %q", name, expectedErr, tpr.Error)
+			}
+			ksRestored += tpr.Restored
+		}
+		if kpr.Restored != ksRestored {
+			t.Errorf("Keyspace %s: expected %d restored bytes, got %d", kpr.Keyspace, ksRestored, kpr.Restored)
+		}
+		restored += ksRestored
+	}
+	if pr.Restored != restored || pr.Restored >= pr.Size {
+		t.Errorf("Expected %d restored bytes out of %d, got %d", restored, pr.Size, pr.Restored)
+	}
+}
+
+// validateProgressTables validates that the aggregated restore progress
+// describes exactly the given tables.
+func validateProgressTables(t *testing.T, pr Progress, tables []table) {
+	t.Helper()
+
+	encountered := make(map[table]struct{})
+	for _, kpr := range pr.Keyspaces {
+		for _, tpr := range kpr.Tables {
+			encountered[table{ks: kpr.Keyspace, tab: tpr.Table}] = struct{}{}
+		}
+	}
 	for _, tab := range tables {
 		if _, ok := encountered[tab]; !ok {
 			t.Fatalf("Table %s wasn't restored", tab)
@@ -553,6 +612,66 @@ func validateCompleteProgress(t *testing.T, pr Progress, tables []table) {
 	if len(encountered) > 0 {
 		t.Fatalf("Restored more tables than expected: %v", encountered)
 	}
+}
+
+// validateProgressMethod validates restore methods reported in the aggregated
+// restore progress. Tables missing from expected are validated against the
+// methods of the zero table key. Keyspace methods are expected to be the
+// union of its tables' methods.
+func validateProgressMethod(t *testing.T, pr Progress, expected map[table][]Method) {
+	t.Helper()
+
+	for _, kpr := range pr.Keyspaces {
+		var ksExpected []Method
+		for _, tpr := range kpr.Tables {
+			name := kpr.Keyspace + "." + tpr.Table
+			methods := expectedTableMethods(expected, kpr.Keyspace, tpr.Table)
+			if !slices.Equal(tpr.Method, methods) {
+				t.Errorf("Table %s: expected %v restore methods, got %v", name, methods, tpr.Method)
+			}
+			for _, m := range methods {
+				if !slices.Contains(ksExpected, m) {
+					ksExpected = append(ksExpected, m)
+				}
+			}
+		}
+		if !slices.Equal(slices.Sorted(slices.Values(kpr.Method)), slices.Sorted(slices.Values(ksExpected))) {
+			t.Errorf("Keyspace %s: expected %v restore methods, got %v", kpr.Keyspace, ksExpected, kpr.Method)
+		}
+	}
+}
+
+// validateHostProgressBytes validates that hosts in the aggregated restore
+// progress report restoring all tables except for the ones restored with
+// the tablet aware method (expected has the same format as in validateProgressMethod).
+// Tablet aware restore does not populate per host progress,
+// as it doesn't make much sense there.
+func validateHostProgressBytes(t *testing.T, pr Progress, expectedMethods map[table][]Method) {
+	t.Helper()
+
+	var expected, got int64
+	for _, kpr := range pr.Keyspaces {
+		for _, tpr := range kpr.Tables {
+			if !slices.Contains(expectedTableMethods(expectedMethods, kpr.Keyspace, tpr.Table), MethodTablet) {
+				expected += tpr.Size
+			}
+		}
+	}
+	for _, hp := range pr.Hosts {
+		got += hp.RestoredBytes
+	}
+	if got != expected {
+		t.Errorf("Expected %d bytes restored by hosts, got %d", expected, got)
+	}
+}
+
+// expectedTableMethods returns methods expected for the table,
+// falling back to the zero table key.
+func expectedTableMethods(expected map[table][]Method, ks, tab string) []Method {
+	if methods, ok := expected[table{ks: ks, tab: tab}]; ok {
+		return methods
+	}
+	return expected[table{}]
 }
 
 func createTable(t *testing.T, session gocqlx.Session, keyspace string, tables ...string) {
@@ -702,6 +821,14 @@ func (h *testHelper) insertMockedPrevRun(t *testing.T, rawProps json.RawMessage)
 func (h *testHelper) insertRestoredTabletProgressRow(t *testing.T, runID uuid.UUID, tt table) tablet.RunProgress {
 	t.Helper()
 
+	// Restored table size is taken from the run units,
+	// as it is in the real tablet aware restore.
+	run, err := GetRun(h.dstCluster.Session, h.dstCluster.ClusterID, h.dstCluster.TaskID, runID)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "get run"))
+	}
+	size := unitsTableSize(t, run.Units, tt)
+
 	// DB timestamps have millisecond precision
 	now := timeutc.Now().Truncate(time.Millisecond)
 	pr := tablet.RunProgress{
@@ -716,12 +843,30 @@ func (h *testHelper) insertRestoredTabletProgressRow(t *testing.T, runID uuid.UU
 		CompletedAt:      now,
 		RestoredSSTables: 2,
 		TotalSSTables:    2,
-		Size:             1,
+		Size:             size,
 	}
 	if err := schematable.RestoreRunProgressTablet.InsertQuery(h.dstCluster.Session).BindStruct(&pr).ExecRelease(); err != nil {
 		t.Fatal(errors.Wrap(err, "insert tablet aware restore progress row"))
 	}
 	return pr
+}
+
+// unitsTableSize returns the size of the table described by units.
+func unitsTableSize(t *testing.T, units []Unit, tt table) int64 {
+	t.Helper()
+
+	for _, u := range units {
+		if u.Keyspace != tt.ks {
+			continue
+		}
+		for _, tab := range u.Tables {
+			if tab.Table == tt.tab {
+				return tab.Size
+			}
+		}
+	}
+	t.Fatalf("Table %s.%s not found in run units", tt.ks, tt.tab)
+	return 0
 }
 
 // validateTabletProgressSuccess validates the progress row of a successfully restored table.
