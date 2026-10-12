@@ -1153,6 +1153,18 @@
         "keyspace": {
           "type": "string"
         },
+        "method": {
+          "description": "Union of restore methods used for restoring tables in this keyspace",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "rclone",
+              "native",
+              "tablet"
+            ]
+          }
+        },
         "tables": {
           "type": "array",
           "items": {
@@ -1189,6 +1201,18 @@
       "properties": {
         "table": {
           "type": "string"
+        },
+        "method": {
+          "description": "Restore method used for restoring this table. Multiple methods are used only in edge-case scenarios of restoring an old backup",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "rclone",
+              "native",
+              "tablet"
+            ]
+          }
         },
         "tombstone_gc": {
           "type": "string"
