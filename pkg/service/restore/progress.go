@@ -7,20 +7,26 @@ import (
 	"slices"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore/tablet"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
 
 func getProgress(run *Run, s gocqlx.Session) (Progress, error) {
+	tabletPr, err := tablet.GetProgress(s, run.ClusterID, run.TaskID, run.ID)
+	if err != nil {
+		return Progress{}, errors.Wrap(err, "get tablet aware restore progress")
+	}
 	seq := newRunProgressSeq()
 	// Note that interrupted run progresses are deleted from the DB,
 	// as we don't support resume on a batch level.
 	// This means that it's safe to always use timeutc.Now() instead of
 	// replacing it with run end time.
-	pr := aggregateProgress(run, seq.All(run.ClusterID, run.TaskID, run.ID, s), timeutc.Now())
+	pr := aggregateProgress(run, seq.All(run.ClusterID, run.TaskID, run.ID, s), tabletPr, timeutc.Now())
 	if seq.err != nil {
 		return Progress{}, seq.err
 	}
@@ -61,7 +67,7 @@ func (seq *runProgressSeq) All(clusterID, taskID, runID uuid.UUID, s gocqlx.Sess
 	}
 }
 
-func aggregateProgress(run *Run, seq iter.Seq[*RunProgress], now time.Time) Progress {
+func aggregateProgress(run *Run, seq iter.Seq[*RunProgress], tabletPrs []tablet.RunProgress, now time.Time) Progress {
 	p := Progress{
 		SnapshotTag: run.SnapshotTag,
 		Stage:       run.Stage,
@@ -70,6 +76,9 @@ func aggregateProgress(run *Run, seq iter.Seq[*RunProgress], now time.Time) Prog
 	hostProgress := make(map[string]HostProgress)
 	for rp := range seq {
 		progressCB(tableProgress, hostProgress, rp, now)
+	}
+	for i := range tabletPrs {
+		tabletProgressCB(tableProgress, &tabletPrs[i])
 	}
 
 	// Aggregate keyspace progress
@@ -128,11 +137,7 @@ func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[stri
 	// We need to later validate that the table
 	// indeed been completely restored.
 	tp.CompletedAt = maxTime(tp.CompletedAt, pr.RestoreCompletedAt)
-	if tp.Error == "" {
-		tp.Error = pr.Error
-	} else if pr.Error != "" {
-		tp.Error = tp.Error + "\n" + pr.Error
-	}
+	tp.Error = joinError(tp.Error, pr.Error)
 	// Rows without Scylla task ID or agent job ID (e.g. schema restore)
 	// don't contribute any method.
 	switch {
@@ -166,8 +171,34 @@ func progressCB(tableProgress map[TableName]TableProgress, hostProgress map[stri
 	hostProgress[pr.Host] = hp
 }
 
+// tabletProgressCB updates table progress with tablet aware restore progress.
+// Tablet aware restore does not contribute to the host progress, as the host
+// coordinating scylla restore task is not the one performing all the work.
+func tabletProgressCB(tableProgress map[TableName]TableProgress, pr *tablet.RunProgress) {
+	tn := TableName{Keyspace: pr.Keyspace, Table: pr.Table}
+	tp := tableProgress[tn]
+
+	tp.Restored += pr.RestoredBytes()
+	tp.StartedAt = minTime(tp.StartedAt, timePtrOrNil(pr.StartedAt))
+	tp.CompletedAt = maxTime(tp.CompletedAt, timePtrOrNil(pr.CompletedAt))
+	tp.Error = joinError(tp.Error, pr.Error)
+	tp.Method = addMethod(tp.Method, MethodTablet)
+	tableProgress[tn] = tp
+}
+
+func joinError(recorded, current string) string {
+	switch {
+	case recorded == "":
+		return current
+	case current == "":
+		return recorded
+	default:
+		return recorded + "\n" + current
+	}
+}
+
 // methodOrder defines the order in which methods are reported in progress.
-var methodOrder = []Method{MethodNative, MethodRclone}
+var methodOrder = []Method{MethodTablet, MethodNative, MethodRclone}
 
 // addMethod adds method to the set of methods preserving methodOrder.
 func addMethod(methods []Method, m Method) []Method {
@@ -229,4 +260,11 @@ func timeSub(start, end *time.Time, now time.Time) time.Duration {
 		return now.Sub(*start)
 	}
 	return time.Duration(0)
+}
+
+func timePtrOrNil(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return &t
 }

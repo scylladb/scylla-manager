@@ -51,6 +51,8 @@ const (
 	MethodRclone Method = "rclone"
 	// MethodNative means that SM will only use native scylla restore API (whether it's configured or not).
 	MethodNative Method = "native"
+	// MethodTablet means that SM uses tablet aware restore API.
+	MethodTablet Method = "tablet"
 )
 
 // LocationInfo contains information about Location, such as what DCs it has,
