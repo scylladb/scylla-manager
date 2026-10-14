@@ -974,10 +974,8 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 			// Allow re-indexing when future stages requires access
 			// to indexed worker.snapshotDirs.
 			allowReindexOnPrevStage := map[Stage]struct{}{
-				StageManifest:    {},
-				StageUpload:      {},
 				StageDeduplicate: {},
-				StageSchema:      {},
+				StageUpload:      {},
 			}
 			if _, ok := allowReindexOnPrevStage[prevStage]; ok && stage == StageIndex { //nolint: revive
 				// continue
