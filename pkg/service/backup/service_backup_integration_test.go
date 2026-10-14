@@ -224,16 +224,27 @@ func defaultConfig() backup.Config {
 }
 
 func (h *backupTestHelper) setInterceptorBlockPathOnFirstHost(paths ...string) {
-	brokenHost := atomic.NewString("")
-	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+	h.setInterceptorBlockOnFirstHost(func(req *http.Request) bool {
 		for _, p := range paths {
 			if strings.HasPrefix(req.URL.Path, p) {
-				if brokenHost.CompareAndSwap("", req.Host) {
-					h.T.Log("Setting broken host", req.Host)
-				}
-				if brokenHost.Load() == req.Host {
-					return nil, errors.New("dial error")
-				}
+				return true
+			}
+		}
+		return false
+	})
+}
+
+// setInterceptorBlockOnFirstHost blocks all matching requests on the host
+// which sent the first matching request.
+func (h *backupTestHelper) setInterceptorBlockOnFirstHost(match func(req *http.Request) bool) {
+	brokenHost := atomic.NewString("")
+	h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if match(req) {
+			if brokenHost.CompareAndSwap("", req.Host) {
+				h.T.Log("Setting broken host", req.Host)
+			}
+			if brokenHost.Load() == req.Host {
+				return nil, errors.New("dial error")
 			}
 		}
 		return nil, nil
@@ -1632,21 +1643,40 @@ func TestBackupResumeSchemaIntegration(t *testing.T) {
 
 	WriteData(t, clusterSession, testKeyspace, 3)
 
+	blockPath := func(paths ...string) func(req *http.Request) bool {
+		return func(req *http.Request) bool {
+			for _, p := range paths {
+				if strings.HasPrefix(req.URL.Path, p) {
+					return true
+				}
+			}
+			return false
+		}
+	}
+
 	testCases := []struct {
 		name      string
 		failStage backup.Stage
-		// paths blocked on first host so that the backup fails in failStage
-		blockPaths []string
+		// requests blocked on first host so that the backup fails in failStage
+		block func(req *http.Request) bool
 	}{
 		{
-			name:       "fail in INDEX",
-			failStage:  backup.StageIndex,
-			blockPaths: []string{"/agent/rclone/operations/list"},
+			name:      "fail in INDEX",
+			failStage: backup.StageIndex,
+			block:     blockPath("/agent/rclone/operations/list"),
 		},
 		{
-			name:       "fail in MANIFEST",
-			failStage:  backup.StageManifest,
-			blockPaths: []string{"/agent/rclone/operations/put"},
+			name:      "fail in MANIFEST",
+			failStage: backup.StageManifest,
+			block:     blockPath("/agent/rclone/operations/put"),
+		},
+		{
+			name:      "fail in SCHEMA",
+			failStage: backup.StageSchema,
+			block: func(req *http.Request) bool {
+				return strings.HasPrefix(req.URL.Path, "/agent/rclone/operations/put") &&
+					strings.Contains(req.URL.Query().Get("remote"), "backup/schema/")
+			},
 		},
 	}
 
@@ -1662,7 +1692,7 @@ func TestBackupResumeSchemaIntegration(t *testing.T) {
 			}
 
 			Printf("Given: backup fails on a host in stage %s", tc.failStage)
-			h.setInterceptorBlockPathOnFirstHost(tc.blockPaths...)
+			h.setInterceptorBlockOnFirstHost(tc.block)
 
 			Print("When: run backup")
 			err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
@@ -1672,47 +1702,67 @@ func TestBackupResumeSchemaIntegration(t *testing.T) {
 				t.Fatal("Expected error on run but got nil")
 			}
 			t.Log("Backup() error", err)
-			prev, err := h.service.GetLastResumableRun(ctx, h.ClusterID, h.TaskID)
+			failed, err := h.service.GetRun(ctx, h.ClusterID, h.TaskID, h.RunID)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if prev.Stage != tc.failStage {
-				t.Fatalf("Expected run to fail in stage %s, got %s", tc.failStage, prev.Stage)
+			if failed.Stage != tc.failStage {
+				t.Fatalf("Expected run to fail in stage %s, got %s", tc.failStage, failed.Stage)
+			}
+
+			Print("And: failed run is not resumable")
+			if _, err := h.service.GetLastResumableRun(ctx, h.ClusterID, h.TaskID); !errors.Is(err, util.ErrNotFound) {
+				t.Fatalf("Expected %s, got %v", util.ErrNotFound, err)
 			}
 
 			Print("Given: backup no longer fails")
 			h.Hrt.SetInterceptor(nil)
 
-			Print("When: backup is resumed with new RunID")
+			Print("When: backup is run again with new RunID")
 			runID := uuid.NewTime()
 			if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, runID, target); err != nil {
 				t.Fatal("Unexpected error", err)
 			}
 
-			Print("Then: resumed run is done")
+			Print("Then: new run started from scratch and is done")
 			run, err := h.service.GetRun(ctx, h.ClusterID, h.TaskID, runID)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if run.PrevID != prev.ID {
-				t.Fatalf("Expected run to resume %s, got PrevID %s", prev.ID, run.PrevID)
+			if run.PrevID != uuid.Nil {
+				t.Fatalf("Expected run to start from scratch, got PrevID %s", run.PrevID)
+			}
+			if run.SnapshotTag <= failed.SnapshotTag {
+				t.Fatalf("Expected new snapshot tag, got %s (failed run: %s)", run.SnapshotTag, failed.SnapshotTag)
 			}
 			if run.Stage != backup.StageDone {
 				t.Fatalf("Expected run stage %s, got %s", backup.StageDone, run.Stage)
 			}
 
-			Print("And: schema files are uploaded")
+			Print("And: manifests and schema files of the new run are uploaded")
 			manifests, schemas, _, _ := h.listS3Files()
-			if len(manifests) != 3 {
-				t.Fatalf("Expected 3 manifests, got %s", manifests)
+			var newManifests []string
+			for _, m := range manifests {
+				if backup.SnapshotTagFromManifestPath(t, m) == run.SnapshotTag {
+					newManifests = append(newManifests, m)
+				}
+			}
+			if len(newManifests) != 3 {
+				t.Fatalf("Expected 3 manifests for snapshot %s, got %s", run.SnapshotTag, manifests)
+			}
+			var newSchemas []string
+			for _, s := range schemas {
+				if strings.Contains(s, run.SnapshotTag) {
+					newSchemas = append(newSchemas, s)
+				}
 			}
 			// CQL and alternator schema for a single snapshot
-			if len(schemas) != 2 {
-				t.Errorf("Expected 2 schema files, got %s", schemas)
+			if len(newSchemas) != 2 {
+				t.Errorf("Expected 2 schema files for snapshot %s, got %s", run.SnapshotTag, schemas)
 			}
 
 			Print("And: manifests reference the schema")
-			for _, m := range manifests {
+			for _, m := range newManifests {
 				r, err := h.Client.RcloneOpen(ctx, ManagedClusterHost(), h.location.RemotePath(m))
 				if err != nil {
 					t.Fatal(err)
@@ -1722,8 +1772,8 @@ func TestBackupResumeSchemaIntegration(t *testing.T) {
 					t.Fatalf("Cannot read manifest %s: %s", m, err)
 				}
 				r.Close()
-				if !strset.New(schemas...).Has(mc.Schema) {
-					t.Errorf("Manifest %s: Schema=%q, not found in schemas %s", m, mc.Schema, schemas)
+				if !strset.New(newSchemas...).Has(mc.Schema) {
+					t.Errorf("Manifest %s: Schema=%q, not found in schemas %s", m, mc.Schema, newSchemas)
 				}
 			}
 		})
