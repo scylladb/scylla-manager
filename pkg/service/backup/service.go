@@ -1007,9 +1007,10 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		// Run function
 		return errors.Wrap(f(), strings.ReplaceAll(name, "_", " "))
 	}
-	for _, s := range StageOrder() {
-		if f, ok := stageFunc[s]; ok {
-			if err := execStage(s, f); err != nil {
+	for _, stage := range StageOrder() {
+		if f, ok := stageFunc[stage]; ok {
+			if err := execStage(stage, f); err != nil {
+				s.deleteSnapshotsOfNotResumableRun(ctx, run)
 				return err
 			}
 		}
@@ -1318,6 +1319,30 @@ func (s *Service) DeleteSnapshot(ctx context.Context, clusterID uuid.UUID, locat
 	}
 
 	return nil
+}
+
+// deleteSnapshotsTimeout bounds the best effort snapshot cleanup
+// of a run which ended in a not resumable stage.
+const deleteSnapshotsTimeout = 10 * time.Minute
+
+// deleteSnapshotsOfNotResumableRun deletes local snapshots when the run
+// ended (failed, was stopped or paused) in a stage which can't be resumed.
+// Such snapshots won't be reused by the next run and would just take up
+// disk space until it deletes them. This is best effort - errors are only
+// logged. The run context is usually already canceled at this point,
+// so a detached context with timeout is used.
+func (s *Service) deleteSnapshotsOfNotResumableRun(ctx context.Context, run *Run) {
+	if run.Stage.Index() < StageSnapshot.Index() || run.Stage.Resumable() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), deleteSnapshotsTimeout)
+	defer cancel()
+
+	logger := s.logger.With("cluster_id", run.ClusterID, "task_id", run.TaskID, "run_id", run.ID, "snapshot_tag", run.SnapshotTag)
+	logger.Info(ctx, "Deleting snapshots of not resumable run")
+	if err := s.DeleteLocalSnapshots(ctx, run.ClusterID); err != nil {
+		logger.Error(ctx, "Failed to delete snapshots of not resumable run", "error", err)
+	}
 }
 
 // DeleteLocalSnapshots from nodes in the cluster.
