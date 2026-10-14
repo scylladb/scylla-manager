@@ -1613,6 +1613,123 @@ func TestBackupResumeIntegration(t *testing.T) {
 	})
 }
 
+// TestBackupResumeSchemaIntegration checks that a backup run which failed
+// before the schema was uploaded does not end up in dropping schema backup.
+func TestBackupResumeSchemaIntegration(t *testing.T) {
+	const (
+		testBucket   = "backuptest-resume-schema"
+		testKeyspace = "backuptest_resume_schema"
+	)
+
+	location := testBackupLocation(testBucket)
+	config := defaultConfig()
+
+	var (
+		session        = CreateScyllaManagerDBSession(t)
+		h              = newBackupTestHelper(t, session, config, location, nil)
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	WriteData(t, clusterSession, testKeyspace, 3)
+
+	testCases := []struct {
+		name      string
+		failStage backup.Stage
+		// paths blocked on first host so that the backup fails in failStage
+		blockPaths []string
+	}{
+		{
+			name:       "fail in INDEX",
+			failStage:  backup.StageIndex,
+			blockPaths: []string{"/agent/rclone/operations/list"},
+		},
+		{
+			name:       "fail in MANIFEST",
+			failStage:  backup.StageManifest,
+			blockPaths: []string{"/agent/rclone/operations/put"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newBackupTestHelper(t, session, config, location, nil)
+			ctx := context.Background()
+
+			target := defaultTestTarget(location, testKeyspace, "dc1", 2)
+			target.Continue = true
+			if err := h.service.InitTarget(ctx, h.ClusterID, &target); err != nil {
+				t.Fatal(err)
+			}
+
+			Printf("Given: backup fails on a host in stage %s", tc.failStage)
+			h.setInterceptorBlockPathOnFirstHost(tc.blockPaths...)
+
+			Print("When: run backup")
+			err := h.service.Backup(ctx, h.ClusterID, h.TaskID, h.RunID, target)
+
+			Print("Then: it fails in the expected stage")
+			if err == nil {
+				t.Fatal("Expected error on run but got nil")
+			}
+			t.Log("Backup() error", err)
+			prev, err := h.service.GetLastResumableRun(ctx, h.ClusterID, h.TaskID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if prev.Stage != tc.failStage {
+				t.Fatalf("Expected run to fail in stage %s, got %s", tc.failStage, prev.Stage)
+			}
+
+			Print("Given: backup no longer fails")
+			h.Hrt.SetInterceptor(nil)
+
+			Print("When: backup is resumed with new RunID")
+			runID := uuid.NewTime()
+			if err := h.service.Backup(ctx, h.ClusterID, h.TaskID, runID, target); err != nil {
+				t.Fatal("Unexpected error", err)
+			}
+
+			Print("Then: resumed run is done")
+			run, err := h.service.GetRun(ctx, h.ClusterID, h.TaskID, runID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if run.PrevID != prev.ID {
+				t.Fatalf("Expected run to resume %s, got PrevID %s", prev.ID, run.PrevID)
+			}
+			if run.Stage != backup.StageDone {
+				t.Fatalf("Expected run stage %s, got %s", backup.StageDone, run.Stage)
+			}
+
+			Print("And: schema files are uploaded")
+			manifests, schemas, _, _ := h.listS3Files()
+			if len(manifests) != 3 {
+				t.Fatalf("Expected 3 manifests, got %s", manifests)
+			}
+			// CQL and alternator schema for a single snapshot
+			if len(schemas) != 2 {
+				t.Errorf("Expected 2 schema files, got %s", schemas)
+			}
+
+			Print("And: manifests reference the schema")
+			for _, m := range manifests {
+				r, err := h.Client.RcloneOpen(ctx, ManagedClusterHost(), h.location.RemotePath(m))
+				if err != nil {
+					t.Fatal(err)
+				}
+				var mc backupspec.ManifestContentWithIndex
+				if err := mc.Read(r); err != nil {
+					t.Fatalf("Cannot read manifest %s: %s", m, err)
+				}
+				r.Close()
+				if !strset.New(schemas...).Has(mc.Schema) {
+					t.Errorf("Manifest %s: Schema=%q, not found in schemas %s", m, mc.Schema, schemas)
+				}
+			}
+		})
+	}
+}
+
 func TestBackupTemporaryManifestsIntegration(t *testing.T) {
 	const (
 		testBucket   = "backuptest-temporary-manifests"
