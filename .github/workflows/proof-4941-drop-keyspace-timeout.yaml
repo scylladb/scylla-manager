@@ -1,0 +1,37 @@
+# Temporary proof for scylladb/scylla-manager#4941, not meant to be merged.
+name: proof-4941-drop-keyspace-timeout
+"on":
+    pull_request:
+        types: [opened, synchronize, reopened]
+permissions:
+    contents: read
+jobs:
+    proof:
+        name: Drop SM keyspace (fix ${{ matrix.fix }}, ${{ matrix.cfg.name }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                fix: ["on", "off"]
+                cfg:
+                    - {name: "2026.1.14-IPV6-nossl", scylla-version: "scylla:2026.1.14", ip-family: IPV6, tablets: disabled, ssl-enabled: "false"}
+                    - {name: "2026.2.7-IPV4-tablets", scylla-version: "scylla:2026.2.7", ip-family: IPV4, tablets: enabled, ssl-enabled: "true"}
+        steps:
+            - name: Check out code into the Go module directory
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+            - name: Revert the fix
+              if: matrix.fix == 'off'
+              run: |
+                sed -i 's/c.Timeout = max(testconfig.CQLTimeout(), time.Minute)/c.Timeout = testconfig.CQLTimeout()/' pkg/testutils/db/db.go
+                git diff --exit-code --quiet pkg/testutils/db/db.go && { echo "fix not reverted"; exit 1; }
+                git diff pkg/testutils/db/db.go
+            - name: Setup testing dependencies
+              uses: ./.github/actions/test-setup
+              with:
+                ip-family: ${{ matrix.cfg.ip-family }}
+                scylla-version: ${{ matrix.cfg.scylla-version }}
+                ssl-enabled: ${{ matrix.cfg.ssl-enabled }}
+                tablets: ${{ matrix.cfg.tablets }}
+            - name: Run proof test
+              run: make pkg-integration-test IP_FAMILY=${{ matrix.cfg.ip-family }} SSL_ENABLED=${{ matrix.cfg.ssl-enabled }} PKG=./pkg/testutils/db RUN=TestDropSMKeyspaceTimeoutProofIntegration
+        timeout-minutes: 60
