@@ -1710,6 +1710,17 @@ func TestBackupResumeSchemaIntegration(t *testing.T) {
 				t.Fatalf("Expected %s, got %v", util.ErrNotFound, err)
 			}
 
+			Print("And: snapshots of the failed run are deleted")
+			for _, host := range h.GetHostsFromDC("dc1") {
+				tags, err := h.Client.Snapshots(ctx, host)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if slices.Contains(tags, failed.SnapshotTag) {
+					t.Errorf("Expected snapshot %s to be deleted from host %s, got snapshots %s", failed.SnapshotTag, host, tags)
+				}
+			}
+
 			Print("Given: backup no longer fails")
 			h.Hrt.SetInterceptor(nil)
 
