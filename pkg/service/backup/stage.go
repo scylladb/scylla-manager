@@ -57,9 +57,19 @@ func StageOrder() []Stage {
 }
 
 // Resumable run can be continued.
+// Only stages starting from StageDeduplicate are resumable.
+// The reason for that is the gap between StageAwaitSchema during which
+// the schema is dumped and StageSchema during which it is uploaded.
+// Stopping and resuming in between those stages would drop the schema
+// from the backup. One solution could be to allow re-dumping the schema
+// on resume, but it would increase the timestamp gap between snapshot-ed
+// sstables and dumped schema, which is not desirable. We also can't upload
+// the schema right after it was dumped, as then we would upload a file
+// that's not yet referenced by any manifest, so it would be potentially
+// orphaned without any changes on the purge side.
 func (s Stage) Resumable() bool {
 	switch s {
-	case StageIndex, StageManifest, StageUpload, StageDeduplicate, StageMoveManifest, StageRetentionLock, StageMigrate, StagePurge:
+	case StageDeduplicate, StageUpload, StageMoveManifest, StageRetentionLock, StageMigrate, StagePurge:
 		return true
 	default:
 		return false
