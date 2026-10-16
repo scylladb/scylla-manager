@@ -421,6 +421,9 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 		ignoredTables = slices2.Map(scyllatable.ScyllaClusterConfigTables, func(t scyllatable.CQLTable) string {
 			return t.Name
 		})
+		ignoredTables = append(ignoredTables, slices2.Map(scyllatable.ScyllaAlternatorExportTables, func(t scyllatable.CQLTable) string {
+			return t.Name
+		})...)
 	}
 	// It's not possible to create views on tablet keyspaces
 	var ignoredViews []string
