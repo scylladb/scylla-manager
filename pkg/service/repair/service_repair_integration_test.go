@@ -511,6 +511,11 @@ func TestServiceGetTargetIntegration(t *testing.T) {
 			for _, tab := range scyllatable.ScyllaBackupTables {
 				ignoredTables = append(ignoredTables, tab.Name)
 			}
+			if !CheckAnyConstraint(t, h.Client, ">= 2026.4") {
+				for _, tab := range scyllatable.ScyllaAlternatorExportTables {
+					ignoredTables = append(ignoredTables, tab.Name)
+				}
+			}
 
 			if diff := cmp.Diff(golden, v,
 				cmpopts.SortSlices(func(a, b string) bool { return a < b }),

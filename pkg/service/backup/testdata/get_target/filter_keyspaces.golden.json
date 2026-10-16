@@ -3,7 +3,9 @@
     {
       "keyspace": "system_distributed",
       "tables": [
-        "view_build_status"
+        "view_build_status",
+        "alternator_export_to_s3_client_tokens",
+        "alternator_export_to_s3_exports"
       ],
       "all_tables": true
     },
