@@ -36,6 +36,26 @@ func pathPrefixMatcher(paths ...string) func(req *http.Request) bool {
 	}
 }
 
+// onAllHostsMatcher matches the first request matching match once such
+// requests were issued to n distinct hosts. Pausing on job progress this way
+// guarantees that SM knows the ID of every started upload job and stops them,
+// otherwise a job started by a request canceled mid-flight keeps running.
+func onAllHostsMatcher(n int, match func(req *http.Request) bool) func(req *http.Request) bool {
+	var (
+		mu    sync.Mutex
+		hosts = strset.New()
+	)
+	return func(req *http.Request) bool {
+		if !match(req) {
+			return false
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		hosts.Add(req.URL.Host)
+		return hosts.Size() >= n
+	}
+}
+
 func schemaUploadMatcher(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/agent/rclone/operations/put") &&
 		strings.Contains(req.URL.Query().Get("remote"), "backup/schema/")
@@ -242,7 +262,8 @@ func TestBackupPauseReindexOfResumedRunIntegration(t *testing.T) {
 	}
 
 	Print("Given: run A paused in UPLOAD")
-	runA := h.pauseBackup(t, h.RunID, target, pathPrefixMatcher("/task_manager/wait_task", "/agent/rclone/job/progress"))
+	uploadJobs := pathPrefixMatcher("/task_manager/wait_task", "/agent/rclone/job/progress")
+	runA := h.pauseBackup(t, h.RunID, target, onAllHostsMatcher(len(h.GetHostsFromDC("dc1")), uploadJobs))
 	if runA.Stage != backup.StageUpload {
 		t.Fatalf("Expected run A to be paused in stage %s, got %s", backup.StageUpload, runA.Stage)
 	}
