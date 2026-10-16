@@ -970,6 +970,7 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 		}
 
 		// Skip completed stages
+		reindex := false
 		if run.PrevID != uuid.Nil {
 			// Allow re-indexing when future stages requires access
 			// to indexed worker.snapshotDirs.
@@ -977,15 +978,20 @@ func (s *Service) Backup(ctx context.Context, clusterID, taskID, runID uuid.UUID
 				StageDeduplicate: {},
 				StageUpload:      {},
 			}
-			if _, ok := allowReindexOnPrevStage[prevStage]; ok && stage == StageIndex { //nolint: revive
-				// continue
+			if _, ok := allowReindexOnPrevStage[prevStage]; ok && stage == StageIndex {
+				reindex = true
 			} else if prevStage.Index() > stage.Index() {
 				return nil
 			}
 		}
 
-		// Prepare worker
-		s.updateStage(ctx, run, stage)
+		// Prepare worker.
+		// Re-indexing keeps the resumed (resumable) stage, as StageIndex is not
+		// resumable. Otherwise, run paused while re-indexing couldn't be resumed
+		// and its snapshot would be deleted together with not uploaded files.
+		if !reindex {
+			s.updateStage(ctx, run, stage)
+		}
 		name := strings.ToLower(string(stage))
 		w = w.WithLogger(s.logger.Named(name))
 
