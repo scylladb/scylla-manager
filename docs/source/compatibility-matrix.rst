@@ -10,7 +10,7 @@ The following table shows which version of ScyllaDB Manager supports which versi
    * - ScyllaDB Manager Version
      - ScyllaDB Version
    * - 3.13
-     - 2025.1, 2026.1, 2026.2, 2026.3
+     - 2025.x, 2026.1, 2026.2, 2026.3
    * - 3.12
      - 2025.1, 2025.4, 2026.1, 2026.2
    * - 3.11
