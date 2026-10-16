@@ -5,6 +5,8 @@
       "Tables": [
         "service_levels",
         "view_build_status",
+        "alternator_export_to_s3_client_tokens",
+        "alternator_export_to_s3_exports",
         "cdc_generation_timestamps",
         "cdc_streams_descriptions_v2"
       ],

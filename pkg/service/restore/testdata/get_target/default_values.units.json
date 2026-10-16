@@ -70,6 +70,16 @@
         "table": "view_build_status",
         "tombstone_gc": "timeout",
         "size": 185891
+      },
+      {
+        "table": "alternator_export_to_s3_client_tokens",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "alternator_export_to_s3_exports",
+        "tombstone_gc": "timeout",
+        "size": 0
       }
     ]
   },
