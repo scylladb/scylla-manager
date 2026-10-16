@@ -506,6 +506,13 @@ func TestGetTargetIntegration(t *testing.T) {
 	CreateSessionAndDropAllKeyspaces(t, h.Client).Close()
 	S3InitBucket(t, testBucket)
 
+	ignoredTables := []string{"dicts", "service_levels"}
+	if !CheckAnyConstraint(t, h.Client, ">= 2026.4") {
+		for _, tab := range scyllatable.ScyllaAlternatorExportTables {
+			ignoredTables = append(ignoredTables, tab.Name)
+		}
+	}
+
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {
 			b, err := os.ReadFile(test.Input)
@@ -544,7 +551,7 @@ func TestGetTargetIntegration(t *testing.T) {
 				cmpopts.IgnoreSliceElements(func(u backup.Unit) bool {
 					return u.Keyspace == "system_replicated_keys" || u.Keyspace == "system_auth"
 				}),
-				cmpopts.IgnoreSliceElements(func(t string) bool { return t == "dicts" || t == "service_levels" })); diff != "" {
+				cmpopts.IgnoreSliceElements(func(t string) bool { return slices.Contains(ignoredTables, t) })); diff != "" {
 				t.Fatal(diff)
 			}
 		})
