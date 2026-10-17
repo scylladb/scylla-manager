@@ -41,3 +41,16 @@ type RunProgress struct {
 func (pr RunProgress) isSuccess() bool {
 	return !pr.CompletedAt.IsZero() && pr.Error == ""
 }
+
+// RestoredBytes estimates restored bytes based on the scylla task
+// progress reported in sstables. Successfully restored table
+// reports its entire size.
+func (pr RunProgress) RestoredBytes() int64 {
+	if pr.isSuccess() {
+		return pr.Size
+	}
+	if pr.TotalSSTables <= 0 {
+		return 0
+	}
+	return pr.Size * min(pr.RestoredSSTables, pr.TotalSSTables) / pr.TotalSSTables
+}

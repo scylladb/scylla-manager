@@ -721,6 +721,18 @@ func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
 					validateTabletProgressSuccess(t, pr)
 				}
 			})
+
+			t.Run("verify aggregated restore progress", func(t *testing.T) {
+				// Non tablet tables are restored with the default rclone method.
+				expectedMethods := map[table][]restore.Method{{}: {restore.MethodRclone}}
+				for tt := range tabletRestoredTables {
+					expectedMethods[tt] = []restore.Method{restore.MethodTablet}
+				}
+				pr := h.getRestoreProgress(t)
+				validateCompleteProgress(t, pr, tables)
+				validateProgressMethod(t, pr, expectedMethods)
+				validateHostProgressBytes(t, pr, expectedMethods)
+			})
 		})
 	}
 }
@@ -732,6 +744,8 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 	// - progress rows are saved on scylla task schedule, updated on each
 	//   task status long poll and record the pause cause, and the following
 	//   resume restores the interrupted tables again
+	// - progress rows are aggregated into the restore progress reported
+	//   to the user, both for complete and interrupted restores
 	enableTabletAwareRestore = true
 	defer func() {
 		enableTabletAwareRestore = false
@@ -752,6 +766,7 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 	tt1 := table{ks: ks, tab: tab1}
 	tt2 := table{ks: ks, tab: tab2}
 	tables := []table{tt1, tt2}
+	expectedMethods := map[table][]restore.Method{{}: {restore.MethodTablet}}
 	const tabStmt = "CREATE TABLE %q.%q (id int PRIMARY KEY, data int)"
 	// Note that src and dst describe the same cluster, so the schema is shared
 	createSchema := func(t *testing.T) {
@@ -888,6 +903,11 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 		}
 		validateTabletProgressCloned(t, rows[tt1], restored)
 		validateTabletProgressSuccess(t, rows[tt2])
+		Print("Validate aggregated run progress")
+		pr := h.getRestoreProgress(t)
+		validateCompleteProgress(t, pr, tables)
+		validateProgressMethod(t, pr, expectedMethods)
+		validateHostProgressBytes(t, pr, expectedMethods)
 
 		validateTableData(t, tt2)
 	})
@@ -965,6 +985,11 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 			validateTabletProgressSuccess(t, resumed[tt])
 			validateTableData(t, tt)
 		}
+		Print("Validate aggregated run progress")
+		pr := h.getRestoreProgress(t)
+		validateCompleteProgress(t, pr, tables)
+		validateProgressMethod(t, pr, expectedMethods)
+		validateHostProgressBytes(t, pr, expectedMethods)
 	})
 
 	t.Run("update run progress on status polls", func(t *testing.T) {
@@ -999,6 +1024,12 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 			}
 		}
 
+		Print("Validate aggregated run progress after pause")
+		pr := h.getRestoreProgress(t)
+		validateInterruptedProgress(t, pr, tables, context.Canceled.Error(), polls, mock.total())
+		validateProgressMethod(t, pr, expectedMethods)
+		validateHostProgressBytes(t, pr, expectedMethods)
+
 		// Resume the same restore task with a new run - none of the tables
 		// was restored, so both of them should be restored again.
 		// Scylla tasks were not aborted, so scylla joins the ongoing restores.
@@ -1028,6 +1059,11 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 				t.Errorf("Expected interrupted table %s.%s to be restored again with a new scylla task", tt.ks, tt.tab)
 			}
 		}
+		Print("Validate aggregated run progress")
+		pr = h.getRestoreProgress(t)
+		validateCompleteProgress(t, pr, tables)
+		validateProgressMethod(t, pr, expectedMethods)
+		validateHostProgressBytes(t, pr, expectedMethods)
 
 		for _, tt := range tables {
 			validateTableData(t, tt)

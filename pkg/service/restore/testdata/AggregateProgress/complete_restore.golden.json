@@ -25,7 +25,10 @@
           "started_at": "2024-02-23T01:12:00Z",
           "completed_at": "2024-02-23T01:12:02Z",
           "table": "tab1",
-          "tombstone_gc": "repair"
+          "tombstone_gc": "repair",
+          "method": [
+            "rclone"
+          ]
         },
         {
           "size": 120,
@@ -35,8 +38,14 @@
           "started_at": "2024-02-23T01:12:00Z",
           "completed_at": "2024-02-23T01:12:10Z",
           "table": "tab2",
-          "tombstone_gc": "timeout"
+          "tombstone_gc": "timeout",
+          "method": [
+            "rclone"
+          ]
         }
+      ],
+      "method": [
+        "rclone"
       ]
     }
   ],
