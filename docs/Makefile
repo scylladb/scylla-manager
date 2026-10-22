@@ -96,3 +96,7 @@ test: setup
 	$(SPHINXBUILD) -b dirhtml $(TESTSPHINXOPTS) $(BUILDDIR)/dirhtml
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
+
+.PHONY: check-redirects
+check-redirects: setup
+	$(UV) run scylla-check-redirects --yaml _utils/redirects.yaml --conf $(SOURCEDIR)
