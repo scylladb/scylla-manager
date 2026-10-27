@@ -25,14 +25,13 @@ Install package
       #. Import the ScyllaDB GPG signing keys. ScyllaDB Manager 3.10 and later repositories are signed with
          the 2026 key (``c503c686b007f39e``), older ones with the 2024 key (``a43e06657bac99e3``).
          *Note*: Run this step even if ScyllaDB is already installed on this node, as its keyring may not contain the 2026 key.
-         The command replaces ``/etc/apt/keyrings/scylladb.gpg`` with a keyring holding both keys,
+         The command adds the keys to the existing ``/etc/apt/keyrings/scylladb.gpg`` keyring without removing any,
          so repositories signed with either key keep working.
 
             .. code-block:: console
 
                sudo mkdir -p /etc/apt/keyrings
-               sudo gpg --homedir /tmp --no-default-keyring --keyring /tmp/temp.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys c503c686b007f39e a43e06657bac99e3
-               sudo gpg --homedir /tmp --no-default-keyring --keyring /tmp/temp.gpg --export --armor c503c686b007f39e a43e06657bac99e3 | gpg --dearmor | sudo tee /etc/apt/keyrings/scylladb.gpg > /dev/null
+               sudo gpg --homedir /tmp --no-default-keyring --keyring /etc/apt/keyrings/scylladb.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys c503c686b007f39e a43e06657bac99e3
 
       #. Add the ScyllaDB Manager APT repository to your system.
 
