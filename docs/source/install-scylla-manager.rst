@@ -35,8 +35,7 @@ Best practice is to install ScyllaDB Manager Server on a dedicated machine, not 
             .. code-block:: console
 
                sudo mkdir -p /etc/apt/keyrings
-               sudo gpg --homedir /tmp --no-default-keyring --keyring /tmp/temp.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys c503c686b007f39e a43e06657bac99e3
-               sudo gpg --homedir /tmp --no-default-keyring --keyring /tmp/temp.gpg --export --armor c503c686b007f39e a43e06657bac99e3 | gpg --dearmor | sudo tee /etc/apt/keyrings/scylladb.gpg > /dev/null
+               sudo gpg --homedir /tmp --no-default-keyring --keyring /etc/apt/keyrings/scylladb.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys c503c686b007f39e a43e06657bac99e3
 
 
         #. Add the ScyllaDB Manager APT repository to your system.
