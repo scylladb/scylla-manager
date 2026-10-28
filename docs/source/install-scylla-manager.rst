@@ -29,12 +29,13 @@ Best practice is to install ScyllaDB Manager Server on a dedicated machine, not 
 
    .. group-tab:: Debian/Ubuntu
 
-        #. Import the ScyllaDB GPG signing key.
+        #. Import the ScyllaDB GPG signing keys. ScyllaDB Manager 3.10 and later repositories are signed with
+           the 2026 key (``c503c686b007f39e``), older ones with the 2024 key (``a43e06657bac99e3``).
 
             .. code-block:: console
 
                sudo mkdir -p /etc/apt/keyrings
-               sudo gpg --homedir /tmp --no-default-keyring --keyring /etc/apt/keyrings/scylladb.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys a43e06657bac99e3
+               sudo gpg --homedir /tmp --no-default-keyring --keyring /etc/apt/keyrings/scylladb.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys c503c686b007f39e a43e06657bac99e3
 
 
         #. Add the ScyllaDB Manager APT repository to your system.
