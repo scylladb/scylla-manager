@@ -1,0 +1,46 @@
+# Template of per config CI workflow calling the reusable
+# './../workflows/integration-tests.yaml' workflow.
+# Generator (main.go) sets name, concurrency group and inputs (jobs.tests.with).
+# It also removes schedule and workflow_call triggers for PR suite configs
+# and push, pull_request triggers for release suite configs.
+on:
+  push:
+    branches:
+      - master
+      - 'branch-**'
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "**/*.rst"
+      - "LICENSE"
+      - ".github/workflows/docs-*"
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "**/*.rst"
+      - "LICENSE"
+      - ".github/workflows/docs-*"
+  # Weekly run of the release suite on Sunday night (UTC).
+  schedule:
+    - cron: '0 22 * * 0'
+  # Manual run of a single config.
+  workflow_dispatch: {}
+  # Allows 'integration-tests-release.yaml' to run all release suite configs at once.
+  workflow_call: {}
+
+# Cancel superseded runs on pull requests and on pushes to master, but not on
+# the 'branch-**' release branches, where a superseded run should still finish.
+# Generator replaces github.workflow in group with config name, so that configs called
+# from 'integration-tests-release.yaml' don't share a single group.
+concurrency:
+  group: int-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    uses: ./.github/workflows/integration-tests.yaml

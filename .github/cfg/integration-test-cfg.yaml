@@ -1,21 +1,55 @@
-- scylla-version: scylla:2025.1.16
+# PR suite - executed on every PR and push to master or release branch.
+# It consists of the oldest supported release on vnodes,
+# the newest release on tablets and nightly on tablets.
+
+- suite: pr
+  scylla-version: scylla:2025.1.16
+  ip-family: IPV6
+  tablets: disabled
+  ssl-enabled: false
+
+- suite: pr
+  scylla-version: scylla:2026.3.2
+  ip-family: IPV4
+  tablets: enabled
+  ssl-enabled: true
+  backup-method: rclone
+  restore-method: native
+
+- suite: pr
+  scylla-version: scylla-nightly:latest
+  ip-family: IPV4
+  tablets: enabled
+  ssl-enabled: true
+  backup-method: native
+  restore-method: native
+  backup-provider: gcs
+
+# Release suite - executed weekly and manually before the release.
+# It consists of all other configs that SM should be tested against.
+
+- suite: release
+  scylla-version: scylla:2025.1.16
   ip-family: IPV4
   tablets: disabled
   ssl-enabled: true
 
-- scylla-version: scylla:2025.1.16
+- suite: release
+  scylla-version: scylla:2025.1.16
   ip-family: IPV6
   tablets: enabled
   ssl-enabled: false
 
-- scylla-version: scylla:2026.1.14
+- suite: release
+  scylla-version: scylla:2026.1.14
   ip-family: IPV4
   tablets: enabled
   ssl-enabled: true
   backup-method: native
   restore-method: native
 
-- scylla-version: scylla:2026.1.14
+- suite: release
+  scylla-version: scylla:2026.1.14
   ip-family: IPV6
   tablets: disabled
   ssl-enabled: false
@@ -23,28 +57,32 @@
   restore-method: rclone
   backup-provider: localstorage
 
-- scylla-version: scylla:2026.2.7
+- suite: release
+  scylla-version: scylla:2026.2.7
   ip-family: IPV4
   tablets: enabled
   ssl-enabled: true
   backup-method: rclone
   restore-method: native
 
-- scylla-version: scylla:2026.2.7
+- suite: release
+  scylla-version: scylla:2026.2.7
   ip-family: IPV6
   tablets: disabled
   ssl-enabled: false
   backup-method: rclone
   restore-method: rclone
 
-- scylla-version: scylla:2026.3.2
+- suite: release
+  scylla-version: scylla:2026.3.2
   ip-family: IPV4
   tablets: disabled
   ssl-enabled: true
   backup-method: native
   restore-method: rclone
 
-- scylla-version: scylla:2026.3.2
+- suite: release
+  scylla-version: scylla:2026.3.2
   ip-family: IPV6
   tablets: enabled
   ssl-enabled: false
@@ -52,7 +90,8 @@
   restore-method: rclone
   backup-provider: gcs
 
-- scylla-version: scylla-nightly:latest
+- suite: release
+  scylla-version: scylla-nightly:latest
   ip-family: IPV4
   tablets: disabled
   ssl-enabled: true
@@ -60,7 +99,8 @@
   restore-method: native
   backup-provider: gcs
 
-- scylla-version: scylla-nightly:latest
+- suite: release
+  scylla-version: scylla-nightly:latest
   ip-family: IPV6
   tablets: enabled
   ssl-enabled: false
