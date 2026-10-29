@@ -1,0 +1,218 @@
+name: integration-tests
+
+# Reusable workflow running SM integration tests against a single
+# test env configuration. It is not triggered on its own - per config
+# workflows call it with the inputs below.
+on:
+  workflow_call:
+    inputs:
+      config-name:
+        description: "Name of the test env configuration, used to tell apart artifacts of different configs run in a single 'integration-tests-release' run"
+        type: string
+        required: true
+      scylla-version:
+        description: "Scylla version used in the test env (e.g. scylla:2026.3.2)"
+        type: string
+        required: true
+      ip-family:
+        description: "IP family used in the test env (IPV4/IPV6)"
+        type: string
+        required: true
+      tablets:
+        description: "Whether the test cluster uses tablets replication (enabled/disabled)"
+        type: string
+        required: true
+      ssl-enabled:
+        description: "Whether the test cluster uses SSL only configuration (true/false)"
+        type: string
+        required: true
+      backup-method:
+        description: "Default backup --method used by tests"
+        type: string
+        default: ""
+      restore-method:
+        description: "Default restore --method used by tests"
+        type: string
+        default: ""
+      backup-provider:
+        description: "Default backup location provider used by tests"
+        type: string
+        default: ""
+
+# Called workflow does not inherit caller's env,
+# so inputs are mapped to env used by the jobs below.
+env:
+  scylla-version: ${{ inputs.scylla-version }}
+  ip-family: ${{ inputs.ip-family }}
+  tablets: ${{ inputs.tablets }}
+  ssl-enabled: ${{ inputs.ssl-enabled }}
+  backup-method: ${{ inputs.backup-method }}
+  restore-method: ${{ inputs.restore-method }}
+  backup-provider: ${{ inputs.backup-provider }}
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    name: Test restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup testing dependencies
+        uses: ./.github/actions/test-setup
+        with:
+          scylla-version: ${{ env.scylla-version }}
+          ip-family: ${{ env.ip-family }}
+          tablets: ${{ env.tablets }}
+          ssl-enabled: ${{ env.ssl-enabled }}
+
+      - name: Run tests
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore
+
+      - name: Dump dev env logs
+        if: failure() || cancelled()
+        run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+
+      - name: Upload dev env logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-env-logs-${{ inputs.config-name }}-${{ github.job }}
+          path: /tmp/scylla-manager-dev-env-logs
+          overwrite: true
+          if-no-files-found: ignore
+
+  backup:
+    name: Test backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup testing dependencies
+        uses: ./.github/actions/test-setup
+        with:
+          scylla-version: ${{ env.scylla-version }}
+          ip-family: ${{ env.ip-family }}
+          tablets: ${{ env.tablets }}
+          ssl-enabled: ${{ env.ssl-enabled }}
+
+      - name: Run tests
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/backup
+
+      - name: Dump dev env logs
+        if: failure() || cancelled()
+        run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+
+      - name: Upload dev env logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-env-logs-${{ inputs.config-name }}-${{ github.job }}
+          path: /tmp/scylla-manager-dev-env-logs
+          overwrite: true
+          if-no-files-found: ignore
+
+  repair:
+    name: Test repair
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup testing dependencies
+        uses: ./.github/actions/test-setup
+        with:
+          scylla-version: ${{ env.scylla-version }}
+          ip-family: ${{ env.ip-family }}
+          tablets: ${{ env.tablets }}
+          ssl-enabled: ${{ env.ssl-enabled }}
+
+      - name: Run tests
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair
+
+      - name: Run tablet repair tests
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+
+      - name: Dump dev env logs
+        if: failure() || cancelled()
+        run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+
+      - name: Upload dev env logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-env-logs-${{ inputs.config-name }}-${{ github.job }}
+          path: /tmp/scylla-manager-dev-env-logs
+          overwrite: true
+          if-no-files-found: ignore
+
+  small-pkg:
+    name: Test other, smaller packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set IP_FAMILY and SSL_ENABLED var for all tests
+        run: |
+          echo "IP_FAMILY=${{ env.ip-family }}" >> $GITHUB_ENV
+          echo "SSL_ENABLED=${{ env.ssl-enabled }}" >> $GITHUB_ENV
+
+      - name: Setup testing dependencies
+        uses: ./.github/actions/test-setup
+        with:
+          scylla-version: ${{ env.scylla-version }}
+          ip-family: ${{ env.ip-family }}
+          tablets: ${{ env.tablets }}
+          ssl-enabled: ${{ env.ssl-enabled }}
+
+      - name: Run cqlping tests
+        run: make pkg-integration-test PKG=./pkg/ping/cqlping
+
+      - name: Run dynamoping tests
+        run: make pkg-integration-test PKG=./pkg/ping/dynamoping
+
+      - name: Run scyllaclient tests
+        run: make pkg-integration-test BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/scyllaclient
+
+      - name: Run cluster tests
+        run: make pkg-integration-test PKG=./pkg/service/cluster
+
+      - name: Run healthcheck tests
+        run: make pkg-integration-test PKG=./pkg/service/healthcheck
+
+      - name: Run scheduler tests
+        run: make pkg-integration-test PKG=./pkg/service/scheduler
+
+      - name: Run store tests
+        run: make pkg-integration-test PKG=./pkg/store
+
+      - name: Run migrate tests
+        run: make pkg-integration-test PKG=./pkg/schema/migrate
+
+      - name: Run 1-1-restore tests
+        run: make pkg-integration-test TABLETS=${{ env.tablets }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/one2onerestore
+
+      - name: Verify SM server startup
+        run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
+
+      - name: Dump dev env logs
+        if: failure() || cancelled()
+        run: make -C testing dump-logs DUMP_DIR=/tmp/scylla-manager-dev-env-logs
+
+      - name: Upload dev env logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-env-logs-${{ inputs.config-name }}-${{ github.job }}
+          path: /tmp/scylla-manager-dev-env-logs
+          overwrite: true
+          if-no-files-found: ignore
