@@ -125,7 +125,7 @@ func TestJoinHostPort(t *testing.T) {
 		{
 			Name:   "No hosts",
 			Hosts:  nil,
-			Golden: nil,
+			Golden: []string{},
 		},
 		{
 			Name:   "Single host",
