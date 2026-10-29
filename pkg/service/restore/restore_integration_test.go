@@ -1938,6 +1938,8 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 	}
 }
 
+// TestRestoreFullAlternatorIntegration tests full restore of alternator tables with LSIs/GSIs
+// (including PROVISIONED billing mode and GSI throughput) together with cql tables, views and indexes.
 func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 
@@ -1950,10 +1952,16 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	altTab1 := "alt_full_1_" + AlternatorProblematicTableChars
 	altTab2 := "alt_full_2_" + AlternatorProblematicTableChars
 	CreateAlternatorTable(t, h.srcCluster.altClient, ni, "none", 2, 2, altTab1, altTab2)
+	// GSI throughput differs from the table's to catch restore falling back to the table's values.
+	altProvTab := "alt_full_prov_" + AlternatorProblematicTableChars
+	CreateAlternatorTableWithThroughput(t, h.srcCluster.altClient, ni, "none",
+		&types.ProvisionedThroughput{ReadCapacityUnits: aws.Int64(5), WriteCapacityUnits: aws.Int64(6)},
+		&types.ProvisionedThroughput{ReadCapacityUnits: aws.Int64(7), WriteCapacityUnits: aws.Int64(8)},
+		0, 2, altProvTab)
 
 	Print("Insert alternator rows")
 	const rowCnt = 100
-	InsertAlternatorTableData(t, h.srcCluster.altClient, rowCnt, altTab1, altTab2)
+	InsertAlternatorTableData(t, h.srcCluster.altClient, rowCnt, altTab1, altTab2, altProvTab)
 
 	Print("Prepare simple clq schema")
 	ksStmt := "CREATE KEYSPACE cql_ks WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2}"
@@ -1991,6 +1999,12 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 
 	Print("Validate restored alternator data")
 	ValidateAlternatorTableData(t, h.dstCluster.altClient, rowCnt, 2, 2, altTab1, altTab2)
+	ValidateAlternatorTableData(t, h.dstCluster.altClient, rowCnt, 0, 2, altProvTab)
+
+	Print("Validate restored alternator billing mode and GSI throughput")
+	// ScyllaDB reports PROVISIONED billing mode starting from 2025.1.
+	validateAlternatorThroughput(t, h.srcCluster.altClient, h.dstCluster.altClient, altProvTab,
+		CheckConstraint(t, ni.ScyllaVersion, ">= 2025.1"))
 
 	Print("Validate restored simple cql data")
 	cqlTabs := []table{
@@ -2004,6 +2018,61 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 		dstCnt := rowCount(t, h.dstCluster.rootSession, tab.ks, tab.tab)
 		if srcCnt != dstCnt {
 			t.Fatalf("Expected %d rows in cql table %q.%q, got %d", srcCnt, tab.ks, tab.tab, dstCnt)
+		}
+	}
+}
+
+// validateAlternatorThroughput checks that dst table has the same billing mode and table/GSI throughput as src.
+func validateAlternatorThroughput(t *testing.T, srcClient, dstClient *dynamodb.Client, table string, expectProvisioned bool) {
+	t.Helper()
+
+	describe := func(c *dynamodb.Client) *types.TableDescription {
+		out, err := c.DescribeTable(t.Context(), &dynamodb.DescribeTableInput{TableName: aws.String(table)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out.Table
+	}
+	billingMode := func(d *types.TableDescription) types.BillingMode {
+		if d.BillingModeSummary == nil {
+			return ""
+		}
+		return d.BillingModeSummary.BillingMode
+	}
+	rcuWcu := func(pt *types.ProvisionedThroughputDescription) [2]int64 {
+		if pt == nil {
+			return [2]int64{}
+		}
+		return [2]int64{aws.ToInt64(pt.ReadCapacityUnits), aws.ToInt64(pt.WriteCapacityUnits)}
+	}
+
+	src, dst := describe(srcClient), describe(dstClient)
+	if expectProvisioned && billingMode(dst) != types.BillingModeProvisioned {
+		t.Fatalf("Expected PROVISIONED billing mode of restored table %q, got %q", table, billingMode(dst))
+	}
+	if billingMode(src) != billingMode(dst) {
+		t.Fatalf("Billing mode of table %q: src %q, dst %q", table, billingMode(src), billingMode(dst))
+	}
+	if rcuWcu(src.ProvisionedThroughput) != rcuWcu(dst.ProvisionedThroughput) {
+		t.Fatalf("Throughput (RCU, WCU) of table %q: src %v, dst %v", table,
+			rcuWcu(src.ProvisionedThroughput), rcuWcu(dst.ProvisionedThroughput))
+	}
+
+	srcGSI := make(map[string][2]int64)
+	for _, gsi := range src.GlobalSecondaryIndexes {
+		srcGSI[aws.ToString(gsi.IndexName)] = rcuWcu(gsi.ProvisionedThroughput)
+	}
+	if len(srcGSI) != len(dst.GlobalSecondaryIndexes) {
+		t.Fatalf("GSI count of table %q: src %d, dst %d", table, len(srcGSI), len(dst.GlobalSecondaryIndexes))
+	}
+	for _, gsi := range dst.GlobalSecondaryIndexes {
+		name := aws.ToString(gsi.IndexName)
+		srcTP, ok := srcGSI[name]
+		if !ok {
+			t.Fatalf("Unexpected GSI %q in restored table %q", name, table)
+		}
+		if dstTP := rcuWcu(gsi.ProvisionedThroughput); srcTP != dstTP {
+			t.Fatalf("Throughput (RCU, WCU) of GSI %q of table %q: src %v, dst %v", name, table, srcTP, dstTP)
 		}
 	}
 }

@@ -94,16 +94,19 @@ func (sw *alternatorSchemaWorker) tableSchemaToCreate(schema backupspec.Alternat
 	if schema.Describe == nil {
 		return dynamodb.CreateTableInput{}
 	}
+	tableThroughput := sw.tableProvisionedThroughputDescToCreate(schema.Describe)
 	return dynamodb.CreateTableInput{
 		AttributeDefinitions:      schema.Describe.AttributeDefinitions,
 		KeySchema:                 schema.Describe.KeySchema,
 		TableName:                 schema.Describe.TableName,
 		BillingMode:               sw.billingModeSummToCreate(schema.Describe.BillingModeSummary),
 		DeletionProtectionEnabled: schema.Describe.DeletionProtectionEnabled,
-		GlobalSecondaryIndexes:    slices2.Map(schema.Describe.GlobalSecondaryIndexes, sw.gsiDescToCreate),
-		LocalSecondaryIndexes:     slices2.Map(schema.Describe.LocalSecondaryIndexes, sw.lsiDescToCreate),
-		OnDemandThroughput:        schema.Describe.OnDemandThroughput,
-		ProvisionedThroughput:     sw.tableProvisionedThroughputDescToCreate(schema.Describe),
+		GlobalSecondaryIndexes: slices2.Map(schema.Describe.GlobalSecondaryIndexes, func(gsi types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndex {
+			return sw.gsiDescToCreate(tableThroughput, gsi)
+		}),
+		LocalSecondaryIndexes: slices2.Map(schema.Describe.LocalSecondaryIndexes, sw.lsiDescToCreate),
+		OnDemandThroughput:    schema.Describe.OnDemandThroughput,
+		ProvisionedThroughput: tableThroughput,
 		// ResourcePolicy: not backed up nor restored because RBAC is handled via CQL.
 		// See https://docs.scylladb.com/manual/stable/alternator/compatibility.html#authentication-and-authorization.
 		SSESpecification:    sw.sseDescToCreate(schema.Describe.SSEDescription),
@@ -190,6 +193,7 @@ func (iw *alternatorInitViewsWorker) initViews() ([]View, error) {
 			continue
 		}
 		t := *schema.Describe.TableName
+		tableThroughput := iw.tableProvisionedThroughputDescToCreate(schema.Describe)
 		for _, gsi := range schema.Describe.GlobalSecondaryIndexes {
 			if gsi.IndexName == nil {
 				continue
@@ -197,7 +201,7 @@ func (iw *alternatorInitViewsWorker) initViews() ([]View, error) {
 			stmt := dynamodb.UpdateTableInput{
 				TableName:                   aws.String(t),
 				AttributeDefinitions:        iw.filterGSIAttr(*schema.Describe, gsi),
-				GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{iw.gsiDescToCreateUpdate(gsi)},
+				GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{iw.gsiDescToCreateUpdate(tableThroughput, gsi)},
 			}
 			rawCreateStmt, err := json.Marshal(stmt)
 			if err != nil {
@@ -358,6 +362,14 @@ func (cw *alternatorCreateViewsWorker) viewToCreateStmt(view View) (*dynamodb.Up
 		if err := json.Unmarshal([]byte(view.CreateStmt), &update); err != nil {
 			return nil, errors.Wrap(err, "unmarshal initialized alternator GSI create update")
 		}
+		// Views of runs initialized by older SM may carry 0/0 GSI throughput of PAY_PER_REQUEST tables,
+		// which ScyllaDB rejects. Current SM never stores values below 1, so drop them.
+		for _, u := range update.GlobalSecondaryIndexUpdates {
+			if c := u.Create; c != nil && c.ProvisionedThroughput != nil &&
+				(aws.ToInt64(c.ProvisionedThroughput.ReadCapacityUnits) < 1 || aws.ToInt64(c.ProvisionedThroughput.WriteCapacityUnits) < 1) {
+				c.ProvisionedThroughput = nil
+			}
+		}
 		return &update, nil
 	default:
 		return nil, errors.New("unsupported view type: " + string(view.Type))
@@ -446,13 +458,13 @@ func (w alternatorWorker) alternatorLSIName(table, cqlLSI string) (string, error
 	return lsi, nil
 }
 
-func (w alternatorWorker) gsiDescToCreate(desc types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndex {
+func (w alternatorWorker) gsiDescToCreate(tableThroughput *types.ProvisionedThroughput, desc types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndex {
 	return types.GlobalSecondaryIndex{
 		IndexName:             desc.IndexName,
 		KeySchema:             desc.KeySchema,
 		Projection:            desc.Projection,
 		OnDemandThroughput:    desc.OnDemandThroughput,
-		ProvisionedThroughput: w.gsiProvisionedThroughputDescToCreate(desc.ProvisionedThroughput),
+		ProvisionedThroughput: w.gsiProvisionedThroughputDescToCreate(tableThroughput, desc.ProvisionedThroughput),
 		WarmThroughput:        w.gsiWarmThroughputDescToCreate(desc.WarmThroughput),
 	}
 }
@@ -478,13 +490,29 @@ func (w alternatorWorker) tableProvisionedThroughputDescToCreate(desc *types.Tab
 	}
 }
 
-func (w alternatorWorker) gsiProvisionedThroughputDescToCreate(desc *types.ProvisionedThroughputDescription) *types.ProvisionedThroughput {
-	if desc == nil {
+// GSI throughput is allowed only on PROVISIONED tables, where each value must be at least 1.
+// Missing/zero values (older ScyllaDB doesn't report them) fall back to the table's, then to 1.
+func (w alternatorWorker) gsiProvisionedThroughputDescToCreate(
+	tableThroughput *types.ProvisionedThroughput,
+	desc *types.ProvisionedThroughputDescription,
+) *types.ProvisionedThroughput {
+	if tableThroughput == nil {
 		return nil
 	}
+	if desc == nil {
+		desc = &types.ProvisionedThroughputDescription{}
+	}
+	pick := func(vals ...*int64) *int64 {
+		for _, v := range vals {
+			if aws.ToInt64(v) >= 1 {
+				return v
+			}
+		}
+		return aws.Int64(1)
+	}
 	return &types.ProvisionedThroughput{
-		ReadCapacityUnits:  desc.ReadCapacityUnits,
-		WriteCapacityUnits: desc.WriteCapacityUnits,
+		ReadCapacityUnits:  pick(desc.ReadCapacityUnits, tableThroughput.ReadCapacityUnits),
+		WriteCapacityUnits: pick(desc.WriteCapacityUnits, tableThroughput.WriteCapacityUnits),
 	}
 }
 
@@ -498,14 +526,14 @@ func (w alternatorWorker) gsiWarmThroughputDescToCreate(desc *types.GlobalSecond
 	}
 }
 
-func (w alternatorWorker) gsiDescToCreateUpdate(desc types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndexUpdate {
+func (w alternatorWorker) gsiDescToCreateUpdate(tableThroughput *types.ProvisionedThroughput, desc types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndexUpdate {
 	return types.GlobalSecondaryIndexUpdate{
 		Create: &types.CreateGlobalSecondaryIndexAction{
 			IndexName:             desc.IndexName,
 			KeySchema:             desc.KeySchema,
 			Projection:            desc.Projection,
 			OnDemandThroughput:    desc.OnDemandThroughput,
-			ProvisionedThroughput: w.gsiProvisionedThroughputDescToCreate(desc.ProvisionedThroughput),
+			ProvisionedThroughput: w.gsiProvisionedThroughputDescToCreate(tableThroughput, desc.ProvisionedThroughput),
 			WarmThroughput:        w.gsiWarmThroughputDescToCreate(desc.WarmThroughput),
 		},
 	}
