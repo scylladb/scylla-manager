@@ -1,0 +1,40 @@
+concurrency:
+    cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
+    group: int-integration-tests-2026.4.0-rc0-IPV4-tablets-rclone-native-${{ github.ref }}
+jobs:
+    tests:
+        uses: ./.github/workflows/integration-tests.yaml
+        with:
+            config-name: integration-tests-2026.4.0-rc0-IPV4-tablets-rclone-native
+            scylla-version: scylla:2026.4.0-rc0
+            ip-family: IPV4
+            tablets: enabled
+            ssl-enabled: "true"
+            backup-method: rclone
+            restore-method: native
+name: integration-tests-2026.4.0-rc0-IPV4-tablets-rclone-native
+"on":
+    pull_request:
+        paths-ignore:
+            - docs/**
+            - '**/*.md'
+            - '**/*.rst'
+            - LICENSE
+            - .github/workflows/docs-*
+        types:
+            - opened
+            - synchronize
+            - reopened
+    push:
+        branches:
+            - master
+            - branch-**
+        paths-ignore:
+            - docs/**
+            - '**/*.md'
+            - '**/*.rst'
+            - LICENSE
+            - .github/workflows/docs-*
+    workflow_dispatch: {}
+permissions:
+    contents: read

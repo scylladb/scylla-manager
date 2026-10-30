@@ -1,0 +1,42 @@
+jobs:
+    integration-tests-2025-1-16-IPV4:
+        name: integration-tests-2025.1.16-IPV4
+        uses: ./.github/workflows/integration-tests-2025.1.16-IPV4.yaml
+    integration-tests-2025-1-16-IPV6-tablets-nossl:
+        name: integration-tests-2025.1.16-IPV6-tablets-nossl
+        uses: ./.github/workflows/integration-tests-2025.1.16-IPV6-tablets-nossl.yaml
+    integration-tests-2026-1-15-IPV4-tablets-native-native:
+        name: integration-tests-2026.1.15-IPV4-tablets-native-native
+        uses: ./.github/workflows/integration-tests-2026.1.15-IPV4-tablets-native-native.yaml
+    integration-tests-2026-1-15-IPV6-nossl-rclone-rclone-localstorage:
+        name: integration-tests-2026.1.15-IPV6-nossl-rclone-rclone-localstorage
+        uses: ./.github/workflows/integration-tests-2026.1.15-IPV6-nossl-rclone-rclone-localstorage.yaml
+    integration-tests-2026-2-9-IPV4-tablets-rclone-native:
+        name: integration-tests-2026.2.9-IPV4-tablets-rclone-native
+        uses: ./.github/workflows/integration-tests-2026.2.9-IPV4-tablets-rclone-native.yaml
+    integration-tests-2026-2-9-IPV6-nossl-rclone-rclone:
+        name: integration-tests-2026.2.9-IPV6-nossl-rclone-rclone
+        uses: ./.github/workflows/integration-tests-2026.2.9-IPV6-nossl-rclone-rclone.yaml
+    integration-tests-2026-3-4-IPV4-native-rclone:
+        name: integration-tests-2026.3.4-IPV4-native-rclone
+        uses: ./.github/workflows/integration-tests-2026.3.4-IPV4-native-rclone.yaml
+    integration-tests-2026-3-4-IPV6-tablets-nossl-rclone-rclone-gcs:
+        name: integration-tests-2026.3.4-IPV6-tablets-nossl-rclone-rclone-gcs
+        uses: ./.github/workflows/integration-tests-2026.3.4-IPV6-tablets-nossl-rclone-rclone-gcs.yaml
+    integration-tests-2026-4-0-rc0-IPV4-tablets-native-native-gcs:
+        name: integration-tests-2026.4.0-rc0-IPV4-tablets-native-native-gcs
+        uses: ./.github/workflows/integration-tests-2026.4.0-rc0-IPV4-tablets-native-native-gcs.yaml
+    integration-tests-2026-4-0-rc0-IPV6-nossl-rclone-rclone:
+        name: integration-tests-2026.4.0-rc0-IPV6-nossl-rclone-rclone
+        uses: ./.github/workflows/integration-tests-2026.4.0-rc0-IPV6-nossl-rclone-rclone.yaml
+    integration-tests-latest-IPV4-native-native-gcs:
+        name: integration-tests-latest-IPV4-native-native-gcs
+        uses: ./.github/workflows/integration-tests-latest-IPV4-native-native-gcs.yaml
+    integration-tests-latest-IPV6-tablets-nossl-rclone-rclone:
+        name: integration-tests-latest-IPV6-tablets-nossl-rclone-rclone
+        uses: ./.github/workflows/integration-tests-latest-IPV6-tablets-nossl-rclone-rclone.yaml
+name: integration-tests-release
+"on":
+    workflow_dispatch: {}
+permissions:
+    contents: read

@@ -1,0 +1,23 @@
+concurrency:
+    cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
+    group: int-integration-tests-2026.3.4-IPV6-tablets-nossl-rclone-rclone-gcs-${{ github.ref }}
+jobs:
+    tests:
+        uses: ./.github/workflows/integration-tests.yaml
+        with:
+            config-name: integration-tests-2026.3.4-IPV6-tablets-nossl-rclone-rclone-gcs
+            scylla-version: scylla:2026.3.4
+            ip-family: IPV6
+            tablets: enabled
+            ssl-enabled: "false"
+            backup-method: rclone
+            restore-method: rclone
+            backup-provider: gcs
+name: integration-tests-2026.3.4-IPV6-tablets-nossl-rclone-rclone-gcs
+"on":
+    schedule:
+        - cron: 0 22 * * 0
+    workflow_call: {}
+    workflow_dispatch: {}
+permissions:
+    contents: read
