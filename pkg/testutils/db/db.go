@@ -420,6 +420,20 @@ const (
 // Alternator tablet tag documentation: https://docs.scylladb.com/manual/stable/alternator/new-apis.html#tablets.
 func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, ni *scyllaclient.NodeInfo, tabletTag string, lsiCnt, gsiCnt int, tables ...string) {
 	t.Helper()
+	CreateAlternatorTableWithThroughput(t, client, ni, tabletTag, nil, nil, lsiCnt, gsiCnt, tables...)
+}
+
+// CreateAlternatorTableWithThroughput is CreateAlternatorTable with PROVISIONED billing mode
+// using tableTP for the table and gsiTP for each GSI. Nil tableTP means PAY_PER_REQUEST.
+func CreateAlternatorTableWithThroughput(t *testing.T, client *dynamodb.Client, ni *scyllaclient.NodeInfo, tabletTag string,
+	tableTP, gsiTP *types.ProvisionedThroughput, lsiCnt, gsiCnt int, tables ...string,
+) {
+	t.Helper()
+
+	billingMode := types.BillingModePayPerRequest
+	if tableTP != nil {
+		billingMode = types.BillingModeProvisioned
+	}
 
 	var gsi []types.GlobalSecondaryIndex
 	for i := range gsiCnt {
@@ -438,6 +452,7 @@ func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, ni *scyllaclie
 			Projection: &types.Projection{
 				ProjectionType: types.ProjectionTypeAll,
 			},
+			ProvisionedThroughput: gsiTP,
 		})
 	}
 
@@ -513,7 +528,8 @@ func CreateAlternatorTable(t *testing.T, client *dynamodb.Client, ni *scyllaclie
 			},
 			LocalSecondaryIndexes:  lsi,
 			GlobalSecondaryIndexes: gsi,
-			BillingMode:            types.BillingModePayPerRequest,
+			BillingMode:            billingMode,
+			ProvisionedThroughput:  tableTP,
 			Tags:                   tags,
 		})
 		if err != nil {
