@@ -70,8 +70,21 @@ jobs:
           tablets: ${{ env.tablets }}
           ssl-enabled: ${{ env.ssl-enabled }}
 
+      # TODO: merge both steps back into one when https://scylladb.atlassian.net/browse/SCYLLADB-4723 is fixed.
+      # Tablet aware restore leaks finished restore requests in Scylla, which keeps
+      # the topology coordinator busy forever and makes every later load-and-stream
+      # restore (rclone or native) into a tablet keyspace on the same cluster hang.
+      # Until it is fixed, tests using tablet aware restore are skipped in the main
+      # step and run in a separate step at the very end of the job. The separate
+      # step also runs when the main step fails, so that its failure doesn't hide
+      # the tablet aware restore tests results.
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore
+        id: tests
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore ARGS='-test.skip "TestRestoreTablesTabletAware.*Integration"'
+
+      - name: Run tablet aware restore tests
+        if: ${{ !cancelled() && steps.tests.conclusion != 'skipped' }}
+        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore RUN='"TestRestoreTablesTabletAware.*Integration"'
 
       - name: Dump dev env logs
         if: failure() || cancelled()
