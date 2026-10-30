@@ -140,6 +140,7 @@ func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens
 		return backupspec.ManifestInfoWithContent{}, errors.Wrap(err, "client.CloudMetadata")
 	}
 	c.InstanceDetails = backupspec.InstanceDetails(instanceMeta)
+	c.EncryptionKeys = w.hostEncryptionKeys(ctx, h)
 
 	return backupspec.ManifestInfoWithContent{
 		ManifestInfo:             m,
