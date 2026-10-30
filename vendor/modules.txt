@@ -327,7 +327,7 @@ github.com/go-chi/chi/v5/middleware
 # github.com/go-chi/render v1.0.0
 ## explicit
 github.com/go-chi/render
-# github.com/go-jose/go-jose/v4 v4.1.4
+# github.com/go-jose/go-jose/v4 v4.1.6
 ## explicit; go 1.24.0
 github.com/go-jose/go-jose/v4
 github.com/go-jose/go-jose/v4/cipher
