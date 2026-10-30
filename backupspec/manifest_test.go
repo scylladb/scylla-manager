@@ -3,6 +3,7 @@
 package backupspec
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -10,6 +11,56 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 )
+
+func TestManifestContentEncryptionKeysJSON(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		keys     []EncryptionKey
+		wantJSON string
+	}{
+		{
+			name:     "absent when there are no keys",
+			keys:     nil,
+			wantJSON: "",
+		},
+		{
+			name:     "present when keys exist",
+			keys:     []EncryptionKey{{Provider: "KmsKeyProviderFactory", KmsHost: "key-a", SecretKeyStrength: "128"}},
+			wantJSON: `"encryption_keys":[{"provider":"KmsKeyProviderFactory","kms_host":"key-a","secret_key_strength":"128"}]`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			b, err := json.Marshal(ManifestContent{EncryptionKeys: tc.keys})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.wantJSON == "" {
+				if strings.Contains(string(b), "encryption_keys") {
+					t.Fatalf("expected no encryption_keys, got %s", b)
+				}
+				return
+			}
+			if !strings.Contains(string(b), tc.wantJSON) {
+				t.Fatalf("expected %s in %s", tc.wantJSON, b)
+			}
+		})
+	}
+
+	t.Run("manifest without the field still decodes", func(t *testing.T) {
+		t.Parallel()
+		var m ManifestContent
+		if err := json.Unmarshal([]byte(`{"version":"v2","cluster_name":"c","ip":"1.2.3.4","size":10}`), &m); err != nil {
+			t.Fatal(err)
+		}
+		if m.EncryptionKeys != nil || m.ClusterName != "c" {
+			t.Fatalf("unexpected decode result: %+v", m)
+		}
+	})
+}
 
 func TestManifestInfoParsePath(t *testing.T) {
 	t.Parallel()
