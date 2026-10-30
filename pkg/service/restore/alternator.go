@@ -94,16 +94,19 @@ func (sw *alternatorSchemaWorker) tableSchemaToCreate(schema backupspec.Alternat
 	if schema.Describe == nil {
 		return dynamodb.CreateTableInput{}
 	}
+	billingMode := sw.billingModeSummToCreate(schema.Describe.BillingModeSummary)
 	return dynamodb.CreateTableInput{
 		AttributeDefinitions:      schema.Describe.AttributeDefinitions,
 		KeySchema:                 schema.Describe.KeySchema,
 		TableName:                 schema.Describe.TableName,
-		BillingMode:               sw.billingModeSummToCreate(schema.Describe.BillingModeSummary),
+		BillingMode:               billingMode,
 		DeletionProtectionEnabled: schema.Describe.DeletionProtectionEnabled,
-		GlobalSecondaryIndexes:    slices2.Map(schema.Describe.GlobalSecondaryIndexes, sw.gsiDescToCreate),
-		LocalSecondaryIndexes:     slices2.Map(schema.Describe.LocalSecondaryIndexes, sw.lsiDescToCreate),
-		OnDemandThroughput:        schema.Describe.OnDemandThroughput,
-		ProvisionedThroughput:     sw.tableProvisionedThroughputDescToCreate(schema.Describe),
+		GlobalSecondaryIndexes: slices2.Map(schema.Describe.GlobalSecondaryIndexes, func(gsi types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndex {
+			return sw.gsiDescToCreate(gsi, billingMode)
+		}),
+		LocalSecondaryIndexes: slices2.Map(schema.Describe.LocalSecondaryIndexes, sw.lsiDescToCreate),
+		OnDemandThroughput:    schema.Describe.OnDemandThroughput,
+		ProvisionedThroughput: sw.provisionedThroughputDescToCreate(schema.Describe.ProvisionedThroughput, billingMode),
 		// ResourcePolicy: not backed up nor restored because RBAC is handled via CQL.
 		// See https://docs.scylladb.com/manual/stable/alternator/compatibility.html#authentication-and-authorization.
 		SSESpecification:    sw.sseDescToCreate(schema.Describe.SSEDescription),
@@ -190,6 +193,7 @@ func (iw *alternatorInitViewsWorker) initViews() ([]View, error) {
 			continue
 		}
 		t := *schema.Describe.TableName
+		billingMode := iw.billingModeSummToCreate(schema.Describe.BillingModeSummary)
 		for _, gsi := range schema.Describe.GlobalSecondaryIndexes {
 			if gsi.IndexName == nil {
 				continue
@@ -197,7 +201,7 @@ func (iw *alternatorInitViewsWorker) initViews() ([]View, error) {
 			stmt := dynamodb.UpdateTableInput{
 				TableName:                   aws.String(t),
 				AttributeDefinitions:        iw.filterGSIAttr(*schema.Describe, gsi),
-				GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{iw.gsiDescToCreateUpdate(gsi)},
+				GlobalSecondaryIndexUpdates: []types.GlobalSecondaryIndexUpdate{iw.gsiDescToCreateUpdate(gsi, billingMode)},
 			}
 			rawCreateStmt, err := json.Marshal(stmt)
 			if err != nil {
@@ -446,13 +450,13 @@ func (w alternatorWorker) alternatorLSIName(table, cqlLSI string) (string, error
 	return lsi, nil
 }
 
-func (w alternatorWorker) gsiDescToCreate(desc types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndex {
+func (w alternatorWorker) gsiDescToCreate(desc types.GlobalSecondaryIndexDescription, billingMode types.BillingMode) types.GlobalSecondaryIndex {
 	return types.GlobalSecondaryIndex{
 		IndexName:             desc.IndexName,
 		KeySchema:             desc.KeySchema,
 		Projection:            desc.Projection,
 		OnDemandThroughput:    desc.OnDemandThroughput,
-		ProvisionedThroughput: w.gsiProvisionedThroughputDescToCreate(desc.ProvisionedThroughput),
+		ProvisionedThroughput: w.provisionedThroughputDescToCreate(desc.ProvisionedThroughput, billingMode),
 		WarmThroughput:        w.gsiWarmThroughputDescToCreate(desc.WarmThroughput),
 	}
 }
@@ -465,26 +469,22 @@ func (w alternatorWorker) lsiDescToCreate(desc types.LocalSecondaryIndexDescript
 	}
 }
 
-func (w alternatorWorker) tableProvisionedThroughputDescToCreate(desc *types.TableDescription) *types.ProvisionedThroughput {
-	// For some reason, alternator API returns non-nil TableDescription.ProvisionedThroughput even for types.BillingModePayPerRequest.
-	// We need to check for it in TableDescription.BillingModeSummary and remove it if not needed.
-	// Otherwise, dynamodb client request will fail at validation stage.
-	if desc.ProvisionedThroughput == nil || desc.BillingModeSummary == nil || desc.BillingModeSummary.BillingMode != types.BillingModeProvisioned {
+// provisionedThroughputDescToCreate converts described provisioned throughput of a table or a GSI
+// (GSI inherits base table billing mode) to the one used for its creation.
+// Throughput can be provisioned only for PROVISIONED billing mode, otherwise it's not set.
+// To maintain backward compatibility with older scylla versions which didn't record provisioned
+// throughput (it was set to 0 in throughput description), SM bumps it to 1, so that it passes
+// newer scylla version validation.
+func (w alternatorWorker) provisionedThroughputDescToCreate(desc *types.ProvisionedThroughputDescription, billingMode types.BillingMode) *types.ProvisionedThroughput {
+	if billingMode != types.BillingModeProvisioned {
 		return nil
 	}
-	return &types.ProvisionedThroughput{
-		ReadCapacityUnits:  desc.ProvisionedThroughput.ReadCapacityUnits,
-		WriteCapacityUnits: desc.ProvisionedThroughput.WriteCapacityUnits,
-	}
-}
-
-func (w alternatorWorker) gsiProvisionedThroughputDescToCreate(desc *types.ProvisionedThroughputDescription) *types.ProvisionedThroughput {
 	if desc == nil {
-		return nil
+		desc = &types.ProvisionedThroughputDescription{}
 	}
 	return &types.ProvisionedThroughput{
-		ReadCapacityUnits:  desc.ReadCapacityUnits,
-		WriteCapacityUnits: desc.WriteCapacityUnits,
+		ReadCapacityUnits:  aws.Int64(max(aws.ToInt64(desc.ReadCapacityUnits), 1)),
+		WriteCapacityUnits: aws.Int64(max(aws.ToInt64(desc.WriteCapacityUnits), 1)),
 	}
 }
 
@@ -498,14 +498,14 @@ func (w alternatorWorker) gsiWarmThroughputDescToCreate(desc *types.GlobalSecond
 	}
 }
 
-func (w alternatorWorker) gsiDescToCreateUpdate(desc types.GlobalSecondaryIndexDescription) types.GlobalSecondaryIndexUpdate {
+func (w alternatorWorker) gsiDescToCreateUpdate(desc types.GlobalSecondaryIndexDescription, billingMode types.BillingMode) types.GlobalSecondaryIndexUpdate {
 	return types.GlobalSecondaryIndexUpdate{
 		Create: &types.CreateGlobalSecondaryIndexAction{
 			IndexName:             desc.IndexName,
 			KeySchema:             desc.KeySchema,
 			Projection:            desc.Projection,
 			OnDemandThroughput:    desc.OnDemandThroughput,
-			ProvisionedThroughput: w.gsiProvisionedThroughputDescToCreate(desc.ProvisionedThroughput),
+			ProvisionedThroughput: w.provisionedThroughputDescToCreate(desc.ProvisionedThroughput, billingMode),
 			WarmThroughput:        w.gsiWarmThroughputDescToCreate(desc.WarmThroughput),
 		},
 	}
