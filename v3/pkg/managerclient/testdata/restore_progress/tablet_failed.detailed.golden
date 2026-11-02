@@ -1,0 +1,28 @@
+Restore progress
+Run:		e10ec718-a7bf-11ed-b05a-0892040e83bb
+Status:		ERROR (restoring backed-up data)
+Cause:		restore data: scylla task error: failed
+Start time:	23 Feb 24 02:12:00 CET
+End time:	23 Feb 24 02:12:05 CET
+Duration:	5s
+Progress:	44%
+Snapshot Tag:	sm_20240223011159UTC
+
+╭──────────┬──────────┬──────┬─────────┬────────────┬────────┬────────╮
+│ Keyspace │ Progress │ Size │ Success │ Downloaded │ Failed │ Method │
+├──────────┼──────────┼──────┼─────────┼────────────┼────────┼────────┤
+│ ks       │      44% │ 180B │     80B │         0B │     0B │ tablet │
+╰──────────┴──────────┴──────┴─────────┴────────────┴────────┴────────╯
+
+Keyspace: ks
+╭───────┬──────────┬──────┬─────────┬────────────┬────────┬────────┬────────────────────────┬──────────────┬───────────────────╮
+│ Table │ Progress │ Size │ Success │ Downloaded │ Failed │ Method │ Started at             │ Completed at │ tombstone_gc mode │
+├───────┼──────────┼──────┼─────────┼────────────┼────────┼────────┼────────────────────────┼──────────────┼───────────────────┤
+│ tab1  │      33% │  60B │     20B │         0B │     0B │ tablet │ 23 Feb 24 02:12:01 CET │              │ repair            │
+├───────┼──────────┼──────┼─────────┼────────────┼────────┼────────┼────────────────────────┼──────────────┼───────────────────┤
+│ tab2  │      50% │ 120B │     60B │         0B │     0B │ tablet │ 23 Feb 24 02:12:01 CET │              │ timeout           │
+╰───────┴──────────┴──────┴─────────┴────────────┴────────┴────────┴────────────────────────┴──────────────┴───────────────────╯
+
+Restored views
+View: ks.mv, Status: , Schema definition:
+  CREATE

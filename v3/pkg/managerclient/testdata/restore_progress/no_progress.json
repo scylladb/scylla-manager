@@ -1,0 +1,9 @@
+{
+  "run": {
+    "id": "e10ec718-a7bf-11ed-b05a-0892040e83bb",
+    "cluster_id": "c1",
+    "task_id": "t1",
+    "type": "restore",
+    "status": "NEW"
+  }
+}
