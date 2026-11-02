@@ -1,0 +1,20 @@
+Restore progress
+Run:		e10ec718-a7bf-11ed-b05a-0892040e83bb
+Status:		STOPPED (restoring backed-up data)
+Start time:	23 Feb 24 02:12:00 CET
+End time:	23 Feb 24 02:12:05 CET
+Duration:	5s
+Progress:	77%
+Snapshot Tag:	sm_20240223011159UTC
+Bandwidth (rclone restore only):
+  - Download:    60B/s/shard
+  - Load&stream: 60B/s/shard
+
+╭──────────┬──────────┬──────┬─────────┬────────────┬────────┬────────────────╮
+│ Keyspace │ Progress │ Size │ Success │ Downloaded │ Failed │ Method         │
+├──────────┼──────────┼──────┼─────────┼────────────┼────────┼────────────────┤
+│ ks       │      77% │ 180B │    140B │        60B │     0B │ native, rclone │
+╰──────────┴──────────┴──────┴─────────┴────────────┴────────┴────────────────╯
+
+Restored views
+View: ks.mv, Status: 
