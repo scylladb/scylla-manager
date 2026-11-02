@@ -318,3 +318,55 @@ func TestFormatIntensity(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatRestoreMethod(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		methods  []string
+		expected string
+	}{
+		{name: "nil", methods: nil, expected: "-"},
+		{name: "empty", methods: []string{}, expected: "-"},
+		{name: "single", methods: []string{RestoreMethodTablet}, expected: "tablet"},
+		{name: "multiple", methods: []string{RestoreMethodTablet, RestoreMethodNative, RestoreMethodRclone}, expected: "tablet, native, rclone"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := FormatRestoreMethod(tc.methods); got != tc.expected {
+				t.Fatalf("FormatRestoreMethod(%v) = %q, expected %q", tc.methods, got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestFormatRestoreMethodProgress(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name                               string
+		size, restored, downloaded, failed int64
+		methods                            []string
+		expected                           string
+	}{
+		{name: "rclone", size: 100, restored: 50, downloaded: 80, methods: []string{RestoreMethodRclone}, expected: "50% | 80%"},
+		{name: "rclone failed", size: 100, restored: 50, downloaded: 80, failed: 10, methods: []string{RestoreMethodRclone}, expected: "50% | 80% / failed: 10%"},
+		{name: "native", size: 100, restored: 50, methods: []string{RestoreMethodNative}, expected: "50%"},
+		{name: "tablet failed", size: 100, restored: 50, failed: 10, methods: []string{RestoreMethodTablet}, expected: "50% / failed: 10%"},
+		{name: "mixed", size: 100, restored: 50, downloaded: 30, methods: []string{RestoreMethodTablet, RestoreMethodRclone}, expected: "50%"},
+		{name: "unknown downloaded", size: 100, restored: 50, downloaded: 30, expected: "50% | 30%"},
+		{name: "unknown not downloaded", size: 100, restored: 50, expected: "50%"},
+		{name: "zero size", methods: []string{RestoreMethodNative}, expected: "100%"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := FormatRestoreMethodProgress(tc.size, tc.restored, tc.downloaded, tc.failed, tc.methods)
+			if got != tc.expected {
+				t.Fatalf("FormatRestoreMethodProgress() = %q, expected %q", got, tc.expected)
+			}
+		})
+	}
+}
