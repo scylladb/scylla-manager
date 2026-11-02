@@ -86,8 +86,8 @@ github.com/scylladb/go-set v1.0.2 h1:SkvlMCKhP0wyyct6j+0IHJkBkSZL+TDzZ4E7f7BCcRE
 github.com/scylladb/go-set v1.0.2/go.mod h1:DkpGd78rljTxKAnTDPFqXSGxvETQnJyuSOQwsHycqfs=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20260813082001-6ba95e37a249 h1:5dZcgo3PrJWdHINhF56Z8QA/VxcxS8WScK5NPcYlOBk=
 github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20260813082001-6ba95e37a249/go.mod h1:7zqntmfPEpRjCimgliBzWgA/MJAiKQnI8eOxGjppBQM=
-github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20260813082001-6ba95e37a249 h1:9IH4BMRr/gsnaV+d4MiwHg3W7jjlIU6M+ANVwYOHr+o=
-github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20260813082001-6ba95e37a249/go.mod h1:sK9Kr+7Gnx/+f4R23X4B8Ct1jO9F8hNIbG9qw8/YR5U=
+github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20261030162249-5b5bd4c669b8 h1:fPI1Khkk5lMQihSBhjXuCM3z8szkK9BfhGjRljjRpbU=
+github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20261030162249-5b5bd4c669b8/go.mod h1:dHS0rI20CanUGgVzvPWXpGt9CsqD4OWsQ/0bXIIfs8M=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 h1:8qmTC5ByIXO3GP/IzBkxcZ/99VITvnIETDhdFz/om7A=
 github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4/go.mod h1:C1a7PQSMz9NShzorzCiG2fk9+xuCgLkPeCvMHYR2OWg=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
