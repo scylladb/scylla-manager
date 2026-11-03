@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
@@ -205,7 +206,8 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	w.initMetrics(workload)
 
 	tw := tablet.NewRestoreWorker(w.run.ClusterID, w.run.TaskID, w.run.ID,
-		w.logger, w.client, w.session, w.nodeConfig, w.config.LongPollingTimeoutSeconds)
+		w.logger, w.client, w.session, w.nodeConfig, w.config.LongPollingTimeoutSeconds).
+		WithProgressCallback(w.onTabletProgress)
 	if err := tw.Restore(ctx, workload.TabletAwareWorkload); err != nil {
 		return errors.Wrap(err, "run tablet aware restore")
 	}
@@ -315,6 +317,21 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		return bd.ValidateAllDispatched()
 	}
 	return err
+}
+
+// onTabletProgress updates restore metrics with the table progress of tablet aware restore.
+func (w *tablesWorker) onTabletProgress(tm tablet.TableMeta, prev, curr tablet.RunProgress) {
+	w.metrics.SetRemainingBytes(metrics.RestoreBytesLabels{
+		ClusterID:   tm.ClusterID.String(),
+		SnapshotTag: tm.SnapshotTag,
+		Keyspace:    tm.Table.Keyspace,
+		Table:       tm.Table.Name,
+	}, curr.Size-curr.RestoredBytes())
+	w.progress.Update(curr.RestoredBytes() - prev.RestoredBytes())
+	w.metrics.SetProgress(metrics.RestoreProgressLabels{
+		ClusterID:   w.run.ClusterID.String(),
+		SnapshotTag: w.run.SnapshotTag,
+	}, w.progress.CurrentProgress())
 }
 
 func (w *tablesWorker) restoreBatch(ctx context.Context, hi HostInfo, b batch) error {

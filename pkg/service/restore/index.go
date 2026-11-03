@@ -261,6 +261,18 @@ func (w *tablesWorker) initMetrics(workload Workload) {
 			Table:       rdw.Table,
 		}, rdw.Size)
 	}
+	// Tablet aware restore progress is reported per table, so its remaining
+	// bytes can't be attributed to the backed up location, dc or node.
+	var tabletSize int64
+	for _, tm := range workload.TabletAwareWorkload {
+		w.metrics.SetRemainingBytes(metrics.RestoreBytesLabels{
+			ClusterID:   tm.ClusterID.String(),
+			SnapshotTag: tm.SnapshotTag,
+			Keyspace:    tm.Table.Keyspace,
+			Table:       tm.Table.Name,
+		}, tm.Size)
+		tabletSize += tm.Size
+	}
 
 	// Init progress
 	var totalSize int64
@@ -268,7 +280,7 @@ func (w *tablesWorker) initMetrics(workload Workload) {
 		totalSize += u.Size
 	}
 	// Bytes missing from the workload were restored by the previous runs of this task
-	w.progress.Update(totalSize - workload.TotalSize)
+	w.progress.Update(totalSize - workload.TotalSize - tabletSize)
 	w.metrics.SetProgress(metrics.RestoreProgressLabels{
 		ClusterID:   w.run.ClusterID.String(),
 		SnapshotTag: w.run.SnapshotTag,
