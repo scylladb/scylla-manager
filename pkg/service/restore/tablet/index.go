@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 	"github.com/scylladb/scylla-manager/v3/pkg/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/version"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
@@ -29,7 +30,9 @@ type Workload map[table.CQLTable]TableMeta
 
 // TableMeta represents metadata needed for restoring table with tablet aware restore.
 type TableMeta struct {
-	Table       table.CQLTable
+	Table table.CQLTable
+	// ClusterID identifies the backed up cluster.
+	ClusterID   uuid.UUID
 	SnapshotTag string
 	// Each DC can be backed up to a separate backup location.
 	// Because of that, we need to group scylla manifests per DC.
@@ -180,6 +183,7 @@ func (w *IndexWorker) Index(ctx context.Context, tables map[table.CQLTable]struc
 					dcm.RemoteManifests = append(dcm.RemoteManifests, remoteScyllaManifests...)
 					tm.Datacenters[dcm.DC] = dcm
 					// Update corresponding table metadata
+					tm.ClusterID = m.ClusterID
 					tm.SnapshotTag = m.SnapshotTag
 					tm.Size += fm.Size
 					tm.FileCnt += int64(len(fm.Files))
