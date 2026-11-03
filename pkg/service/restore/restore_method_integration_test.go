@@ -39,7 +39,7 @@ type restoreMethodFixture struct {
 type restoreMethodTestCase struct {
 	name               string
 	description        string
-	method             restore.Method
+	method             restore.MethodList
 	ensuredPath        string
 	blockedPath        string
 	ensuredQueryParams map[string]string
@@ -78,7 +78,7 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 		{
 			name:              "method=rclone uses rclone API",
 			description:       "Verifies that explicit rclone method restores data via the rclone copypaths API and does not touch the native restore endpoint.",
-			method:            restore.MethodRclone,
+			method:            "rclone",
 			ensuredPath:       rcloneRestoreAPIPath,
 			blockedPath:       nativeRestoreAPIPath,
 			expectTargetError: false,
@@ -113,12 +113,31 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 			expectTargetError: false,
 		})
 	}
+	// Test cases for method=native,rclone
+	if nativeAPIExposed && configuredObjectStorageEndpoint {
+		testCases = append(testCases, restoreMethodTestCase{
+			name:               "method=native,rclone uses native API when exposed",
+			description:        "Verifies that explicitly listing native method next to the rclone fallback uses the native restore endpoint even when native restore is not yet production ready.",
+			method:             "native,rclone",
+			ensuredPath:        nativeRestoreAPIPath,
+			blockedPath:        rcloneRestoreAPIPath,
+			ensuredQueryParams: nativeQueryParams,
+			expectTargetError:  false,
+		})
+	} else {
+		testCases = append(testCases, restoreMethodTestCase{
+			name:              "method=native,rclone target validation fails when unavailable",
+			description:       "Verifies that explicitly listing native method next to the rclone fallback is rejected during target validation when the cluster doesn't expose native restore API or object storage endpoint is not configured.",
+			method:            "native,rclone",
+			expectTargetError: true,
+		})
+	}
 	// Test cases for method=native
 	if nativeAPIExposed && configuredObjectStorageEndpoint {
 		testCases = append(testCases, restoreMethodTestCase{
 			name:               "method=native uses native API when exposed",
 			description:        "Verifies that explicit native method uses the native restore endpoint when the API is exposed and object storage endpoint is configured.",
-			method:             restore.MethodNative,
+			method:             "native",
 			ensuredPath:        nativeRestoreAPIPath,
 			blockedPath:        rcloneRestoreAPIPath,
 			ensuredQueryParams: nativeQueryParams,
@@ -128,7 +147,7 @@ func TestRestoreTablesMethodIntegration(t *testing.T) {
 		testCases = append(testCases, restoreMethodTestCase{
 			name:              "method=native target validation fails when unavailable",
 			description:       "Verifies that explicit native method is rejected during target validation when the cluster doesn't expose native restore API or object storage endpoint is not configured.",
-			method:            restore.MethodNative,
+			method:            "native",
 			expectTargetError: true,
 		})
 	}

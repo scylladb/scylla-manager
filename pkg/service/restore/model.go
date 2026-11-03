@@ -35,7 +35,7 @@ type Target struct {
 	RestoreTables   bool                  `json:"restore_tables,omitempty"`
 	Continue        bool                  `json:"continue"`
 	DCMappings      map[string]string     `json:"dc_mapping"`
-	Method          Method                `json:"method,omitempty"`
+	Method          MethodList            `json:"method,omitempty"`
 
 	locationInfo []LocationInfo
 }
