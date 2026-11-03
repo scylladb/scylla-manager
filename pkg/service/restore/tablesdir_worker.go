@@ -271,7 +271,7 @@ func (w *tablesWorker) onLasEnd(ctx context.Context, b batch, pr *RunProgress) {
 	labels := metrics.RestoreBytesLabels{
 		ClusterID:   b.ClusterID.String(),
 		SnapshotTag: b.SnapshotTag,
-		Location:    b.Location.String(),
+		Location:    b.Location.StringWithoutDC(),
 		DC:          b.DC,
 		Node:        b.NodeID,
 		Keyspace:    b.Keyspace,
