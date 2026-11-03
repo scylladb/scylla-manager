@@ -252,7 +252,7 @@ func defaultTestTarget(locDC, locPath, ks string, batchSize, parallel int, resto
 		target.Keyspace = []string{ks}
 	}
 	if restoreTables && testconfig.RestoreMethod() != nil && *testconfig.RestoreMethod() != "" {
-		target.Method = Method(*testconfig.RestoreMethod())
+		target.Method = MethodList(*testconfig.RestoreMethod())
 	}
 	return target
 }

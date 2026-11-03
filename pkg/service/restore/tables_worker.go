@@ -212,7 +212,11 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		return errors.Wrap(err, "run tablet aware restore")
 	}
 
-	if w.target.Method == MethodNative {
+	// At this stage only rclone and native methods can be used.
+	// If rclone method is not allowed, we need to validate that
+	// all workload can be restored with native first, so that
+	// we don't run into incompatible batch hours into the restore.
+	if !w.target.Method.allows(MethodRclone) {
 		if err := workload.RcloneNativeWorkload.NativeRestoreSupport(); err != nil {
 			return errors.Wrap(err, "ensure native restore support")
 		}
