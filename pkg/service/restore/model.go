@@ -5,7 +5,6 @@ package restore
 import (
 	"encoding/json"
 	"reflect"
-	"slices"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -40,20 +39,6 @@ type Target struct {
 
 	locationInfo []LocationInfo
 }
-
-// Method describes which API should be used by SM during restore.
-type Method string
-
-const (
-	// MethodAuto means that SM will use native restore API when possible, and rclone API otherwise.
-	MethodAuto Method = "auto"
-	// MethodRclone means that SM will only use rclone API.
-	MethodRclone Method = "rclone"
-	// MethodNative means that SM will only use native scylla restore API (whether it's configured or not).
-	MethodNative Method = "native"
-	// MethodTablet means that SM uses tablet aware restore API.
-	MethodTablet Method = "tablet"
-)
 
 // LocationInfo contains information about Location, such as what DCs it has,
 // what hosts can access what dcs, and the list of manifests from this location.
@@ -92,9 +77,8 @@ func (l LocationInfo) AllHosts() []string {
 const (
 	maxBatchSize = 0
 	// maxTransfers are experimentally defined to 2*node_shard_cnt.
-	maxTransfers  = 0
-	maxRateLimit  = 0
-	defaultMethod = MethodRclone
+	maxTransfers = 0
+	maxRateLimit = 0
 )
 
 func defaultTarget() Target {
@@ -141,9 +125,6 @@ func (t Target) validateProperties() error {
 	if t.RestoreSchema && t.Keyspace != nil {
 		return errors.New("restore schema always restores 'system_schema.*' tables only, no need to specify '--keyspace' flag")
 	}
-	if t.RestoreSchema && t.Method != defaultMethod {
-		return errors.New("restore schema does not support '--method' flag")
-	}
 	// Check for duplicates in Location
 	allLocations := strset.New()
 	for _, l := range t.Location {
@@ -153,10 +134,7 @@ func (t Target) validateProperties() error {
 		}
 		allLocations.Add(p)
 	}
-	if !slices.Contains([]Method{MethodAuto, MethodRclone, MethodNative}, t.Method) {
-		return errors.New("unknown method: " + string(t.Method))
-	}
-	return nil
+	return t.validateMethod()
 }
 
 // Run tracks restore progress, shares ID with scheduler.Run that initiated it.
