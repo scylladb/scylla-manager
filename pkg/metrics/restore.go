@@ -46,7 +46,12 @@ func NewRestoreMetrics() RestoreMetrics {
 
 // MustRegister shall be called to make the metrics visible by prometheus client.
 func (m RestoreMetrics) MustRegister() RestoreMetrics {
-	prometheus.MustRegister(m.all()...)
+	return m.MustRegisterWith(prometheus.DefaultRegisterer)
+}
+
+// MustRegisterWith registers all restore metrics with the given registerer.
+func (m RestoreMetrics) MustRegisterWith(reg prometheus.Registerer) RestoreMetrics {
+	reg.MustRegister(m.all()...)
 	return m
 }
 
