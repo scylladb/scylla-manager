@@ -29,17 +29,20 @@ func NewRestoreMetrics() RestoreMetrics {
 	g := gaugeVecCreator("restore")
 
 	return RestoreMetrics{
-		batchSize: g("Cumulative size of the batches of files taken by the host to restore the data.", "batch_size", "cluster", "host"),
-		remainingBytes: g("Remaining bytes of backup to be restored yet.", "remaining_bytes",
+		batchSize: g("Cumulative size of the batches of files taken by the host to restore the data. "+
+			"Populated by the rclone and native restore methods.", "batch_size", "cluster", "host"),
+		remainingBytes: g("Remaining bytes of backup to be restored yet. Populated by all restore methods, "+
+			"but the tablet aware restore method doesn't set the location, dc and node labels.", "remaining_bytes",
 			"cluster", "snapshot_tag", "location", "dc", "node", "keyspace", "table"),
-		state:            g("Defines current state of the restore process (idle/download/load/error).", "state", "cluster", "location", "snapshot_tag", "host"),
-		restoredBytes:    g("Restored bytes", "restored_bytes", "cluster", "host"),
-		restoreDuration:  g("Restore duration in ms", "restore_duration", "cluster", "host"),
-		downloadedBytes:  g("Downloaded bytes", "downloaded_bytes", "cluster", "location", "host"),
-		downloadDuration: g("Download duration in ms", "download_duration", "cluster", "location", "host"),
-		streamedBytes:    g("Load&Streamed bytes", "streamed_bytes", "cluster", "host"),
-		streamDuration:   g("Load&Stream duration in ms", "stream_duration", "cluster", "host"),
-		progress:         g("Defines current progress of the restore process.", "progress", "cluster", "snapshot_tag"),
+		state: g("Defines current state of the restore process (idle/download/load/error/native). "+
+			"Populated by the rclone and native restore methods.", "state", "cluster", "location", "snapshot_tag", "host"),
+		restoredBytes:    g("Restored bytes. Populated by the native restore method.", "restored_bytes", "cluster", "host"),
+		restoreDuration:  g("Restore duration in ms. Populated by the native restore method.", "restore_duration", "cluster", "host"),
+		downloadedBytes:  g("Downloaded bytes. Populated by the rclone restore method.", "downloaded_bytes", "cluster", "location", "host"),
+		downloadDuration: g("Download duration in ms. Populated by the rclone restore method.", "download_duration", "cluster", "location", "host"),
+		streamedBytes:    g("Load&Streamed bytes. Populated by the rclone restore method.", "streamed_bytes", "cluster", "host"),
+		streamDuration:   g("Load&Stream duration in ms. Populated by the rclone restore method.", "stream_duration", "cluster", "host"),
+		progress:         g("Defines current progress of the restore process. Populated by all restore methods.", "progress", "cluster", "snapshot_tag"),
 		viewBuildStatus:  g("Defines build status of recreated view.", "view_build_status", "cluster", "keyspace", "view"),
 	}
 }
