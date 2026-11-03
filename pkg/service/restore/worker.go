@@ -65,7 +65,11 @@ func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
 	if err := w.initTarget(ctx, target, locationInfo); err != nil {
 		return errors.Wrap(err, "init target")
 	}
-	if target.Method == MethodNative {
+	// Explicitly listed methods should be possible to use
+	// on the cluster level. They should pass all the checks
+	// not related to the actually restored data,
+	// e.g., cluster config checks.
+	if target.Method.explicit(MethodNative) {
 		if err := w.validateHostNativeRestoreSupport(); err != nil {
 			return err
 		}

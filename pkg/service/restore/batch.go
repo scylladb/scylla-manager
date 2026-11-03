@@ -71,10 +71,10 @@ type batchDispatcher struct {
 	// Equals total_backup_size/($\sum_{node} shard_cnt(node)$)
 	expectedShardWorkload int64
 	hostInfo              map[string]hostBatchInfo
-	method                Method
+	method                MethodList
 }
 
-func newBatchDispatcher(workload RcloneNativeWorkload, batchSize int, hostInfo map[string]hostBatchInfo, locationInfo []LocationInfo, method Method) *batchDispatcher {
+func newBatchDispatcher(workload RcloneNativeWorkload, batchSize int, hostInfo map[string]hostBatchInfo, locationInfo []LocationInfo, method MethodList) *batchDispatcher {
 	sortWorkload(workload)
 	var shards uint
 	for _, hi := range hostInfo {
@@ -363,11 +363,11 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 		return batch{}, false
 	}
 
-	// At this point, if method is explicitly set to MethodNative,
-	// we already verified that all hosts and the entire workload
-	// supports native restore, so we can safely fall back to rclone if needed.
+	// Use native when allowed and supported, otherwise use rclone.
+	// Restore stage already validated that if rclone is not
+	// allowed, then all sstables can be restored with native.
 	batchMethod := MethodRclone
-	if slices.Contains([]Method{MethodAuto, MethodNative}, bd.method) &&
+	if bd.method.allows(MethodNative) &&
 		hi.nativeRestoreSupport &&
 		sstables[0].NativeRestoreSupport() == nil {
 		batchMethod = MethodNative

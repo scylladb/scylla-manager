@@ -20,9 +20,13 @@ import (
 )
 
 // hostNativeRestoreSupport validates that native restore API can be used for given host.
-// Scylla version check is not performed for explicit --method=native.
-func hostNativeRestoreSupport(ni *scyllaclient.NodeInfo, loc []Location, method Method) error {
-	if method != MethodNative {
+// Scylla version check is not performed when native method is explicitly listed in --method.
+func hostNativeRestoreSupport(ni *scyllaclient.NodeInfo, loc []Location, method MethodList) error {
+	// Not checking scylla version on explicit method was mostly
+	// introduced for testing purposes. In some cases, we didn't
+	// have a specific scylla version supporting given feature,
+	// but we wanted to keep on testing anyway.
+	if !method.explicit(MethodNative) {
 		ok, err := ni.SupportsNativeRestoreAPI()
 		if err != nil {
 			return errors.Wrap(err, "check native restore api support")

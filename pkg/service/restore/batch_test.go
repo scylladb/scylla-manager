@@ -329,7 +329,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 		sstables             []RemoteSSTable
 		shardCnt             uint
 		batchSize            int
-		method               Method
+		method               MethodList
 		rcloneFileCountLimit int
 
 		expectedSSTableCnt int
@@ -339,7 +339,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             3,
 			batchSize:            1,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 0,
 			expectedSSTableCnt:   3,
 		},
@@ -348,7 +348,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             3,
 			batchSize:            10000,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 2,
 			expectedSSTableCnt:   3,
 		},
@@ -357,7 +357,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             1,
 			batchSize:            10000,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 5,
 			expectedSSTableCnt:   2,
 		},
@@ -366,7 +366,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             smallSSTables(40),
 			shardCnt:             1,
 			batchSize:            maxBatchSize,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 0,
 			expectedSSTableCnt:   2,
 		},
@@ -375,7 +375,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             smallSSTables(40),
 			shardCnt:             1,
 			batchSize:            maxBatchSize,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 1,
 			expectedSSTableCnt:   1,
 		},
@@ -384,7 +384,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             3,
 			batchSize:            1,
-			method:               MethodNative,
+			method:               "native",
 			rcloneFileCountLimit: 2,
 			expectedSSTableCnt:   7,
 		},
@@ -393,7 +393,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             3,
 			batchSize:            maxBatchSize,
-			method:               MethodNative,
+			method:               "native",
 			rcloneFileCountLimit: 2,
 			expectedSSTableCnt:   7,
 		},
