@@ -267,10 +267,12 @@ func (w *tablesWorker) initMetrics(workload Workload) {
 	for _, u := range w.run.Units {
 		totalSize += u.Size
 	}
+	// Bytes missing from the workload were restored by the previous runs of this task
+	w.progress.Update(totalSize - workload.TotalSize)
 	w.metrics.SetProgress(metrics.RestoreProgressLabels{
 		ClusterID:   w.run.ClusterID.String(),
 		SnapshotTag: w.run.SnapshotTag,
-	}, float64(totalSize-workload.TotalSize)/float64(totalSize)*100)
+	}, w.progress.CurrentProgress())
 }
 
 func (w *tablesWorker) logWorkloadInfo(ctx context.Context, workload Workload) {
