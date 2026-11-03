@@ -35,6 +35,9 @@ type RestoreWorker struct {
 	nodeConfig         map[netip.Addr]configcache.NodeConfig
 	hostPicker         *hostPicker
 	longPollingSeconds int
+	// onProgress is optionally called with the table metadata and its progress before and after each update.
+	// Tables restored by the previous run report their progress from scratch.
+	onProgress func(tm TableMeta, prev, curr RunProgress)
 }
 
 // NewRestoreWorker is a constructor for RestoreWorker.
@@ -53,6 +56,12 @@ func NewRestoreWorker(clusterID, taskID, runID uuid.UUID,
 		hostPicker:         newHostPicker(nodeConfig),
 		longPollingSeconds: longPollingSeconds,
 	}
+}
+
+// WithProgressCallback registers f to be called on every table progress update.
+func (w *RestoreWorker) WithProgressCallback(f func(tm TableMeta, prev, curr RunProgress)) *RestoreWorker {
+	w.onProgress = f
+	return w
 }
 
 // Restore given tables with tablet aware restore based on provided workload.
@@ -138,6 +147,9 @@ func (w *RestoreWorker) restoreTableWithResume(ctx context.Context, tm TableMeta
 			"keyspace", tm.Table.Keyspace,
 			"table", tm.Table.Name,
 		)
+		if w.onProgress != nil {
+			w.onProgress(tm, RunProgress{}, prev)
+		}
 		return nil
 	}
 	// Note that the scylla task scheduled by the previous run might still be running
@@ -191,7 +203,7 @@ func (w *RestoreWorker) restoreTable(ctx context.Context, tm TableMeta) error {
 	pr.ScyllaTaskID = id
 	w.upsertProgress(ctx, pr)
 
-	if err := w.waitTask(ctx, pr); err != nil {
+	if err := w.waitTask(ctx, tm, pr); err != nil {
 		return errors.Wrapf(err, "wait for tablet aware restore task %s on node %s", id, host)
 	}
 	return nil
@@ -227,11 +239,11 @@ func (w *RestoreWorker) buildTabletRestoreLocations(tm TableMeta) ([]scyllaclien
 // waitTask executes waitTaskTick until error or terminal scylla task status is encountered.
 // Error from scylla task status is included in the returned error.
 // Scylla task is aborted on SM task pause.
-func (w *RestoreWorker) waitTask(ctx context.Context, pr *RunProgress) error {
+func (w *RestoreWorker) waitTask(ctx context.Context, tm TableMeta, pr *RunProgress) error {
 	for {
-		task, err := w.waitTaskTick(ctx, pr, w.longPollingSeconds)
+		task, err := w.waitTaskTick(ctx, tm, pr, w.longPollingSeconds)
 		if err != nil {
-			w.abortTaskOnPause(ctx, pr)
+			w.abortTaskOnPause(ctx, tm, pr)
 			return err
 		}
 
@@ -250,7 +262,7 @@ const taskAbortGracePeriodSeconds = 60
 // for up to taskAbortGracePeriodSeconds. Waiting is caused by scylla abort API
 // being async, and trying schedule tablet aware restore on a table that is
 // currently being aborted results in an error.
-func (w *RestoreWorker) abortTaskOnPause(parentCtx context.Context, pr *RunProgress) {
+func (w *RestoreWorker) abortTaskOnPause(parentCtx context.Context, tm TableMeta, pr *RunProgress) {
 	// Don't want to abort on non-pause related errors
 	if parentCtx.Err() == nil {
 		return
@@ -268,7 +280,7 @@ func (w *RestoreWorker) abortTaskOnPause(parentCtx context.Context, pr *RunProgr
 		return
 	}
 
-	status, err := w.waitTaskTick(ctx, pr, taskAbortGracePeriodSeconds)
+	status, err := w.waitTaskTick(ctx, tm, pr, taskAbortGracePeriodSeconds)
 	if err != nil {
 		w.logger.Error(ctx, "Failed to wait for aborted task to finish",
 			"host", pr.Host,
@@ -289,18 +301,19 @@ func (w *RestoreWorker) abortTaskOnPause(parentCtx context.Context, pr *RunProgr
 // waitTaskTick performs a single long polling iteration on the scylla task
 // and updates run progress with the returned task status.
 // Error from scylla task status is not included in the returned error.
-func (w *RestoreWorker) waitTaskTick(ctx context.Context, pr *RunProgress, longPollingSeconds int) (*models.TaskStatus, error) {
+func (w *RestoreWorker) waitTaskTick(ctx context.Context, tm TableMeta, pr *RunProgress, longPollingSeconds int) (*models.TaskStatus, error) {
 	task, err := w.client.ScyllaWaitTask(ctx, pr.Host, pr.ScyllaTaskID, int64(longPollingSeconds))
 	if err != nil {
 		w.recordFailure(ctx, pr, err)
 		return nil, errors.Wrap(err, "long poll task status")
 	}
-	w.updateProgress(ctx, pr, task)
+	w.updateProgress(ctx, tm, pr, task)
 	return task, nil
 }
 
-// updateProgress updates and saves run progress described by scylla task status.
-func (w *RestoreWorker) updateProgress(ctx context.Context, pr *RunProgress, task *models.TaskStatus) {
+// updateProgress updates, saves and reports run progress described by scylla task status.
+func (w *RestoreWorker) updateProgress(ctx context.Context, tm TableMeta, pr *RunProgress, task *models.TaskStatus) {
+	prev := *pr
 	pr.RestoredSSTables = int64(task.ProgressCompleted)
 	pr.TotalSSTables = int64(task.ProgressTotal)
 	if t := time.Time(task.StartTime); !t.IsZero() {
@@ -316,6 +329,9 @@ func (w *RestoreWorker) updateProgress(ctx context.Context, pr *RunProgress, tas
 		pr.Error = joinError(pr.Error, "scylla task error: "+task.Error)
 	}
 	w.upsertProgress(ctx, pr)
+	if w.onProgress != nil {
+		w.onProgress(tm, prev, *pr)
+	}
 }
 
 // recordFailure saves SM side error (e.g. failed scylla task schedule or status poll)
