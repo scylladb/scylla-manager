@@ -170,7 +170,7 @@ const (
 func (m RestoreMetrics) SetRestoreState(clusterID uuid.UUID, location backupspec.Location, snapshotTag, host string, state RestoreState) {
 	l := prometheus.Labels{
 		"cluster":      clusterID.String(),
-		"location":     location.String(),
+		"location":     location.StringWithoutDC(),
 		"snapshot_tag": snapshotTag,
 		"host":         host,
 	}

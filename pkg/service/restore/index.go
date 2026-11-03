@@ -254,7 +254,7 @@ func (w *tablesWorker) initMetrics(workload Workload) {
 		w.metrics.SetRemainingBytes(metrics.RestoreBytesLabels{
 			ClusterID:   rdw.ClusterID.String(),
 			SnapshotTag: rdw.SnapshotTag,
-			Location:    rdw.Location.String(),
+			Location:    rdw.Location.StringWithoutDC(),
 			DC:          rdw.DC,
 			Node:        rdw.NodeID,
 			Keyspace:    rdw.Keyspace,

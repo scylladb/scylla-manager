@@ -158,7 +158,7 @@ func (w *tablesWorker) scyllaUpdateProgress(ctx context.Context, pr *RunProgress
 	w.metrics.DecreaseRemainingBytes(metrics.RestoreBytesLabels{
 		ClusterID:   b.ClusterID.String(),
 		SnapshotTag: b.SnapshotTag,
-		Location:    b.Location.String(),
+		Location:    b.Location.StringWithoutDC(),
 		DC:          b.DC,
 		Node:        b.NodeID,
 		Keyspace:    b.Keyspace,
