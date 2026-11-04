@@ -21,6 +21,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -115,6 +118,7 @@ type testHelper struct {
 
 	dstCluster    clusterHelper
 	dstRestoreSvc *Service
+	dstMetricsReg *prometheus.Registry
 	dstUser       string
 	dstPass       string
 }
@@ -128,12 +132,15 @@ func newTestHelper(t *testing.T, srcHosts, dstHosts []string) *testHelper {
 
 	dropNonSuperUsers(t, dstCluster.rootSession)
 	createUser(t, dstCluster.rootSession, user, pass)
+	// Per-helper registry allowing to verify metrics behavior during test execution
+	dstMetricsReg := prometheus.NewPedanticRegistry()
 
 	return &testHelper{
 		srcCluster:    srcCluster,
 		srcBackupSvc:  newBackupSvc(t, srcCluster.Session, srcCluster.Client, srcCluster.ClusterID),
 		dstCluster:    dstCluster,
-		dstRestoreSvc: newRestoreSvc(t, dstCluster.Session, dstCluster.Client, dstCluster.ClusterID, user, pass),
+		dstRestoreSvc: newRestoreSvc(t, dstCluster.Session, dstCluster.Client, dstCluster.ClusterID, user, pass, metrics.NewRestoreMetrics().MustRegisterWith(dstMetricsReg)),
+		dstMetricsReg: dstMetricsReg,
 		dstUser:       user,
 		dstPass:       pass,
 	}
@@ -171,7 +178,9 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 // Temporary workaround for controlling tablet aware restore usage until --method=tablet-aware is added.
 var enableTabletAwareRestore = false
 
-func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, clusterID uuid.UUID, user, pass string) *Service {
+func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, clusterID uuid.UUID, user, pass string,
+	restoreMetrics metrics.RestoreMetrics,
+) *Service {
 	configCacheSvc := NewTestConfigCacheSvc(t, clusterID, client.Config().Hosts)
 
 	repairSvc, err := repair.NewService(
@@ -201,7 +210,7 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		repairSvc,
 		mgrSession,
 		cfg,
-		metrics.NewRestoreMetrics(),
+		restoreMetrics,
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
 		},
@@ -878,6 +887,92 @@ const (
 	scyllaWaitTaskPath  = "/task_manager/wait_task/"
 	scyllaAbortTaskPath = "/task_manager/abort_task/"
 )
+
+// restoreMetricSamples returns the samples of the scylla_manager_restore_<name>
+// metric labeled with the given cluster and snapshot tag.
+func (h *testHelper) restoreMetricSamples(t *testing.T, name string, clusterID uuid.UUID, tag string) model.Vector {
+	t.Helper()
+
+	mfs, err := h.dstMetricsReg.Gather()
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "gather restore metrics"))
+	}
+	samples, err := expfmt.ExtractSamples(&expfmt.DecodeOptions{}, mfs...)
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "extract restore metric samples"))
+	}
+	var out model.Vector
+	for _, s := range samples {
+		if string(s.Metric[model.MetricNameLabel]) != "scylla_manager_restore_"+name {
+			continue
+		}
+		if string(s.Metric["cluster"]) != clusterID.String() || string(s.Metric["snapshot_tag"]) != tag {
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// restoreProgressMetric returns the progress metric of the dst cluster restore of the given snapshot tag.
+func (h *testHelper) restoreProgressMetric(t *testing.T, tag string) float64 {
+	t.Helper()
+
+	samples := h.restoreMetricSamples(t, "progress", h.dstCluster.ClusterID, tag)
+	if len(samples) != 1 {
+		t.Fatalf("Expected a single progress metric sample, got %d", len(samples))
+	}
+	return float64(samples[0].Value)
+}
+
+// remainingBytesMetric returns the remaining_bytes metric samples of the restore
+// of the src cluster backup with the given snapshot tag grouped by table.
+func (h *testHelper) remainingBytesMetric(t *testing.T, tag string) map[table]model.Vector {
+	t.Helper()
+
+	out := make(map[table]model.Vector)
+	for _, s := range h.restoreMetricSamples(t, "remaining_bytes", h.srcCluster.ClusterID, tag) {
+		tt := table{ks: string(s.Metric["keyspace"]), tab: string(s.Metric["table"])}
+		out[tt] = append(out[tt], s)
+	}
+	return out
+}
+
+// validateTabletRemainingBytesMetric validates that the table restored with
+// tablet aware restore has a single remaining_bytes metric sample without
+// the location, dc and node labels and with the expected value.
+func validateTabletRemainingBytesMetric(t *testing.T, samples model.Vector, tt table, expected int64) {
+	t.Helper()
+
+	name := tt.ks + "." + tt.tab
+	if len(samples) != 1 {
+		t.Errorf("Table %s: expected a single remaining_bytes metric sample, got %d", name, len(samples))
+		return
+	}
+	s := samples[0]
+	for _, l := range []model.LabelName{"location", "dc", "node"} {
+		if s.Metric[l] != "" {
+			t.Errorf("Table %s: expected empty %s label, got %q", name, l, s.Metric[l])
+		}
+	}
+	if s.Value != model.SampleValue(expected) {
+		t.Errorf("Table %s: expected %d remaining bytes, got %v", name, expected, s.Value)
+	}
+}
+
+// validateTabletRestoreMetrics validates the progress metric and the remaining_bytes
+// metric of every table restored with tablet aware restore.
+func (h *testHelper) validateTabletRestoreMetrics(t *testing.T, tag string, expectedRemaining map[table]int64, expectedProgress float64) {
+	t.Helper()
+
+	samples := h.remainingBytesMetric(t, tag)
+	for tt, expected := range expectedRemaining {
+		validateTabletRemainingBytesMetric(t, samples[tt], tt, expected)
+	}
+	if got := h.restoreProgressMetric(t, tag); got != expectedProgress {
+		t.Errorf("Expected progress metric %v, got %v", expectedProgress, got)
+	}
+}
 
 // countTabletRestoreSchedules returns an interceptor counting Scylla tablet
 // restore tasks scheduled per table and a getter of the count.

@@ -549,6 +549,8 @@ func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
 	// Initially, tablet-aware restore is supported only from and to
 	// single DC cluster, but when that limitation is abolished,
 	// more test cases can be added.
+	// It also validates that remaining_bytes and progress metrics
+	// of tablet aware restored tables are complete after the restore.
 	testCases := []struct {
 		name     string
 		srcHosts []string
@@ -735,6 +737,14 @@ func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
 				validateCompleteProgress(t, pr, tables)
 				validateProgressMethod(t, pr, expectedMethods)
 			})
+
+			t.Run("verify restore metrics", func(t *testing.T) {
+				expectedRemaining := make(map[table]int64)
+				for tt := range tabletRestoredTables {
+					expectedRemaining[tt] = 0
+				}
+				h.validateTabletRestoreMetrics(t, tag, expectedRemaining, 100)
+			})
 		})
 	}
 }
@@ -748,6 +758,8 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 	//   resume restores the interrupted tables again
 	// - progress rows are aggregated into the restore progress reported
 	//   to the user, both for complete and interrupted restores
+	// - remaining_bytes and progress metrics follow the tablet aware restore
+	//   progress of complete, interrupted and resumed restores
 	enableTabletAwareRestore = true
 	defer func() {
 		enableTabletAwareRestore = false
@@ -909,6 +921,8 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 		pr := h.getRestoreProgress(t)
 		validateCompleteProgress(t, pr, tables)
 		validateProgressMethod(t, pr, expectedMethods)
+		Print("Validate restore metrics")
+		h.validateTabletRestoreMetrics(t, tag, map[table]int64{tt1: 0, tt2: 0}, 100)
 
 		validateTableData(t, tt2)
 	})
@@ -990,6 +1004,8 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 		pr := h.getRestoreProgress(t)
 		validateCompleteProgress(t, pr, tables)
 		validateProgressMethod(t, pr, expectedMethods)
+		Print("Validate restore metrics")
+		h.validateTabletRestoreMetrics(t, tag, map[table]int64{tt1: 0, tt2: 0}, 100)
 	})
 
 	t.Run("update run progress on status polls", func(t *testing.T) {
@@ -1029,6 +1045,16 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 		validateInterruptedProgress(t, pr, tables, context.Canceled.Error(), polls, mock.total())
 		validateProgressMethod(t, pr, expectedMethods)
 
+		Print("Validate restore metrics after pause")
+		expectedRemaining := make(map[table]int64)
+		var restored, size int64
+		for tt, pr := range rows {
+			expectedRemaining[tt] = pr.Size - pr.RestoredBytes()
+			restored += pr.RestoredBytes()
+			size += pr.Size
+		}
+		h.validateTabletRestoreMetrics(t, tag, expectedRemaining, float64(restored)/float64(size)*100)
+
 		// Resume the same restore task with a new run - none of the tables
 		// was restored, so both of them should be restored again.
 		// Scylla tasks were not aborted, so scylla joins the ongoing restores.
@@ -1062,6 +1088,8 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 		pr = h.getRestoreProgress(t)
 		validateCompleteProgress(t, pr, tables)
 		validateProgressMethod(t, pr, expectedMethods)
+		Print("Validate restore metrics")
+		h.validateTabletRestoreMetrics(t, tag, map[table]int64{tt1: 0, tt2: 0}, 100)
 
 		for _, tt := range tables {
 			validateTableData(t, tt)
