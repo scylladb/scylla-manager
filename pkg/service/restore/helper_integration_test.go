@@ -53,7 +53,7 @@ type table struct {
 
 func defaultTestConfig() Config {
 	return Config{
-		DiskSpaceFreeMinPercent:   5,
+		DiskSpaceFreeMinPercent:   1,
 		LongPollingTimeoutSeconds: 1,
 	}
 }
