@@ -15,7 +15,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
-	"github.com/scylladb/scylla-manager/v3/pkg/rclone/rcserver"
 	agentClient "github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/client/operations"
 	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
@@ -149,7 +148,7 @@ func (c *Client) RcloneJobProgress(ctx context.Context, host string, jobID int64
 	if StatusCodeOf(err) == http.StatusNotFound {
 		// If we got 404 then return empty progress with not found status.
 		return &RcloneJobProgress{
-			Status: string(rcserver.JobNotFound),
+			Status: string(JobNotFound),
 		}, nil
 	}
 	if err != nil {
