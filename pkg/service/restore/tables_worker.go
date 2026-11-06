@@ -5,6 +5,7 @@ package restore
 import (
 	"context"
 	"encoding/json"
+	stdErrors "errors"
 	"fmt"
 	"net/netip"
 	"sync"
@@ -193,7 +194,7 @@ func (w *tablesWorker) restore(ctx context.Context) error {
 	return nil
 }
 
-func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
+func (w *tablesWorker) stageRestoreData(ctx context.Context) (err error) {
 	w.AwaitSchemaAgreement(ctx, w.clusterSession)
 	w.logger.Info(ctx, "Started restoring tables")
 	defer w.logger.Info(ctx, "Restoring tables finished")
@@ -213,6 +214,16 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	if w.target.Method == MethodNative {
 		if err := workload.NativeRestoreSupport(); err != nil {
 			return errors.Wrap(err, "ensure native restore support")
+		}
+	}
+
+	// Load&stream waits for topology to be idle, so it can stall indefinitely behind tablet balancing (SCYLLADB-3939).
+	// Only l&s work left after the tablet-aware restore matters.
+	if len(workload.RemoteDir) > 0 {
+		reenable, lbErr := w.disableTabletBalancing(ctx, scyllaclient.NewRingDescriber(ctx, w.client), workload.RemoteDir)
+		defer func() { err = stdErrors.Join(err, reenable()) }()
+		if lbErr != nil {
+			return lbErr
 		}
 	}
 
@@ -315,6 +326,24 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 		return bd.ValidateAllDispatched()
 	}
 	return err
+}
+
+// disableTabletBalancing disables tablet load balancing if any remaining l&s work targets a tablet keyspace.
+// The returned func must always be called: it re-enables balancing if disabling was attempted, even if that failed.
+func (w *tablesWorker) disableTabletBalancing(ctx context.Context, rd scyllaclient.RingDescriber, remoteDir []RemoteDirWorkload) (func() error, error) {
+	for _, rdw := range remoteDir {
+		if len(rdw.SSTables) == 0 || !rd.IsTabletKeyspace(rdw.Keyspace) {
+			continue
+		}
+		reenable := func() error {
+			// Background ctx so balancing is restored even when the restore was paused or canceled.
+			return errors.Wrap(rd.ControlTabletLoadBalancing(context.Background(), true), "enable post restore data tablet load balancing")
+		}
+		return reenable, errors.Wrap(rd.ControlTabletLoadBalancing(ctx, false), "disable tablet load balancing")
+	}
+	// Tablet keyspace lookup errors are logged by RingDescriber and also end up here.
+	w.logger.Info(ctx, "Tablet load balancing left enabled: no tablet keyspaces detected in load&stream workload")
+	return func() error { return nil }, nil
 }
 
 func (w *tablesWorker) restoreBatch(ctx context.Context, hi HostInfo, b batch) error {
