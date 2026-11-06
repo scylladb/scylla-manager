@@ -4,11 +4,11 @@ package restore
 
 import (
 	"context"
+	"net/http"
 	"path"
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rclone/rclone/fs"
 	. "github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
@@ -192,7 +192,7 @@ func (w *tablesWorker) cleanHostUploadDirs(ctx context.Context, host string) err
 	for _, u := range w.run.Units {
 		for _, t := range u.Tables {
 			uploadDir := UploadTableDir(u.Keyspace, t.Table, w.tableVersion[TableName{Keyspace: u.Keyspace, Table: t.Table}])
-			if err := w.cleanUploadDir(ctx, host, uploadDir, nil); err != nil && !errors.Is(err, fs.ErrorDirNotFound) {
+			if err := w.cleanUploadDir(ctx, host, uploadDir, nil); err != nil && scyllaclient.StatusCodeOf(err) != http.StatusNotFound {
 				return errors.Wrapf(err, "clean upload dir %s", uploadDir)
 			}
 		}
