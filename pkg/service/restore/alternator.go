@@ -15,8 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
-	"github.com/scylladb/scylla-manager/v3/pkg/table"
-	"github.com/scylladb/scylla-manager/v3/pkg/util/query"
 	slices2 "github.com/scylladb/scylla-manager/v3/pkg/util2/slices"
 )
 
@@ -38,28 +36,15 @@ func newAlternatorSchemaWorker(client *dynamodb.Client, schema backupspec.Altern
 		return nil, errors.New("uninitialized alternator client with non-empty alternator schema")
 	}
 	w := alternatorWorker{}
-	ksSchema := make(map[string]backupspec.AlternatorTableSchema, len(schema.Tables))
-	for _, t := range schema.Tables {
-		if t.Describe == nil || t.Describe.TableName == nil {
-			continue
-		}
-		// LWT state tables shouldn't be listed with alternator API,
-		// but this bug exists in early 2025.4 versions (#4732).
-		if strings.HasSuffix(*t.Describe.TableName, table.LWTStateTableSuffix) {
-			continue
-		}
+	tables := backupspec.AlternatorTablesToRestore(schema)
+	ksSchema := make(map[string]backupspec.AlternatorTableSchema, len(tables))
+	for _, t := range tables {
 		ksSchema[w.cqlKeyspaceName(*t.Describe.TableName)] = t
 	}
 	return &alternatorSchemaWorker{
 		ksSchema: ksSchema,
 		client:   client,
 	}, nil
-}
-
-// isAlternatorKeyspace checks if given query.DescribedSchemaRow describes alternator schema.
-func (sw *alternatorSchemaWorker) isAlternatorSchemaRow(cql query.DescribedSchemaRow) bool {
-	_, ok := sw.ksSchema[sw.sanitizeCQLKeyspace(cql)]
-	return ok
 }
 
 func (sw *alternatorSchemaWorker) restore(ctx context.Context) (err error) {
@@ -115,11 +100,6 @@ func (sw *alternatorSchemaWorker) tableSchemaToCreate(schema backupspec.Alternat
 		Tags:                schema.Tags,
 		WarmThroughput:      sw.tableWarmThroughputDescToCreate(schema.Describe.WarmThroughput),
 	}
-}
-
-// sanitizeCQLKeyspace removes quotes from keyspace name in query.DescribedSchemaRow.
-func (sw *alternatorSchemaWorker) sanitizeCQLKeyspace(cql query.DescribedSchemaRow) string {
-	return strings.TrimPrefix(strings.TrimSuffix(cql.Keyspace, "\""), "\"")
 }
 
 // alternatorInitViewsWorker contains tools needed for initializing restored alternator views.
@@ -423,7 +403,7 @@ func filterAlternatorViews(ctx context.Context, client *dynamodb.Client, views [
 type alternatorWorker struct{}
 
 func (w alternatorWorker) cqlKeyspaceName(table string) string {
-	return "alternator_" + table
+	return backupspec.AlternatorKeyspaceName(table)
 }
 
 func (w alternatorWorker) cqlGSIName(table, gsi string) string {

@@ -4,6 +4,8 @@ package table
 
 import (
 	"regexp"
+
+	"github.com/scylladb/scylla-manager/backupspec"
 )
 
 // CQLTable describe CQL representation of a table.
@@ -21,7 +23,7 @@ func (t CQLTable) String() string {
 // creation of 'ks.tab$paxos' table used for storing LWT state.
 // For older ScyllaDB versions or vnodes, LWT state is stored in 'system.paxos' table.
 // See https://docs.scylladb.com/manual/stable/features/lwt.html#paxos-state-tables.
-const LWTStateTableSuffix = "$paxos"
+const LWTStateTableSuffix = backupspec.LWTStateTableSuffix
 
 // LWTSystemTable describes the system table storing LWT state.
 // See LWTStateTableSuffix for more details.
@@ -71,7 +73,7 @@ var ScyllaAlternatorExportTables = []CQLTable{
 // AuditKeyspace stores audit data. It lacks "system" prefix
 // and can be altered by users, but it's still an internal keyspace.
 // See https://docs.scylladb.com/manual/stable/operating-scylla/security/auditing.html.
-const AuditKeyspace = "audit"
+const AuditKeyspace = backupspec.AuditKeyspace
 
 // AuditTable describes the system table storing audit data.
 var AuditTable = CQLTable{
