@@ -1916,6 +1916,20 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcM, dstM)
 	}
 
+	if scyllaclient.NewRingDescriber(context.Background(), h.dstCluster.Client).IsTabletKeyspace(ks) {
+		Print("Ensure tablet load balancing was re-enabled")
+		var enabled bool
+		iter := h.dstCluster.rootSession.Query("SELECT tablet_balancing_enabled FROM system.topology", nil).Iter()
+		for iter.Scan(&enabled) {
+			if !enabled {
+				t.Fatal("Tablet load balancing left disabled after restore")
+			}
+		}
+		if err := iter.Close(); err != nil {
+			t.Fatalf("query tablet balancing state: %v", err)
+		}
+	}
+
 	Print("Ensure nodes downloaded tables only from corresponding DC")
 	// Restore run progress has RemoteSSTableDir of downloaded table which contains dc name in the path.
 	// We can compare this dc with the host dc (apply mappings) and they should be equal.
