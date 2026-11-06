@@ -51,6 +51,8 @@ const (
 	MethodRclone Method = "rclone"
 	// MethodNative means that SM will only use native scylla restore API (whether it's configured or not).
 	MethodNative Method = "native"
+	// MethodTablet means that SM uses tablet aware restore API.
+	MethodTablet Method = "tablet"
 )
 
 // LocationInfo contains information about Location, such as what DCs it has,
@@ -312,6 +314,8 @@ type KeyspaceProgress struct {
 
 	Keyspace string          `json:"keyspace"`
 	Tables   []TableProgress `json:"tables,omitempty"`
+	// Method is the union of methods used for restoring tables in this keyspace.
+	Method []Method `json:"method,omitempty"`
 }
 
 // HostProgress groups restore progress for the host.
@@ -333,6 +337,11 @@ type TableProgress struct {
 	Table       string          `json:"table"`
 	TombstoneGC tombstoneGCMode `json:"tombstone_gc"`
 	Error       string          `json:"error,omitempty"`
+	// Method lists methods used for restoring this table.
+	// Multiple methods are used only in edge-case scenarios
+	// of restoring an old backup, when some sstables are not
+	// supported by native restore API.
+	Method []Method `json:"method,omitempty"`
 }
 
 // TableName represents full table name.

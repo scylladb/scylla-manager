@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/scylla-manager/backupspec"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/restore/tablet"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -142,9 +143,52 @@ func TestAggregateProgress(t *testing.T) {
 		return &clone
 	}
 
+	// The template tablet RunProgresses describe successfully restored tables
+	fullTabletTab1 := tablet.RunProgress{
+		ClusterID:        run.ClusterID,
+		TaskID:           run.TaskID,
+		RunID:            run.ID,
+		Keyspace:         ks,
+		Table:            tab1,
+		Host:             host,
+		ScyllaTaskID:     "1",
+		StartedAt:        taskStart,
+		CompletedAt:      taskStart.Add(2 * time.Second),
+		RestoredSSTables: 3,
+		TotalSSTables:    3,
+		Size:             tab1size,
+	}
+	fullTabletTab2 := tablet.RunProgress{
+		ClusterID:        run.ClusterID,
+		TaskID:           run.TaskID,
+		RunID:            run.ID,
+		Keyspace:         ks,
+		Table:            tab2,
+		Host:             host,
+		ScyllaTaskID:     "2",
+		StartedAt:        taskStart,
+		CompletedAt:      taskStart.Add(10 * time.Second),
+		RestoredSSTables: 6,
+		TotalSSTables:    6,
+		Size:             tab2size,
+	}
+	// Transforms tablet RunProgress into the one in progress or failed
+	setTablet := func(pr tablet.RunProgress, restoredSSTables int64, restoreStartFromNowInSec, restoreEndFromNowInSec int, err string) tablet.RunProgress {
+		pr.RestoredSSTables = restoredSSTables
+		pr.StartedAt = taskStart.Add(time.Duration(restoreStartFromNowInSec) * time.Second)
+		if restoreEndFromNowInSec != unsetCompletedAt {
+			pr.CompletedAt = taskStart.Add(time.Duration(restoreEndFromNowInSec) * time.Second)
+		} else {
+			pr.CompletedAt = time.Time{}
+		}
+		pr.Error = err
+		return pr
+	}
+
 	testCases := []struct {
 		name     string
 		progress []*RunProgress
+		tablet   []tablet.RunProgress
 	}{
 		{
 			name: "complete restore",
@@ -219,12 +263,59 @@ func TestAggregateProgress(t *testing.T) {
 				setRclone(fullTab2, tab2size/3, tab2size/3, 1, 2, 4),
 			},
 		},
+		{
+			name: "tablet full tab1 full tab2",
+			tablet: []tablet.RunProgress{
+				fullTabletTab1,
+				fullTabletTab2,
+			},
+		},
+		{
+			name: "tablet partial tab1 failed tab2",
+			tablet: []tablet.RunProgress{
+				setTablet(fullTabletTab1, 1, 1, unsetCompletedAt, ""),
+				setTablet(fullTabletTab2, 3, 1, 5, "scylla task error: failed"),
+			},
+		},
+		{
+			name: "tablet not scheduled tab1 schedule failed tab2",
+			tablet: []tablet.RunProgress{
+				{
+					ClusterID: run.ClusterID,
+					TaskID:    run.TaskID,
+					RunID:     run.ID,
+					Keyspace:  ks,
+					Table:     tab1,
+					StartedAt: taskStart,
+					Size:      tab1size,
+				},
+				{
+					ClusterID: run.ClusterID,
+					TaskID:    run.TaskID,
+					RunID:     run.ID,
+					Keyspace:  ks,
+					Table:     tab2,
+					StartedAt: taskStart,
+					Size:      tab2size,
+					Error:     "schedule tablet aware restore on node h: failed",
+				},
+			},
+		},
+		{
+			name: "tablet full tab1 rclone full tab2",
+			progress: []*RunProgress{
+				setRclone(fullTab2, tab2size, 0, 1, 2, 4),
+			},
+			tablet: []tablet.RunProgress{
+				fullTabletTab1,
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			pr := aggregateProgress(&run, slices.Values(tc.progress), now)
+			pr := aggregateProgress(&run, slices.Values(tc.progress), tc.tablet, now)
 			testutils.SaveGoldenJSONFileIfNeeded(t, pr)
 			var expected Progress
 			testutils.LoadGoldenJSONFile(t, &expected)

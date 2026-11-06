@@ -1,0 +1,64 @@
+{
+  "size": 180,
+  "restored": 80,
+  "downloaded": 0,
+  "failed": 0,
+  "started_at": "2024-02-23T01:12:01Z",
+  "completed_at": null,
+  "repair_progress": null,
+  "snapshot_tag": "sm_20240223011159UTC",
+  "keyspaces": [
+    {
+      "size": 180,
+      "restored": 80,
+      "downloaded": 0,
+      "failed": 0,
+      "started_at": "2024-02-23T01:12:01Z",
+      "completed_at": null,
+      "keyspace": "ks",
+      "tables": [
+        {
+          "size": 60,
+          "restored": 20,
+          "downloaded": 0,
+          "failed": 0,
+          "started_at": "2024-02-23T01:12:01Z",
+          "completed_at": null,
+          "table": "tab1",
+          "tombstone_gc": "repair",
+          "method": [
+            "tablet"
+          ]
+        },
+        {
+          "size": 120,
+          "restored": 60,
+          "downloaded": 0,
+          "failed": 0,
+          "started_at": "2024-02-23T01:12:01Z",
+          "completed_at": null,
+          "table": "tab2",
+          "tombstone_gc": "timeout",
+          "error": "scylla task error: failed",
+          "method": [
+            "tablet"
+          ]
+        }
+      ],
+      "method": [
+        "tablet"
+      ]
+    }
+  ],
+  "views": [
+    {
+      "keyspace": "ks",
+      "view": "mv",
+      "type": "MaterializedView",
+      "base_table": "tab1",
+      "create_stmt": "CREATE",
+      "status": ""
+    }
+  ],
+  "stage": "DATA"
+}
