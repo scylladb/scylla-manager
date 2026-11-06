@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"go.uber.org/multierr"
 )
 
@@ -41,7 +42,9 @@ func (w *worker) forEachManifest(ctx context.Context, location LocationInfo, f f
 }
 
 // getManifestInfo returns manifests with receiver's snapshot tag for all nodes in the location.
-func (w *worker) getManifestInfo(ctx context.Context, host string, location backupspec.Location, snapshotTag string) ([]*backupspec.ManifestInfo, error) {
+// When clusterID is set, only manifests of this cluster are returned.
+func (w *worker) getManifestInfo(ctx context.Context, host string, location backupspec.Location, snapshotTag string, clusterID uuid.UUID,
+) ([]*backupspec.ManifestInfo, error) {
 	baseDir := path.Join("backup", string(backupspec.MetaDirKind))
 	opts := scyllaclient.RcloneListDirOpts{
 		FilesOnly: true,
@@ -56,7 +59,7 @@ func (w *worker) getManifestInfo(ctx context.Context, host string, location back
 			return
 		}
 		m.Location = location
-		if m.SnapshotTag != snapshotTag {
+		if !manifestMatches(m, snapshotTag, clusterID) {
 			return
 		}
 		if m.Temporary {
@@ -90,4 +93,13 @@ func (w *worker) getManifestInfo(ctx context.Context, host string, location back
 		return out[i].NodeID < out[j].NodeID
 	})
 	return out, nil
+}
+
+// manifestMatches checks if manifest belongs to the restored snapshot.
+// Unset clusterID matches manifests of all clusters.
+func manifestMatches(m *backupspec.ManifestInfo, snapshotTag string, clusterID uuid.UUID) bool {
+	if m.SnapshotTag != snapshotTag {
+		return false
+	}
+	return clusterID == uuid.Nil || m.ClusterID == clusterID
 }

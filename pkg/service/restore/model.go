@@ -37,6 +37,10 @@ type Target struct {
 	Continue        bool                  `json:"continue"`
 	DCMappings      map[string]string     `json:"dc_mapping"`
 	Method          Method                `json:"method,omitempty"`
+	// SourceClusterID limits restore to the backup files of the given cluster.
+	// It's needed when multiple clusters are backed up to the same location
+	// and their backups share the snapshot tag. Unset means all clusters.
+	SourceClusterID uuid.UUID `json:"source_cluster_id,omitzero"`
 
 	locationInfo []LocationInfo
 }

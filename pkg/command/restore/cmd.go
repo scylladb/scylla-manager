@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/v3/pkg/command/flag"
 	"github.com/scylladb/scylla-manager/v3/pkg/managerclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -40,6 +41,7 @@ type command struct {
 	showTables      bool
 	dcMapping       map[string]string
 	method          string
+	sourceCluster   uuid.Value
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -95,6 +97,7 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 	w.Unwrap().StringToStringVar(&cmd.dcMapping, "dc-mapping", nil, "")
 	w.Unwrap().StringVar(&cmd.method, "method", "rclone", "")
+	w.Unwrap().Var(&cmd.sourceCluster, "source-cluster-id", "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -196,6 +199,13 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("method").Changed {
 		props["method"] = cmd.method
+		ok = true
+	}
+	if cmd.Flag("source-cluster-id").Changed {
+		if cmd.Update() {
+			return wrapper("source-cluster-id")
+		}
+		props["source_cluster_id"] = cmd.sourceCluster.String()
 		ok = true
 	}
 
