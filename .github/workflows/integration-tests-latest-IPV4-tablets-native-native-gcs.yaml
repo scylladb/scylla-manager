@@ -1,0 +1,41 @@
+concurrency:
+    cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
+    group: int-integration-tests-latest-IPV4-tablets-native-native-gcs-${{ github.ref }}
+jobs:
+    tests:
+        uses: ./.github/workflows/integration-tests.yaml
+        with:
+            config-name: integration-tests-latest-IPV4-tablets-native-native-gcs
+            scylla-version: scylla-nightly:latest
+            ip-family: IPV4
+            tablets: enabled
+            ssl-enabled: "true"
+            backup-method: native
+            restore-method: native
+            backup-provider: gcs
+name: integration-tests-latest-IPV4-tablets-native-native-gcs
+"on":
+    pull_request:
+        paths-ignore:
+            - docs/**
+            - '**/*.md'
+            - '**/*.rst'
+            - LICENSE
+            - .github/workflows/docs-*
+        types:
+            - opened
+            - synchronize
+            - reopened
+    push:
+        branches:
+            - master
+            - branch-**
+        paths-ignore:
+            - docs/**
+            - '**/*.md'
+            - '**/*.rst'
+            - LICENSE
+            - .github/workflows/docs-*
+    workflow_dispatch: {}
+permissions:
+    contents: read

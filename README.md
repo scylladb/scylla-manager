@@ -15,22 +15,50 @@ Scylla Manager consists of tree components:
 
 ## Scylla integration status
 
+Integration tests are split into two suites:
+- **PR suite** - executed on every PR and push to `master` or release branch
+- **Release suite** - executed weekly (Sunday night) on `master` and manually before the release
+
+The release suite can be run manually on any branch from the Actions tab
+(`integration-tests-release` workflow for the whole suite or a per config workflow for a single config),
+or with the `gh` CLI:
+
+```bash
+gh workflow run integration-tests-release.yaml --ref <branch>
+```
+
+### PR suite
+
+| ScyllaDB version | Workflows                                                    | Limitations                                                               |
+|------------------|--------------------------------------------------------------|---------------------------------------------------------------------------|
+| **2025.1.16**    | ![integration-tests-2025.1.16-IPV6-nossl]                    | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.4.0-rc0** | ![integration-tests-2026.4.0-rc0-IPV4-tablets-rclone-native] | Restoration of **Authentication** and **Service Levels** is not supported |
+| **latest**       | ![integration-tests-latest-IPV4-tablets-native-native-gcs]   | Restoration of **Authentication** and **Service Levels** is not supported |
+
+### Release suite
+
 | ScyllaDB version | Workflows                                                                                                                          | Limitations                                                               |
 |------------------|------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
 | **2025.1.16**    | ![integration-tests-2025.1.16-IPV4]<br/>![integration-tests-2025.1.16-IPV6-tablets-nossl]                                          | Restoration of **Authentication** and **Service Levels** is not supported |
-| **2026.1.14**    | ![integration-tests-2026.1.14-IPV4-tablets-native-native]<br/>![integration-tests-2026.1.14-IPV6-nossl-rclone-rclone-localstorage] | Restoration of **Authentication** and **Service Levels** is not supported |
-| **2026.2.7**     | ![integration-tests-2026.2.7-IPV4-tablets-rclone-native]<br/>![integration-tests-2026.2.7-IPV6-nossl-rclone-rclone]                | Restoration of **Authentication** and **Service Levels** is not supported |
-| **2026.3.2**     | ![integration-tests-2026.3.2-IPV4-native-rclone]<br/>![integration-tests-2026.3.2-IPV6-tablets-nossl-rclone-rclone-gcs]            | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.1.15**    | ![integration-tests-2026.1.15-IPV4-tablets-native-native]<br/>![integration-tests-2026.1.15-IPV6-nossl-rclone-rclone-localstorage] | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.2.9**     | ![integration-tests-2026.2.9-IPV4-tablets-rclone-native]<br/>![integration-tests-2026.2.9-IPV6-nossl-rclone-rclone]                | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.3.4**     | ![integration-tests-2026.3.4-IPV4-native-rclone]<br/>![integration-tests-2026.3.4-IPV6-tablets-nossl-rclone-rclone-gcs]            | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.4.0-rc0** | ![integration-tests-2026.4.0-rc0-IPV4-tablets-native-native-gcs]<br/>![integration-tests-2026.4.0-rc0-IPV6-nossl-rclone-rclone]    | Restoration of **Authentication** and **Service Levels** is not supported |
 | **latest**       | ![integration-tests-latest-IPV4-native-native-gcs]<br/>![integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]                | Restoration of **Authentication** and **Service Levels** is not supported |
 
+[integration-tests-2025.1.16-IPV6-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.16-IPV6-nossl.yaml/badge.svg?branch=master
+[integration-tests-2026.4.0-rc0-IPV4-tablets-rclone-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.4.0-rc0-IPV4-tablets-rclone-native.yaml/badge.svg?branch=master
+[integration-tests-latest-IPV4-tablets-native-native-gcs]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV4-tablets-native-native-gcs.yaml/badge.svg?branch=master
 [integration-tests-2025.1.16-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.16-IPV4.yaml/badge.svg?branch=master
 [integration-tests-2025.1.16-IPV6-tablets-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.16-IPV6-tablets-nossl.yaml/badge.svg?branch=master
-[integration-tests-2026.1.14-IPV4-tablets-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.14-IPV4-tablets-native-native.yaml/badge.svg?branch=master
-[integration-tests-2026.1.14-IPV6-nossl-rclone-rclone-localstorage]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.14-IPV6-nossl-rclone-rclone-localstorage.yaml/badge.svg?branch=master
-[integration-tests-2026.2.7-IPV4-tablets-rclone-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.2.7-IPV4-tablets-rclone-native.yaml/badge.svg?branch=master
-[integration-tests-2026.2.7-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.2.7-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=master
-[integration-tests-2026.3.2-IPV4-native-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.3.2-IPV4-native-rclone.yaml/badge.svg?branch=master
-[integration-tests-2026.3.2-IPV6-tablets-nossl-rclone-rclone-gcs]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.3.2-IPV6-tablets-nossl-rclone-rclone-gcs.yaml/badge.svg?branch=master
+[integration-tests-2026.1.15-IPV4-tablets-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.15-IPV4-tablets-native-native.yaml/badge.svg?branch=master
+[integration-tests-2026.1.15-IPV6-nossl-rclone-rclone-localstorage]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.15-IPV6-nossl-rclone-rclone-localstorage.yaml/badge.svg?branch=master
+[integration-tests-2026.2.9-IPV4-tablets-rclone-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.2.9-IPV4-tablets-rclone-native.yaml/badge.svg?branch=master
+[integration-tests-2026.2.9-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.2.9-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=master
+[integration-tests-2026.3.4-IPV4-native-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.3.4-IPV4-native-rclone.yaml/badge.svg?branch=master
+[integration-tests-2026.3.4-IPV6-tablets-nossl-rclone-rclone-gcs]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.3.4-IPV6-tablets-nossl-rclone-rclone-gcs.yaml/badge.svg?branch=master
+[integration-tests-2026.4.0-rc0-IPV4-tablets-native-native-gcs]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.4.0-rc0-IPV4-tablets-native-native-gcs.yaml/badge.svg?branch=master
+[integration-tests-2026.4.0-rc0-IPV6-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.4.0-rc0-IPV6-nossl-rclone-rclone.yaml/badge.svg?branch=master
 [integration-tests-latest-IPV4-native-native-gcs]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV4-native-native-gcs.yaml/badge.svg?branch=master
 [integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest-IPV6-tablets-nossl-rclone-rclone.yaml/badge.svg?branch=master
 
