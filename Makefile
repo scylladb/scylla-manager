@@ -228,7 +228,7 @@ build-cli: ## Build development cli binary
 build-cli: OUTPUT=./sctool.dev
 build-cli:
 	@echo "==> Building sctool"
-	@go build -trimpath -mod=vendor -o $(OUTPUT) ./pkg/cmd/sctool
+	@CGO_ENABLED=0 go build -trimpath -mod=vendor -o $(OUTPUT) ./pkg/cmd/sctool
 
 .PHONY: build-server
 build-server: ## Build development server
