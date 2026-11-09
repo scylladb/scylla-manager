@@ -977,6 +977,7 @@
           }
         },
         "hosts": {
+          "description": "Per host progress. Not populated by the tablet restore method",
           "type": "array",
           "items": {
             "$ref": "#/definitions/RestoreHostProgress"
@@ -995,13 +996,15 @@
           "type": "integer"
         },
         "restored": {
+          "description": "Total bytes restored",
           "type": "integer"
         },
         "downloaded": {
-          "description": "This field is DEPRECATED. Total bytes downloaded from table (included in restored)",
+          "description": "This field is DEPRECATED. Total bytes downloaded from table (included in restored). Populated by the rclone restore method",
           "type": "integer"
         },
         "failed": {
+          "description": "Total bytes that failed to be restored",
           "type": "integer"
         },
         "started_at": {
@@ -1175,13 +1178,15 @@
           "type": "integer"
         },
         "restored": {
+          "description": "Total bytes restored in this keyspace",
           "type": "integer"
         },
         "downloaded": {
-          "description": "This field is DEPRECATED. Total bytes downloaded from table (included in restored)",
+          "description": "This field is DEPRECATED. Total bytes downloaded from table (included in restored). Populated by the rclone restore method",
           "type": "integer"
         },
         "failed": {
+          "description": "Total bytes that failed to be restored in this keyspace",
           "type": "integer"
         },
         "started_at": {
@@ -1224,13 +1229,15 @@
           "type": "integer"
         },
         "restored": {
+          "description": "Total bytes restored in this table",
           "type": "integer"
         },
         "downloaded": {
-          "description": "This field is DEPRECATED. Total bytes downloaded from table (included in restored)",
+          "description": "This field is DEPRECATED. Total bytes downloaded from table (included in restored). Populated by the rclone restore method",
           "type": "integer"
         },
         "failed": {
+          "description": "Total bytes that failed to be restored in this table",
           "type": "integer"
         },
         "started_at": {
@@ -1256,27 +1263,27 @@
           "type": "integer"
         },
         "restored_bytes": {
-          "description": "Total bytes restored by host",
+          "description": "Total bytes restored by host. Populated by the rclone and native restore methods",
           "type": "integer"
         },
         "restore_duration": {
-          "description": "Total time spent by host on restore in milliseconds",
+          "description": "Total time spent by host on restore in milliseconds. Populated by the rclone and native restore methods",
           "type": "integer"
         },
         "downloaded_bytes": {
-          "description": "Total bytes downloaded by host (included in restored_bytes)",
+          "description": "Total bytes downloaded by host (included in restored_bytes). Populated by the rclone restore method",
           "type": "integer"
         },
         "download_duration": {
-          "description": "Total time spent by host on download in milliseconds (included in restore_duration)",
+          "description": "Total time spent by host on download in milliseconds (included in restore_duration). Populated by the rclone restore method",
           "type": "integer"
         },
         "streamed_bytes": {
-          "description": "Total bytes load&streamed by host (included in restored_bytes)",
+          "description": "Total bytes load&streamed by host (included in restored_bytes). Populated by the rclone restore method",
           "type": "integer"
         },
         "stream_duration": {
-          "description": "Total time spent by host on load&stream in milliseconds (included in restore_duration)",
+          "description": "Total time spent by host on load&stream in milliseconds (included in restore_duration). Populated by the rclone restore method",
           "type": "integer"
         }
       }
