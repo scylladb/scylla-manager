@@ -15,10 +15,26 @@ Scylla Manager consists of tree components:
 
 ## Scylla integration status
 
+Integration tests are split into two suites:
+- **PR suite** - executed on every PR and push to `master` or release branch
+- **Release suite** - executed weekly (Sunday night) on `master` and manually before the release
+
+### PR suite
+
 ![integration-tests-pr]
 
 The badge shows the result of the latest push to `master`.
 Tested configurations are defined in the [integration-tests-pr.yaml](.github/workflows/integration-tests-pr.yaml) matrix.
+
+### Release suite
+
+| ScyllaDB version | Workflow                    | Configurations                                                                   | Limitations                                                               |
+|------------------|-----------------------------|----------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| **2025.1.16**    | ![integration-tests-2025.1] | [integration-tests-2025.1.yaml](.github/workflows/integration-tests-2025.1.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.1.14**    | ![integration-tests-2026.1] | [integration-tests-2026.1.yaml](.github/workflows/integration-tests-2026.1.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.2.7**     | ![integration-tests-2026.2] | [integration-tests-2026.2.yaml](.github/workflows/integration-tests-2026.2.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.3.2**     | ![integration-tests-2026.3] | [integration-tests-2026.3.yaml](.github/workflows/integration-tests-2026.3.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
+| **latest**       | ![integration-tests-latest] | [integration-tests-latest.yaml](.github/workflows/integration-tests-latest.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
 
 | ScyllaDB version | Workflows                                                                                                                          | Limitations                                                               |
 |------------------|------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
@@ -29,6 +45,11 @@ Tested configurations are defined in the [integration-tests-pr.yaml](.github/wor
 | **latest**       | ![integration-tests-latest-IPV4-native-native-gcs]<br/>![integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]                | Restoration of **Authentication** and **Service Levels** is not supported |
 
 [integration-tests-pr]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-pr.yaml/badge.svg?branch=master&event=push
+[integration-tests-2025.1]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.yaml/badge.svg?branch=master
+[integration-tests-2026.1]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.yaml/badge.svg?branch=master
+[integration-tests-2026.2]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.2.yaml/badge.svg?branch=master
+[integration-tests-2026.3]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.3.yaml/badge.svg?branch=master
+[integration-tests-latest]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest.yaml/badge.svg?branch=master
 [integration-tests-2025.1.16-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.16-IPV4.yaml/badge.svg?branch=master
 [integration-tests-2025.1.16-IPV6-tablets-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.16-IPV6-tablets-nossl.yaml/badge.svg?branch=master
 [integration-tests-2026.1.14-IPV4-tablets-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.14-IPV4-tablets-native-native.yaml/badge.svg?branch=master
