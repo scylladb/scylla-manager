@@ -15,6 +15,11 @@ Scylla Manager consists of tree components:
 
 ## Scylla integration status
 
+![integration-tests-pr]
+
+The badge shows the result of the latest push to `master`.
+Tested configurations are defined in the [integration-tests-pr.yaml](.github/workflows/integration-tests-pr.yaml) matrix.
+
 | ScyllaDB version | Workflows                                                                                                                          | Limitations                                                               |
 |------------------|------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
 | **2025.1.16**    | ![integration-tests-2025.1.16-IPV4]<br/>![integration-tests-2025.1.16-IPV6-tablets-nossl]                                          | Restoration of **Authentication** and **Service Levels** is not supported |
@@ -23,6 +28,7 @@ Scylla Manager consists of tree components:
 | **2026.3.2**     | ![integration-tests-2026.3.2-IPV4-native-rclone]<br/>![integration-tests-2026.3.2-IPV6-tablets-nossl-rclone-rclone-gcs]            | Restoration of **Authentication** and **Service Levels** is not supported |
 | **latest**       | ![integration-tests-latest-IPV4-native-native-gcs]<br/>![integration-tests-latest-IPV6-tablets-nossl-rclone-rclone]                | Restoration of **Authentication** and **Service Levels** is not supported |
 
+[integration-tests-pr]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-pr.yaml/badge.svg?branch=master&event=push
 [integration-tests-2025.1.16-IPV4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.16-IPV4.yaml/badge.svg?branch=master
 [integration-tests-2025.1.16-IPV6-tablets-nossl]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2025.1.16-IPV6-tablets-nossl.yaml/badge.svg?branch=master
 [integration-tests-2026.1.14-IPV4-tablets-native-native]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.14-IPV4-tablets-native-native.yaml/badge.svg?branch=master
