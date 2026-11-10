@@ -627,6 +627,11 @@ func TestRestoreGetTargetUnitsViewsErrorIntegration(t *testing.T) {
 			error:    "no snapshot with tag",
 			leaveTag: true,
 		},
+		{
+			name:  "invalid location dc prefix",
+			input: "testdata/get_target/invalid_location_dc_prefix.input.json",
+			error: "\"dc3\" not found in cluster",
+		},
 	}
 
 	testBucket, _, _ := getBucketKeyspaceUser(t)
