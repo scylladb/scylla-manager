@@ -28,6 +28,16 @@ Tested configurations are defined in the [integration-tests-pr.yaml](.github/wor
 
 ### Release suite
 
+The release suite can be run manually on any branch from the Actions tab
+(`integration-tests-release` workflow for the whole suite or `integration-tests-<version>` workflow for a single version),
+or with the `gh` CLI:
+
+```bash
+gh workflow run integration-tests-release.yaml --ref <branch>
+```
+
+A single, ad hoc configuration can be run manually with the `integration-tests` workflow.
+
 | ScyllaDB version | Workflow                    | Configurations                                                                   | Limitations                                                               |
 |------------------|-----------------------------|----------------------------------------------------------------------------------|---------------------------------------------------------------------------|
 | **2025.1.16**    | ![integration-tests-2025.1] | [integration-tests-2025.1.yaml](.github/workflows/integration-tests-2025.1.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
