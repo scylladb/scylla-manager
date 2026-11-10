@@ -101,16 +101,16 @@ make run-server
 
 Docker compose environment for test cluster is located in the `testing` directory.
 
-Once `scylla-manager` is bootstrapped use `./sctool` to add information about the cluster to the manager:
+Once `scylla-manager` is bootstrapped use `./sctool.dev` to add information about the cluster to the manager:
 
 ```bash
-./sctool cluster add --host=192.168.100.11 --auth-token token --name my-cluster 
+./sctool.dev cluster add --host=192.168.100.11 --auth-token token --name my-cluster 
 ```
 
 You can ask Scylla Manager to give the status of the cluster:
 
 ```bash
-./sctool status
+./sctool.dev status
 ```
 
 For other commands consult [user manual](https://docs.scylladb.com/operating-scylla/manager/).
