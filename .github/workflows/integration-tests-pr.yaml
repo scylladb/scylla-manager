@@ -49,6 +49,13 @@ jobs:
             ssl-enabled: "true"
             backup-method: native
             restore-method: native
+          - name: 2026.4.0-rc2-tablets-bmnative-rmnative
+            scylla-version: scylla:2026.4.0-rc2
+            ip-family: IPV4
+            tablets: enabled
+            ssl-enabled: "true"
+            backup-method: native
+            restore-method: native
           - name: latest-tablets-bmnative-rmnative-gcs
             scylla-version: scylla-nightly:latest
             ip-family: IPV4

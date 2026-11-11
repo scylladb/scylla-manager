@@ -44,6 +44,7 @@ A single, ad hoc configuration can be run manually with the `integration-tests` 
 | **2026.1.15**    | ![integration-tests-2026.1] | [integration-tests-2026.1.yaml](.github/workflows/integration-tests-2026.1.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
 | **2026.2.10**     | ![integration-tests-2026.2] | [integration-tests-2026.2.yaml](.github/workflows/integration-tests-2026.2.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
 | **2026.3.5**     | ![integration-tests-2026.3] | [integration-tests-2026.3.yaml](.github/workflows/integration-tests-2026.3.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.4.0-rc2** | ![integration-tests-2026.4] | [integration-tests-2026.4.yaml](.github/workflows/integration-tests-2026.4.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
 | **latest**       | ![integration-tests-latest] | [integration-tests-latest.yaml](.github/workflows/integration-tests-latest.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
 
 [integration-tests-pr]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-pr.yaml/badge.svg?branch=master&event=push
@@ -51,6 +52,7 @@ A single, ad hoc configuration can be run manually with the `integration-tests` 
 [integration-tests-2026.1]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.1.yaml/badge.svg?branch=master
 [integration-tests-2026.2]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.2.yaml/badge.svg?branch=master
 [integration-tests-2026.3]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.3.yaml/badge.svg?branch=master
+[integration-tests-2026.4]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-2026.4.yaml/badge.svg?branch=master
 [integration-tests-latest]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-latest.yaml/badge.svg?branch=master
 
 ## Installing and updating Go
