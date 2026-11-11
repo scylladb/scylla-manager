@@ -37,13 +37,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: 2025.1.16-vnodes
-            scylla-version: scylla:2025.1.16
+          - name: 2025.1.17-vnodes
+            scylla-version: scylla:2025.1.17
             ip-family: IPV6
             tablets: disabled
             ssl-enabled: "true"
-          - name: 2026.3.2-tablets-bmnative-rmnative
-            scylla-version: scylla:2026.3.2
+          - name: 2026.3.6-tablets-bmnative-rmnative
+            scylla-version: scylla:2026.3.6
             ip-family: IPV4
             tablets: enabled
             ssl-enabled: "true"

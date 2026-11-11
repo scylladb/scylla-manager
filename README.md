@@ -40,10 +40,10 @@ A single, ad hoc configuration can be run manually with the `integration-tests` 
 
 | ScyllaDB version | Workflow                    | Configurations                                                                   | Limitations                                                               |
 |------------------|-----------------------------|----------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| **2025.1.16**    | ![integration-tests-2025.1] | [integration-tests-2025.1.yaml](.github/workflows/integration-tests-2025.1.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
-| **2026.1.14**    | ![integration-tests-2026.1] | [integration-tests-2026.1.yaml](.github/workflows/integration-tests-2026.1.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
-| **2026.2.7**     | ![integration-tests-2026.2] | [integration-tests-2026.2.yaml](.github/workflows/integration-tests-2026.2.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
-| **2026.3.2**     | ![integration-tests-2026.3] | [integration-tests-2026.3.yaml](.github/workflows/integration-tests-2026.3.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2025.1.17**    | ![integration-tests-2025.1] | [integration-tests-2025.1.yaml](.github/workflows/integration-tests-2025.1.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.1.16**    | ![integration-tests-2026.1] | [integration-tests-2026.1.yaml](.github/workflows/integration-tests-2026.1.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.2.11**     | ![integration-tests-2026.2] | [integration-tests-2026.2.yaml](.github/workflows/integration-tests-2026.2.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
+| **2026.3.6**     | ![integration-tests-2026.3] | [integration-tests-2026.3.yaml](.github/workflows/integration-tests-2026.3.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
 | **latest**       | ![integration-tests-latest] | [integration-tests-latest.yaml](.github/workflows/integration-tests-latest.yaml) | Restoration of **Authentication** and **Service Levels** is not supported |
 
 [integration-tests-pr]: https://github.com/scylladb/scylla-manager/actions/workflows/integration-tests-pr.yaml/badge.svg?branch=master&event=push
