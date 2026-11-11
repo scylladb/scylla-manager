@@ -21,15 +21,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: 2026.3.2-vnodes-bmnative-rmrclone
-            scylla-version: scylla:2026.3.2
+          - name: 2026.3.5-vnodes-bmnative-rmrclone
+            scylla-version: scylla:2026.3.5
             ip-family: IPV4
             tablets: disabled
             ssl-enabled: "true"
             backup-method: native
             restore-method: rclone
-          - name: 2026.3.2-tablets-bmrclone-rmrclone-gcs
-            scylla-version: scylla:2026.3.2
+          - name: 2026.3.5-tablets-bmrclone-rmrclone-gcs
+            scylla-version: scylla:2026.3.5
             ip-family: IPV6
             tablets: enabled
             ssl-enabled: "false"

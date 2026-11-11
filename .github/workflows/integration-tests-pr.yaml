@@ -42,8 +42,8 @@ jobs:
             ip-family: IPV6
             tablets: disabled
             ssl-enabled: "false"
-          - name: 2026.3.2-tablets-bmnative-rmnative
-            scylla-version: scylla:2026.3.2
+          - name: 2026.3.5-tablets-bmnative-rmnative
+            scylla-version: scylla:2026.3.5
             ip-family: IPV4
             tablets: enabled
             ssl-enabled: "true"
