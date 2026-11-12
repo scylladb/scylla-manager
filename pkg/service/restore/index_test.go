@@ -56,7 +56,7 @@ func TestInitMetricsProgress(t *testing.T) {
 				progress: NewTotalRestoreProgress(tc.unitsSize),
 			}
 
-			w.initMetrics(Workload{TotalSize: tc.workloadSize})
+			w.initMetrics(Workload{RcloneNativeWorkload: RcloneNativeWorkload{TotalSize: tc.workloadSize}})
 
 			if got := w.progress.CurrentProgress(); got != tc.expected {
 				t.Errorf("Expected total progress %v after init, got %v", tc.expected, got)

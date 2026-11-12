@@ -19,7 +19,7 @@ type hostBatchInfo struct {
 }
 
 // batchDispatcher is a tool for batching SSTables from
-// Workload across different hosts during restore.
+// RcloneNativeWorkload across different hosts during restore.
 // It follows a few rules:
 //
 // - all SSTables within a batch have the same batchType
@@ -51,7 +51,7 @@ type batchDispatcher struct {
 	wait chan struct{}
 
 	// Const workload defined during indexing
-	workload Workload
+	workload RcloneNativeWorkload
 	// Mutable workloadProgress updated as batches are dispatched
 	workloadProgress workloadProgress
 	// For batchSize X, batches contain X*node_shard_cnt SSTables.
@@ -74,7 +74,7 @@ type batchDispatcher struct {
 	method                Method
 }
 
-func newBatchDispatcher(workload Workload, batchSize int, hostInfo map[string]hostBatchInfo, locationInfo []LocationInfo, method Method) *batchDispatcher {
+func newBatchDispatcher(workload RcloneNativeWorkload, batchSize int, hostInfo map[string]hostBatchInfo, locationInfo []LocationInfo, method Method) *batchDispatcher {
 	sortWorkload(workload)
 	var shards uint
 	for _, hi := range hostInfo {
@@ -121,7 +121,7 @@ type workloadProgress struct {
 	// SSTables grouped by RemoteSSTableDir that are yet to
 	// be batched. They are removed on batch dispatch, but can
 	// be re-added when batch failed to be restored.
-	// workloadProgress.remoteDir and Workload.RemoteDir have
+	// workloadProgress.remoteDir and RcloneNativeWorkload.RemoteDir have
 	// corresponding indexes.
 	remoteDir []remoteSSTableDirProgress
 }
@@ -141,7 +141,7 @@ func (dp *remoteSSTableDirProgress) RemainingSSTableCnt() int {
 	return out
 }
 
-func newWorkloadProgress(workload Workload, locationInfo []LocationInfo) workloadProgress {
+func newWorkloadProgress(workload RcloneNativeWorkload, locationInfo []LocationInfo) workloadProgress {
 	dcSSTable := make(map[string]int)
 	p := make([]remoteSSTableDirProgress, len(workload.RemoteDir))
 	for i, rdw := range workload.RemoteDir {
@@ -541,7 +541,7 @@ func (bd *batchDispatcher) wakeUpWaiting() {
 	bd.wait = make(chan struct{})
 }
 
-func sortWorkload(workload Workload) {
+func sortWorkload(workload RcloneNativeWorkload) {
 	// Order remote sstable dirs by table size, then by their size (decreasing).
 	slices.SortFunc(workload.RemoteDir, func(a, b RemoteDirWorkload) int {
 		ats := workload.TableSize[a.TableName]

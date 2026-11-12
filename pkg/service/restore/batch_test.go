@@ -105,7 +105,7 @@ func TestBatchDispatcher(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l1,
@@ -215,7 +215,7 @@ func TestBatchDispatcherHostWithoutNativeRestore(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l,
@@ -401,7 +401,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			workload := aggregateWorkload(newRawWorkload(tc.sstables))
+			workload := aggregateRcloneNativeWorkload(newRawWorkload(tc.sstables))
 			hostInfo := map[string]hostBatchInfo{
 				"h1": {shardCnt: tc.shardCnt, nativeRestoreSupport: true},
 			}
@@ -457,7 +457,7 @@ func TestBatchDispatcherIntegerID(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l,
@@ -548,7 +548,7 @@ func TestBatchDispatcherMultiHostNative(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l,
@@ -653,7 +653,7 @@ func TestBatchDispatcherMixedSSTables(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l,
@@ -765,7 +765,7 @@ func TestBatchDispatcherNativeFallback(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	hosts := []string{"h1", "h2", "h3"}
 	locationInfo := []LocationInfo{
 		{
@@ -1000,7 +1000,7 @@ func TestBatchDispatcherType(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	batchSize := 3
 	locationHosts := []LocationInfo{
 		{
