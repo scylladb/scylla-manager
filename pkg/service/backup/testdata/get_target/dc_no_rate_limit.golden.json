@@ -16,7 +16,9 @@
         "service_levels",
         "view_build_status",
         "alternator_export_to_s3_client_tokens",
-        "alternator_export_to_s3_exports"
+        "alternator_export_to_s3_exports",
+        "alternator_import_from_s3_client_tokens",
+        "alternator_import_from_s3_imports"
       ],
       "all_tables": true
     },
