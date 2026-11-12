@@ -129,9 +129,13 @@ func (w *tablesWorker) IndexWorkload(ctx context.Context) (Workload, error) {
 
 // indexTabletAwareWorkload returns the tables eligible for tablet aware restore with their metadata.
 func (w *tablesWorker) indexTabletAwareWorkload(ctx context.Context, tables map[cqlTable.CQLTable]struct{}, manifests []ManifestInfoWithContent) (tablet.Workload, error) {
-	tw, err := tablet.NewIndexWorker(ctx, w.logger, w.client, w.clusterSession, w.nodeConfig, w.target.Location)
+	tw, err := tablet.NewIndexWorker(ctx, w.logger, w.client, w.clusterSession)
 	if err != nil {
 		return nil, errors.Wrap(err, "build tablet workload indexer")
+	}
+	if err := w.clusterTabletRestoreSupport(tw); err != nil {
+		w.logger.Info(ctx, "Skipping tablet aware restore", "error", err)
+		return tablet.Workload{}, nil
 	}
 	workload, err := tw.Index(ctx, tables, manifests)
 	if err != nil {
