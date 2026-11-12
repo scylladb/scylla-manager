@@ -74,6 +74,15 @@ func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
 			return err
 		}
 	}
+	if target.Method.explicit(MethodTablet) {
+		tw, err := tablet.NewIndexWorker(ctx, w.logger, w.client, w.clusterSession)
+		if err != nil {
+			return errors.Wrap(err, "build tablet workload indexer")
+		}
+		if err := w.clusterTabletRestoreSupport(tw); err != nil {
+			return errors.Wrap(err, "ensure tablet aware restore")
+		}
+	}
 	if err := w.decorateWithPrevRun(ctx); err != nil {
 		return errors.Wrap(err, "get prev run")
 	}

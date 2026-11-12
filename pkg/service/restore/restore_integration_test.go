@@ -565,10 +565,6 @@ func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			enableTabletAwareRestore = true
-			defer func() {
-				enableTabletAwareRestore = false
-			}()
 			h := newTestHelper(t, tc.srcHosts, tc.dstHosts)
 			loc := testLocation("tablet-aware-smoke", "")
 			InitBucket(t, loc.Path)
@@ -679,7 +675,7 @@ func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
 				grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 				restoreProps := defaultTestProperties(loc, tag, true)
 				restoreProps["keyspace"] = ksFilter
-				restoreProps["method"] = restore.MethodNative
+				restoreProps["method"] = "tablet,native"
 				h.runRestore(t, restoreProps)
 			})
 			if t.Failed() {
@@ -760,10 +756,6 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 	//   to the user, both for complete and interrupted restores
 	// - remaining_bytes and progress metrics follow the tablet aware restore
 	//   progress of complete, interrupted and resumed restores
-	enableTabletAwareRestore = true
-	defer func() {
-		enableTabletAwareRestore = false
-	}()
 	// Using second cluster as src and dst, as tablet aware restore
 	// is currently not supported for multi-dc clusters.
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedSecondClusterHosts())
@@ -808,6 +800,7 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 
 	props := defaultTestProperties(loc, tag, true)
 	props["keyspace"] = []string{ks}
+	props["method"] = restore.MethodTablet
 	rawProps, err := json.Marshal(props)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "marshal properties"))

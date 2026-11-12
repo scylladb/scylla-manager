@@ -110,7 +110,7 @@ func (w *tablesWorker) IndexWorkload(ctx context.Context) (Workload, error) {
 		workload Workload
 		err      error
 	)
-	if w.config.TabletAwareRestoreFeatureFlag {
+	if w.target.Method.allows(MethodTablet) {
 		workload.TabletAwareWorkload, err = w.indexTabletAwareWorkload(ctx, tables, manifests)
 		if err != nil {
 			return Workload{}, errors.Wrap(err, "index tablet aware workload")
@@ -160,7 +160,40 @@ func (w *tablesWorker) indexRcloneNativeWorkload(ctx context.Context, tables map
 	}
 	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	w.logRcloneNativeWorkloadInfo(ctx, workload)
+	if err := validateRcloneNativeWorkload(workload, w.hostInfo, w.target.Method); err != nil {
+		return RcloneNativeWorkload{}, err
+	}
 	return workload, nil
+}
+
+// validateRcloneNativeWorkload ensures that workload can be restored with allowed methods.
+func validateRcloneNativeWorkload(workload RcloneNativeWorkload, hostInfo map[string]HostInfo, method MethodList) error {
+	// MethodRclone does not have any limitations,
+	// if it's allowed, workload can always be restored.
+	if method.allows(MethodRclone) {
+		return nil
+	}
+	// If neither MethodRclone nor MethodNative are allowed,
+	// then workload can't be restored.
+	if !method.allows(MethodNative) {
+		if len(workload.RemoteDir) > 0 {
+			return errors.New("some tables can't be restored with any of the allowed methods")
+		}
+		return nil
+	}
+	// If only MethodNative is allowed, then all
+	// hosts need to support native restore API.
+	for host, hi := range hostInfo {
+		if !hi.NativeRestoreSupport {
+			return errors.Errorf("host %s does not support native restore", host)
+		}
+	}
+	// If only MethodNative is allowed, then the
+	// entire workload needs to be compatible with it.
+	if err := workload.NativeRestoreSupport(); err != nil {
+		return errors.Wrap(err, "ensure native restore support")
+	}
+	return nil
 }
 
 func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, tables map[cqlTable.CQLTable]struct{}, manifests []ManifestInfoWithContent) ([]RemoteDirWorkload, error) {

@@ -364,7 +364,7 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 	}
 
 	// Use native when allowed and supported, otherwise use rclone.
-	// Restore stage already validated that if rclone is not
+	// Workload indexing already validated that if rclone is not
 	// allowed, then all sstables can be restored with native.
 	batchMethod := MethodRclone
 	if bd.method.allows(MethodNative) &&
