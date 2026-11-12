@@ -425,6 +425,11 @@ func TestRestoreGetTargetUnitsViewsIntegration(t *testing.T) {
 			return t.Name
 		})...)
 	}
+	if !CheckAnyConstraint(t, h.Client, ">= 2027.1") {
+		ignoredTables = append(ignoredTables, slices2.Map(scyllatable.ScyllaAlternatorImportTables, func(t scyllatable.CQLTable) string {
+			return t.Name
+		})...)
+	}
 	// It's not possible to create views on tablet keyspaces
 	var ignoredViews []string
 	rd := scyllaclient.NewRingDescriber(context.Background(), h.Client)

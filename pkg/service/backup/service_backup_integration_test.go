@@ -528,6 +528,11 @@ func TestGetTargetIntegration(t *testing.T) {
 			ignoredTables = append(ignoredTables, tab.Name)
 		}
 	}
+	if !CheckAnyConstraint(t, h.Client, ">= 2027.1") {
+		for _, tab := range scyllatable.ScyllaAlternatorImportTables {
+			ignoredTables = append(ignoredTables, tab.Name)
+		}
+	}
 
 	for _, test := range table {
 		t.Run(test.Name, func(t *testing.T) {

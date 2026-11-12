@@ -80,6 +80,16 @@
         "table": "alternator_export_to_s3_exports",
         "tombstone_gc": "timeout",
         "size": 0
+      },
+      {
+        "table": "alternator_import_from_s3_client_tokens",
+        "tombstone_gc": "timeout",
+        "size": 0
+      },
+      {
+        "table": "alternator_import_from_s3_imports",
+        "tombstone_gc": "timeout",
+        "size": 0
       }
     ]
   },

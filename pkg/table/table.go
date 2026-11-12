@@ -68,6 +68,15 @@ var ScyllaAlternatorExportTables = []CQLTable{
 	{Keyspace: "system_distributed", Name: "alternator_export_to_s3_client_tokens"},
 }
 
+// ScyllaAlternatorImportTables lists internal scylla tables storing state
+// and history of alternator imports from S3 and their client tokens.
+// They are backed up, repaired and restored as any other system_distributed table.
+// Those tables are present starting from scylla 2027.1 release.
+var ScyllaAlternatorImportTables = []CQLTable{
+	{Keyspace: "system_distributed", Name: "alternator_import_from_s3_imports"},
+	{Keyspace: "system_distributed", Name: "alternator_import_from_s3_client_tokens"},
+}
+
 // AuditKeyspace stores audit data. It lacks "system" prefix
 // and can be altered by users, but it's still an internal keyspace.
 // See https://docs.scylladb.com/manual/stable/operating-scylla/security/auditing.html.
