@@ -26,7 +26,7 @@ func TestMethodListParse(t *testing.T) {
 		{
 			name:     "auto resolves to all supported methods",
 			method:   MethodAuto,
-			expected: []Method{MethodNative, MethodRclone},
+			expected: []Method{MethodTablet, MethodNative, MethodRclone},
 		},
 		{
 			name:     "single rclone",
@@ -39,9 +39,19 @@ func TestMethodListParse(t *testing.T) {
 			expected: []Method{MethodNative},
 		},
 		{
+			name:     "single tablet",
+			method:   "tablet",
+			expected: []Method{MethodTablet},
+		},
+		{
 			name:     "list is sorted by preference",
 			method:   "rclone,native",
 			expected: []Method{MethodNative, MethodRclone},
+		},
+		{
+			name:     "full list is sorted by preference",
+			method:   "rclone,tablet,native",
+			expected: []Method{MethodTablet, MethodNative, MethodRclone},
 		},
 		{
 			name:     "list with whitespace",
@@ -56,11 +66,6 @@ func TestMethodListParse(t *testing.T) {
 		{
 			name:        "unknown method in list",
 			method:      "native,foo",
-			expectedErr: "unknown method",
-		},
-		{
-			name:        "not yet supported tablet method",
-			method:      "tablet",
 			expectedErr: "unknown method",
 		},
 		{
@@ -112,8 +117,10 @@ func TestMethodListParse(t *testing.T) {
 func TestMethodListQueries(t *testing.T) {
 	testCases := []struct {
 		method         MethodList
+		allowsTablet   bool
 		allowsNative   bool
 		allowsRclone   bool
+		explicitTablet bool
 		explicitNative bool
 	}{
 		{
@@ -122,6 +129,7 @@ func TestMethodListQueries(t *testing.T) {
 		},
 		{
 			method:       MethodAuto,
+			allowsTablet: true,
 			allowsNative: true,
 			allowsRclone: true,
 		},
@@ -140,15 +148,33 @@ func TestMethodListQueries(t *testing.T) {
 			allowsRclone:   true,
 			explicitNative: true,
 		},
+		{
+			method:         "tablet",
+			allowsTablet:   true,
+			explicitTablet: true,
+		},
+		{
+			method:         "tablet,native",
+			allowsTablet:   true,
+			allowsNative:   true,
+			explicitTablet: true,
+			explicitNative: true,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(string(tc.method), func(t *testing.T) {
+			if got := tc.method.allows(MethodTablet); got != tc.allowsTablet {
+				t.Errorf("allows(tablet): expected %v, got %v", tc.allowsTablet, got)
+			}
 			if got := tc.method.allows(MethodNative); got != tc.allowsNative {
 				t.Errorf("allows(native): expected %v, got %v", tc.allowsNative, got)
 			}
 			if got := tc.method.allows(MethodRclone); got != tc.allowsRclone {
 				t.Errorf("allows(rclone): expected %v, got %v", tc.allowsRclone, got)
+			}
+			if got := tc.method.explicit(MethodTablet); got != tc.explicitTablet {
+				t.Errorf("explicit(tablet): expected %v, got %v", tc.explicitTablet, got)
 			}
 			if got := tc.method.explicit(MethodNative); got != tc.explicitNative {
 				t.Errorf("explicit(native): expected %v, got %v", tc.explicitNative, got)
