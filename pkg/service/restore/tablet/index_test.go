@@ -3,16 +3,205 @@
 package tablet
 
 import (
+	"bytes"
+	"net/netip"
+	"path"
+	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
+	"github.com/scylladb/scylla-manager/v3/pkg/table"
+	"github.com/scylladb/scylla-manager/v3/pkg/util2/maps"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/topology"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 // tabletAwareBackupVersion is a version satisfying scyllaTabletAwareBackupSupport.
 const tabletAwareBackupVersion = "2026.1.1"
+
+func TestCheckCluster(t *testing.T) {
+	const endpoint = "192.168.200.99"
+	withEndpoint := configcache.NodeConfig{NodeInfo: &scyllaclient.NodeInfo{
+		RcloneBackendConfig:    models.NodeInfoRcloneBackendConfig{S3: models.NodeInfoRcloneBackendConfigS3{Endpoint: endpoint}},
+		ObjectStorageEndpoints: map[string]models.ObjectStorageEndpoint{endpoint: {Name: endpoint}},
+	}}
+	withoutEndpoint := configcache.NodeConfig{NodeInfo: &scyllaclient.NodeInfo{}}
+	n1, n2 := netip.MustParseAddr("192.168.200.11"), netip.MustParseAddr("192.168.200.12")
+	s3 := []backupspec.Location{{Provider: backupspec.S3, Path: "bucket"}}
+	singleDC := testTopology(dcRack{dc: "dc1", rack: "r1"})
+
+	testCases := []struct {
+		name       string
+		nodeConfig map[netip.Addr]configcache.NodeConfig
+		locations  []backupspec.Location
+		dcMappings map[string]string
+		targetTopo topology.ClusterTopology
+		err        bool
+	}{
+		{
+			name:       "compatible",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint, n2: withEndpoint},
+			locations:  s3,
+			targetTopo: singleDC,
+		},
+		{
+			name:       "dc mapping keeping dc name",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint},
+			locations:  s3,
+			dcMappings: map[string]string{"dc1": "dc1"},
+			targetTopo: singleDC,
+		},
+		{
+			name:       "node without object storage endpoint",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint, n2: withoutEndpoint},
+			locations:  s3,
+			targetTopo: singleDC,
+			err:        true,
+		},
+		{
+			name:       "dc mapping changing dc name",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint},
+			locations:  s3,
+			dcMappings: map[string]string{"dc1": "dc2"},
+			targetTopo: singleDC,
+			err:        true,
+		},
+		{
+			name:       "multi-dc target cluster",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint},
+			locations:  s3,
+			targetTopo: testTopology(dcRack{dc: "dc1", rack: "r1"}, dcRack{dc: "dc2", rack: "r1"}),
+			err:        true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			w := &IndexWorker{
+				logger:         log.NopLogger,
+				targetTopology: tc.targetTopo,
+			}
+
+			err := w.CheckCluster(tc.nodeConfig, tc.locations, tc.dcMappings)
+			if tc.err && err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !tc.err && err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+		})
+	}
+}
+
+func TestIndex(t *testing.T) {
+	const (
+		dc             = "dc1"
+		version        = "v1"
+		scyllaManifest = "manifest"
+	)
+	// Keep manifest index files in the test temp dir.
+	// When indexing tablet aware restore workload, worker operates on
+	// manifests with Index saved on disk, so we need to replicate that
+	// for this test.
+	t.Setenv("TMPDIR", t.TempDir())
+
+	tab := table.CQLTable{Keyspace: "ks", Name: "tab"}
+	vnodeTab := table.CQLTable{Keyspace: "vnode_ks", Name: "tab"}
+	missingTab := table.CQLTable{Keyspace: "ks", Name: "missing_tab"}
+	fm := backupspec.FilesMeta{
+		Keyspace:        tab.Keyspace,
+		Table:           tab.Name,
+		ReplicationType: string(scyllaclient.ReplicationTablet),
+		Version:         version,
+		Files:           []string{"me-3g7k_098r_4wtqo2asamoc1i8h9n-big-Data.db", "me-3g7k_098r_4wtqo2asamoc1i8h9n-big-TOC.txt"},
+		Size:            10,
+		ScyllaManifests: []string{scyllaManifest},
+	}
+	vnodeFM := fm
+	vnodeFM.Keyspace = vnodeTab.Keyspace
+	vnodeFM.ReplicationType = string(scyllaclient.ReplicationVnode)
+	m1 := testManifestWithIndex(t, dc, "r1", "n1", fm, vnodeFM)
+	m2 := testManifestWithIndex(t, dc, "r2", "n2", fm, vnodeFM)
+	tabWorkload := Workload{
+		tab: {
+			Table: tab,
+			Datacenters: map[string]DcMeta{
+				dc: {
+					DC:       dc,
+					Provider: m1.Location.Provider,
+					Bucket:   m1.Location.Path,
+					RemoteManifests: []string{
+						path.Join(m1.SSTableVersionDir(tab.Keyspace, tab.Name, version), scyllaManifest),
+						path.Join(m2.SSTableVersionDir(tab.Keyspace, tab.Name, version), scyllaManifest),
+					},
+				},
+			},
+			FileCnt: 4,
+			Size:    20,
+		},
+	}
+
+	testCases := []struct {
+		name     string
+		tables   []table.CQLTable
+		expected Workload
+		err      bool
+	}{
+		{
+			name:     "table found in manifests",
+			tables:   []table.CQLTable{tab},
+			expected: tabWorkload,
+		},
+		{
+			name:     "table not eligible for tablet aware restore",
+			tables:   []table.CQLTable{tab, vnodeTab},
+			expected: tabWorkload,
+		},
+		{
+			name:   "table not found in manifests",
+			tables: []table.CQLTable{tab, missingTab},
+			err:    true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			w := &IndexWorker{
+				logger:         log.NopLogger,
+				targetTopology: testTopology(dcRack{dc: dc, rack: "r1"}, dcRack{dc: dc, rack: "r2"}),
+				isTablet:       func(string) bool { return true },
+			}
+
+			workload, err := w.Index(t.Context(), maps.SetFromSlice(tc.tables), []backupspec.ManifestInfoWithContent{m1, m2})
+			if tc.err {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			// Manifests are indexed in parallel
+			for _, tm := range workload {
+				for _, dcm := range tm.Datacenters {
+					slices.Sort(dcm.RemoteManifests)
+				}
+			}
+			if !reflect.DeepEqual(workload, tc.expected) {
+				t.Fatalf("expected workload %v, got %v", tc.expected, workload)
+			}
+		})
+	}
+}
 
 func TestCheckManifestsCompatibility(t *testing.T) {
 	testCases := []struct {
@@ -30,14 +219,6 @@ func TestCheckManifestsCompatibility(t *testing.T) {
 			},
 			targetTopo: testTopology(dcRack{dc: "dc1", rack: "r1"}, dcRack{dc: "dc1", rack: "r2"}),
 			ok:         true,
-		},
-		{
-			name: "incompatible with multi-dc target cluster",
-			manifests: []backupspec.ManifestInfoWithContent{
-				testManifest("dc1", "r1", "n1", tabletAwareBackupVersion),
-			},
-			targetTopo: testTopology(dcRack{dc: "dc1", rack: "r1"}, dcRack{dc: "dc2", rack: "r1"}),
-			ok:         false,
 		},
 		{
 			name: "manifest with too old scylla version",
@@ -229,6 +410,24 @@ func testManifest(dc, rack, nodeID, scyllaVersion string) backupspec.ManifestInf
 	m.ManifestInfo.NodeID = nodeID
 	m.ManifestContentWithIndex.Rack = rack
 	m.ManifestContentWithIndex.ScyllaVersion = scyllaVersion
+	return m
+}
+
+// testManifestWithIndex is testManifest with index saved in both manifest Index and on disk.
+// This allows both Index access patterns: directly from memory, iterator from file.
+func testManifestWithIndex(t *testing.T, dc, rack, nodeID string, index ...backupspec.FilesMeta) backupspec.ManifestInfoWithContent {
+	t.Helper()
+
+	m := testManifest(dc, rack, nodeID, tabletAwareBackupVersion)
+	m.Location = backupspec.Location{Provider: backupspec.S3, Path: "bucket"}
+	m.Index = index
+	buf := &bytes.Buffer{}
+	if err := m.Write(buf); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Read(buf); err != nil {
+		t.Fatal(err)
+	}
 	return m
 }
 

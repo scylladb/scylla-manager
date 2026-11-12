@@ -67,41 +67,10 @@ type IndexWorker struct {
 	targetTopology topology.ClusterTopology
 	// Returns true if keyspace is replicated with tablets in target cluster.
 	isTablet func(ks string) bool
-	// Flag marking that tablet aware restore workload indexing should be skipped
-	// due to it being unsupported or unconfigured on a cluster level.
-	skipIndexing bool
 }
 
 // NewIndexWorker is a constructor for IndexWorker.
-func NewIndexWorker(ctx context.Context, logger log.Logger, client *scyllaclient.Client, clusterSession gocqlx.Session,
-	nodeConfig map[netip.Addr]configcache.NodeConfig, locations []backupspec.Location,
-) (*IndexWorker, error) {
-	// Check nodes support tablet restore API
-	for addr, nc := range nodeConfig {
-		ok, err := nc.SupportsTabletRestoreAPI()
-		if err != nil {
-			return nil, errors.Wrapf(err, "check node %s tablet restore API support", addr)
-		}
-		if !ok {
-			logger.Info(ctx, "Node does not support tablet restore API (available from 2026.3)",
-				"node", addr, "version", nc.ScyllaVersion)
-			return &IndexWorker{skipIndexing: true}, nil
-		}
-	}
-	// Check nodes have object storage endpoint configured
-	locProviders := maps.SetFromSlice(slices2.Map(locations, func(l backupspec.Location) backupspec.Provider {
-		return l.Provider
-	}))
-	for addr, nc := range nodeConfig {
-		for p := range locProviders {
-			_, err := nc.ScyllaObjectStorageEndpoint(p)
-			if err != nil {
-				logger.Info(ctx, "Node does not have object storage endpoint configured",
-					"node", addr, "provider", p, "error", err)
-				return &IndexWorker{skipIndexing: true}, nil
-			}
-		}
-	}
+func NewIndexWorker(ctx context.Context, logger log.Logger, client *scyllaclient.Client, clusterSession gocqlx.Session) (*IndexWorker, error) {
 	// Build target topology
 	sessionIter := topology.BuildSessionIter(ctx, clusterSession.Session, false)
 	targetTopo := topology.BuildClusterTopology(sessionIter.Iter)
@@ -117,6 +86,34 @@ func NewIndexWorker(ctx context.Context, logger log.Logger, client *scyllaclient
 	}, nil
 }
 
+// CheckCluster makes the initial validation needed for using tablet aware restore API.
+// It does not contain scylla version check or anything related to backed up data or
+// restore target cluster schema.
+func (w *IndexWorker) CheckCluster(nodeConfig map[netip.Addr]configcache.NodeConfig, locations []backupspec.Location, dcMappings map[string]string) error {
+	// Check nodes have object storage endpoint configured
+	locProviders := maps.SetFromSlice(slices2.Map(locations, func(l backupspec.Location) backupspec.Provider {
+		return l.Provider
+	}))
+	for addr, nc := range nodeConfig {
+		for p := range locProviders {
+			if _, err := nc.ScyllaObjectStorageEndpoint(p); err != nil {
+				return errors.Wrapf(err, "check node %s %s object storage endpoint", addr, p)
+			}
+		}
+	}
+	// Tablet restore API restores data into the DC it was backed up from
+	for src, dst := range dcMappings {
+		if src != dst {
+			return errors.Errorf("DC mapping changes source DC name (%q to %q)", src, dst)
+		}
+	}
+	// Scylla limitation that will be removed in the future
+	if n := len(w.targetTopology.DCs); n != 1 {
+		return errors.Errorf("target cluster has %d DCs (tablet aware restore supports only single DC clusters)", n)
+	}
+	return nil
+}
+
 // Index gathers data needed for restoring given tables with tablet aware restore
 // based on provided manifests and their indexes. Returned map contains entries
 // only for the tables eligible for tablet aware restore.
@@ -125,9 +122,6 @@ func (w *IndexWorker) Index(ctx context.Context, tables map[table.CQLTable]struc
 	defer w.logger.Info(ctx, "Finished indexing tablet aware restore workload")
 
 	workload := make(Workload)
-	if w.skipIndexing {
-		return workload, nil
-	}
 	if ok, err := w.checkManifestsCompatibility(ctx, manifests); err != nil {
 		return nil, errors.Wrap(err, "check manifests compatibility")
 	} else if !ok {
@@ -207,11 +201,10 @@ func (w *IndexWorker) Index(ctx context.Context, tables map[table.CQLTable]struc
 		return nil, err
 	}
 
-	// Cleanup not encountered tables
 	for t, tm := range workload {
+		// Tables and manifests come from the same backup, so this shouldn't happen
 		if len(tm.Datacenters) == 0 {
-			delete(workload, t)
-			continue
+			return nil, errors.Errorf("table %s not found in manifests", t)
 		}
 		// Scylla API limitation that will be removed in the future
 		if len(tm.Datacenters) != 1 {
@@ -260,12 +253,6 @@ func (w *IndexWorker) checkManifestsCompatibility(ctx context.Context, manifests
 		w.logger.Info(ctx, "Backup cluster topology contains data centers or racks not present in target cluster topology "+
 			"(they can be excluded from restore procedure with --dc-mapping)",
 			"backup topology", backupTopo, "target topology", w.targetTopology)
-		return false, nil
-	}
-
-	// Scylla limitation that will be removed in the future
-	if len(w.targetTopology.DCs) != 1 {
-		w.logger.Info(ctx, "Tablet-aware restore is supported only when restoring into a single DC cluster")
 		return false, nil
 	}
 
