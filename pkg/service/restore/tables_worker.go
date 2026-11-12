@@ -213,7 +213,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 	}
 
 	if w.target.Method == MethodNative {
-		if err := workload.NativeRestoreSupport(); err != nil {
+		if err := workload.RcloneNativeWorkload.NativeRestoreSupport(); err != nil {
 			return errors.Wrap(err, "ensure native restore support")
 		}
 	}
@@ -256,7 +256,7 @@ func (w *tablesWorker) stageRestoreData(ctx context.Context) error {
 			nativeRestoreSupport: hi.NativeRestoreSupport,
 		}
 	}
-	bd := newBatchDispatcher(workload, w.target.BatchSize, hbi, w.target.locationInfo, w.target.Method).
+	bd := newBatchDispatcher(workload.RcloneNativeWorkload, w.target.BatchSize, hbi, w.target.locationInfo, w.target.Method).
 		withRcloneBatchFileCountLimit(scyllaclient.MaxSStableComponentCountInReqBody)
 
 	f := func(n int) error {

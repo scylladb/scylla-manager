@@ -28,6 +28,15 @@ import (
 // Workload represents all backup metadata needed for tablet aware restore purposes.
 type Workload map[table.CQLTable]TableMeta
 
+// TotalSize returns the size of all tables in the workload.
+func (w Workload) TotalSize() int64 {
+	var size int64
+	for _, tm := range w {
+		size += tm.Size
+	}
+	return size
+}
+
 // TableMeta represents metadata needed for restoring table with tablet aware restore.
 type TableMeta struct {
 	Table table.CQLTable
