@@ -201,10 +201,12 @@ func (ni *NodeInfo) SupportsNativeRestoreAPI() (bool, error) {
 	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2026.1")
 }
 
-// SupportsTabletRestoreAPI returns whether node exposes /storage_service/tablets/restore API.
+// SupportsTabletRestoreAPI returns whether node supports /storage_service/tablets/restore API.
+// Note that this API is exposed from scylla 2026.3, has some not yet backported bugs,
+// see https://scylladb.atlassian.net/browse/SCYLLADB-4723.
 func (ni *NodeInfo) SupportsTabletRestoreAPI() (bool, error) {
 	// Check ENT
-	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2026.3")
+	return scyllaversion.CheckConstraint(ni.ScyllaVersion, ">= 2026.4")
 }
 
 // DescribeSchemaContainsLogicalIndexName returns whether node output of DESCRIBE SCHEMA

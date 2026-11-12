@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/restore/tablet"
+	"github.com/scylladb/scylla-manager/v3/pkg/sstable"
 	cqlTable "github.com/scylladb/scylla-manager/v3/pkg/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -206,4 +208,113 @@ func gatherGauge(t *testing.T, reg *prometheus.Registry, name string, labels pro
 		t.Fatalf("Expected a single %s series with labels %v, got %d", name, labels, len(found))
 	}
 	return found[0]
+}
+
+func TestValidateRcloneNativeWorkload(t *testing.T) {
+	newWorkload := func(id sstable.ID) RcloneNativeWorkload {
+		return aggregateRcloneNativeWorkload([]RemoteDirWorkload{
+			{
+				ManifestInfo: &backupspec.ManifestInfo{
+					Location: backupspec.Location{Provider: "s3", Path: "l"},
+					DC:       "dc1",
+				},
+				TableName: TableName{
+					Keyspace: "ks1",
+					Table:    "t1",
+				},
+				RemoteSSTableDir: "a",
+				Size:             10,
+				SSTables:         []RemoteSSTable{{SSTable: SSTable{ID: id}, Size: 10}},
+			},
+		})
+	}
+
+	testCases := []struct {
+		name                 string
+		method               MethodList
+		id                   sstable.ID
+		emptyWorkload        bool
+		nativeRestoreSupport bool
+		err                  bool
+	}{
+		{
+			name:   "auto with host without native restore support",
+			method: MethodAuto,
+			id:     sstable.ID{Type: sstable.UUID},
+		},
+		{
+			name:                 "auto with integer ID sstable",
+			method:               MethodAuto,
+			id:                   sstable.ID{Type: sstable.IntegerID},
+			nativeRestoreSupport: true,
+		},
+		{
+			name:                 "native with native restore support",
+			method:               "native",
+			id:                   sstable.ID{Type: sstable.UUID},
+			nativeRestoreSupport: true,
+		},
+		{
+			name:   "native with host without native restore support",
+			method: "native",
+			id:     sstable.ID{Type: sstable.UUID},
+			err:    true,
+		},
+		{
+			name:                 "native with integer ID sstable",
+			method:               "native",
+			id:                   sstable.ID{Type: sstable.IntegerID},
+			nativeRestoreSupport: true,
+			err:                  true,
+		},
+		{
+			name:   "native,rclone with host without native restore support",
+			method: "native,rclone",
+			id:     sstable.ID{Type: sstable.IntegerID},
+		},
+		{
+			name:                 "tablet with non-empty workload",
+			method:               "tablet",
+			id:                   sstable.ID{Type: sstable.UUID},
+			nativeRestoreSupport: true,
+			err:                  true,
+		},
+		{
+			name:          "tablet with empty workload",
+			method:        "tablet",
+			emptyWorkload: true,
+		},
+		{
+			name:                 "tablet,native with non-empty workload",
+			method:               "tablet,native",
+			id:                   sstable.ID{Type: sstable.UUID},
+			nativeRestoreSupport: true,
+		},
+		{
+			name:                 "tablet,native with integer ID sstable",
+			method:               "tablet,native",
+			id:                   sstable.ID{Type: sstable.IntegerID},
+			nativeRestoreSupport: true,
+			err:                  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			hostInfo := map[string]HostInfo{
+				"h1": {Host: "h1", NativeRestoreSupport: tc.nativeRestoreSupport},
+			}
+			workload := newWorkload(tc.id)
+			if tc.emptyWorkload {
+				workload = RcloneNativeWorkload{}
+			}
+			err := validateRcloneNativeWorkload(workload, hostInfo, tc.method)
+			if tc.err && err == nil {
+				t.Fatal("Expected error, got nil")
+			}
+			if !tc.err && err != nil {
+				t.Fatalf("Unexpected error: %s", err)
+			}
+		})
+	}
 }

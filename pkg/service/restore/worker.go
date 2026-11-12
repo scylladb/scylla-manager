@@ -74,6 +74,15 @@ func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
 			return err
 		}
 	}
+	if target.Method.explicit(MethodTablet) {
+		tw, err := tablet.NewIndexWorker(ctx, w.logger, w.client, w.clusterSession)
+		if err != nil {
+			return errors.Wrap(err, "build tablet workload indexer")
+		}
+		if err := w.clusterTabletRestoreSupport(tw); err != nil {
+			return errors.Wrap(err, "ensure tablet aware restore")
+		}
+	}
 	if err := w.decorateWithPrevRun(ctx); err != nil {
 		return errors.Wrap(err, "get prev run")
 	}
@@ -108,7 +117,7 @@ func (w *worker) clusterTabletRestoreSupport(tw *tablet.IndexWorker) error {
 				return errors.Wrapf(err, "check node %s tablet restore API support", addr)
 			}
 			if !ok {
-				return errors.Errorf("node %s with scylla version %s does not support tablet restore API (available from 2026.3)", addr, nc.ScyllaVersion)
+				return errors.Errorf("node %s with scylla version %s does not support tablet restore API (production ready from 2026.4)", addr, nc.ScyllaVersion)
 			}
 		}
 	}

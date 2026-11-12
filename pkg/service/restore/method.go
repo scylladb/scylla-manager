@@ -38,7 +38,7 @@ const defaultMethod = MethodList(MethodRclone)
 var methodOrder = []Method{MethodTablet, MethodNative, MethodRclone}
 
 // supportedMethods lists methods accepted in MethodList.
-var supportedMethods = []Method{MethodNative, MethodRclone}
+var supportedMethods = []Method{MethodTablet, MethodNative, MethodRclone}
 
 // validateMethod validates Target.Method.
 func (t Target) validateMethod() error {
