@@ -125,6 +125,10 @@ type ManifestContent struct {
 	CPUCount        int             `json:"cpu_count"`
 	StorageSize     uint64          `json:"storage_size"`
 	InstanceDetails InstanceDetails `json:"instance_details"`
+	// EncryptionKeys lists the distinct encryption at rest keys of the node's
+	// backed up SSTables, as Scylla reports them in sstable_info. Empty when
+	// the SSTables are not encrypted or the keys could not be collected.
+	EncryptionKeys []EncryptionKey `json:"encryption_keys,omitempty"`
 
 	// Fields below are also persent in the manifest file path.
 	DC          string    `json:"dc"`
@@ -139,6 +143,23 @@ type ManifestContent struct {
 type InstanceDetails struct {
 	CloudProvider string `json:"cloud_provider,omitempty"`
 	InstanceType  string `json:"instance_type,omitempty"`
+}
+
+// EncryptionKey identifies a key that encrypted some of the backed up SSTables.
+// Field names follow Scylla's scylla_encryption_options. For a host based key
+// provider (KMS, GCP, Azure, KMIP) exactly one of the host fields is set.
+// The per SSTable key_id is left out on purpose: it differs between SSTables
+// encrypted with the same key.
+type EncryptionKey struct {
+	Provider          string `json:"provider"`
+	KmsHost           string `json:"kms_host,omitempty"`
+	GcpHost           string `json:"gcp_host,omitempty"`
+	AzureHost         string `json:"azure_host,omitempty"`
+	KmipHost          string `json:"kmip_host,omitempty"`
+	MasterKey         string `json:"master_key,omitempty"`
+	SecretKeyFile     string `json:"secret_key_file,omitempty"`
+	CipherAlgorithm   string `json:"cipher_algorithm,omitempty"`
+	SecretKeyStrength string `json:"secret_key_strength,omitempty"`
 }
 
 // ManifestContentWithIndex is structure containing information about the backup
