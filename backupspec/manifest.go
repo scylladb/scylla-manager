@@ -145,21 +145,16 @@ type InstanceDetails struct {
 	InstanceType  string `json:"instance_type,omitempty"`
 }
 
-// EncryptionKey identifies a key that encrypted some of the backed up SSTables.
-// Field names follow Scylla's scylla_encryption_options. For a host based key
-// provider (KMS, GCP, Azure, KMIP) exactly one of the host fields is set.
-// The per SSTable key_id is left out on purpose: it differs between SSTables
-// encrypted with the same key.
+// EncryptionKey identifies a key that encrypted some of the backed up SSTables,
+// as Scylla reports it in the SSTable's scylla_encryption_options.
 type EncryptionKey struct {
-	Provider          string `json:"provider"`
-	KmsHost           string `json:"kms_host,omitempty"`
-	GcpHost           string `json:"gcp_host,omitempty"`
-	AzureHost         string `json:"azure_host,omitempty"`
-	KmipHost          string `json:"kmip_host,omitempty"`
-	MasterKey         string `json:"master_key,omitempty"`
-	SecretKeyFile     string `json:"secret_key_file,omitempty"`
-	CipherAlgorithm   string `json:"cipher_algorithm,omitempty"`
-	SecretKeyStrength string `json:"secret_key_strength,omitempty"`
+	// Provider is Scylla's key provider name, e.g. KmsKeyProviderFactory.
+	Provider string `json:"provider"`
+	// KmsHost is the name of the key's host in Scylla's configuration:
+	// kms_host for AWS KMS keys, gcp_host for GCP keys.
+	KmsHost string `json:"kms_host"`
+	// KeyID is Scylla's key_id of the SSTable's data key.
+	KeyID string `json:"key_id"`
 }
 
 // ManifestContentWithIndex is structure containing information about the backup
