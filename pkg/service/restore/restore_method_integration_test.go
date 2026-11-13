@@ -166,7 +166,7 @@ func setupRestoreMethodFixture(t *testing.T) restoreMethodFixture {
 	InitBucket(t, loc.Path)
 	ksFilter := []string{ks}
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 
 	return restoreMethodFixture{
 		h:   h,
@@ -277,7 +277,7 @@ func TestRestoreFullChangingMethodIntegration(t *testing.T) {
 			Retention:     3,
 		},
 	}
-	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	grantRestoreSchemaPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, h.dstUser)
 
 	type testIter struct {
 		backupMethod backup.Method
@@ -304,7 +304,7 @@ func TestRestoreFullChangingMethodIntegration(t *testing.T) {
 		h.runRestore(t, restoreProps)
 
 		t.Log("Restore tables: ", i)
-		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 		restoreProps = defaultTestProperties(loc, tag, true)
 		h.runRestore(t, restoreProps)
 
