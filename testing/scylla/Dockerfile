@@ -9,8 +9,11 @@ USER root
 # images (e.g., 2025.1.12) can contain stale signing keys for those repositories.
 # We don't have any reinstall/upgrade test scenarios in SM CI, but if we would
 # like to implement them, then we would need to come up with a different workaround.
-RUN (rm -f /etc/apt/sources.list.d/*scylla* && apt-get update && apt-get install -y iptables less net-tools openssh-server) || \
-    (microdnf install --refresh -y iptables less net-tools openssh-server)
+RUN (rm -f /etc/apt/sources.list.d/*scylla* && apt-get update && \
+     apt-get install -y --no-install-recommends iptables less net-tools openssh-server && \
+     rm -rf /var/lib/apt/lists/*) || \
+    (microdnf install --refresh -y --nodocs --setopt=install_weak_deps=0 iptables less net-tools openssh-server && \
+     microdnf clean all)
 
 # Set root password
 RUN echo "root:root" | chpasswd root
