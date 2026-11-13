@@ -40,6 +40,7 @@ type command struct {
 	showTables      bool
 	dcMapping       map[string]string
 	method          string
+	sourceClusterID string
 }
 
 func NewCommand(client *managerclient.Client) *cobra.Command {
@@ -95,6 +96,7 @@ func (cmd *command) init() {
 	w.Unwrap().BoolVar(&cmd.showTables, "show-tables", false, "")
 	w.Unwrap().StringToStringVar(&cmd.dcMapping, "dc-mapping", nil, "")
 	w.Unwrap().StringVar(&cmd.method, "method", "rclone", "")
+	w.Unwrap().StringVar(&cmd.sourceClusterID, "source-cluster-id", "", "")
 }
 
 func (cmd *command) run(args []string) error {
@@ -196,6 +198,13 @@ func (cmd *command) run(args []string) error {
 	}
 	if cmd.Flag("method").Changed {
 		props["method"] = cmd.method
+		ok = true
+	}
+	if cmd.Flag("source-cluster-id").Changed {
+		if cmd.Update() {
+			return wrapper("source-cluster-id")
+		}
+		props["source_cluster_id"] = cmd.sourceClusterID
 		ok = true
 	}
 

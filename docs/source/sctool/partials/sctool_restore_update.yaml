@@ -158,6 +158,11 @@ options:
       usage: |
         Scylla Manager snapshot tag identifying restored backup.
         Snapshot tags can be obtained from backup listing ('./sctool backup list' command - e.g. sm_20060102150405UTC).
+    - name: source-cluster-id
+      usage: |
+        Restores only the snapshot files of the cluster with this Scylla Manager cluster ID.
+        Use it when the backup location holds backups of several clusters, which can share a snapshot tag.
+        Without it, restore reads the files of every cluster with the given snapshot tag.
     - name: start-date
       shorthand: s
       usage: |
