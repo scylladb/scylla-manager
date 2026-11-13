@@ -30,22 +30,26 @@ func TestEncryptionKeys(t *testing.T) {
 		s.ExtendedProperties = append(s.ExtendedProperties, g)
 		return s
 	}
+	// Shapes as on lab: AWS cluster 9 and GCP cluster 8, Scylla 2026.3.5.
 	kmsA := map[string]string{
-		"key_provider": "KmsKeyProviderFactory", "kms_host": "key-a", "key_id": "id-1",
-		"cipher_algorithm": "AES/CBC/PKCS5Padding", "secret_key_strength": "128", "components": "Data",
+		"components": "Data", "enabled": "true", "key_id": "61726e3a01",
+		"key_provider": "KmsKeyProviderFactory", "kms_host": "key-a",
 	}
-	// Same key, another SSTable data key and component set.
+	// Same key, a newer data key after Scylla's key cache expiry.
 	kmsASecondSSTable := map[string]string{
-		"key_provider": "KmsKeyProviderFactory", "kms_host": "key-a", "key_id": "id-2",
-		"cipher_algorithm": "AES/CBC/PKCS5Padding", "secret_key_strength": "128", "components": "Data, Index",
+		"components": "Data, Index", "enabled": "true", "key_id": "61726e3a02",
+		"key_provider": "KmsKeyProviderFactory", "kms_host": "key-a",
 	}
-	gcpB := map[string]string{"key_provider": "GcpKeyProviderFactory", "gcp_host": "key-b", "key_id": "id-3"}
+	gcpB := map[string]string{"key_provider": "GcpKeyProviderFactory", "gcp_host": "key-b", "key_id": "0a24"}
+	// A provider without a named host.
+	local := map[string]string{
+		"key_provider": "LocalFileSystemKeyProviderFactory", "secret_key_file": "/etc/scylla/keys/k",
+		"cipher_algorithm": "AES/CBC/PKCS5Padding", "secret_key_strength": "128",
+	}
 
-	wantKmsA := backupspec.EncryptionKey{
-		Provider: "KmsKeyProviderFactory", KmsHost: "key-a",
-		CipherAlgorithm: "AES/CBC/PKCS5Padding", SecretKeyStrength: "128",
-	}
-	wantGcpB := backupspec.EncryptionKey{Provider: "GcpKeyProviderFactory", GcpHost: "key-b"}
+	wantKmsA := backupspec.EncryptionKey{Provider: "KmsKeyProviderFactory", Host: "key-a"}
+	wantGcpB := backupspec.EncryptionKey{Provider: "GcpKeyProviderFactory", Host: "key-b"}
+	wantLocal := backupspec.EncryptionKey{Provider: "LocalFileSystemKeyProviderFactory"}
 
 	backedUp := map[string]map[string]struct{}{"ks": {"t1": {}, "t2": {}}}
 
@@ -78,6 +82,14 @@ func TestEncryptionKeys(t *testing.T) {
 			},
 			tables: backedUp,
 			want:   []backupspec.EncryptionKey{wantGcpB, wantKmsA},
+		},
+		{
+			name: "provider without a named host",
+			infos: []scyllaclient.TableSSTables{
+				{Keyspace: "ks", Table: "t1", SSTables: []scyllaclient.SSTableInfo{sstable(local), sstable(kmsA)}},
+			},
+			tables: backedUp,
+			want:   []backupspec.EncryptionKey{wantKmsA, wantLocal},
 		},
 		{
 			name: "tables not in the snapshot are ignored",

@@ -41,7 +41,7 @@ func (w *worker) hostEncryptionKeys(ctx context.Context, h hostInfo, dirs []snap
 	return encryptionKeys(infos, tables)
 }
 
-// encryptionKeys returns the distinct keys of the SSTables of the given
+// encryptionKeys returns the distinct keys (provider, host) of the SSTables of the given
 // tables (keyspace -> table set), sorted for a stable manifest.
 func encryptionKeys(infos []scyllaclient.TableSSTables, tables map[string]map[string]struct{}) []backupspec.EncryptionKey {
 	set := make(map[backupspec.EncryptionKey]struct{})
@@ -71,23 +71,24 @@ func encryptionKeys(infos []scyllaclient.TableSSTables, tables map[string]map[st
 	return out
 }
 
-// encryptionKeyFromOptions maps scylla_encryption_options to a manifest key.
-// The per SSTable key_id and the list of encrypted components are dropped.
+// encryptionKeyHostOptions are the scylla_encryption_options naming the key's
+// host, in the order they are looked up.
+var encryptionKeyHostOptions = []string{"kms_host", "gcp_host", "azure_host", "kmip_host"}
+
+// encryptionKeyFromOptions maps scylla_encryption_options to a manifest key:
+// the provider and the first named host it reports. Data key IDs, key
+// material paths and cipher options are dropped.
 func encryptionKeyFromOptions(opts map[string]string) backupspec.EncryptionKey {
-	return backupspec.EncryptionKey{
-		Provider:          opts["key_provider"],
-		KmsHost:           opts["kms_host"],
-		GcpHost:           opts["gcp_host"],
-		AzureHost:         opts["azure_host"],
-		KmipHost:          opts["kmip_host"],
-		MasterKey:         opts["master_key"],
-		SecretKeyFile:     opts["secret_key_file"],
-		CipherAlgorithm:   opts["cipher_algorithm"],
-		SecretKeyStrength: opts["secret_key_strength"],
+	k := backupspec.EncryptionKey{Provider: opts["key_provider"]}
+	for _, o := range encryptionKeyHostOptions {
+		if h := opts[o]; h != "" {
+			k.Host = h
+			break
+		}
 	}
+	return k
 }
 
 func encryptionKeySortKey(k backupspec.EncryptionKey) string {
-	return k.Provider + "\x00" + k.KmsHost + "\x00" + k.GcpHost + "\x00" + k.AzureHost + "\x00" + k.KmipHost +
-		"\x00" + k.MasterKey + "\x00" + k.SecretKeyFile + "\x00" + k.CipherAlgorithm + "\x00" + k.SecretKeyStrength
+	return k.Provider + "\x00" + k.Host
 }

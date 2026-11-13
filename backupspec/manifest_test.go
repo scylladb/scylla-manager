@@ -128,13 +128,15 @@ func TestManifestContentEncryptionKeys(t *testing.T) {
 			wantKeys: nil,
 		},
 		{
-			name: "KMS and GCP keys",
+			name: "host based and local keys",
 			json: `{"version":"v2","encryption_keys":[` +
-				`{"provider":"KmsKeyProviderFactory","kms_host":"key-a","cipher_algorithm":"AES/CBC/PKCS5Padding","secret_key_strength":"128"},` +
-				`{"provider":"GcpKeyProviderFactory","gcp_host":"key-b"}]}`,
+				`{"provider":"KmsKeyProviderFactory","host":"key-a"},` +
+				`{"provider":"GcpKeyProviderFactory","host":"key-b"},` +
+				`{"provider":"LocalFileSystemKeyProviderFactory"}]}`,
 			wantKeys: []EncryptionKey{
-				{Provider: "KmsKeyProviderFactory", KmsHost: "key-a", CipherAlgorithm: "AES/CBC/PKCS5Padding", SecretKeyStrength: "128"},
-				{Provider: "GcpKeyProviderFactory", GcpHost: "key-b"},
+				{Provider: "KmsKeyProviderFactory", Host: "key-a"},
+				{Provider: "GcpKeyProviderFactory", Host: "key-b"},
+				{Provider: "LocalFileSystemKeyProviderFactory"},
 			},
 		},
 	}
