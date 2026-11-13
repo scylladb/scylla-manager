@@ -1,0 +1,46 @@
+[
+  {
+    "keyspace": "ks",
+    "table": "t1",
+    "sstables": [
+      {
+        "size": 5683,
+        "data_size": 120,
+        "index_size": 24,
+        "filter_size": 172,
+        "timestamp": "2026-11-13T10:00:00Z",
+        "generation": "3gp9_0yso_2rq402d3ylyf4gqbyb",
+        "level": 0,
+        "version": "me",
+        "properties": [],
+        "extended_properties": [
+          {
+            "group": "compression_parameters",
+            "attributes": [
+              {"key": "sstable_compression", "value": "org.apache.cassandra.io.compress.LZ4Compressor"}
+            ]
+          },
+          {
+            "group": "encryption_info",
+            "attributes": [
+              {"key": "cipher_algorithm", "value": "AES/CBC/PKCS5Padding"},
+              {"key": "components", "value": "Data"},
+              {"key": "key_id", "value": "8cc2b2e4b9a2e1f3a3c55d8f3b1e7f0a"},
+              {"key": "key_provider", "value": "KmsKeyProviderFactory"},
+              {"key": "kms_host", "value": "key-jqUXFjnQukM30ja7"},
+              {"key": "secret_key_strength", "value": "128"}
+            ]
+          }
+        ]
+      },
+      {
+        "size": 5683,
+        "generation": "3gp9_0yso_2rq402d3ylyf4gqbyc",
+        "level": 0,
+        "version": "me",
+        "properties": [],
+        "extended_properties": []
+      }
+    ]
+  }
+]
