@@ -42,6 +42,7 @@ Features
 ScyllaDB Manager Restore command supports the following features:
 
 * Glob patterns to select keyspaces or tables to restore
+* :doc:`Restore methods <native-restore>` - native and tablet aware restore performed by ScyllaDB itself instead of the rclone server
 * Control over the :ref:`restore speed and granularity <restore-speed-and-granularity>`
 * :ref:`Dry run <restore-dry-run>` - Test restore before live execution
 * Progress tracking (:ref:`sctool progress <task-progress>`, Prometheus metrics, `ScyllaDB Monitoring <https://monitoring.docs.scylladb.com>`_ Manager dashboard)
