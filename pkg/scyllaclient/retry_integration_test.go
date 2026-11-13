@@ -30,7 +30,7 @@ func TestRetryWithTimeoutIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var table = []struct {
+	table := []struct {
 		block   int
 		timeout bool
 	}{
@@ -99,6 +99,9 @@ func testRetry(t *testing.T, hosts []string, n int, shouldTimeout bool) error {
 	triedHosts := make(map[string]int)
 
 	config := scyllaclient.TestConfig(hosts, AgentAuthToken())
+	// We expect to get timeout on blocked node, so to make
+	// the test faster, let's reduce it.
+	config.Timeout = 5 * time.Second
 	config.Transport = hostRecorder(scyllaclient.DefaultTransport(), triedHosts)
 
 	if err := block(context.Background(), hosts[0:n]); err != nil {

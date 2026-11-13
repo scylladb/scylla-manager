@@ -1263,10 +1263,14 @@ func TestBackupWithNodesDownIntegration(t *testing.T) {
 
 	location := testBackupLocation(testBucket)
 	config := defaultConfig()
+	clientConf := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
+	// We expect to get timeout on down node, so to make
+	// the test faster, let's reduce it.
+	clientConf.Timeout = 5 * time.Second
 
 	var (
 		session        = CreateScyllaManagerDBSession(t)
-		h              = newBackupTestHelper(t, session, config, location, nil)
+		h              = newBackupTestHelper(t, session, config, location, &clientConf)
 		ctx            = context.Background()
 		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
 	)
