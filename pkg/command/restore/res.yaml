@@ -86,6 +86,11 @@ dc-mapping: |
   Only works with tables restoration (--restore-tables=true). 
   Note: Only DCs that are provided in mappings will be restored.
 
+source-cluster-id: |
+  Restores only the snapshot files of the cluster with this Scylla Manager cluster ID.
+  Use it when the backup location holds backups of several clusters, which can share a snapshot tag.
+  Without it, restore reads the files of every cluster with the given snapshot tag.
+
 method: |
   Control native restore method (See https://manager.docs.scylladb.com/stable/restore/native-restore):
 

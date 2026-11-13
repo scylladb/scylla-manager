@@ -37,6 +37,10 @@ type Target struct {
 	Continue        bool                  `json:"continue"`
 	DCMappings      map[string]string     `json:"dc_mapping"`
 	Method          Method                `json:"method,omitempty"`
+	// SourceClusterID limits the restore to the snapshot files of this Scylla
+	// Manager cluster, for locations shared by several clusters' backups whose
+	// snapshot tags may collide. Restore reads every cluster's files when unset.
+	SourceClusterID uuid.UUID `json:"source_cluster_id,omitzero"`
 
 	locationInfo []LocationInfo
 }

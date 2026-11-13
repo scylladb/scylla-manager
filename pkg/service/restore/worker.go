@@ -113,6 +113,7 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 		if err != nil {
 			return nil, errors.Wrap(err, "getManifestInfo")
 		}
+		manifests = filterManifestsBySourceCluster(manifests, target.SourceClusterID)
 		if len(manifests) == 0 {
 			return nil, errors.Errorf("no snapshot with tag %s", target.SnapshotTag)
 		}
@@ -249,7 +250,7 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 
 	if t.RestoreSchema {
 		w.logger.Info(ctx, "Look for schema file")
-		cqlSchema, alternatorSchema, err := backup.GetSchema(ctx, w.client, t.SnapshotTag, t.Location[0], backup.SchemaFilter{}, w.logger)
+		cqlSchema, alternatorSchema, err := backup.GetSchema(ctx, w.client, t.SnapshotTag, t.Location[0], backup.SchemaFilter{ClusterID: t.SourceClusterID}, w.logger)
 		if err != nil {
 			return errors.Wrap(err, "look for schema file")
 		}
