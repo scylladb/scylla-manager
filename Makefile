@@ -11,6 +11,9 @@ endif
 # Default package
 PKG := ./pkg/...
 
+# Nested Go modules, not covered by ./pkg/...
+GO_SUBMODULES = $(shell git ls-files '*/go.mod' | grep -vx 'testing/silo/go.mod' | sed 's|/go.mod$$||')
+
 SHELL := /bin/bash
 GIT_ROOT = $(shell git rev-parse --show-toplevel)
 GOBIN ?= $(shell pwd)/bin
@@ -101,7 +104,8 @@ test: unit-test integration-test
 .PHONY: unit-test
 unit-test: ## Run unit tests
 	@echo "==> Running tests (race)"
-	@go test -cover -race $(PKG)
+	@rc=0; go test -cover -race $(PKG) || rc=1; \
+	for m in $(if $(filter ./pkg/...,$(PKG)),$(GO_SUBMODULES)); do echo "==> Running tests (race) in $$m"; (cd $$m && go test -cover -race ./...) || rc=1; done; exit $$rc
 
 .PHONY: integration-test
 integration-test: ## Run integration tests
