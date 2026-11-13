@@ -27,7 +27,7 @@ release:
 snapshot:
 	git tag -f $(VERSION_NAME)
 	$(GORELEASER) --snapshot --skip=publish --skip=validate --config .goreleaser.yaml
-	$(GORELEASER) --skip=validate --config .goreleaser-docker.yaml
+	# LAB ONLY: docker images skipped, goreleaser on the build node wants a Pro key (RELENG-1157)
 
 .PHONY: clean
 clean:
