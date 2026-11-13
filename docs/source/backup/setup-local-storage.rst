@@ -11,7 +11,7 @@ Each backup location's bucket name becomes a subdirectory under the configured r
 
 .. warning::
 
-   Native backup and native restore are **not available** with the local storage provider.
+   Native backup, native restore and tablet aware restore are **not available** with the local storage provider.
    Only rclone-based backup and restore are supported.
 
 Prerequisites
