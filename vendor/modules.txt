@@ -686,7 +686,7 @@ github.com/scylladb/gocqlx/v2/dbutil
 github.com/scylladb/gocqlx/v2/migrate
 github.com/scylladb/gocqlx/v2/qb
 github.com/scylladb/gocqlx/v2/table
-# github.com/scylladb/scylla-manager/backupspec v1.1.1-0.20261113122522-452ac0d9f50e
+# github.com/scylladb/scylla-manager/backupspec v1.1.1-0.20261113141621-df5e63f87f61
 ## explicit; go 1.26.10
 github.com/scylladb/scylla-manager/backupspec
 github.com/scylladb/scylla-manager/backupspec/schemaskip

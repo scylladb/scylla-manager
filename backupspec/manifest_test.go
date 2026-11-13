@@ -130,11 +130,11 @@ func TestManifestContentEncryptionKeys(t *testing.T) {
 		{
 			name: "KMS and GCP keys",
 			json: `{"version":"v2","encryption_keys":[` +
-				`{"provider":"KmsKeyProviderFactory","kms_host":"key-a","cipher_algorithm":"AES/CBC/PKCS5Padding","secret_key_strength":"128"},` +
-				`{"provider":"GcpKeyProviderFactory","gcp_host":"key-b"}]}`,
+				`{"provider":"KmsKeyProviderFactory","kms_host":"key-a","key_id":"61726e3a"},` +
+				`{"provider":"GcpKeyProviderFactory","kms_host":"key-b","key_id":"0a24"}]}`,
 			wantKeys: []EncryptionKey{
-				{Provider: "KmsKeyProviderFactory", KmsHost: "key-a", CipherAlgorithm: "AES/CBC/PKCS5Padding", SecretKeyStrength: "128"},
-				{Provider: "GcpKeyProviderFactory", GcpHost: "key-b"},
+				{Provider: "KmsKeyProviderFactory", KmsHost: "key-a", KeyID: "61726e3a"},
+				{Provider: "GcpKeyProviderFactory", KmsHost: "key-b", KeyID: "0a24"},
 			},
 		},
 	}
