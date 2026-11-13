@@ -35,7 +35,7 @@ require (
 	github.com/scylladb/go-reflectx v1.0.1
 	github.com/scylladb/go-set v1.0.2
 	github.com/scylladb/gocqlx/v2 v2.8.0
-	github.com/scylladb/scylla-manager/backupspec v1.1.1-0.20261113141621-df5e63f87f61
+	github.com/scylladb/scylla-manager/backupspec v1.1.1-0.20261113122522-452ac0d9f50e
 	github.com/scylladb/scylla-manager/v3/pkg/managerclient v0.0.0-20260813082001-6ba95e37a249
 	github.com/scylladb/scylla-manager/v3/pkg/util v0.0.0-20260813082001-6ba95e37a249
 	github.com/scylladb/scylla-manager/v3/swagger v0.0.0-20260828130901-9d72da3bca45

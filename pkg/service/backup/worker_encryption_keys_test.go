@@ -30,26 +30,22 @@ func TestEncryptionKeys(t *testing.T) {
 		s.ExtendedProperties = append(s.ExtendedProperties, g)
 		return s
 	}
-	// Shapes as on lab: AWS cluster 9 and GCP cluster 8, Scylla 2026.3.5.
 	kmsA := map[string]string{
-		"components": "Data", "enabled": "true", "key_id": "61726e3a01",
-		"key_provider": "KmsKeyProviderFactory", "kms_host": "key-a",
+		"key_provider": "KmsKeyProviderFactory", "kms_host": "key-a", "key_id": "id-1",
+		"cipher_algorithm": "AES/CBC/PKCS5Padding", "secret_key_strength": "128", "components": "Data",
 	}
-	// Same key and data key in another SSTable, with other components.
-	kmsASameDataKey := map[string]string{
-		"components": "Data, Index", "enabled": "true", "key_id": "61726e3a01",
-		"key_provider": "KmsKeyProviderFactory", "kms_host": "key-a",
+	// Same key, another SSTable data key and component set.
+	kmsASecondSSTable := map[string]string{
+		"key_provider": "KmsKeyProviderFactory", "kms_host": "key-a", "key_id": "id-2",
+		"cipher_algorithm": "AES/CBC/PKCS5Padding", "secret_key_strength": "128", "components": "Data, Index",
 	}
-	// Same key, a newer data key after Scylla's key cache expiry.
-	kmsANewDataKey := map[string]string{
-		"components": "Data", "enabled": "true", "key_id": "61726e3a02",
-		"key_provider": "KmsKeyProviderFactory", "kms_host": "key-a",
-	}
-	gcpB := map[string]string{"key_provider": "GcpKeyProviderFactory", "gcp_host": "key-b", "key_id": "0a24"}
+	gcpB := map[string]string{"key_provider": "GcpKeyProviderFactory", "gcp_host": "key-b", "key_id": "id-3"}
 
-	wantKmsA := backupspec.EncryptionKey{Provider: "KmsKeyProviderFactory", KmsHost: "key-a", KeyID: "61726e3a01"}
-	wantKmsANew := backupspec.EncryptionKey{Provider: "KmsKeyProviderFactory", KmsHost: "key-a", KeyID: "61726e3a02"}
-	wantGcpB := backupspec.EncryptionKey{Provider: "GcpKeyProviderFactory", KmsHost: "key-b", KeyID: "0a24"}
+	wantKmsA := backupspec.EncryptionKey{
+		Provider: "KmsKeyProviderFactory", KmsHost: "key-a",
+		CipherAlgorithm: "AES/CBC/PKCS5Padding", SecretKeyStrength: "128",
+	}
+	wantGcpB := backupspec.EncryptionKey{Provider: "GcpKeyProviderFactory", GcpHost: "key-b"}
 
 	backedUp := map[string]map[string]struct{}{"ks": {"t1": {}, "t2": {}}}
 
@@ -66,25 +62,16 @@ func TestEncryptionKeys(t *testing.T) {
 			want:   nil,
 		},
 		{
-			name: "one data key across SSTables and tables",
+			name: "one key across SSTables and tables",
 			infos: []scyllaclient.TableSSTables{
-				{Keyspace: "ks", Table: "t1", SSTables: []scyllaclient.SSTableInfo{sstable(kmsA), sstable(kmsASameDataKey)}},
+				{Keyspace: "ks", Table: "t1", SSTables: []scyllaclient.SSTableInfo{sstable(kmsA), sstable(kmsASecondSSTable)}},
 				{Keyspace: "ks", Table: "t2", SSTables: []scyllaclient.SSTableInfo{sstable(kmsA)}},
 			},
 			tables: backedUp,
 			want:   []backupspec.EncryptionKey{wantKmsA},
 		},
 		{
-			name: "two data keys of one key",
-			infos: []scyllaclient.TableSSTables{
-				{Keyspace: "ks", Table: "t1", SSTables: []scyllaclient.SSTableInfo{sstable(kmsANewDataKey), sstable(kmsA)}},
-			},
-			tables: backedUp,
-			want:   []backupspec.EncryptionKey{wantKmsA, wantKmsANew},
-		},
-		{
-			// SSTables written before a key change keep the old key until
-			// compaction rewrites them. The GCP host is stored as kms_host.
+			// SSTables written before a key change keep the old key until compaction rewrites them.
 			name: "two keys, sorted",
 			infos: []scyllaclient.TableSSTables{
 				{Keyspace: "ks", Table: "t1", SSTables: []scyllaclient.SSTableInfo{sstable(kmsA), sstable(gcpB), sstable(nil)}},
