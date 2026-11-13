@@ -16,7 +16,7 @@ options:
       default_value: "2"
       usage: |
         Number of SSTables per shard to process in one request by one node when restoring with rclone API (see --method flag).
-        When restoring with native API, --batch-size is ignored and batches are as large as possible while keeping equal workload distribution across all nodes.
+        When restoring with native or tablet aware API, --batch-size is ignored.
         Increasing the default batch size might significantly increase restore performance, as only one shard can work on restoring a single SSTable bundle.
         Set to 0 for best performance (batches will contain sstables of total size up to 5% of expected total node workload).
     - name: cluster
@@ -102,13 +102,20 @@ options:
     - name: method
       default_value: rclone
       usage: |
-        Control native restore method (See https://manager.docs.scylladb.com/stable/restore/native-restore):
+        Comma separated list of restore methods that Scylla Manager is allowed to use
+        (See https://manager.docs.scylladb.com/stable/restore/native-restore):
 
-        * 'auto': Use the supported native restore functionalities, otherwise use rclone restore.
-        * 'native': Use the native restore functionalities only.
-        * 'rclone': Use the rclone restore functionalities only.
+        * 'tablet': Use the tablet aware restore API. It restores only tables replicated with tablets.
+        * 'native': Use the native restore API.
+        * 'rclone': Use the rclone restore API.
+        * 'auto': Allow all restore methods supported by the cluster.
 
-        Using native restore functionalities requires additional configuration and has its own limitations,
+        When more than one method is allowed, each table is restored with the most preferred allowed method
+        that supports it: 'tablet' is preferred over 'native', and 'native' is preferred over 'rclone'.
+        The restore fails when some table can't be restored with any of the allowed methods,
+        e.g., when using '--method=tablet' for tables replicated with vnodes.
+
+        Using native and tablet aware restore requires additional configuration and has its own limitations,
         which are described in detail in https://manager.docs.scylladb.com/stable/restore/native-restore.
     - name: name
       usage: |
