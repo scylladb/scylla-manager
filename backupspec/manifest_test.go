@@ -3,6 +3,7 @@
 package backupspec
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -111,4 +112,53 @@ func TestManifestInfoParsePathErrors(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestManifestContentEncryptionKeys(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		json     string
+		wantKeys []EncryptionKey
+	}{
+		{
+			name:     "manifest without the field",
+			json:     `{"version":"v2","cluster_name":"c"}`,
+			wantKeys: nil,
+		},
+		{
+			name: "KMS and GCP keys",
+			json: `{"version":"v2","encryption_keys":[` +
+				`{"provider":"KmsKeyProviderFactory","kms_host":"key-a","cipher_algorithm":"AES/CBC/PKCS5Padding","secret_key_strength":"128"},` +
+				`{"provider":"GcpKeyProviderFactory","gcp_host":"key-b"}]}`,
+			wantKeys: []EncryptionKey{
+				{Provider: "KmsKeyProviderFactory", KmsHost: "key-a", CipherAlgorithm: "AES/CBC/PKCS5Padding", SecretKeyStrength: "128"},
+				{Provider: "GcpKeyProviderFactory", GcpHost: "key-b"},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var m ManifestContent
+			if err := json.Unmarshal([]byte(tc.json), &m); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tc.wantKeys, m.EncryptionKeys); diff != "" {
+				t.Fatalf("EncryptionKeys mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+
+	t.Run("omitted when empty", func(t *testing.T) {
+		t.Parallel()
+		b, err := json.Marshal(ManifestContent{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(b), "encryption_keys") {
+			t.Fatalf("expected no encryption_keys in %s", b)
+		}
+	})
 }
