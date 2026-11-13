@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"net"
 	"net/http"
 	"slices"
 	"strings"
@@ -175,9 +176,6 @@ func newBackupSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.
 	return svc
 }
 
-// Temporary workaround for controlling tablet aware restore usage until --method=tablet-aware is added.
-var enableTabletAwareRestore = false
-
 func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient.Client, clusterID uuid.UUID, user, pass string,
 	restoreMetrics metrics.RestoreMetrics,
 ) *Service {
@@ -201,15 +199,10 @@ func newRestoreSvc(t *testing.T, mgrSession gocqlx.Session, client *scyllaclient
 		t.Fatal(err)
 	}
 
-	cfg := defaultTestConfig()
-	if enableTabletAwareRestore {
-		cfg.TabletAwareRestoreFeatureFlag = true
-	}
-
 	svc, err := NewService(
 		repairSvc,
 		mgrSession,
-		cfg,
+		defaultTestConfig(),
 		restoreMetrics,
 		func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
 			return client, nil
@@ -251,7 +244,7 @@ func defaultTestTarget(locDC, locPath, ks string, batchSize, parallel int, resto
 		target.Keyspace = []string{ks}
 	}
 	if restoreTables && testconfig.RestoreMethod() != nil && *testconfig.RestoreMethod() != "" {
-		target.Method = Method(*testconfig.RestoreMethod())
+		target.Method = MethodList(*testconfig.RestoreMethod())
 	}
 	return target
 }
@@ -494,7 +487,7 @@ func createUser(t *testing.T, s gocqlx.Session, user, pass string) {
 	}
 }
 
-func grantRestoreTablesPermissions(t *testing.T, s gocqlx.Session, restoredTablesFilter []string, user string) {
+func grantRestoreTablesPermissions(t *testing.T, client *scyllaclient.Client, s gocqlx.Session, restoredTablesFilter []string, user string) {
 	f, err := ksfilter.NewFilter(restoredTablesFilter)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "create filter"))
@@ -532,10 +525,44 @@ func grantRestoreTablesPermissions(t *testing.T, s gocqlx.Session, restoredTable
 	if err = iter.Close(); err != nil {
 		t.Fatal(errors.Wrap(err, "close iterator"))
 	}
+	resetAuthorizationCache(t, client)
 }
 
-func grantRestoreSchemaPermissions(t *testing.T, s gocqlx.Session, user string) {
+func grantRestoreSchemaPermissions(t *testing.T, client *scyllaclient.Client, s gocqlx.Session, user string) {
 	ExecStmt(t, s, "GRANT CREATE ON ALL KEYSPACES TO "+user)
+	resetAuthorizationCache(t, client)
+}
+
+// resetAuthorizationCache resets permissions cache on all nodes, so that
+// granted permissions are visible right away instead of after the next cache refresh.
+func resetAuthorizationCache(t *testing.T, client *scyllaclient.Client) {
+	t.Helper()
+
+	// Currently scyllaclient.Client does not have a method to call authorization_cache/reset.
+	// Adding it would require swagger changes. Because of that, the workaround below constructs
+	// a fresh client to perform this request. If authorization_cache/reset is added to scylla
+	// swagger and used by SM, then it should be replaced with a simple client call.
+	cfg := client.Config()
+	hc := &http.Client{Transport: scyllaclient.DefaultTransport()}
+	defer hc.CloseIdleConnections()
+	for _, host := range cfg.Hosts {
+		u := fmt.Sprintf("%s://%s/authorization_cache/reset", cfg.Scheme, net.JoinHostPort(host, cfg.Port))
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, u, http.NoBody)
+		if err != nil {
+			t.Fatal(errors.Wrap(err, "create request"))
+		}
+		req.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+		resp, err := hc.Do(req)
+		if err != nil {
+			t.Fatal(errors.Wrapf(err, "reset authorization cache on %s", host))
+		}
+		if err := resp.Body.Close(); err != nil {
+			t.Fatal(errors.Wrap(err, "close response body"))
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("reset authorization cache on %s: unexpected status %d", host, resp.StatusCode)
+		}
+	}
 }
 
 func validateCompleteProgress(t *testing.T, pr Progress, tables []table) {

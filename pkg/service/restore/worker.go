@@ -65,9 +65,22 @@ func (w *worker) init(ctx context.Context, properties json.RawMessage) error {
 	if err := w.initTarget(ctx, target, locationInfo); err != nil {
 		return errors.Wrap(err, "init target")
 	}
-	if target.Method == MethodNative {
+	// Explicitly listed methods should be possible to use
+	// on the cluster level. They should pass all the checks
+	// not related to the actually restored data,
+	// e.g., cluster config checks.
+	if target.Method.explicit(MethodNative) {
 		if err := w.validateHostNativeRestoreSupport(); err != nil {
 			return err
+		}
+	}
+	if target.Method.explicit(MethodTablet) {
+		tw, err := tablet.NewIndexWorker(ctx, w.logger, w.client, w.clusterSession)
+		if err != nil {
+			return errors.Wrap(err, "build tablet workload indexer")
+		}
+		if err := w.clusterTabletRestoreSupport(tw); err != nil {
+			return errors.Wrap(err, "ensure tablet aware restore")
 		}
 	}
 	if err := w.decorateWithPrevRun(ctx); err != nil {
@@ -91,6 +104,24 @@ func (w *worker) validateHostNativeRestoreSupport() error {
 		}
 	}
 	return nil
+}
+
+// clusterTabletRestoreSupport makes the initial validation needed for using tablet aware restore API.
+// Scylla version check is skipped when MethodTablet is explicitly chosen.
+// It does not validate anything related to backed up data or restore target cluster schema.
+func (w *worker) clusterTabletRestoreSupport(tw *tablet.IndexWorker) error {
+	if !w.target.Method.explicit(MethodTablet) {
+		for addr, nc := range w.nodeConfig {
+			ok, err := nc.SupportsTabletRestoreAPI()
+			if err != nil {
+				return errors.Wrapf(err, "check node %s tablet restore API support", addr)
+			}
+			if !ok {
+				return errors.Errorf("node %s with scylla version %s does not support tablet restore API (available from 2026.3)", addr, nc.ScyllaVersion)
+			}
+		}
+	}
+	return tw.CheckCluster(w.nodeConfig, w.target.Location, w.target.DCMappings)
 }
 
 func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]LocationInfo, error) {
@@ -283,14 +314,6 @@ func (w *worker) initTarget(ctx context.Context, t Target, locationInfo []Locati
 
 // validateDCMappings that every dc from mappings exists in source or target cluster respectively.
 func (w *worker) validateDCMappings(dcMappings map[string]string, sourceDC, targetDC []string) error {
-	if w.config.TabletAwareRestoreFeatureFlag {
-		for src, dst := range dcMappings {
-			if src != dst {
-				return errors.Errorf("Tablet-aware restore does not support DC mapping changing source DC name (%q to %q)", src, dst)
-			}
-		}
-	}
-
 	sourceDCSet := strset.New(sourceDC...)
 	targetDCSet := strset.New(targetDC...)
 	sourceDCMappingSet, targetDCMappingSet := strset.New(), strset.New()

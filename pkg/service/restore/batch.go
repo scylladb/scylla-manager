@@ -19,7 +19,7 @@ type hostBatchInfo struct {
 }
 
 // batchDispatcher is a tool for batching SSTables from
-// Workload across different hosts during restore.
+// RcloneNativeWorkload across different hosts during restore.
 // It follows a few rules:
 //
 // - all SSTables within a batch have the same batchType
@@ -51,7 +51,7 @@ type batchDispatcher struct {
 	wait chan struct{}
 
 	// Const workload defined during indexing
-	workload Workload
+	workload RcloneNativeWorkload
 	// Mutable workloadProgress updated as batches are dispatched
 	workloadProgress workloadProgress
 	// For batchSize X, batches contain X*node_shard_cnt SSTables.
@@ -71,10 +71,10 @@ type batchDispatcher struct {
 	// Equals total_backup_size/($\sum_{node} shard_cnt(node)$)
 	expectedShardWorkload int64
 	hostInfo              map[string]hostBatchInfo
-	method                Method
+	method                MethodList
 }
 
-func newBatchDispatcher(workload Workload, batchSize int, hostInfo map[string]hostBatchInfo, locationInfo []LocationInfo, method Method) *batchDispatcher {
+func newBatchDispatcher(workload RcloneNativeWorkload, batchSize int, hostInfo map[string]hostBatchInfo, locationInfo []LocationInfo, method MethodList) *batchDispatcher {
 	sortWorkload(workload)
 	var shards uint
 	for _, hi := range hostInfo {
@@ -121,7 +121,7 @@ type workloadProgress struct {
 	// SSTables grouped by RemoteSSTableDir that are yet to
 	// be batched. They are removed on batch dispatch, but can
 	// be re-added when batch failed to be restored.
-	// workloadProgress.remoteDir and Workload.RemoteDir have
+	// workloadProgress.remoteDir and RcloneNativeWorkload.RemoteDir have
 	// corresponding indexes.
 	remoteDir []remoteSSTableDirProgress
 }
@@ -141,7 +141,7 @@ func (dp *remoteSSTableDirProgress) RemainingSSTableCnt() int {
 	return out
 }
 
-func newWorkloadProgress(workload Workload, locationInfo []LocationInfo) workloadProgress {
+func newWorkloadProgress(workload RcloneNativeWorkload, locationInfo []LocationInfo) workloadProgress {
 	dcSSTable := make(map[string]int)
 	p := make([]remoteSSTableDirProgress, len(workload.RemoteDir))
 	for i, rdw := range workload.RemoteDir {
@@ -363,11 +363,11 @@ func (bd *batchDispatcher) createBatch(dirIdx int, host string) (batch, bool) {
 		return batch{}, false
 	}
 
-	// At this point, if method is explicitly set to MethodNative,
-	// we already verified that all hosts and the entire workload
-	// supports native restore, so we can safely fall back to rclone if needed.
+	// Use native when allowed and supported, otherwise use rclone.
+	// Workload indexing already validated that if rclone is not
+	// allowed, then all sstables can be restored with native.
 	batchMethod := MethodRclone
-	if slices.Contains([]Method{MethodAuto, MethodNative}, bd.method) &&
+	if bd.method.allows(MethodNative) &&
 		hi.nativeRestoreSupport &&
 		sstables[0].NativeRestoreSupport() == nil {
 		batchMethod = MethodNative
@@ -541,7 +541,7 @@ func (bd *batchDispatcher) wakeUpWaiting() {
 	bd.wait = make(chan struct{})
 }
 
-func sortWorkload(workload Workload) {
+func sortWorkload(workload RcloneNativeWorkload) {
 	// Order remote sstable dirs by table size, then by their size (decreasing).
 	slices.SortFunc(workload.RemoteDir, func(a, b RemoteDirWorkload) int {
 		ats := workload.TableSize[a.TableName]

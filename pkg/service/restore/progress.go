@@ -198,21 +198,6 @@ func joinError(recorded, current string) string {
 	}
 }
 
-// methodOrder defines the order in which methods are reported in progress.
-var methodOrder = []Method{MethodTablet, MethodNative, MethodRclone}
-
-// addMethod adds method to the set of methods preserving methodOrder.
-func addMethod(methods []Method, m Method) []Method {
-	if slices.Contains(methods, m) {
-		return methods
-	}
-	methods = append(methods, m)
-	slices.SortFunc(methods, func(a, b Method) int {
-		return slices.Index(methodOrder, a) - slices.Index(methodOrder, b)
-	})
-	return methods
-}
-
 // minTime chooses the smaller set time.
 func minTime(a, b *time.Time) *time.Time {
 	if !validateTimeIsSet(a) {

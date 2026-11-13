@@ -1,8 +1,12 @@
-==============
-Native Restore
-==============
+===============
+Restore Methods
+===============
 
-Native restore is an optimization similar to :doc:`native backup <../backup/native-backup>`.
+ScyllaDB Manager restores the content of the tables with one of the following restore methods:
+
+* ``rclone``: the default method, in which ScyllaDB Manager Agent downloads SSTables from the backup location and ScyllaDB streams them into the cluster
+* ``native``: `native restore`_, in which ScyllaDB streams SSTables into the cluster directly from the backup location
+* ``tablet``: `tablet aware restore`_, in which ScyllaDB restores tables replicated with `tablets <https://docs.scylladb.com/manual/stable/architecture/tablets.html>`_ directly from the backup location
 
 ScyllaDB Manager uses ScyllaDB Manager Agents deployed on each ScyllaDB node to coordinate restore.
 These agents serve as a proxy to `ScyllaDB REST API <https://docs.scylladb.com/manual/stable/operating-scylla/rest.html>`_ and also act as `rclone <https://github.com/scylladb/rclone>`_ servers responsible for communication between the node and backup location.
@@ -18,79 +22,131 @@ This solution results in:
 * Inefficient resource utilization (file download handled by rclone server while file streaming handled by ScyllaDB)
 * Longer restore duration (limited resources allocated to rclone server)
 
-Native restore aims to solve these problems by moving restore responsibilities from rclone server into ScyllaDB itself.
-Just like with native backup, both native and rclone restores performed by ScyllaDB Manager rely on the same :doc:`backup specification </backup/specification>`,
-so any backup (native or rclone) can be restored using any restore method (assuming it meets given restore method limitations).
-In the `Status`_ section you can find the parts of restore procedure already moved to ScyllaDB.
+Native and tablet aware restore aim to solve these problems by moving restore responsibilities from rclone server into ScyllaDB itself,
+similarly to :doc:`native backup <../backup/native-backup>`.
+Just like with native backup, all restore methods rely on the same :doc:`backup specification </backup/specification>`,
+so any backup (native or rclone) can be restored using any restore method (assuming it meets the given restore method requirements).
 
-Status
-======
+Comparison and limitations
+==========================
 
-This section contains the list of stages in the restore procedure now managed by ScyllaDB.
-All other stages are still performed by the rclone server.
-The ``ScyllaDB Version`` column describes the ScyllaDB version from which the functionality is considered production ready,
-even though the functionality might be available in earlier versions as well.
+The ``ScyllaDB version`` row describes the ScyllaDB version from which the method is considered production ready,
+even though the method might be available in earlier versions as well.
 
 .. list-table::
-   :widths: 25 15 50 25
+   :widths: 22 20 29 29
    :header-rows: 1
+   :stub-columns: 1
 
-   * - Functionality
-     - ScyllaDB Version
-     - Description
-     - Limitations
-   * - SSTable streaming directly from :doc:`s3 </backup/setup-s3-compatible-storage>`
+   * -
+     - ``rclone``
+     - ``native``
+     - ``tablet``
+   * - ScyllaDB version
+     - any
      - 2026.1
-     - As this is the most time- and resource-consuming part of the restore procedure, moving it to ScyllaDB brings the most benefits.
-       It also allows for not saving downloaded SSTables on disk before streaming them into the cluster.
-       Unlike native backup, when performing restore on a cluster which doesn't currently serve user traffic,
-       it's best not to throttle native restore with
-       `stream_io_throughput_mb_per_sec <https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html#confval-stream_io_throughput_mb_per_sec>`_ in `scylla.yaml`
-       to obtain the best performance.
-     - Does not support restoration of :ref:`versioned SSTables <backup-versioned-sstables>`.
-       Does not support restoration of SSTables with integer based IDs.
-   * - SSTable streaming directly from :doc:`gcs </backup/setup-gcs>`
-     - 2026.1
-     - Same as above.
-     - Same as above.
+     - 2026.3
+   * - Backup location providers
+     - all
+     - :doc:`s3 </backup/setup-s3-compatible-storage>`, :doc:`gcs </backup/setup-gcs>`
+     - :doc:`s3 </backup/setup-s3-compatible-storage>`, :doc:`gcs </backup/setup-gcs>`
+   * - ScyllaDB configuration
+     - none
+     - ``object_storage_endpoints`` (see `Configuration`_)
+     - ``object_storage_endpoints`` (see `Configuration`_)
+   * - Restored tables
+     - all
+     - all
+     - replicated with tablets in both backed up and restore destination cluster
+   * - Backup requirements
+     - none
+     - no SSTables with integer based IDs
+     - created with ScyllaDB Manager 3.9 or later from ScyllaDB 2026.1.1 or later, no SSTables with integer based IDs
+   * - Cluster topology
+     - any
+     - any
+     - restore target and backed up clusters are single data center only, they have the same data center and corresponding rack names
+   * - Fallback to less preferred methods
+     - not needed
+     - per batch
+     - per table
+   * - Restore speed control
+     - :ref:`--batch-size --parallel --transfers --rate-limit --unpin-agent-cpu <sctool-restore>`
+     - `stream_io_throughput_mb_per_sec <https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html#confval-stream_io_throughput_mb_per_sec>`_
+     - `stream_io_throughput_mb_per_sec <https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html#confval-stream_io_throughput_mb_per_sec>`_
+   * - ``scylla_manager_restore_*`` metrics
+     - ``remaining_bytes``, ``progress``, ``batch_size``, ``state``, ``downloaded_bytes``, ``download_duration``, ``streamed_bytes``, ``stream_duration``
+     - ``remaining_bytes``, ``progress``, ``batch_size``, ``state``, ``restored_bytes``, ``restore_duration``
+     - ``remaining_bytes``, ``progress``
+
+Native restore
+==============
+
+Native restore moves the download and streaming of SSTables from the rclone server to ScyllaDB.
+ScyllaDB node decomposes SSTable obtained from backup location into individual mutations and streams them to node
+being their primary replica. It leverages ScyllaDB's efficient communication with backup location and allows for
+not saving downloaded SSTables on disk before streaming them into the cluster. Even though ScyllaDB does the most
+time consuming part, all other stages of the restore procedure (e.g., repair, view rebuild, etc.) are still
+orchestrated by ScyllaDB Manager.
+
+Native restore works on per restored batch basis, so when combined with the ``rclone`` method,
+it is used for most restored batches, even if a small subset of them contains SSTables not compatible with native restore.
+
+.. _tablet-aware-restore:
+
+Tablet aware restore
+====================
+
+Tablet aware restore is a further improvement over the native restore.
+Instead of reading mutations on one node and streaming them to another,
+in tablet aware restore entire SSTables are downloaded right to the node
+which owns them, resulting in an even bigger performance gain. Similar
+to native restore, all other stages of restore procedure are still orchestrated
+by ScyllaDB Manager.
+
+Tablet aware restore works on per restored table basis, so when combined with other methods,
+tables not meeting its requirements (see `Comparison and limitations`_) are restored with the next allowed method.
+Note that :ref:`sctool restore --dc-mapping <sctool-restore>` can be used to exclude data centers from the restore, but not to rename them.
+
+Pausing the restore task aborts the ScyllaDB restore tasks of the tables that are being restored.
+Resuming the restore task restores them again, skipping only the tables that were already fully restored.
 
 Configuration
 =============
 
-Native restore requires the same ScyllaDB and ScyllaDB Manager Agent configuration as native backup.
+Native and tablet aware restore require the same ScyllaDB and ScyllaDB Manager Agent configuration as native backup.
 Follow the steps described in :ref:`configure-native-backup-in-scylla` to configure each ScyllaDB node.
-Throttling `stream_io_throughput_mb_per_sec <https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html#confval-stream_io_throughput_mb_per_sec>`_
-is not recommended, as explained in `Status`_ section.
+The `stream_io_throughput_mb_per_sec <https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html#confval-stream_io_throughput_mb_per_sec>`_
+shouldn't be throttled when restoring into a cluster which doesn't currently serve user traffic.
 
 Usage
 =====
 
-The native restore usage is controlled with the :ref:`sctool restore --method <sctool-restore>` flag.
-It supports three values: ``rclone`` (default), ``native``, and ``auto``:
+The restore method is controlled with the :ref:`sctool restore --method <sctool-restore>` flag.
+It accepts a comma separated list of allowed methods (``tablet``, ``native``, ``rclone``) or the special value ``auto``, which allows all of them.
+The conservative default value is ``rclone``, but it is recommended to use ``auto`` in most real scenarios.
+Setting explicit methods could be useful for validation, testing, and various workarounds when encountering unexpected issues.
 
-  * ``native``: Uses all native restore functionalities listed in the `Status`_ section.
-    Use this value for native restore configuration validation and testing.
-    Note that this will fail when:
+When more than one method is allowed, each restored table uses the most preferred allowed method that supports it.
+Methods are preferred in the following order:
 
-    * ScyllaDB is not configured properly (see ``object_storage_endpoints`` in `Configuration`_)
-    * Provider not supported by used ScyllaDB version is used (see limitations in `Status`_)
-    * Restored backup contains versioned SSTables (see limitations in `Status`_)
-    * Restored backup contains SSTables with integer based IDs (see limitations in `Status`_)
+  * ``tablet``: Uses `tablet aware restore`_  (best performance, tablets only, has additional limitations).
 
-  * ``auto``: Uses native restore functionalities when possible, otherwise falls back to rclone restore.
-    Use this value for production restores. It will use native restore functionality only when it is
-    considered production ready (see version support in `Status`_). The fallback works on per restored batch basis,
-    so it allows for utilizing native restore functionalities for most restored batches,
-    even if a small subset of them contains SSTables not compatible with native restore.
+  * ``native``: Uses `native restore`_ (good performance, both tablets and vnodes, has small limitations).
 
-  * ``rclone``: Uses rclone restore functionalities only. This effectively disables all native restore functionalities.
+  * ``rclone``: Uses rclone restore (worst performance, supports all scenarios).
 
-Note that :ref:`sctool restore --rate-limit --transfers --unpin-agent-cpu <sctool-restore>` flags do not take effect when using native restore,
+  * ``auto``: Allows all methods and uses each of them only when it is considered production ready (see `Comparison and limitations`_).
+
+The methods used for restoring each table are displayed by :ref:`sctool progress <task-progress>`.
+
+Note that :ref:`sctool restore --rate-limit --transfers --unpin-agent-cpu <sctool-restore>` flags do not take effect when using native or tablet aware restore,
 as the streaming performance is controlled directly by ScyllaDB itself. To control streaming performance on the ScyllaDB side,
 configure `stream_io_throughput_mb_per_sec <https://docs.scylladb.com/manual/stable/reference/configuration-parameters.html#confval-stream_io_throughput_mb_per_sec>`_ in `scylla.yaml`.
 
-You can :ref:`create restore task <sctool-restore>` with the desired method:
+You can :ref:`create restore task <sctool-restore>` with the desired methods:
 
 .. code-block:: none
 
    sctool restore -c <cluster ID> -L <backup location> --snapshot-tag <tag> --method native
+   sctool restore -c <cluster ID> -L <backup location> --snapshot-tag <tag> --method tablet,native

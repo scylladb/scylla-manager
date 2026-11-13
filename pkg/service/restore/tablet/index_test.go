@@ -3,16 +3,95 @@
 package tablet
 
 import (
+	"net/netip"
 	"testing"
 
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/configcache"
 	"github.com/scylladb/scylla-manager/v3/pkg/util2/topology"
+	"github.com/scylladb/scylla-manager/v3/swagger/gen/agent/models"
 )
 
 // tabletAwareBackupVersion is a version satisfying scyllaTabletAwareBackupSupport.
 const tabletAwareBackupVersion = "2026.1.1"
+
+func TestCheckCluster(t *testing.T) {
+	const endpoint = "192.168.200.99"
+	withEndpoint := configcache.NodeConfig{NodeInfo: &scyllaclient.NodeInfo{
+		RcloneBackendConfig:    models.NodeInfoRcloneBackendConfig{S3: models.NodeInfoRcloneBackendConfigS3{Endpoint: endpoint}},
+		ObjectStorageEndpoints: map[string]models.ObjectStorageEndpoint{endpoint: {Name: endpoint}},
+	}}
+	withoutEndpoint := configcache.NodeConfig{NodeInfo: &scyllaclient.NodeInfo{}}
+	n1, n2 := netip.MustParseAddr("192.168.200.11"), netip.MustParseAddr("192.168.200.12")
+	s3 := []backupspec.Location{{Provider: backupspec.S3, Path: "bucket"}}
+	singleDC := testTopology(dcRack{dc: "dc1", rack: "r1"})
+
+	testCases := []struct {
+		name       string
+		nodeConfig map[netip.Addr]configcache.NodeConfig
+		locations  []backupspec.Location
+		dcMappings map[string]string
+		targetTopo topology.ClusterTopology
+		err        bool
+	}{
+		{
+			name:       "compatible",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint, n2: withEndpoint},
+			locations:  s3,
+			targetTopo: singleDC,
+		},
+		{
+			name:       "dc mapping keeping dc name",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint},
+			locations:  s3,
+			dcMappings: map[string]string{"dc1": "dc1"},
+			targetTopo: singleDC,
+		},
+		{
+			name:       "node without object storage endpoint",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint, n2: withoutEndpoint},
+			locations:  s3,
+			targetTopo: singleDC,
+			err:        true,
+		},
+		{
+			name:       "dc mapping changing dc name",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint},
+			locations:  s3,
+			dcMappings: map[string]string{"dc1": "dc2"},
+			targetTopo: singleDC,
+			err:        true,
+		},
+		{
+			name:       "multi-dc target cluster",
+			nodeConfig: map[netip.Addr]configcache.NodeConfig{n1: withEndpoint},
+			locations:  s3,
+			targetTopo: testTopology(dcRack{dc: "dc1", rack: "r1"}, dcRack{dc: "dc2", rack: "r1"}),
+			err:        true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			w := &IndexWorker{
+				logger:         log.NopLogger,
+				targetTopology: tc.targetTopo,
+			}
+
+			err := w.CheckCluster(tc.nodeConfig, tc.locations, tc.dcMappings)
+			if tc.err && err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !tc.err && err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+		})
+	}
+}
 
 func TestCheckManifestsCompatibility(t *testing.T) {
 	testCases := []struct {
@@ -30,14 +109,6 @@ func TestCheckManifestsCompatibility(t *testing.T) {
 			},
 			targetTopo: testTopology(dcRack{dc: "dc1", rack: "r1"}, dcRack{dc: "dc1", rack: "r2"}),
 			ok:         true,
-		},
-		{
-			name: "incompatible with multi-dc target cluster",
-			manifests: []backupspec.ManifestInfoWithContent{
-				testManifest("dc1", "r1", "n1", tabletAwareBackupVersion),
-			},
-			targetTopo: testTopology(dcRack{dc: "dc1", rack: "r1"}, dcRack{dc: "dc2", rack: "r1"}),
-			ok:         false,
 		},
 		{
 			name: "manifest with too old scylla version",

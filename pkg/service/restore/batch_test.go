@@ -105,7 +105,7 @@ func TestBatchDispatcher(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l1,
@@ -215,7 +215,7 @@ func TestBatchDispatcherHostWithoutNativeRestore(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l,
@@ -329,7 +329,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 		sstables             []RemoteSSTable
 		shardCnt             uint
 		batchSize            int
-		method               Method
+		method               MethodList
 		rcloneFileCountLimit int
 
 		expectedSSTableCnt int
@@ -339,7 +339,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             3,
 			batchSize:            1,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 0,
 			expectedSSTableCnt:   3,
 		},
@@ -348,7 +348,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             3,
 			batchSize:            10000,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 2,
 			expectedSSTableCnt:   3,
 		},
@@ -357,7 +357,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             1,
 			batchSize:            10000,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 5,
 			expectedSSTableCnt:   2,
 		},
@@ -366,7 +366,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             smallSSTables(40),
 			shardCnt:             1,
 			batchSize:            maxBatchSize,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 0,
 			expectedSSTableCnt:   2,
 		},
@@ -375,7 +375,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             smallSSTables(40),
 			shardCnt:             1,
 			batchSize:            maxBatchSize,
-			method:               MethodRclone,
+			method:               "rclone",
 			rcloneFileCountLimit: 1,
 			expectedSSTableCnt:   1,
 		},
@@ -384,7 +384,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             3,
 			batchSize:            1,
-			method:               MethodNative,
+			method:               "native",
 			rcloneFileCountLimit: 2,
 			expectedSSTableCnt:   7,
 		},
@@ -393,7 +393,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 			sstables:             defaultSSTables(),
 			shardCnt:             3,
 			batchSize:            maxBatchSize,
-			method:               MethodNative,
+			method:               "native",
 			rcloneFileCountLimit: 2,
 			expectedSSTableCnt:   7,
 		},
@@ -401,7 +401,7 @@ func TestBatchDispatcherRcloneBatchFileCountLimit(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			workload := aggregateWorkload(newRawWorkload(tc.sstables))
+			workload := aggregateRcloneNativeWorkload(newRawWorkload(tc.sstables))
 			hostInfo := map[string]hostBatchInfo{
 				"h1": {shardCnt: tc.shardCnt, nativeRestoreSupport: true},
 			}
@@ -457,7 +457,7 @@ func TestBatchDispatcherIntegerID(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l,
@@ -548,7 +548,7 @@ func TestBatchDispatcherMultiHostNative(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l,
@@ -653,7 +653,7 @@ func TestBatchDispatcherMixedSSTables(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	locationInfo := []LocationInfo{
 		{
 			Location: l,
@@ -765,7 +765,7 @@ func TestBatchDispatcherNativeFallback(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	hosts := []string{"h1", "h2", "h3"}
 	locationInfo := []LocationInfo{
 		{
@@ -1000,7 +1000,7 @@ func TestBatchDispatcherType(t *testing.T) {
 		},
 	}
 
-	workload := aggregateWorkload(rawWorkload)
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
 	batchSize := 3
 	locationHosts := []LocationInfo{
 		{
