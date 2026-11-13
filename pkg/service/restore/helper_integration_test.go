@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"net"
 	"net/http"
 	"slices"
 	"strings"
@@ -494,10 +495,11 @@ func createUser(t *testing.T, s gocqlx.Session, user, pass string) {
 	}
 }
 
-func grantRestoreTablesPermissions(t *testing.T, s gocqlx.Session, restoredTablesFilter []string, user string) {
+func grantRestoreTablesPermissions(t *testing.T, client *scyllaclient.Client, s gocqlx.Session, restoredTablesFilter []string, user string) {
 	f, err := ksfilter.NewFilter(restoredTablesFilter)
 	if err != nil {
-		t.Fatal(errors.Wrap(err, "create filter"))
+		t.Error(errors.Wrap(err, "create filter"))
+		return
 	}
 
 	var ks, tab string
@@ -508,11 +510,11 @@ func grantRestoreTablesPermissions(t *testing.T, s gocqlx.Session, restoredTable
 			if ks == "system_auth" {
 				// Altering system_auth requires superuser
 				if err = s.ExecStmt(fmt.Sprintf("ALTER role '%s' WITH superuser=true", user)); err != nil {
-					t.Fatal(errors.Wrap(err, "grant superuser"))
+					t.Error(errors.Wrap(err, "grant superuser"))
 				}
 			}
 			if err = s.ExecStmt(fmt.Sprintf("GRANT ALTER ON %q.%q TO '%s'", ks, tab, user)); err != nil {
-				t.Fatal(errors.Wrapf(err, "grant alter on %s.%s", ks, tab))
+				t.Error(errors.Wrapf(err, "grant alter on %s.%s", ks, tab))
 			}
 		}
 
@@ -520,22 +522,61 @@ func grantRestoreTablesPermissions(t *testing.T, s gocqlx.Session, restoredTable
 		if bt := baseTable(t, s, ks, tab); bt != "" {
 			if f.Check(ks, bt) {
 				if err = s.ExecStmt(fmt.Sprintf("GRANT DROP ON %q.%q TO '%s'", ks, bt, user)); err != nil {
-					t.Fatal(errors.Wrapf(err, "grant drop on %s.%s", ks, tab))
+					t.Error(errors.Wrapf(err, "grant drop on %s.%s", ks, tab))
 				}
 				if err = s.ExecStmt(fmt.Sprintf("GRANT CREATE ON %q TO '%s'", ks, user)); err != nil {
-					t.Fatal(errors.Wrapf(err, "grant create on %s", ks))
+					t.Error(errors.Wrapf(err, "grant create on %s", ks))
 				}
 			}
 		}
 	}
 
 	if err = iter.Close(); err != nil {
-		t.Fatal(errors.Wrap(err, "close iterator"))
+		t.Error(errors.Wrap(err, "close iterator"))
 	}
+	resetAuthorizationCache(t, client)
 }
 
-func grantRestoreSchemaPermissions(t *testing.T, s gocqlx.Session, user string) {
+func grantRestoreSchemaPermissions(t *testing.T, client *scyllaclient.Client, s gocqlx.Session, user string) {
 	ExecStmt(t, s, "GRANT CREATE ON ALL KEYSPACES TO "+user)
+	resetAuthorizationCache(t, client)
+}
+
+// resetAuthorizationCache resets permissions cache on all nodes, so that
+// granted permissions are visible right away instead of after the next cache refresh.
+// It's best effort and can be called outside of the test goroutine, so failures are only logged.
+func resetAuthorizationCache(t *testing.T, client *scyllaclient.Client) {
+	t.Helper()
+
+	// Currently scyllaclient.Client does not have a method to call authorization_cache/reset.
+	// Adding it would require swagger changes. Because of that, the workaround below constructs
+	// a fresh client to perform this request. If authorization_cache/reset is added to scylla
+	// swagger and used by SM, then it should be replaced with a simple client call.
+	cfg := client.Config()
+	hc := &http.Client{Transport: scyllaclient.DefaultTransport()}
+	defer hc.CloseIdleConnections()
+	for _, host := range cfg.Hosts {
+		u := fmt.Sprintf("%s://%s/authorization_cache/reset", cfg.Scheme, net.JoinHostPort(host, cfg.Port))
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, u, http.NoBody)
+		if err != nil {
+			t.Log(errors.Wrap(err, "create request"))
+			continue
+		}
+		req.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+		resp, err := hc.Do(req)
+		if err != nil {
+			t.Log(errors.Wrapf(err, "reset authorization cache on %s", host))
+			continue
+		}
+		if err := resp.Body.Close(); err != nil {
+			t.Log(errors.Wrap(err, "close response body"))
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Logf("reset authorization cache on %s: unexpected status %d", host, resp.StatusCode)
+			continue
+		}
+	}
 }
 
 func validateCompleteProgress(t *testing.T, pr Progress, tables []table) {

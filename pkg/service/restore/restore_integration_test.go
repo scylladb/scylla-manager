@@ -60,7 +60,7 @@ func TestRestoreTablesUserIntegration(t *testing.T) {
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, nil, h.dstUser)
 	h.runRestore(t, defaultTestProperties(loc, tag, true))
 
 	Print("Log in via restored user and check permissions")
@@ -86,12 +86,12 @@ func TestRestoreFullAuditIntegration(t *testing.T) {
 	Print("When: restore schema")
 	// In general, we don't need to restore audit ks schema, but we still
 	// want to test that it's not broken by the audit ks existence.
-	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	grantRestoreSchemaPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, h.dstUser)
 	props := defaultTestProperties(loc, tag, false)
 	h.runRestore(t, props)
 
 	Print("And: restore tables")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, nil, h.dstUser)
 	props = defaultTestProperties(loc, tag, true)
 	props["keyspace"] = []string{scyllatable.AuditKeyspace + ".*"}
 	h.runRestore(t, props)
@@ -153,7 +153,7 @@ func TestRestoreTablesNoReplicationIntegration(t *testing.T) {
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
 	Print("Run restore")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	props := defaultTestProperties(loc, tag, true)
 	props["keyspace"] = ksFilter
 	h.runRestore(t, props)
@@ -182,7 +182,7 @@ func TestRestoreTablesRetentionLockIntegration(t *testing.T) {
 	fillTable(t, h.srcCluster.rootSession, 100, ks, tab)
 
 	ksFilter := []string{ks}
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 
 	testCases := []struct {
 		name        string
@@ -301,7 +301,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	}
 
 	Print("Run restore of src backup on dst cluster")
-	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	grantRestoreSchemaPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, h.dstUser)
 	h.runRestore(t, defaultTestProperties(loc, tag, false))
 
 	Print("Save dst CQL schema from src backup")
@@ -320,7 +320,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	tag = hRev.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore of dst backup on src cluster")
-	grantRestoreSchemaPermissions(t, hRev.dstCluster.rootSession, hRev.dstUser)
+	grantRestoreSchemaPermissions(t, hRev.dstCluster.Client, hRev.dstCluster.rootSession, hRev.dstUser)
 	hRev.runRestore(t, defaultTestProperties(loc, tag, false))
 
 	Print("Save src CQL schema from dst backup")
@@ -480,11 +480,11 @@ func TestRestoreSchemaDropAddColumnIntegration(t *testing.T) {
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ks))
 
 	Print("Run restore schema")
-	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	grantRestoreSchemaPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, h.dstUser)
 	h.runRestore(t, defaultTestProperties(loc, tag, false))
 
 	Print("Run restore tables")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	props := defaultTestProperties(loc, tag, true)
 	props["keyspace"] = ksFilter
 	h.runRestore(t, props)
@@ -536,7 +536,7 @@ func TestRestoreTablesVnodeToTabletsIntegration(t *testing.T) {
 	ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, ks, tab, c1, c2))
 
 	Print("Run restore tables")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	props := defaultTestProperties(loc, tag, true)
 	props["keyspace"] = ksFilter
 	h.runRestore(t, props)
@@ -677,7 +677,7 @@ func TestRestoreTablesTabletAwareSmokeIntegration(t *testing.T) {
 				}))
 				defer h.dstCluster.Hrt.SetInterceptor(nil)
 
-				grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+				grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 				restoreProps := defaultTestProperties(loc, tag, true)
 				restoreProps["keyspace"] = ksFilter
 				restoreProps["method"] = restore.MethodNative
@@ -876,7 +876,7 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 		Print("Recreate backed up keyspace")
 		ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("DROP KEYSPACE %q", ks))
 		createSchema(t)
-		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, []string{ks}, h.dstUser)
+		grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, []string{ks}, h.dstUser)
 		// Scylla tracks sstables downloaded during tablet aware restore per
 		// snapshot and table, and skips them on the following restore attempts.
 		// Truncate this data, so that the recreated tables are restored from scratch.
@@ -983,7 +983,7 @@ func TestRestoreTablesTabletAwareProgressIntegration(t *testing.T) {
 			ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf("DROP TABLE %q.%q", tt.ks, tt.tab))
 			ExecStmt(t, h.dstCluster.rootSession, fmt.Sprintf(tabStmt, tt.ks, tt.tab))
 		}
-		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, []string{ks}, h.dstUser)
+		grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, []string{ks}, h.dstUser)
 		ExecStmt(t, h.dstCluster.rootSession, "TRUNCATE TABLE system_distributed.snapshot_sstables")
 
 		Print("Resume restore")
@@ -1197,7 +1197,7 @@ func TestRestoreTablesPausedIntegration(t *testing.T) {
 	tag := pr.SnapshotTag
 
 	Print("Run restore tables")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, []string{ks1, ks2}, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, []string{ks1, ks2}, h.dstUser)
 	props := defaultTestProperties(loc, tag, true)
 	props["keyspace"] = []string{ks1, ks2}
 	err = runPausedRestore(t, func(ctx context.Context) error {
@@ -1382,7 +1382,7 @@ func TestRestoreTablesPreparationIntegration(t *testing.T) {
 	}
 
 	runRestore := func(ctx context.Context, finishedRestore chan error) {
-		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 		h.dstCluster.RunID = uuid.NewTime()
 		props := defaultTestProperties(loc, tag, true)
 		props["keyspace"] = ksFilter
@@ -1571,7 +1571,7 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		}))
 
 		Print("Run restore")
-		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 		h.runRestore(t, props)
 
 		Print("Validate success")
@@ -1601,7 +1601,7 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		}))
 
 		Print("Run restore")
-		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 		h.dstCluster.TaskID = uuid.NewTime()
 		h.dstCluster.RunID = uuid.NewTime()
 		rawProps, err := json.Marshal(props)
@@ -1647,7 +1647,7 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 		}))
 
 		Print("Run restore")
-		grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+		grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 		h.dstCluster.TaskID = uuid.NewTime()
 		h.dstCluster.RunID = uuid.NewTime()
 		rawProps, err := json.Marshal(props)
@@ -1757,7 +1757,7 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 	loc[1].DC = "dc1"
 
 	Print("Run restore")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	res := make(chan struct{})
 	go func() {
 		props := defaultTestProperties(backupspec.Location{}, tag, true)
@@ -1829,7 +1829,7 @@ func TestRestoreTablesProgressIntegration(t *testing.T) {
 	tag := h.runBackup(t, defaultTestBackupProperties(loc, ""))
 
 	Print("Run restore")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, nil, h.dstUser)
 	props := defaultTestProperties(loc, tag, true)
 	h.runRestore(t, props)
 
@@ -1916,7 +1916,7 @@ func TestRestoreOnlyOneDCFromLocationIntegration(t *testing.T) {
 	tag := h.runBackup(t, backupProps)
 
 	Print("Run restore")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	res := make(chan struct{})
 	go func() {
 		props := defaultTestProperties(loc, tag, true)
@@ -1987,7 +1987,7 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 	ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf(truncateStmt, ks, tab))
 
 	Print("Run restore")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, ksFilter, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, ksFilter, h.dstUser)
 	res := make(chan struct{})
 	dcMappings := map[string]string{
 		"dc1": "dc1",
@@ -2065,7 +2065,7 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	tag := h.runBackup(t, backupProps)
 
 	Print("Restore schema")
-	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	grantRestoreSchemaPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, h.dstUser)
 	props := defaultTestProperties(loc, tag, false)
 	h.runRestore(t, props)
 
@@ -2074,7 +2074,7 @@ func TestRestoreFullAlternatorIntegration(t *testing.T) {
 	createUser(t, h.dstCluster.rootSession, h.dstUser, h.dstPass)
 
 	Print("Restore data")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, nil, h.dstUser)
 	props = defaultTestProperties(loc, tag, true)
 	h.runRestore(t, props)
 
@@ -2223,12 +2223,12 @@ func TestRestoreFullLWTIntegration(t *testing.T) {
 	tag := h.runBackup(t, backupProps)
 
 	Print("When: restore schema")
-	grantRestoreSchemaPermissions(t, h.dstCluster.rootSession, h.dstUser)
+	grantRestoreSchemaPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, h.dstUser)
 	props := defaultTestProperties(loc, tag, false)
 	h.runRestore(t, props)
 
 	Print("And: restore data")
-	grantRestoreTablesPermissions(t, h.dstCluster.rootSession, nil, h.dstUser)
+	grantRestoreTablesPermissions(t, h.dstCluster.Client, h.dstCluster.rootSession, nil, h.dstUser)
 	props = defaultTestProperties(loc, tag, true)
 	backupProps["keyspace"] = []string{cqlVnodeKs, cqlTabletKs, altVnodeKs, altTabletKs}
 	h.runRestore(t, props)

@@ -911,9 +911,9 @@ func smokeRestore(t *testing.T, target Target, keyspace string, loadCnt, loadSiz
 	}))
 
 	if target.RestoreTables {
-		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
+		grantRestoreTablesPermissions(t, dstH.Client, dstSession, target.Keyspace, user)
 	} else {
-		grantRestoreSchemaPermissions(t, dstSession, user)
+		grantRestoreSchemaPermissions(t, dstH.Client, dstSession, user)
 	}
 
 	Print("When: restore backup on different cluster = (dc1: 3 nodes, dc2: 3 nodes)")
@@ -973,7 +973,7 @@ func restoreWithAgentRestart(t *testing.T, target Target, keyspace string, loadC
 	srcH.prepareRestoreBackup(srcSession, keyspace, loadCnt, loadSize)
 	target.SnapshotTag = srcH.simpleBackup(target.Location[0])
 
-	grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
+	grantRestoreTablesPermissions(t, dstH.Client, dstSession, target.Keyspace, user)
 
 	a := atomic.NewInt64(0)
 	dstH.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -1086,9 +1086,9 @@ func restoreWithResume(t *testing.T, target Target, keyspace string, loadCnt, lo
 	target.SnapshotTag = backupPr.SnapshotTag
 
 	if target.RestoreTables {
-		grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
+		grantRestoreTablesPermissions(t, dstH.Client, dstSession, target.Keyspace, user)
 	} else {
-		grantRestoreSchemaPermissions(t, dstSession, user)
+		grantRestoreSchemaPermissions(t, dstH.Client, dstSession, user)
 	}
 
 	a := atomic.NewInt64(0)
@@ -1389,9 +1389,9 @@ func restoreWithVersions(t *testing.T, target Target, keyspace string, loadCnt, 
 	target.SnapshotTag = tag3
 
 	if target.RestoreTables {
-		//	grantRestoreTablesPermissions(t, dstSession, target.Keyspace, user)
+		//	grantRestoreTablesPermissions(t, dstH.Client, dstSession, target.Keyspace, user)
 	} else {
-		//	grantRestoreSchemaPermissions(t, dstSession, user)
+		//	grantRestoreSchemaPermissions(t, dstH.Client, dstSession, user)
 	}
 
 	if err = dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(target)); err != nil {
@@ -1454,7 +1454,7 @@ func restoreFullView(t *testing.T, schemaTarget, tablesTarget Target, keyspace s
 	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
 
 	Print("When: Restore schema")
-	grantRestoreSchemaPermissions(t, dstSession, user)
+	grantRestoreSchemaPermissions(t, dstH.Client, dstSession, user)
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(schemaTarget)); err != nil {
 		t.Fatal(err)
 	}
@@ -1468,7 +1468,7 @@ func restoreFullView(t *testing.T, schemaTarget, tablesTarget Target, keyspace s
 	dstH.RunID = uuid.MustRandom()
 
 	Print("When: Grant minimal user permissions for restore tables")
-	grantRestoreTablesPermissions(t, dstSession, tablesTarget.Keyspace, user)
+	grantRestoreTablesPermissions(t, dstH.Client, dstSession, tablesTarget.Keyspace, user)
 
 	Print("When: Restore tables")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(tablesTarget)); err != nil {
@@ -1521,7 +1521,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 	schemaTarget.SnapshotTag = srcH.simpleBackup(schemaTarget.Location[0])
 
 	Print("Restore schema on different cluster")
-	grantRestoreSchemaPermissions(t, dstSession, user)
+	grantRestoreSchemaPermissions(t, dstH.Client, dstSession, user)
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(schemaTarget)); err != nil {
 		t.Fatal(err)
 	}
@@ -1547,7 +1547,7 @@ func restoreAllTables(t *testing.T, schemaTarget, tablesTarget Target, keyspace 
 	tablesTarget.SnapshotTag = schemaTarget.SnapshotTag
 	dstH.TaskID = uuid.MustRandom()
 	dstH.RunID = uuid.MustRandom()
-	grantRestoreTablesPermissions(t, dstSession, tablesTarget.Keyspace, user)
+	grantRestoreTablesPermissions(t, dstH.Client, dstSession, tablesTarget.Keyspace, user)
 
 	Print("Restore tables on different cluster")
 	if err := dstH.service.Restore(ctx, dstH.ClusterID, dstH.TaskID, dstH.RunID, dstH.targetToProperties(tablesTarget)); err != nil {
