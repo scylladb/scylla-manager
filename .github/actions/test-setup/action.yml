@@ -44,5 +44,10 @@ runs:
 
     - name: Start dev env
       if: inputs.start-dev-env == 'true'
-      run: make start-dev-env SCYLLA_VERSION=${{ inputs.scylla-version }} IP_FAMILY=${{ inputs.ip-family }} TABLETS=${{ inputs.tablets }} SSL_ENABLED=${{ inputs.ssl-enabled }}
+      env:
+        SCYLLA_VERSION: ${{ inputs.scylla-version }}
+        IP_FAMILY: ${{ inputs.ip-family }}
+        TABLETS: ${{ inputs.tablets }}
+        SSL_ENABLED: ${{ inputs.ssl-enabled }}
+      run: make start-dev-env SCYLLA_VERSION="$SCYLLA_VERSION" IP_FAMILY="$IP_FAMILY" TABLETS="$TABLETS" SSL_ENABLED="$SSL_ENABLED"
       shell: bash
