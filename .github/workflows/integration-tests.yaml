@@ -51,15 +51,24 @@ on:
         required: true
       ip-family:
         description: "IP family used in the test env (IPV4/IPV6)"
-        type: string
+        type: choice
+        options:
+          - IPV4
+          - IPV6
         required: true
       tablets:
         description: "Whether the test cluster uses tablets replication (enabled/disabled)"
-        type: string
+        type: choice
+        options:
+          - enabled
+          - disabled
         required: true
       ssl-enabled:
         description: "Whether the test cluster uses SSL only configuration (true/false)"
-        type: string
+        type: choice
+        options:
+          - "true"
+          - "false"
         required: true
       backup-method:
         description: "Default backup --method used by tests"
@@ -120,11 +129,23 @@ jobs:
       # the tablet aware restore tests results.
       - name: Run tests
         id: tests
-        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore ARGS='-test.skip "TestRestoreTablesTabletAware.*Integration"'
+        env:
+          IP_FAMILY: ${{ env.ip-family }}
+          SSL_ENABLED: ${{ env.ssl-enabled }}
+          BACKUP_METHOD: ${{ env.backup-method }}
+          RESTORE_METHOD: ${{ env.restore-method }}
+          BACKUP_PROVIDER: ${{ env.backup-provider }}
+        run: make pkg-integration-test IP_FAMILY="$IP_FAMILY" SSL_ENABLED="$SSL_ENABLED" BACKUP_METHOD="$BACKUP_METHOD" RESTORE_METHOD="$RESTORE_METHOD" BACKUP_PROVIDER="$BACKUP_PROVIDER" PKG=./pkg/service/restore ARGS='-test.skip "TestRestoreTablesTabletAware.*Integration"'
 
       - name: Run tablet aware restore tests
         if: ${{ !cancelled() && steps.tests.conclusion != 'skipped' }}
-        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/restore RUN='"TestRestoreTablesTabletAware.*Integration"'
+        env:
+          IP_FAMILY: ${{ env.ip-family }}
+          SSL_ENABLED: ${{ env.ssl-enabled }}
+          BACKUP_METHOD: ${{ env.backup-method }}
+          RESTORE_METHOD: ${{ env.restore-method }}
+          BACKUP_PROVIDER: ${{ env.backup-provider }}
+        run: make pkg-integration-test IP_FAMILY="$IP_FAMILY" SSL_ENABLED="$SSL_ENABLED" BACKUP_METHOD="$BACKUP_METHOD" RESTORE_METHOD="$RESTORE_METHOD" BACKUP_PROVIDER="$BACKUP_PROVIDER" PKG=./pkg/service/restore RUN='"TestRestoreTablesTabletAware.*Integration"'
 
       - name: Dump dev env logs
         if: failure() || cancelled()
@@ -156,7 +177,13 @@ jobs:
           ssl-enabled: ${{ env.ssl-enabled }}
 
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} BACKUP_METHOD=${{ env.backup-method }} RESTORE_METHOD=${{ env.restore-method }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/backup
+        env:
+          IP_FAMILY: ${{ env.ip-family }}
+          SSL_ENABLED: ${{ env.ssl-enabled }}
+          BACKUP_METHOD: ${{ env.backup-method }}
+          RESTORE_METHOD: ${{ env.restore-method }}
+          BACKUP_PROVIDER: ${{ env.backup-provider }}
+        run: make pkg-integration-test IP_FAMILY="$IP_FAMILY" SSL_ENABLED="$SSL_ENABLED" BACKUP_METHOD="$BACKUP_METHOD" RESTORE_METHOD="$RESTORE_METHOD" BACKUP_PROVIDER="$BACKUP_PROVIDER" PKG=./pkg/service/backup
 
       - name: Dump dev env logs
         if: failure() || cancelled()
@@ -188,10 +215,16 @@ jobs:
           ssl-enabled: ${{ env.ssl-enabled }}
 
       - name: Run tests
-        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair
+        env:
+          IP_FAMILY: ${{ env.ip-family }}
+          SSL_ENABLED: ${{ env.ssl-enabled }}
+        run: make pkg-integration-test IP_FAMILY="$IP_FAMILY" SSL_ENABLED="$SSL_ENABLED" PKG=./pkg/service/repair
 
       - name: Run tablet repair tests
-        run: make pkg-integration-test IP_FAMILY=${{ env.ip-family }} SSL_ENABLED=${{ env.ssl-enabled}} PKG=./pkg/service/repair/tablet
+        env:
+          IP_FAMILY: ${{ env.ip-family }}
+          SSL_ENABLED: ${{ env.ssl-enabled }}
+        run: make pkg-integration-test IP_FAMILY="$IP_FAMILY" SSL_ENABLED="$SSL_ENABLED" PKG=./pkg/service/repair/tablet
 
       - name: Dump dev env logs
         if: failure() || cancelled()
@@ -210,14 +243,17 @@ jobs:
     name: Test other, smaller packages
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Set test env config vars for all tests.
+    env:
+      IP_FAMILY: ${{ inputs.ip-family }}
+      TABLETS: ${{ inputs.tablets }}
+      SSL_ENABLED: ${{ inputs.ssl-enabled }}
+      BACKUP_METHOD: ${{ inputs.backup-method }}
+      RESTORE_METHOD: ${{ inputs.restore-method }}
+      BACKUP_PROVIDER: ${{ inputs.backup-provider }}
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - name: Set IP_FAMILY and SSL_ENABLED var for all tests
-        run: |
-          echo "IP_FAMILY=${{ env.ip-family }}" >> $GITHUB_ENV
-          echo "SSL_ENABLED=${{ env.ssl-enabled }}" >> $GITHUB_ENV
 
       - name: Setup testing dependencies
         uses: ./.github/actions/test-setup
@@ -234,7 +270,7 @@ jobs:
         run: make pkg-integration-test PKG=./pkg/ping/dynamoping
 
       - name: Run scyllaclient tests
-        run: make pkg-integration-test BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/scyllaclient
+        run: make pkg-integration-test PKG=./pkg/scyllaclient
 
       - name: Run cluster tests
         run: make pkg-integration-test PKG=./pkg/service/cluster
@@ -252,10 +288,10 @@ jobs:
         run: make pkg-integration-test PKG=./pkg/schema/migrate
 
       - name: Run 1-1-restore tests
-        run: make pkg-integration-test TABLETS=${{ env.tablets }} BACKUP_PROVIDER=${{ env.backup-provider }} PKG=./pkg/service/one2onerestore
+        run: make pkg-integration-test PKG=./pkg/service/one2onerestore
 
       - name: Verify SM server startup
-        run: make run-server SSL_ENABLED=${{ env.ssl-enabled }} IP_FAMILY=${{ env.ip-family }}
+        run: make run-server SSL_ENABLED="$SSL_ENABLED" IP_FAMILY="$IP_FAMILY"
 
       - name: Dump dev env logs
         if: failure() || cancelled()
