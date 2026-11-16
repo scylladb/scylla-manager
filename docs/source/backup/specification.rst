@@ -318,6 +318,12 @@ Please find below the contents of the manifest file of the node shown in the sst
         "cloud_provider": "aws",
         "instance_type": "i4i.xlarge"
      },
+     "encryption_keys": [
+       {
+         "provider": "KmsKeyProviderFactory",
+         "host": "my-kms1"
+       }
+     ],
      "dc": "dc1",
      "cluster_id": "3e99d4a8-67d2-45fe-87fb-87b1b90ea2dc",
      "node_id": "01c9349e-89e6-4ceb-a727-4f27f9f2acce",
@@ -349,6 +355,9 @@ The manifest contains the following information.
 * instance_details - can be empty if running on-premises or instance metadata service is disabled
    * cloud_provider   - cloud provider name, e.g. "aws", "gcp" or "azure"
    * instance_type    - type of the instance
+* encryption_keys  - `encryption at rest <https://docs.scylladb.com/manual/stable/operating-scylla/security/encryption-at-rest.html>`_ keys of the backed up SSTables, optional
+   * provider         - key provider, e.g. "KmsKeyProviderFactory"
+   * host             - key name, e.g. ``kms_host`` or ``gcp_host`` value
 * dc               - data center name of the node
 * cluster_id       - UUID of the cluster
 * node_id          - UUID of the node
