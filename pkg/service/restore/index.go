@@ -18,18 +18,22 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Workload represents total restore workload.
+// Workload represents total restore workload split by restore method.
 type Workload struct {
+	TabletAwareWorkload  tablet.Workload
+	RcloneNativeWorkload RcloneNativeWorkload
+}
+
+// RcloneNativeWorkload represents restore workload of MethodRclone and MethodNative.
+type RcloneNativeWorkload struct {
 	TotalSize    int64
 	LocationSize map[Location]int64
 	TableSize    map[TableName]int64
 	RemoteDir    []RemoteDirWorkload
-
-	TabletAwareWorkload tablet.Workload
 }
 
 // NativeRestoreSupport validates that native restore can be used for all sstables in the workload.
-func (w Workload) NativeRestoreSupport() error {
+func (w RcloneNativeWorkload) NativeRestoreSupport() error {
 	for _, rdw := range w.RemoteDir {
 		for _, sst := range rdw.SSTables {
 			if err := sst.NativeRestoreSupport(); err != nil {
@@ -77,10 +81,10 @@ type SSTable struct {
 	Files []string
 }
 
-// IndexWorkload returns sstables to be restored aggregated by location, table and remote sstable dir.
+// IndexWorkload returns workload of the restored tables indexed per restore method.
 func (w *tablesWorker) IndexWorkload(ctx context.Context) (Workload, error) {
 	// Read remote manifests and store their indexes on disk just once
-	// for both regular and tablet aware restore workload indexing.
+	// for both tablet aware and rclone/native workload indexing.
 	// Indexes will be read from disk multiple times.
 	var manifests []ManifestInfoWithContent
 	var mu sync.Mutex
@@ -101,51 +105,95 @@ func (w *tablesWorker) IndexWorkload(ctx context.Context) (Workload, error) {
 		return Workload{}, errors.Wrap(err, "read remote manifests")
 	}
 
-	tabletWorkload := make(tablet.Workload)
-	var err error
-	if w.config.TabletAwareRestoreFeatureFlag {
-		tabletWorkload, err = w.indexTabletAwareWorkload(ctx, manifests)
+	tables := unitsToTables(w.run.Units)
+	var (
+		workload Workload
+		err      error
+	)
+	if w.target.Method.allows(MethodTablet) {
+		workload.TabletAwareWorkload, err = w.indexTabletAwareWorkload(ctx, tables, manifests)
 		if err != nil {
 			return Workload{}, errors.Wrap(err, "index tablet aware workload")
 		}
 	}
-
-	tables := unitsToTables(w.run.Units)
 	// Don't index tables already indexed and compatible with tablet aware restore
-	for t := range tabletWorkload {
+	for t := range workload.TabletAwareWorkload {
 		delete(tables, t)
 	}
-
-	rawWorkload, err := w.indexLocationWorkload(ctx, tables, manifests)
+	workload.RcloneNativeWorkload, err = w.indexRcloneNativeWorkload(ctx, tables, manifests)
 	if err != nil {
-		return Workload{}, errors.Wrap(err, "index workload")
+		return Workload{}, errors.Wrap(err, "index rclone/native workload")
 	}
-	workload := aggregateWorkload(rawWorkload)
-	workload.TabletAwareWorkload = tabletWorkload
-	w.logWorkloadInfo(ctx, workload)
 	return workload, nil
 }
 
-func (w *tablesWorker) indexTabletAwareWorkload(ctx context.Context, manifests []ManifestInfoWithContent) (tablet.Workload, error) {
-	tw, err := tablet.NewIndexWorker(ctx, w.logger, w.client, w.clusterSession, w.nodeConfig, w.target.Location)
+// indexTabletAwareWorkload returns the tables eligible for tablet aware restore with their metadata.
+func (w *tablesWorker) indexTabletAwareWorkload(ctx context.Context, tables map[cqlTable.CQLTable]struct{}, manifests []ManifestInfoWithContent) (tablet.Workload, error) {
+	tw, err := tablet.NewIndexWorker(ctx, w.logger, w.client, w.clusterSession)
 	if err != nil {
-		return tablet.Workload{}, errors.Wrap(err, "build tablet workload indexer")
+		return nil, errors.Wrap(err, "build tablet workload indexer")
 	}
-	return tw.Index(ctx, unitsToTables(w.run.Units), manifests)
+	if err := w.clusterTabletRestoreSupport(tw); err != nil {
+		w.logger.Info(ctx, "Skipping tablet aware restore", "error", err)
+		return tablet.Workload{}, nil
+	}
+	workload, err := tw.Index(ctx, tables, manifests)
+	if err != nil {
+		return nil, err
+	}
+	w.logTabletAwareWorkloadInfo(ctx, workload)
+	return workload, nil
 }
 
-func (w *tablesWorker) indexLocationWorkload(ctx context.Context, tables map[cqlTable.CQLTable]struct{}, manifests []ManifestInfoWithContent) ([]RemoteDirWorkload, error) {
+// indexRcloneNativeWorkload returns sstables of the tables to be restored
+// with rclone or native method aggregated by location, table and remote sstable dir.
+func (w *tablesWorker) indexRcloneNativeWorkload(ctx context.Context, tables map[cqlTable.CQLTable]struct{}, manifests []ManifestInfoWithContent) (RcloneNativeWorkload, error) {
 	rawWorkload, err := w.createRemoteDirWorkloads(ctx, tables, manifests)
 	if err != nil {
-		return nil, errors.Wrap(err, "create remote dir workloads")
+		return RcloneNativeWorkload{}, errors.Wrap(err, "create remote dir workloads")
 	}
 	if w.target.Continue {
 		rawWorkload, err = w.filterPreviouslyRestoredSStables(ctx, rawWorkload)
 		if err != nil {
-			return nil, errors.Wrap(err, "filter already restored sstables")
+			return RcloneNativeWorkload{}, errors.Wrap(err, "filter already restored sstables")
 		}
 	}
-	return rawWorkload, nil
+	workload := aggregateRcloneNativeWorkload(rawWorkload)
+	w.logRcloneNativeWorkloadInfo(ctx, workload)
+	if err := validateRcloneNativeWorkload(workload, w.hostInfo, w.target.Method); err != nil {
+		return RcloneNativeWorkload{}, err
+	}
+	return workload, nil
+}
+
+// validateRcloneNativeWorkload ensures that workload can be restored with allowed methods.
+func validateRcloneNativeWorkload(workload RcloneNativeWorkload, hostInfo map[string]HostInfo, method MethodList) error {
+	// MethodRclone does not have any limitations,
+	// if it's allowed, workload can always be restored.
+	if method.allows(MethodRclone) {
+		return nil
+	}
+	// If neither MethodRclone nor MethodNative are allowed,
+	// then workload can't be restored.
+	if !method.allows(MethodNative) {
+		if len(workload.RemoteDir) > 0 {
+			return errors.New("some tables can't be restored with any of the allowed methods")
+		}
+		return nil
+	}
+	// If only MethodNative is allowed, then all
+	// hosts need to support native restore API.
+	for host, hi := range hostInfo {
+		if !hi.NativeRestoreSupport {
+			return errors.Errorf("host %s does not support native restore", host)
+		}
+	}
+	// If only MethodNative is allowed, then the
+	// entire workload needs to be compatible with it.
+	if err := workload.NativeRestoreSupport(); err != nil {
+		return errors.Wrap(err, "ensure native restore support")
+	}
+	return nil
 }
 
 func (w *tablesWorker) createRemoteDirWorkloads(ctx context.Context, tables map[cqlTable.CQLTable]struct{}, manifests []ManifestInfoWithContent) ([]RemoteDirWorkload, error) {
@@ -250,7 +298,7 @@ func (w *tablesWorker) initMetrics(workload Workload) {
 	w.metrics.ResetClusterMetrics(w.run.ClusterID)
 
 	// Init remaining bytes
-	for _, rdw := range workload.RemoteDir {
+	for _, rdw := range workload.RcloneNativeWorkload.RemoteDir {
 		w.metrics.SetRemainingBytes(metrics.RestoreBytesLabels{
 			ClusterID:   rdw.ClusterID.String(),
 			SnapshotTag: rdw.SnapshotTag,
@@ -263,7 +311,6 @@ func (w *tablesWorker) initMetrics(workload Workload) {
 	}
 	// Tablet aware restore progress is reported per table, so its remaining
 	// bytes can't be attributed to the backed up location, dc or node.
-	var tabletSize int64
 	for _, tm := range workload.TabletAwareWorkload {
 		w.metrics.SetRemainingBytes(metrics.RestoreBytesLabels{
 			ClusterID:   tm.ClusterID.String(),
@@ -271,7 +318,6 @@ func (w *tablesWorker) initMetrics(workload Workload) {
 			Keyspace:    tm.Table.Keyspace,
 			Table:       tm.Table.Name,
 		}, tm.Size)
-		tabletSize += tm.Size
 	}
 
 	// Init progress
@@ -280,15 +326,15 @@ func (w *tablesWorker) initMetrics(workload Workload) {
 		totalSize += u.Size
 	}
 	// Bytes missing from the workload were restored by the previous runs of this task
-	w.progress.Update(totalSize - workload.TotalSize - tabletSize)
+	w.progress.Update(totalSize - workload.RcloneNativeWorkload.TotalSize - workload.TabletAwareWorkload.TotalSize())
 	w.metrics.SetProgress(metrics.RestoreProgressLabels{
 		ClusterID:   w.run.ClusterID.String(),
 		SnapshotTag: w.run.SnapshotTag,
 	}, w.progress.CurrentProgress())
 }
 
-func (w *tablesWorker) logWorkloadInfo(ctx context.Context, workload Workload) {
-	for _, tm := range workload.TabletAwareWorkload {
+func (w *tablesWorker) logTabletAwareWorkloadInfo(ctx context.Context, workload tablet.Workload) {
+	for _, tm := range workload {
 		w.logger.Info(ctx, "Tablet aware table workload",
 			"keyspace", tm.Table.Keyspace,
 			"table", tm.Table.Name,
@@ -296,7 +342,9 @@ func (w *tablesWorker) logWorkloadInfo(ctx context.Context, workload Workload) {
 			"files count", tm.FileCnt,
 		)
 	}
+}
 
+func (w *tablesWorker) logRcloneNativeWorkloadInfo(ctx context.Context, workload RcloneNativeWorkload) {
 	for loc, size := range workload.LocationSize {
 		w.logger.Info(ctx, "Location workload",
 			"location", loc,
@@ -327,7 +375,7 @@ func (w *tablesWorker) logWorkloadInfo(ctx context.Context, workload Workload) {
 	}
 }
 
-func aggregateWorkload(rawWorkload []RemoteDirWorkload) Workload {
+func aggregateRcloneNativeWorkload(rawWorkload []RemoteDirWorkload) RcloneNativeWorkload {
 	var (
 		totalSize    int64
 		locationSize = make(map[Location]int64)
@@ -338,7 +386,7 @@ func aggregateWorkload(rawWorkload []RemoteDirWorkload) Workload {
 		locationSize[rdw.Location] += rdw.Size
 		tableSize[rdw.TableName] += rdw.Size
 	}
-	return Workload{
+	return RcloneNativeWorkload{
 		TotalSize:    totalSize,
 		LocationSize: locationSize,
 		TableSize:    tableSize,

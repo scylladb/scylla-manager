@@ -57,14 +57,14 @@ type repairTestHelper struct {
 	result error
 }
 
-func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Config) *repairTestHelper {
+func newRepairTestHelper(t *testing.T, session gocqlx.Session, config repair.Config, clientOpts ...func(*scyllaclient.Config)) *repairTestHelper {
 	t.Helper()
 
 	clusterID := uuid.MustRandom()
 	logger := log.NewDevelopmentWithLevel(zapcore.InfoLevel)
 
 	hrt := NewHackableRoundTripper(scyllaclient.DefaultTransport())
-	c := newTestClient(t, hrt, log.NopLogger)
+	c := newTestClient(t, hrt, log.NopLogger, clientOpts...)
 	s := newTestService(t, session, c, config, logger, clusterID)
 
 	return &repairTestHelper{
@@ -349,12 +349,15 @@ func percentComplete(p repair.Progress) (int, int) {
 	return int(p.Success * 100 / p.TokenRanges), int(p.Error * 100 / p.TokenRanges)
 }
 
-func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger) *scyllaclient.Client {
+func newTestClient(t *testing.T, hrt *HackableRoundTripper, logger log.Logger, opts ...func(*scyllaclient.Config)) *scyllaclient.Client {
 	t.Helper()
 
 	config := scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken())
 	config.Transport = hrt
 	config.Backoff.MaxRetries = 5
+	for _, o := range opts {
+		o(&config)
+	}
 
 	c, err := scyllaclient.NewClient(config, logger.Named("scylla"))
 	if err != nil {
@@ -1545,8 +1548,11 @@ func TestServiceRepairIntegration(t *testing.T) {
 	t.Run("repair temporary network outage", func(t *testing.T) {
 		c := defaultConfig()
 
-		h := newRepairTestHelper(t, session, c)
-		ctx, cancel := context.WithCancel(context.Background())
+		// Outage lasts 2*Timeout and must end before all tables fail.
+		h := newRepairTestHelper(t, session, c, func(sc *scyllaclient.Config) {
+			sc.Timeout = 5 * time.Second
+		})
+		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 
 		Print("When: run repair")
