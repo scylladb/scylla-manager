@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
@@ -32,6 +33,7 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testconfig"
 	"github.com/scylladb/scylla-manager/v3/schema"
+	"github.com/scylladb/scylla-manager/v3/schema/snapshot"
 )
 
 var initOnce sync.Once
@@ -47,6 +49,9 @@ func CreateScyllaManagerDBSession(tb testing.TB) gocqlx.Session {
 	})
 	session := createSessionFromCluster(tb, cluster)
 
+	if err := snapshot.Apply(tb.Context(), session, schema.Files, log.NopLogger); err != nil {
+		tb.Fatal("snapshot:", err)
+	}
 	migrate.Callback = nopmigrate.Callback
 	if err := migrate.FromFS(tb.Context(), session, schema.Files); err != nil {
 		tb.Fatal("migrate:", err)
