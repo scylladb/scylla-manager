@@ -1,15 +1,14 @@
 FROM registry.access.redhat.com/ubi9-minimal:latest
 ARG ARCH=x86_64
 
-COPY release/scylla-manager-agent*$ARCH.rpm /
 COPY license/LICENSE.* /licenses/
 
-RUN microdnf -y update && \
-    microdnf -y upgrade && \
-    microdnf install -y ca-certificates && \
+# Bind-mount RPMs so they don't persist in an image layer.
+RUN --mount=type=bind,source=release,target=/release \
+    microdnf -y --nodocs --setopt=install_weak_deps=0 update && \
+    microdnf -y --nodocs --setopt=install_weak_deps=0 upgrade && \
     microdnf clean all && \
-    rpm -ivh scylla-manager-agent*$ARCH.rpm && \
-    rm /scylla-manager-agent*.rpm
+    rpm -ivh /release/scylla-manager-agent-*$ARCH.rpm
 
 USER scylla-manager
 ENV HOME=/var/lib/scylla-manager/

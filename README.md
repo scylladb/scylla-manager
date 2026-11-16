@@ -120,6 +120,7 @@ For other commands consult [user manual](https://docs.scylladb.com/operating-scy
 Make is self-documenting run `make` or `make help` to see available targets with descriptions.
 
 More Makefile targets are available in `testing` directory.
+To free disk space, `make -C testing clean-images` removes the dev env images and the Scylla base images they were built from (images in use by containers are kept).
 
 ## Running tests
 
