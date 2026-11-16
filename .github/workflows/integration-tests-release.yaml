@@ -1,0 +1,30 @@
+name: integration-tests-release
+
+# Runs the whole release suite (all 'integration-tests-<version>.yaml'
+# workflows) at once. Meant to be run manually before the release:
+#   gh workflow run integration-tests-release.yaml --ref <branch>
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  scylla-2025-1:
+    name: integration-tests-2025.1
+    uses: ./.github/workflows/integration-tests-2025.1.yaml
+  scylla-2026-1:
+    name: integration-tests-2026.1
+    uses: ./.github/workflows/integration-tests-2026.1.yaml
+  scylla-2026-2:
+    name: integration-tests-2026.2
+    uses: ./.github/workflows/integration-tests-2026.2.yaml
+  scylla-2026-3:
+    name: integration-tests-2026.3
+    uses: ./.github/workflows/integration-tests-2026.3.yaml
+  scylla-2026-4:
+    name: integration-tests-2026.4
+    uses: ./.github/workflows/integration-tests-2026.4.yaml
+  scylla-latest:
+    name: integration-tests-latest
+    uses: ./.github/workflows/integration-tests-latest.yaml
