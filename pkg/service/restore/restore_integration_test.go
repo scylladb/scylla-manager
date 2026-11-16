@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/pkg/errors"
+	"github.com/scylladb/go-set/strset"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/scylla-manager/backupspec"
@@ -1679,6 +1680,40 @@ func TestRestoreTablesBatchRetryIntegration(t *testing.T) {
 	})
 }
 
+// verifyDownloadedFromCorrectDC checks the restore run progress to verify that each download was done
+// from the source dc for a given target dc as specified by sourceDCByTargetDC, as well as that each
+// source dc from the mapping was used. Should only be called after restore runs.
+func verifyDownloadedFromCorrectDC(t *testing.T, h *testHelper, sourceDCByTargetDC map[string]string) {
+	t.Helper()
+	restoreProgress := selectRestoreRunProgress(t, h)
+
+	// Restore run progress has RemoteSSTableDir of downloaded table which contains dc name in the path.
+	// We can compare this dc with the host dc (apply mappings) and they should be equal.
+
+	seenDCs := strset.New()
+	for _, pr := range restoreProgress {
+		targetDC, err := h.dstCluster.Client.HostDatacenter(context.Background(), pr.Host)
+		if err != nil {
+			t.Fatalf("get host dc: %v", err)
+		}
+		expectedSourceDC, ok := sourceDCByTargetDC[targetDC]
+		if !ok {
+			t.Fatalf("mapping not found for target dc: %v", targetDC)
+		}
+		actualDC := getDCFromRemoteSSTableDir(t, pr.RemoteSSTableDir)
+		seenDCs.Add(actualDC)
+
+		if actualDC != expectedSourceDC {
+			t.Fatalf("Host should download data only from %s, but downloaded from %s", expectedSourceDC, actualDC)
+		}
+	}
+	for _, sourceDC := range sourceDCByTargetDC {
+		if !seenDCs.Has(sourceDC) {
+			t.Fatalf("Missing downloads from source DC %q", sourceDC)
+		}
+	}
+}
+
 func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 	// Since we need multi-dc clusters for multi-dc backup/restore
 	// we will use the same cluster as both src and dst.
@@ -1746,6 +1781,9 @@ func TestRestoreTablesMultiLocationIntegration(t *testing.T) {
 	if !maps.Equal(srcM, dstM) {
 		t.Fatalf("tables have different contents\nsrc:\n%v\ndst:\n%v", srcM, dstM)
 	}
+
+	Print("Validate downloaded from correct DCs")
+	verifyDownloadedFromCorrectDC(t, h, map[string]string{"dc1": "dc2", "dc2": "dc1"})
 }
 
 func TestRestoreTablesProgressIntegration(t *testing.T) {
@@ -1979,25 +2017,7 @@ func TestRestoreDCMappingsIntegration(t *testing.T) {
 	}
 
 	Print("Ensure nodes downloaded tables only from corresponding DC")
-	// Restore run progress has RemoteSSTableDir of downloaded table which contains dc name in the path.
-	// We can compare this dc with the host dc (apply mappings) and they should be equal.
-	restoreProgress := selectRestoreRunProgress(t, h)
-	sourceDCByTargetDC := revertDCMapping(dcMappings)
-	for _, pr := range restoreProgress {
-		targetDC, err := h.dstCluster.Client.HostDatacenter(context.Background(), pr.Host)
-		if err != nil {
-			t.Fatalf("get host dc: %v", err)
-		}
-		expectedSourceDC, ok := sourceDCByTargetDC[targetDC]
-		if !ok {
-			t.Fatalf("mapping not found for target dc: %v", targetDC)
-		}
-		actualDC := getDCFromRemoteSSTableDir(t, pr.RemoteSSTableDir)
-
-		if actualDC != expectedSourceDC {
-			t.Fatalf("Host should download data only from %s, but downloaded from %s", expectedSourceDC, actualDC)
-		}
-	}
+	verifyDownloadedFromCorrectDC(t, h, revertDCMapping(dcMappings))
 }
 
 // TestRestoreFullAlternatorIntegration tests full restore of alternator tables with LSIs/GSIs

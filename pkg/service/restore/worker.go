@@ -104,7 +104,7 @@ func (w *worker) getLocationInfo(ctx context.Context, target Target) ([]Location
 	sourceDC2TargetDCMap, targetDC2SourceDCMap := target.DCMappings, reverseMap(target.DCMappings)
 
 	for _, l := range target.Location {
-		nodes, err := w.getNodesWithAccess(ctx, nodeStatus, l, len(target.DCMappings) > 0)
+		nodes, err := w.getNodesWithAccess(ctx, nodeStatus, l, len(target.DCMappings) == 0)
 		if err != nil {
 			return nil, errors.Wrap(err, "getNodesWithAccess")
 		}
@@ -148,7 +148,17 @@ func (w *worker) getNodesWithAccess(
 	useLocationDC bool,
 ) (scyllaclient.NodeStatusInfoSlice, error) {
 	if useLocationDC && loc.Datacenter() != "" {
-		nodeStatus = nodeStatus.Datacenter([]string{loc.Datacenter()})
+		dcScopedNodeStatus := nodeStatus.Datacenter([]string{loc.Datacenter()})
+		if len(dcScopedNodeStatus) == 0 {
+			availableDCs := strset.New()
+			for _, nodeStatusInfo := range nodeStatus {
+				availableDCs.Add(nodeStatusInfo.Datacenter)
+			}
+			dcs := availableDCs.List()
+			slices.Sort(dcs)
+			return nil, errors.Errorf("location DC %q not found in cluster (DCs: %v)", loc.Datacenter(), dcs)
+		}
+		nodeStatus = dcScopedNodeStatus
 	}
 
 	nodes, err := w.client.GetNodesWithLocationAccess(ctx, nodeStatus, loc.RemotePath(""))

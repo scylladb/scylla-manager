@@ -627,6 +627,11 @@ func TestRestoreGetTargetUnitsViewsErrorIntegration(t *testing.T) {
 			error:    "no snapshot with tag",
 			leaveTag: true,
 		},
+		{
+			name:  "invalid location dc prefix",
+			input: "testdata/get_target/invalid_location_dc_prefix.input.json",
+			error: "\"dc3\" not found in cluster",
+		},
 	}
 
 	testBucket, _, _ := getBucketKeyspaceUser(t)
@@ -730,6 +735,106 @@ func TestRestoreGetUnitsErrorIntegration(t *testing.T) {
 		}
 		t.Log("GetRestoreUnits(): ", err)
 	})
+}
+
+// TestRestoreLocationDCPrefixIntegration tests which nodes download data for restore
+// with various combinations of the dc prefix and dc mappings being set.
+func TestRestoreLocationDCPrefixIntegration(t *testing.T) {
+	testBucket, testKeyspace, _ := getBucketKeyspaceUser(t)
+	const (
+		testBackupSize = 1
+	)
+
+	var (
+		ctx            = context.Background()
+		cfg            = defaultTestConfig()
+		mgrSession     = CreateScyllaManagerDBSession(t)
+		loc            = testBackupLocation(testBucket)
+		h              = newRestoreTestHelper(t, mgrSession, cfg, loc, nil, "", "")
+		clusterSession = CreateSessionAndDropAllKeyspaces(t, h.Client)
+	)
+
+	WriteData(t, clusterSession, testKeyspace, testBackupSize)
+
+	status, err := h.Client.Status(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var (
+		allHosts = status.Hosts()
+		dc1Hosts = status.Datacenter([]string{"dc1"}).Hosts()
+		dc2Hosts = status.Datacenter([]string{"dc2"}).Hosts()
+	)
+
+	target := Target{
+		Keyspace:      []string{testKeyspace},
+		SnapshotTag:   h.simpleBackup(loc),
+		RestoreTables: true,
+	}
+
+	testCases := []struct {
+		name        string
+		description string
+		locationDC  string
+		dcMappings  map[string]string
+		expected    map[string][]string
+	}{
+		{
+			name:        "no dc prefix and no mapping",
+			description: "No dc prefix and no mapping should include all hosts for all dcs",
+			expected:    map[string][]string{"dc1": allHosts, "dc2": allHosts},
+		},
+		{
+			name:        "dc prefix and no mapping",
+			description: "dc prefix and no mapping should include only the prefix dc's hosts for all dcs",
+			locationDC:  "dc2",
+			expected:    map[string][]string{"dc1": dc2Hosts, "dc2": dc2Hosts},
+		},
+		{
+			name:        "dc prefix and mapping",
+			description: "dc prefix and mapping should ignore the prefix and use the mapping",
+			locationDC:  "dc2",
+			dcMappings:  map[string]string{"dc1": "dc1", "dc2": "dc2"},
+			expected:    map[string][]string{"dc1": dc1Hosts, "dc2": dc2Hosts},
+		},
+		{
+			name:        "dc prefix and partial mapping",
+			description: "when both dc prefix and mapping are specified (even if the mapping is partial), the prefix should be ignored and the mapping should be used",
+			locationDC:  "dc2",
+			dcMappings:  map[string]string{"dc1": "dc1"},
+			expected:    map[string][]string{"dc1": dc1Hosts},
+		},
+		{
+			name:        "no dc prefix and mapping",
+			description: "when only the mapping is specified, it should work correctly",
+			dcMappings:  map[string]string{"dc1": "dc2", "dc2": "dc1"},
+			expected:    map[string][]string{"dc1": dc2Hosts, "dc2": dc1Hosts},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Log(tc.description)
+			target := target
+			loc := loc
+			loc.DC = tc.locationDC
+			target.Location = []backupspec.Location{loc}
+			target.DCMappings = tc.dcMappings
+
+			gotTarget, _, _, err := h.service.GetTargetUnitsViews(ctx, h.ClusterID, h.targetToProperties(target))
+			if err != nil {
+				t.Fatal(err)
+			}
+			locationInfo := gotTarget.LocationInfo()
+			if len(locationInfo) != 1 {
+				t.Fatalf("expected 1 location info, got %d", len(locationInfo))
+			}
+			gotDCHosts := locationInfo[0].DCHosts
+			if diff := cmp.Diff(tc.expected, gotDCHosts, cmpopts.SortSlices(func(a, b string) bool { return a < b })); diff != "" {
+				t.Fatal("DCHosts:", diff)
+			}
+		})
+	}
 }
 
 func TestRestoreTablesSmokeIntegration(t *testing.T) {
