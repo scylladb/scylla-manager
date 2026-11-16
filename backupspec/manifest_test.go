@@ -3,6 +3,7 @@
 package backupspec
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -111,4 +112,65 @@ func TestManifestInfoParsePathErrors(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestManifestContentEncryptionKeys verifies that encryption keys are correctly unmarshalled whether present
+// or not. Additionally, verifies that if no keys are present, the field is omitted from the resulting JSON.
+func TestManifestContentEncryptionKeys(t *testing.T) {
+	t.Parallel()
+
+	table := []struct {
+		Name     string
+		JSON     string
+		Expected []EncryptionKey
+	}{
+		{
+			Name: "manifest without the field",
+			JSON: `{"version":"v2","cluster_name":"c"}`,
+		},
+		{
+			Name: "host based and local keys",
+			JSON: `{"version":"v2","encryption_keys":[` +
+				`{"provider":"KmsKeyProviderFactory","host":"my-kms"},` +
+				`{"provider":"GcpKeyProviderFactory","host":"my-gcp"},` +
+				`{"provider":"AzureKeyProviderFactory","host":"my-azure"},` +
+				`{"provider":"KmipKeyProviderFactory","host":"my-kmip"},` +
+				`{"provider":"LocalFileSystemKeyProviderFactory"}]}`,
+			Expected: []EncryptionKey{
+				{Provider: "KmsKeyProviderFactory", Host: "my-kms"},
+				{Provider: "GcpKeyProviderFactory", Host: "my-gcp"},
+				{Provider: "AzureKeyProviderFactory", Host: "my-azure"},
+				{Provider: "KmipKeyProviderFactory", Host: "my-kmip"},
+				{Provider: "LocalFileSystemKeyProviderFactory"},
+			},
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+
+		t.Run(test.Name, func(t *testing.T) {
+			t.Parallel()
+
+			var m ManifestContent
+			if err := json.Unmarshal([]byte(test.JSON), &m); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(m.EncryptionKeys, test.Expected); diff != "" {
+				t.Fatal("Unmarshal() diff", diff)
+			}
+		})
+	}
+
+	t.Run("omitted when empty", func(t *testing.T) {
+		t.Parallel()
+
+		b, err := json.Marshal(ManifestContent{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(b), "encryption_keys") {
+			t.Fatalf("Marshal() = %s, expected no encryption_keys", b)
+		}
+	})
 }
