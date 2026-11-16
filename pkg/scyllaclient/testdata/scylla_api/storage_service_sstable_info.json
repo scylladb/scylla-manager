@@ -1,0 +1,88 @@
+[
+  {
+    "keyspace": "ks",
+    "table": "t1",
+    "sstables": [
+      {
+        "size": 5744,
+        "data_size": 32,
+        "index_size": 8,
+        "filter_size": 12,
+        "timestamp": "2026-11-16T16:32:31Z",
+        "generation": "3h5k_19y7_3hdw024exwhsck4uqe",
+        "level": 0,
+        "version": "me",
+        "extended_properties": [
+          {
+            "group": "compression_parameters",
+            "attributes": [
+              {"key": "sstable_compression", "value": "org.apache.cassandra.io.compress.LZ4Compressor"}
+            ]
+          },
+          {
+            "group": "encryption_info",
+            "attributes": [
+              {"key": "cipher_algorithm", "value": "AES/CBC/PKCS5Padding"},
+              {"key": "components", "value": "Index, CompressionInfo, Summary, Digest, Filter, Statistics"},
+              {"key": "key_provider", "value": "LocalFileSystemKeyProviderFactory"},
+              {"key": "secret_key_strength", "value": "128"}
+            ]
+          }
+        ]
+      },
+      {
+        "size": 8878,
+        "data_size": 931,
+        "index_size": 933,
+        "filter_size": 60,
+        "timestamp": "2026-11-16T14:48:16Z",
+        "generation": "3h5k_154g_4q6jk24exwhsck4uqe",
+        "level": 0,
+        "version": "me",
+        "extended_properties": [
+          {
+            "group": "compression_parameters",
+            "attributes": [
+              {"key": "sstable_compression", "value": "org.apache.cassandra.io.compress.LZ4Compressor"}
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "keyspace": "ks",
+    "table": "t2",
+    "sstables": [
+      {
+        "size": 5744,
+        "data_size": 32,
+        "index_size": 8,
+        "filter_size": 12,
+        "timestamp": "2026-11-16T16:40:00Z",
+        "generation": "3h5k_19y7_4abcd24exwhsck4uqe",
+        "level": 0,
+        "version": "me",
+        "extended_properties": [
+          {
+            "group": "compression_parameters",
+            "attributes": [
+              {"key": "sstable_compression", "value": "org.apache.cassandra.io.compress.LZ4Compressor"}
+            ]
+          },
+          {
+            "group": "encryption_info",
+            "attributes": [
+              {"key": "cipher_algorithm", "value": "AES/CBC/PKCS5Padding"},
+              {"key": "components", "value": "Index, CompressionInfo, Summary, Digest, Filter, Statistics"},
+              {"key": "key_id", "value": "00"},
+              {"key": "key_provider", "value": "KmsKeyProviderFactory"},
+              {"key": "kms_host", "value": "key-kms-test"},
+              {"key": "secret_key_strength", "value": "128"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
