@@ -93,6 +93,7 @@ func (w *worker) createTemporaryManifest(ctx context.Context, h hostInfo, tokens
 	if w.SchemaFilePath != "" {
 		c.Schema = w.SchemaFilePath
 	}
+	c.EncryptionKeys = sortedEncryptionKeys(w.hostEncryptionKeys(h))
 
 	rd := scyllaclient.NewRingDescriber(ctx, w.Client)
 	for i := range dirs {

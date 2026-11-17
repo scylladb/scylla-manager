@@ -3,7 +3,9 @@
 package backup
 
 import (
+	"cmp"
 	"context"
+	"maps"
 	"slices"
 
 	"github.com/scylladb/scylla-manager/backupspec"
@@ -27,6 +29,19 @@ func (w *worker) setEncryptionKeys(h hostInfo, encryptionKeys map[backupspec.Enc
 	}
 
 	w.encryptionKeysByHost[h.ID] = encryptionKeys
+}
+
+func (w *worker) hostEncryptionKeys(h hostInfo) map[backupspec.EncryptionKey]struct{} {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.encryptionKeysByHost[h.ID]
+}
+
+// sortedEncryptionKeys returns the keys sorted, so that the manifest doesn't depend on map iteration order.
+func sortedEncryptionKeys(keys map[backupspec.EncryptionKey]struct{}) []backupspec.EncryptionKey {
+	return slices.SortedFunc(maps.Keys(keys), func(a, b backupspec.EncryptionKey) int {
+		return cmp.Or(cmp.Compare(a.Provider, b.Provider), cmp.Compare(a.Host, b.Host))
+	})
 }
 
 // collectSSTablesEncryptionKeys returns the keys of the unit's encrypted SSTables reported by sstable_info.
