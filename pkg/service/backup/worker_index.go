@@ -23,6 +23,9 @@ func (w *worker) Index(ctx context.Context, hosts []hostInfo, limits []DCLimit) 
 
 		dirs, err := w.indexSnapshotDirs(ctx, h)
 		if err == nil {
+			err = w.indexEncryptionKeys(ctx, h, dirs)
+		}
+		if err == nil {
 			w.Logger.Info(ctx, "Done indexing snapshot files on host", "host", h.IP)
 		}
 

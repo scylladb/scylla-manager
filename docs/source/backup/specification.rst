@@ -355,7 +355,7 @@ The manifest contains the following information.
 * instance_details - can be empty if running on-premises or instance metadata service is disabled
    * cloud_provider   - cloud provider name, e.g. "aws", "gcp" or "azure"
    * instance_type    - type of the instance
-* encryption_keys  - `encryption at rest <https://docs.scylladb.com/manual/stable/operating-scylla/security/encryption-at-rest.html>`_ keys of the backed up SSTables, optional
+* encryption_keys  - `encryption at rest <https://docs.scylladb.com/manual/stable/operating-scylla/security/encryption-at-rest.html>`_ keys of the backed up SSTables, optional. Read from ScyllaDB's ``storage_service/sstable_info`` right before and right after taking the snapshot, so it lists the keys of the snapshot's SSTables even when compaction rewrites them with another key later. It's empty when the ScyllaDB version doesn't report SSTable encryption options. When an SSTable of the snapshot is in neither answer (flushed by the snapshot and compacted right away), the list gets the keys of all the table's SSTables from both answers, so a key change between the two reads can't leave a key out. Backup fails when the table has no SSTables in either answer, the next backup takes a new snapshot.
    * provider         - key provider, e.g. "KmsKeyProviderFactory"
    * host             - key name, e.g. ``kms_host`` or ``gcp_host`` value
 * dc               - data center name of the node

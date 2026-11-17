@@ -97,7 +97,13 @@ type worker struct {
 
 	// Cache for host snapshotDirs
 	snapshotDirs map[string][]snapshotDir
-	mu           sync.Mutex
+	// sstableKeys are the hosts' sstable_info answers taken around the
+	// snapshot, kept from the snapshot stage until the host is indexed.
+	// A nil entry means the answers are not available.
+	sstableKeys map[string]*sstableKeys
+	// encryptionKeys are the keys of the hosts' snapshot SSTables for the manifests.
+	encryptionKeys map[string][]backupspec.EncryptionKey
+	mu             sync.Mutex
 
 	memoryPool *sync.Pool
 

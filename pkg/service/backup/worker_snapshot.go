@@ -82,6 +82,10 @@ func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 		w.Metrics.SetSnapshot(w.ClusterID, u.Keyspace, h.IP, false)
 	}
 
+	// Record the encryption keys of the SSTables around taking
+	// the snapshot, see worker_encryption_keys.go.
+	keys := w.newSSTableKeysRecorder(h)
+
 	// Taking a snapshot can be a costly operation.
 	// To optimize that we randomise order of taking snapshots on different nodes.
 	for _, i := range unitsPerm(w.Units) {
@@ -92,11 +96,15 @@ func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 		if !u.AllTables {
 			tables = u.Tables
 		}
+		keys.record(ctx, u, false)
 		if err := w.Client.TakeSnapshot(ctx, h.IP, w.SnapshotTag, u.Keyspace, tables...); err != nil {
 			return errors.Wrapf(err, "keyspace %s: snapshot", u.Keyspace)
 		}
+		// Covers the SSTables flushed by taking the snapshot.
+		keys.record(ctx, u, true)
 		w.Metrics.SetSnapshot(w.ClusterID, u.Keyspace, h.IP, true)
 	}
+	keys.done()
 	return nil
 }
 
