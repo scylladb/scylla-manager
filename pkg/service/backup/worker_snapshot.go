@@ -5,6 +5,7 @@ package backup
 import (
 	"context"
 	stdErrors "errors"
+	"maps"
 
 	"github.com/pkg/errors"
 	"github.com/scylladb/scylla-manager/backupspec"
@@ -82,10 +83,35 @@ func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 		w.Metrics.SetSnapshot(w.ClusterID, u.Keyspace, h.IP, false)
 	}
 
+	hostEncryptionKeys := make(map[backupspec.EncryptionKey]struct{})
+	encryptionKeyCollectionFailed := false
+
+	collectHostEncryptionKeys := func(u Unit) {
+		// Failing to collect encryption keys doesn't fail the backup, the manifest just won't list them.
+		// Stop collecting after the first failure.
+		if encryptionKeyCollectionFailed {
+			return
+		}
+		encryptionKeys, err := w.collectSSTablesEncryptionKeys(ctx, h, u)
+		if err != nil {
+			w.Logger.Info(ctx, "Failed to collect SSTables encryption keys, manifest won't list them",
+				"host", h.IP,
+				"keyspace", u.Keyspace,
+				"error", err,
+			)
+			encryptionKeyCollectionFailed = true
+			return
+		}
+		maps.Copy(hostEncryptionKeys, encryptionKeys)
+	}
+
 	// Taking a snapshot can be a costly operation.
 	// To optimize that we randomise order of taking snapshots on different nodes.
 	for _, i := range unitsPerm(w.Units) {
 		u := w.Units[i]
+
+		// Collect keys around the snapshot, as SSTables might be rewritten with a different key in between.
+		collectHostEncryptionKeys(u)
 
 		w.Logger.Info(ctx, "Taking snapshot", "host", h.IP, "keyspace", u.Keyspace, "snapshot_tag", w.SnapshotTag)
 		var tables []string
@@ -96,6 +122,11 @@ func (w *worker) takeSnapshot(ctx context.Context, h hostInfo) error {
 			return errors.Wrapf(err, "keyspace %s: snapshot", u.Keyspace)
 		}
 		w.Metrics.SetSnapshot(w.ClusterID, u.Keyspace, h.IP, true)
+
+		collectHostEncryptionKeys(u)
+	}
+	if !encryptionKeyCollectionFailed {
+		w.setEncryptionKeys(h, hostEncryptionKeys)
 	}
 	return nil
 }
