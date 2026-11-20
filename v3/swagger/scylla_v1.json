@@ -11865,6 +11865,52 @@
         "security": []
       }
     },
+    "/storage_service/sstable_info": {
+      "get": {
+        "description": "SSTable information",
+        "summary": "sstable_info",
+        "operationId": "StorageServiceSstableInfoGet",
+        "deprecated": false,
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "keyspace",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The keyspace"
+          },
+          {
+            "name": "cf",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Column family name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/table_sstables"
+              }
+            },
+            "headers": {}
+          },
+          "default": {
+            "description": "internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorModel"
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/storage_service/sstables/{keyspace}": {
       "post": {
         "description": "Load new SSTables to the given keyspace/columnFamily",
@@ -13969,6 +14015,107 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        }
+      }
+    },
+    "named_maps": {
+      "title": "named_maps",
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mapper"
+          }
+        }
+      }
+    },
+    "sstable": {
+      "title": "sstable",
+      "type": "object",
+      "properties": {
+        "size": {
+          "description": "Total size in bytes of sstable",
+          "type": "integer",
+          "format": "int64"
+        },
+        "data_size": {
+          "description": "The size in bytes on disk of data",
+          "type": "integer",
+          "format": "int64"
+        },
+        "index_size": {
+          "description": "The size in bytes on disk of index",
+          "type": "integer",
+          "format": "int64"
+        },
+        "filter_size": {
+          "description": "The size in bytes on disk of filter",
+          "type": "integer",
+          "format": "int64"
+        },
+        "timestamp": {
+          "description": "File creation time",
+          "type": "string",
+          "format": "date-time"
+        },
+        "generation": {
+          "description": "SSTable generation",
+          "type": "string"
+        },
+        "level": {
+          "description": "SSTable level",
+          "type": "integer",
+          "format": "int64"
+        },
+        "version": {
+          "description": "SSTable version",
+          "type": "string",
+          "enum": [
+            "ka",
+            "la",
+            "mc",
+            "md",
+            "me",
+            "ms",
+            "mt"
+          ]
+        },
+        "properties": {
+          "description": "SSTable attributes",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mapper"
+          }
+        },
+        "extended_properties": {
+          "description": "SSTable extended attributes",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/named_maps"
+          }
+        }
+      }
+    },
+    "table_sstables": {
+      "title": "table_sstables",
+      "description": "Per-table SSTable info and attributes",
+      "type": "object",
+      "properties": {
+        "keyspace": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "sstables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/sstable"
           }
         }
       }
