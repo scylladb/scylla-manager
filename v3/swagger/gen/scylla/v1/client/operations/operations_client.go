@@ -773,6 +773,8 @@ type ClientService interface {
 
 	StorageServiceSnapshotsSizeTrueGet(params *StorageServiceSnapshotsSizeTrueGetParams) (*StorageServiceSnapshotsSizeTrueGetOK, error)
 
+	StorageServiceSstableInfoGet(params *StorageServiceSstableInfoGetParams) (*StorageServiceSstableInfoGetOK, error)
+
 	StorageServiceSstablesByKeyspacePost(params *StorageServiceSstablesByKeyspacePostParams) (*StorageServiceSstablesByKeyspacePostOK, error)
 
 	StorageServiceStopDaemonPost(params *StorageServiceStopDaemonPostParams) (*StorageServiceStopDaemonPostOK, error)
@@ -13935,6 +13937,41 @@ func (a *Client) StorageServiceSnapshotsSizeTrueGet(params *StorageServiceSnapsh
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*StorageServiceSnapshotsSizeTrueGetDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+StorageServiceSstableInfoGet sstables info
+
+SSTable information
+*/
+func (a *Client) StorageServiceSstableInfoGet(params *StorageServiceSstableInfoGetParams) (*StorageServiceSstableInfoGetOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewStorageServiceSstableInfoGetParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "StorageServiceSstableInfoGet",
+		Method:             "GET",
+		PathPattern:        "/storage_service/sstable_info",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &StorageServiceSstableInfoGetReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*StorageServiceSstableInfoGetOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*StorageServiceSstableInfoGetDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
