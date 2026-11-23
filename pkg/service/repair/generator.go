@@ -353,11 +353,12 @@ func (tg *tableGenerator) getRangesToRepair(allRanges []scyllaclient.TokenRange,
 		// It might happen that repairing 1 range takes more time than repairing the remaining 9.
 		// Then SM would be waiting for a repair job which repairs only 1 range,
 		// when given replica set could be repairing 9 additional ranges at the same time.
-		// Because of that, we send all ranges (limited to 1000 for safety) owned by given replica set per repair job.
+		// Because of that, we send all ranges (up to MaxRepairRanges) owned by given replica set per repair job.
 		// Controlling intensity happens by ranges_parallelism repair param.
-		const limit = 1000
-		intensity = min(len(allRanges), limit)
+		intensity = len(allRanges)
 	}
+	// Ranges are sent as query param, so their amount is limited by Scylla request size
+	intensity = min(intensity, scyllaclient.MaxRepairRanges)
 	if tg.JobType != normalJobType {
 		intensity = len(allRanges)
 	}
