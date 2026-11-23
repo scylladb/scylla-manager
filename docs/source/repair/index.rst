@@ -110,7 +110,7 @@ value of nodes taking part in the job.
 Ranges batching
 ===============
 
-In order to improve cluster utilization, ScyllaDB Manager sends all ranges owned by given replica set in a single repair job.
+In order to improve cluster utilization, ScyllaDB Manager sends all ranges owned by given replica set in a single repair job, up to a limit of 500 ranges.
 The ``--intensity`` constraint is ensured by the ``ranges_parallelism`` repair job parameter.
 
 Even though this improves repair performance (especially for tablet keyspaces), it reduces task granularity.
