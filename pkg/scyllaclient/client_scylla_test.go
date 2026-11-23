@@ -4,10 +4,14 @@ package scyllaclient_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/http/httputil"
 	"net/netip"
+	"net/url"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -374,4 +378,65 @@ func TestTakeSnapshotShouldRetryHandler(t *testing.T) {
 			t.Fatalf("TakeSnapshotShouldRetryHandler() = %v, expected nil", b)
 		}
 	})
+}
+
+// TestClientTakeSnapshotBatchesTables verifies that snapshot of many tables
+// is split into multiple requests fitting the query param limit.
+// Requests have the same tag and keyspace, and their tables are disjoint.
+// See TestClientSnapshotSameTagDisjointTablesIntegration for checking that
+// Scylla handles such requests correctly.
+func TestClientTakeSnapshotBatchesTables(t *testing.T) {
+	t.Parallel()
+
+	const (
+		tag = "tag"
+		ks  = "ks"
+	)
+	var (
+		tables   []string
+		mu       sync.Mutex
+		requests int
+		gotCf    []string
+	)
+	for i := range 1000 {
+		tables = append(tables, fmt.Sprintf("%s_%d", strings.Repeat("t", 100), i))
+	}
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		if q.Get("tag") != tag || q.Get("kn") != ks {
+			t.Errorf("Expected tag %q and keyspace %q, got %q and %q", tag, ks, q.Get("tag"), q.Get("kn"))
+		}
+		cf := q.Get("cf")
+		if size := len(url.QueryEscape(cf)); size > scyllaclient.MaxListQueryParamSize {
+			t.Errorf("Query param size %d exceeds limit", size)
+		}
+		dump, err := httputil.DumpRequest(r, false)
+		if err != nil {
+			t.Errorf("Failed to dump request: %v", err)
+			return
+		}
+		if len(dump) > scyllaclient.ScyllaMaxRequestSize {
+			t.Errorf("Request size %d exceeds limit %d", len(dump), scyllaclient.ScyllaMaxRequestSize)
+		}
+		mu.Lock()
+		requests++
+		gotCf = append(gotCf, strings.Split(cf, ",")...)
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	})
+	client, closeServer := scyllaclienttest.NewFakeScyllaServerWithHandler(t, h)
+	defer closeServer()
+
+	if err := client.TakeSnapshot(t.Context(), scyllaclienttest.TestHost, tag, ks, tables...); err != nil {
+		t.Fatal(err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if requests < 2 {
+		t.Fatalf("Expected tables to be split into multiple requests, got %d", requests)
+	}
+	if !slices.Equal(gotCf, tables) {
+		t.Fatalf("Expected snapshotted tables %v, got %v", tables, gotCf)
+	}
 }

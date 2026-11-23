@@ -19,6 +19,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/go-set/i64set"
+	"github.com/scylladb/scylla-manager/backupspec"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
 	"github.com/scylladb/scylla-manager/v3/pkg/testutils/db"
@@ -296,6 +297,66 @@ func TestClientSnapshotIntegration(t *testing.T) {
 	if slice.ContainsString(snaps, tag) {
 		t.Fatal("snapshot was not deleted", tag)
 	}
+}
+
+// TestClientSnapshotSameTagDisjointTablesIntegration checks that snapshot taken
+// with multiple requests of the same keyspace and tag, but disjoint tables,
+// contains all of them. Splitting tables into such requests by TakeSnapshot
+// is checked by TestClientTakeSnapshotBatchesTables.
+func TestClientSnapshotSameTagDisjointTablesIntegration(t *testing.T) {
+	const ks = "snapshot_same_tag"
+	batches := [][]string{
+		{"tab_1", "tab_2"},
+		{"tab_3", "tab_4"},
+		{"tab_5", "tab_6"},
+	}
+
+	client := newTestClient(t, scyllaclient.TestConfig(ManagedClusterHosts(), AgentAuthToken()), log.NewDevelopment())
+	ctx := t.Context()
+	host := ManagedClusterHost()
+	tag := backupspec.NewSnapshotTag()
+
+	Print("Given: keyspace with tables")
+	session := db.CreateSessionAndDropAllKeyspaces(t, client)
+	db.ExecStmt(t, session, fmt.Sprintf("CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 1}", ks))
+	t.Cleanup(func() { db.ExecStmt(t, session, "DROP KEYSPACE IF EXISTS "+ks) })
+	for _, tab := range slices.Concat(batches...) {
+		db.ExecStmt(t, session, fmt.Sprintf("CREATE TABLE %s.%s (id int PRIMARY KEY)", ks, tab))
+	}
+
+	Print("When: snapshot of each batch of tables is taken with the same tag")
+	t.Cleanup(func() {
+		if err := client.DeleteSnapshot(context.Background(), host, tag); err != nil {
+			t.Error(err)
+		}
+	})
+	for _, batch := range batches {
+		if err := client.TakeSnapshot(ctx, host, tag, ks, batch...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	Print("Then: snapshot contains all tables")
+	if diff := cmp.Diff(slices.Concat(batches...), snapshotTables(t, client, host, tag, ks)); diff != "" {
+		t.Fatalf("Snapshot tables mismatch (-expected +got):\n%s", diff)
+	}
+}
+
+// snapshotTables returns sorted tables of the keyspace present in the snapshot.
+func snapshotTables(t *testing.T, client *scyllaclient.Client, host, tag, ks string) []string {
+	t.Helper()
+
+	units, err := client.SnapshotDetails(t.Context(), host, tag)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, u := range units {
+		if u.Keyspace == ks {
+			slices.Sort(u.Tables)
+			return u.Tables
+		}
+	}
+	return nil
 }
 
 func TestClientTableExistsIntegration(t *testing.T) {
