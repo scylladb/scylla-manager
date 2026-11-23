@@ -41,6 +41,7 @@ var ScyllaBackupTables = []CQLTable{
 	{Keyspace: "system_distributed", Name: "snapshot_keyspaces"},
 	{Keyspace: "system_distributed", Name: "snapshot_tables"},
 	{Keyspace: "system_distributed", Name: "snapshot_tablets"},
+	{Keyspace: "system_distributed", Name: "snapshot_attempts"},
 }
 
 // ScyllaClusterConfigTables lists internal scylla tables used for storing
