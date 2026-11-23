@@ -8,8 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
+	"net/http/httputil"
 	"net/netip"
 	"slices"
 	"sort"
@@ -2108,6 +2110,50 @@ func TestServiceRepairIntegration(t *testing.T) {
 		if v := cnt.Load(); v != 9 {
 			t.Errorf("Expected 9 jobs to be sent (one per replica set), got %d", v)
 		}
+	})
+
+	// Verifies that repair succeeds when Scylla rejects requests exceeding its size limit
+	// and a replica set owns more ranges than fit in a single request.
+	t.Run("ranges batching respects request size limit", func(t *testing.T) {
+		h := newRepairTestHelper(t, session, defaultConfig())
+		ctx := t.Context()
+
+		const (
+			ks               = "test_repair_ranges_batching_size_limit"
+			scyllaMaxReqSize = 32 * 1024
+		)
+
+		Print("When: prepare keyspace with 1 replica set owning all ranges")
+		createVnodeKeyspace(t, clusterSession, ks, 3, 3)
+		defer dropKeyspace(t, clusterSession, ks)
+		WriteData(t, clusterSession, ks, 1, "test_table_0")
+
+		Print("When: Scylla rejects too large requests")
+		// Since 2026.4 Scylla limits request sizes to 32KB. Currently this version isn't tested
+		// with integration tests, so artificially add the limit in the interceptor.
+		h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			// Request line and headers
+			dump, err := httputil.DumpRequestOut(req, false)
+			if err != nil {
+				return nil, err
+			}
+			if len(dump) > scyllaMaxReqSize {
+				resp := httpx.MakeResponse(req, http.StatusRequestURITooLong)
+				resp.Body = io.NopCloser(strings.NewReader("Request line or headers too large"))
+				return resp, nil
+			}
+			return nil, nil
+		}))
+
+		Print("When: run repair")
+		h.runRepair(ctx, map[string]any{
+			"keyspace":              []string{ks},
+			"fail_fast":             true,
+			"small_table_threshold": repairAllSmallTableThreshold,
+		})
+
+		Print("Then: repair is done")
+		h.assertDone(longWait)
 	})
 
 	t.Run("ranges batching fallback", func(t *testing.T) {

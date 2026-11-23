@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
 
@@ -117,4 +118,69 @@ func equalAddrs(a, b []netip.Addr) bool {
 
 func equalSlices[T cmp.Ordered](a, b []T) bool {
 	return slices.Equal(slices.Sorted(slices.Values(a)), slices.Sorted(slices.Values(b)))
+}
+
+// TestGetRangesToRepair verifies that normal repair jobs are limited to
+// MaxRepairRanges ranges, while jobs which don't send ranges are not.
+func TestGetRangesToRepair(t *testing.T) {
+	var allRanges []scyllaclient.TokenRange
+	for i := range int64(1000) {
+		allRanges = append(allRanges, scyllaclient.TokenRange{
+			StartToken: dht.Murmur3MinToken + i,
+			EndToken:   dht.Murmur3MinToken + i + 1,
+		})
+	}
+
+	testCases := []struct {
+		name      string
+		jobType   jobType
+		batching  bool
+		intensity int
+		expected  int
+	}{
+		{
+			name:     "batching limited by max repair ranges",
+			jobType:  normalJobType,
+			batching: true,
+			expected: scyllaclient.MaxRepairRanges,
+		},
+		{
+			name:      "intensity limited by max repair ranges",
+			jobType:   normalJobType,
+			intensity: len(allRanges),
+			expected:  scyllaclient.MaxRepairRanges,
+		},
+		{
+			name:      "intensity below max repair ranges",
+			jobType:   normalJobType,
+			intensity: 10,
+			expected:  10,
+		},
+		{
+			name:     "small table repair takes all ranges",
+			jobType:  smallTableJobType,
+			expected: len(allRanges),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tg := &tableGenerator{
+				generatorTools: generatorTools{batching: tc.batching},
+				TodoRanges:     make(map[scyllaclient.TokenRange]struct{}),
+				JobType:        tc.jobType,
+			}
+			for _, r := range allRanges {
+				tg.TodoRanges[r] = struct{}{}
+			}
+
+			ranges := tg.getRangesToRepair(allRanges, tc.intensity)
+			if len(ranges) != tc.expected {
+				t.Fatalf("Expected %d ranges, got %d", tc.expected, len(ranges))
+			}
+			if len(tg.TodoRanges) != len(allRanges)-len(ranges) {
+				t.Fatalf("Expected %d todo ranges, got %d", len(allRanges)-len(ranges), len(tg.TodoRanges))
+			}
+		})
+	}
 }

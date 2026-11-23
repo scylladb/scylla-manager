@@ -81,3 +81,7 @@ const ScyllaMaxRequestSize = scyllaMaxRequestSize
 func BatchListQueryParam(items []string) [][]string {
 	return batchListQueryParam(items)
 }
+
+func DumpRanges(ranges []TokenRange) string {
+	return dumpRanges(ranges)
+}

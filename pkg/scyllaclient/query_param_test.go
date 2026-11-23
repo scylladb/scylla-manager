@@ -8,8 +8,33 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/scylladb/scylla-manager/v3/pkg/dht"
 	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 )
+
+// TestMaxRepairRangesFitQueryParam verifies that MaxRepairRanges ranges
+// with the longest encoding fit the ranges query param limit.
+func TestMaxRepairRangesFitQueryParam(t *testing.T) {
+	// Tokens with the longest string representation
+	ranges := make([]scyllaclient.TokenRange, scyllaclient.MaxRepairRanges)
+	last := len(ranges) - 1
+	for i := range last {
+		ranges[i] = scyllaclient.TokenRange{
+			StartToken: dht.Murmur3MinToken + 1 + int64(i),
+			EndToken:   dht.Murmur3MinToken + 2 + int64(i),
+		}
+	}
+	// Wraparound range closing the ring is sent as two ranges
+	ranges[last] = scyllaclient.TokenRange{
+		StartToken: dht.Murmur3MinToken + 1 + int64(last),
+		EndToken:   dht.Murmur3MinToken + 1,
+	}
+
+	q := url.Values{"ranges": {scyllaclient.DumpRanges(ranges)}}.Encode()
+	if size := len(q) - len("ranges="); size > scyllaclient.MaxListQueryParamSize {
+		t.Fatalf("Ranges query param size %d exceeds limit %d", size, scyllaclient.MaxListQueryParamSize)
+	}
+}
 
 // TestBatchListQueryParam verifies that list query param items are split
 // into batches fitting the size limit, without reordering or losing items.
