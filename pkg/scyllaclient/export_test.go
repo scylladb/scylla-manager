@@ -74,3 +74,10 @@ func (c *Client) Metrics(ctx context.Context, host, name string) (map[string]*pr
 func (opts *RcloneListDirOpts) AsListOptions(remotePath string) (*models.ListOptions, error) {
 	return opts.asListOptions(remotePath)
 }
+
+const MaxListQueryParamSize = maxListQueryParamSize
+const ScyllaMaxRequestSize = scyllaMaxRequestSize
+
+func BatchListQueryParam(items []string) [][]string {
+	return batchListQueryParam(items)
+}
