@@ -1,4 +1,8 @@
-RELEASE      := 0.$(shell date +%Y%m%d).$(shell git describe --always)
+GIT_SHA      := $(shell git rev-parse --short=12 HEAD)
+ifeq ($(GIT_SHA),)
+$(error cannot determine git commit)
+endif
+RELEASE      := 0.$(shell date +%Y%m%d).g$(GIT_SHA)
 VERSION         ?=3.14.0-dev
 PUBLISH      := 0
 
