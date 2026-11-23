@@ -946,15 +946,27 @@ func (c *Client) SnapshotDetails(ctx context.Context, host, tag string) ([]Unit,
 // Multiple keyspaces may have the same tag.
 // Flush is taken care of by Scylla, see table::snapshot for details.
 // If snapshot already exists no error is returned.
+// Tables are snapshotted in batches to fit Scylla request size limit.
 func (c *Client) TakeSnapshot(ctx context.Context, host, tag, keyspace string, tables ...string) error {
 	ctx = customTimeout(ctx, snapshotTimeout)
 	ctx = withShouldRetryHandler(ctx, takeSnapshotShouldRetryHandler)
 
-	var cf *string
-	if len(tables) > 0 {
-		cf = new(strings.Join(tables, ","))
+	if len(tables) == 0 {
+		return c.takeSnapshot(ctx, host, tag, keyspace, nil)
 	}
+	batches := batchListQueryParam(tables)
+	if len(batches) > 1 {
+		c.logger.Info(ctx, "Taking snapshot in batches", "host", host, "keyspace", keyspace, "batches", len(batches))
+	}
+	for _, batch := range batches {
+		if err := c.takeSnapshot(ctx, host, tag, keyspace, new(strings.Join(batch, ","))); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+func (c *Client) takeSnapshot(ctx context.Context, host, tag, keyspace string, cf *string) error {
 	p := operations.StorageServiceSnapshotsPostParams{
 		Context: forceHost(ctx, host),
 		Tag:     &tag,
