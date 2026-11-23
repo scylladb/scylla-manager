@@ -71,9 +71,9 @@
           "type": "prometheus",
           "uid": "scylla-manager-prometheus"
         },
-        "definition": "label_values(scylla_manager_healthcheck_cql_status{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"}, dc)",
+        "definition": "label_values({__name__=~\"scylla_manager_healthcheck_(cql|rest|alternator)_status\", exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"}, dc)",
         "query": {
-          "query": "label_values(scylla_manager_healthcheck_cql_status{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"}, dc)",
+          "query": "label_values({__name__=~\"scylla_manager_healthcheck_(cql|rest|alternator)_status\", exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"}, dc)",
           "refId": "dc"
         },
         "refresh": 2,
@@ -101,9 +101,9 @@
           "type": "prometheus",
           "uid": "scylla-manager-prometheus"
         },
-        "definition": "label_values(scylla_manager_healthcheck_cql_status{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", dc=~\"$dc\"}, host)",
+        "definition": "label_values({__name__=~\"scylla_manager_healthcheck_(cql|rest|alternator)_status\", exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", dc=~\"$dc\"}, host)",
         "query": {
-          "query": "label_values(scylla_manager_healthcheck_cql_status{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", dc=~\"$dc\"}, host)",
+          "query": "label_values({__name__=~\"scylla_manager_healthcheck_(cql|rest|alternator)_status\", exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", dc=~\"$dc\"}, host)",
           "refId": "host"
         },
         "refresh": 2,
@@ -131,9 +131,9 @@
           "type": "prometheus",
           "uid": "scylla-manager-prometheus"
         },
-        "definition": "query_result(scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=~\"repair|tablet_repair\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=~\"repair|tablet_repair\", cron=\"ad-hoc\"} and on(task) ((scylla_manager_scheduler_task_run_start_seconds{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} >= time() - $__range_s) or (scylla_manager_scheduler_task_state{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} == 1))))",
+        "definition": "query_result(scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=~\"repair|tablet_repair\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=~\"repair|tablet_repair\", cron=\"ad-hoc\"} and on(task) ((scylla_manager_scheduler_task_run_start_seconds{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} >= time() - $__range_s) or max_over_time((scylla_manager_scheduler_task_state{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} == 1)[$__range:]))))",
         "query": {
-          "query": "query_result(scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=~\"repair|tablet_repair\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=~\"repair|tablet_repair\", cron=\"ad-hoc\"} and on(task) ((scylla_manager_scheduler_task_run_start_seconds{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} >= time() - $__range_s) or (scylla_manager_scheduler_task_state{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} == 1))))",
+          "query": "query_result(scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=~\"repair|tablet_repair\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=~\"repair|tablet_repair\", cron=\"ad-hoc\"} and on(task) ((scylla_manager_scheduler_task_run_start_seconds{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} >= time() - $__range_s) or max_over_time((scylla_manager_scheduler_task_state{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} == 1)[$__range:]))))",
           "refId": "repair_task"
         },
         "refresh": 2,
@@ -161,9 +161,9 @@
           "type": "prometheus",
           "uid": "scylla-manager-prometheus"
         },
-        "definition": "query_result(scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=\"backup\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=\"backup\", cron=\"ad-hoc\"} and on(task) ((scylla_manager_scheduler_task_run_start_seconds{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} >= time() - $__range_s) or (scylla_manager_scheduler_task_state{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} == 1))))",
+        "definition": "query_result(scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=\"backup\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=\"backup\", cron=\"ad-hoc\"} and on(task) ((scylla_manager_scheduler_task_run_start_seconds{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} >= time() - $__range_s) or max_over_time((scylla_manager_scheduler_task_state{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} == 1)[$__range:]))))",
         "query": {
-          "query": "query_result(scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=\"backup\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=\"backup\", cron=\"ad-hoc\"} and on(task) ((scylla_manager_scheduler_task_run_start_seconds{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} >= time() - $__range_s) or (scylla_manager_scheduler_task_state{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} == 1))))",
+          "query": "query_result(scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=\"backup\", cron!=\"ad-hoc\"} or (scylla_manager_scheduler_task_properties{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\", type=\"backup\", cron=\"ad-hoc\"} and on(task) ((scylla_manager_scheduler_task_run_start_seconds{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} >= time() - $__range_s) or max_over_time((scylla_manager_scheduler_task_state{exported_cluster=~\"$sm_cluster\", cluster=\"$cluster\"} == 1)[$__range:]))))",
           "refId": "backup_task"
         },
         "refresh": 2,
@@ -360,7 +360,7 @@
             "uid": "scylla-manager-prometheus"
           },
           "editorMode": "code",
-          "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{job=\"scylla_manager\", cluster=~\"$cluster|\", mode=\"idle\"}[5m])))",
+          "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job=\"scylla_manager\", cluster=~\"$cluster|\", mode=\"idle\"}[5m])))",
           "legendFormat": "SM node CPU busy",
           "range": true,
           "refId": "A"
