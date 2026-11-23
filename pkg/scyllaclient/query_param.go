@@ -14,6 +14,9 @@ const (
 	maxListQueryParamSize = scyllaMaxRequestSize - requestHeadroomSize
 )
 
+// MaxRepairRanges is the max number of token ranges sent in a single repair job.
+const MaxRepairRanges = 500
+
 func listQueryParamItemSize(item string) int {
 	return len(url.QueryEscape(item)) + len(url.QueryEscape(","))
 }
