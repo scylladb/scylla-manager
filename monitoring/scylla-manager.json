@@ -221,7 +221,7 @@
           },
           "editorMode": "code",
           "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"} / node_memory_MemTotal_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"})",
-          "legendFormat": "SM node memory used",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -291,7 +291,7 @@
           },
           "editorMode": "code",
           "expr": "100 * (node_memory_SwapTotal_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"} - node_memory_SwapFree_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"}) / clamp_min(node_memory_SwapTotal_bytes{job=\"scylla_manager\", cluster=~\"$cluster|\"}, 1)",
-          "legendFormat": "SM node swap used",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -361,7 +361,7 @@
           },
           "editorMode": "code",
           "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job=\"scylla_manager\", cluster=~\"$cluster|\", mode=\"idle\"}[5m])))",
-          "legendFormat": "SM node CPU busy",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
