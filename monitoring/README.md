@@ -5,7 +5,7 @@ The Scylla Manager dashboard lives in the ScyllaDB Monitoring stack
 `grafana/scylla-manager.template.json`, and is developed there.
 `scylla-manager.json` here is that dashboard built at a pinned
 scylla-monitoring commit, so that the development environment shows exactly
-what users run. Do not edit it by hand.
+what users run.
 
 To pick up a change merged in scylla-monitoring, bump `SCYLLA_MONITORING_REF`
 in `update-dashboard.sh`, then run
@@ -13,7 +13,13 @@ in `update-dashboard.sh`, then run
     make update-monitoring-dashboard
 
 and commit both files. The build runs in a container, so only docker is
-needed.
+needed. To build another scylla-monitoring commit or branch, e.g. the latest,
+pass it as `REF`: `make update-monitoring-dashboard REF=master`.
+
+A dashboard change can be prototyped here, against the development
+environment's metrics, but it lands through a scylla-monitoring PR, made in
+the template there: `scylla-manager.json` is a build output, and a later
+update overwrites any edit made to it here, so do not commit hand edits.
 
 The development environment loads every `*.json` in this directory into its
 own Grafana (http://localhost:3000, "Scylla Manager" folder) within 10

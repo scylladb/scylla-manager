@@ -210,9 +210,9 @@ start-dev-env-monitoring:
 	@IPV6=$(IPV6) make -C testing monitoring
 
 .PHONY: update-monitoring-dashboard
-update-monitoring-dashboard: ## Build monitoring/scylla-manager.json from the ScyllaDB Monitoring stack
+update-monitoring-dashboard: ## Build monitoring/scylla-manager.json from the ScyllaDB Monitoring stack, at the pinned commit or REF (e.g. REF=master)
 update-monitoring-dashboard:
-	@./monitoring/update-dashboard.sh
+	@./monitoring/update-dashboard.sh $(REF)
 
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes

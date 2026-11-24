@@ -13,7 +13,8 @@
 #
 # The build runs in a container, so only docker is needed.
 #
-# usage: monitoring/update-dashboard.sh [scylla-monitoring commit]
+# usage: monitoring/update-dashboard.sh [scylla-monitoring commit or branch]
+#    or: make update-monitoring-dashboard [REF=<commit or branch>]
 
 set -euo pipefail
 
