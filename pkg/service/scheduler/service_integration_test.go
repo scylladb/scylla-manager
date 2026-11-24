@@ -2102,6 +2102,63 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task, scheduler.StatusAborted)
 	})
 
+	t.Run("run start hook is called before the task is reported as running", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		type call struct {
+			clusterID, taskID uuid.UUID
+			state             float64
+		}
+		var (
+			mu    sync.Mutex
+			calls []call
+		)
+		h.service.SetRunStartHook(mockTask, func(clusterID, taskID uuid.UUID) {
+			mu.Lock()
+			defer mu.Unlock()
+			calls = append(calls, call{clusterID: clusterID, taskID: taskID, state: h.taskStateValue(taskID)})
+		})
+		callCount := func() int {
+			mu.Lock()
+			defer mu.Unlock()
+			return len(calls)
+		}
+
+		Print("Given: task")
+		task := h.makeTaskWithStartDate(future)
+		task.ID = uuid.Nil
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: task runs twice")
+		for i := 1; i <= 2; i++ {
+			if err := h.service.StartTask(ctx, task); err != nil {
+				t.Fatal(err)
+			}
+			h.assertStatus(task, scheduler.StatusRunning)
+			if c := callCount(); c != i {
+				t.Fatalf("hook called %d times, expected %d", c, i)
+			}
+			h.runner.Done()
+			h.assertStatus(task, scheduler.StatusDone)
+		}
+
+		Print("Then: every call precedes the running state of its run")
+		mu.Lock()
+		defer mu.Unlock()
+		for i, c := range calls {
+			if c.clusterID != h.clusterID || c.taskID != task.ID {
+				t.Errorf("call %d: got cluster %s task %s, expected cluster %s task %s", i, c.clusterID, c.taskID, h.clusterID, task.ID)
+			}
+			if c.state == float64(metrics.TaskStateRunning) {
+				t.Errorf("call %d: task already reported as running", i)
+			}
+		}
+	})
+
 	t.Run("suspend and resume skip deleted tasks", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
