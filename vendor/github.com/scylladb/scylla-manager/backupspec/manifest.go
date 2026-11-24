@@ -125,6 +125,7 @@ type ManifestContent struct {
 	CPUCount        int             `json:"cpu_count"`
 	StorageSize     uint64          `json:"storage_size"`
 	InstanceDetails InstanceDetails `json:"instance_details"`
+	EncryptionKeys  []EncryptionKey `json:"encryption_keys,omitempty"`
 
 	// Fields below are also persent in the manifest file path.
 	DC          string    `json:"dc"`
@@ -139,6 +140,13 @@ type ManifestContent struct {
 type InstanceDetails struct {
 	CloudProvider string `json:"cloud_provider,omitempty"`
 	InstanceType  string `json:"instance_type,omitempty"`
+}
+
+// EncryptionKey identifies the key provider and the key name (e.g. kms_host)
+// used for encrypting backed up SSTables.
+type EncryptionKey struct {
+	Provider string `json:"provider"`
+	Host     string `json:"host,omitempty"`
 }
 
 // ManifestContentWithIndex is structure containing information about the backup

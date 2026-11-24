@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -23,16 +24,19 @@ type RestoreKeyspaceProgress struct {
 	// Format: date-time
 	CompletedAt *strfmt.DateTime `json:"completed_at,omitempty"`
 
-	// This field is DEPRECATED. Total bytes downloaded from table (included in restored)
+	// This field is DEPRECATED. Total bytes downloaded from table (included in restored). Populated by the rclone restore method
 	Downloaded int64 `json:"downloaded,omitempty"`
 
-	// failed
+	// Total bytes that failed to be restored in this keyspace
 	Failed int64 `json:"failed,omitempty"`
 
 	// keyspace
 	Keyspace string `json:"keyspace,omitempty"`
 
-	// restored
+	// Union of restore methods used for restoring tables in this keyspace
+	Method []string `json:"method"`
+
+	// Total bytes restored in this keyspace
 	Restored int64 `json:"restored,omitempty"`
 
 	// size
@@ -51,6 +55,10 @@ func (m *RestoreKeyspaceProgress) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCompletedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateMethod(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -76,6 +84,43 @@ func (m *RestoreKeyspaceProgress) validateCompletedAt(formats strfmt.Registry) e
 
 	if err := validate.FormatOf("completed_at", "body", "date-time", m.CompletedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+var restoreKeyspaceProgressMethodItemsEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["rclone","native","tablet"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		restoreKeyspaceProgressMethodItemsEnum = append(restoreKeyspaceProgressMethodItemsEnum, v)
+	}
+}
+
+func (m *RestoreKeyspaceProgress) validateMethodItemsEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, restoreKeyspaceProgressMethodItemsEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *RestoreKeyspaceProgress) validateMethod(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Method) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Method); i++ {
+
+		// value enum
+		if err := m.validateMethodItemsEnum("method"+"."+strconv.Itoa(i), "body", m.Method[i]); err != nil {
+			return err
+		}
+
 	}
 
 	return nil

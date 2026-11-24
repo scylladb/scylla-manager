@@ -6,6 +6,9 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	"strconv"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -21,16 +24,19 @@ type RestoreTableProgress struct {
 	// Format: date-time
 	CompletedAt *strfmt.DateTime `json:"completed_at,omitempty"`
 
-	// This field is DEPRECATED. Total bytes downloaded from table (included in restored)
+	// This field is DEPRECATED. Total bytes downloaded from table (included in restored). Populated by the rclone restore method
 	Downloaded int64 `json:"downloaded,omitempty"`
 
 	// error
 	Error string `json:"error,omitempty"`
 
-	// failed
+	// Total bytes that failed to be restored in this table
 	Failed int64 `json:"failed,omitempty"`
 
-	// restored
+	// Restore method used for restoring this table. Multiple methods are used only in edge-case scenarios of restoring an old backup
+	Method []string `json:"method"`
+
+	// Total bytes restored in this table
 	Restored int64 `json:"restored,omitempty"`
 
 	// size
@@ -55,6 +61,10 @@ func (m *RestoreTableProgress) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateMethod(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateStartedAt(formats); err != nil {
 		res = append(res, err)
 	}
@@ -73,6 +83,43 @@ func (m *RestoreTableProgress) validateCompletedAt(formats strfmt.Registry) erro
 
 	if err := validate.FormatOf("completed_at", "body", "date-time", m.CompletedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+var restoreTableProgressMethodItemsEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["rclone","native","tablet"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		restoreTableProgressMethodItemsEnum = append(restoreTableProgressMethodItemsEnum, v)
+	}
+}
+
+func (m *RestoreTableProgress) validateMethodItemsEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, restoreTableProgressMethodItemsEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *RestoreTableProgress) validateMethod(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Method) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Method); i++ {
+
+		// value enum
+		if err := m.validateMethodItemsEnum("method"+"."+strconv.Itoa(i), "body", m.Method[i]); err != nil {
+			return err
+		}
+
 	}
 
 	return nil
