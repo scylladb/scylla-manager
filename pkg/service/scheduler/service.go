@@ -46,6 +46,13 @@ type PropertiesDecorator func(ctx context.Context, clusterID, taskID uuid.UUID, 
 // TaskCleaner performs task cleanup when suspending cluster with no continue.
 type TaskCleaner func(ctx context.Context, clusterID uuid.UUID) error
 
+// TaskDisabledHook is called when a task stops being scheduled because it was
+// disabled or deleted, and again whenever a run of the task ends while the
+// task is still disabled or deleted. It lets the service that runs the task
+// drop what the task keeps reporting between runs, such as its metrics.
+// It is called with the service mutex held, so it must not call the service.
+type TaskDisabledHook func(ctx context.Context, clusterID, taskID uuid.UUID, properties json.RawMessage)
+
 type Service struct {
 	session gocqlx.Session
 	metrics metrics.SchedulerMetrics
@@ -54,13 +61,19 @@ type Service struct {
 
 	decorators map[TaskType]PropertiesDecorator
 	cleaners   map[TaskType]TaskCleaner
+	disabled   map[TaskType]TaskDisabledHook
 	runners    map[TaskType]Runner
 	runs       map[uuid.UUID]Run
 	resolver   resolver
 	scheduler  map[uuid.UUID]*Scheduler
 	suspended  map[uuid.UUID]suspendParams
 	noContinue map[uuid.UUID]noContinueParams
-	closed     bool
+	// disabledTasks holds the properties of the disabled and deleted tasks
+	// that have a TaskDisabledHook. A run of such a task can still end after
+	// the task was disabled - also a run that was about to start - and report
+	// again, so the hook is called again when it ends.
+	disabledTasks map[uuid.UUID]json.RawMessage
+	closed        bool
 
 	mu sync.Mutex
 	// There is a race between updating task and run status in
@@ -97,6 +110,7 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 
 		decorators: make(map[TaskType]PropertiesDecorator),
 		cleaners:   make(map[TaskType]TaskCleaner),
+		disabled:   make(map[TaskType]TaskDisabledHook),
 		runners:    make(map[TaskType]Runner),
 		runs:       make(map[uuid.UUID]Run),
 		resolver:   newResolver(),
@@ -104,6 +118,8 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 		suspended:  make(map[uuid.UUID]suspendParams),
 		noContinue: make(map[uuid.UUID]noContinueParams),
 		taskLWTMu:  make(map[uuid.UUID]*sync.Mutex),
+
+		disabledTasks: make(map[uuid.UUID]json.RawMessage),
 	}
 	s.runners[SuspendTask] = suspendRunner{service: s}
 
@@ -141,6 +157,42 @@ func (s *Service) TaskCleaner(tt TaskType) TaskCleaner {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.cleaners[tt]
+}
+
+// SetTaskDisabledHook sets optional hook called when a task of the type is
+// disabled or deleted.
+func (s *Service) SetTaskDisabledHook(tt TaskType, h TaskDisabledHook) {
+	s.mu.Lock()
+	s.disabled[tt] = h
+	s.mu.Unlock()
+}
+
+// markDisabledLocked records whether the task is disabled (or deleted), for
+// task types with a TaskDisabledHook. It has to be called under the service
+// mutex, together with the change it records.
+func (s *Service) markDisabledLocked(t *Task, disabled bool) {
+	if !disabled {
+		delete(s.disabledTasks, t.ID)
+		return
+	}
+	if s.disabled[t.Type] != nil {
+		s.disabledTasks[t.ID] = t.Properties
+	}
+}
+
+// taskDisabled calls the TaskDisabledHook of the task type, if any. It does
+// nothing when the task was enabled again since it was marked disabled.
+// The hook is called under the service mutex, so that it cannot interleave
+// with enabling the task again.
+func (s *Service) taskDisabled(ctx context.Context, t *Task) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	props, disabled := s.disabledTasks[t.ID]
+	h := s.disabled[t.Type]
+	if !disabled || h == nil {
+		return
+	}
+	h(ctx, t.ClusterID, t.ID, props)
 }
 
 // SetRunner assigns runner for a given task type.
@@ -483,6 +535,7 @@ func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 	}
 
 	s.resolver.Put(newTaskInfoFromTask(t))
+	s.markDisabledLocked(t, !t.Enabled)
 	l, lok := s.scheduler[t.ClusterID]
 	if !lok {
 		l = s.newScheduler(t.ClusterID)
@@ -498,6 +551,7 @@ func (s *Service) schedule(ctx context.Context, t *Task, run bool) {
 		l.Schedule(ctx, t.ID, d)
 	} else {
 		l.Unschedule(ctx, t.ID)
+		s.taskDisabled(ctx, t)
 	}
 }
 
@@ -609,6 +663,16 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 			}
 		} else {
 			s.metrics.DeleteTaskMetrics(ti.TaskID)
+		}
+		// The run may have reported again after the task was disabled.
+		if props, disabled := s.disabledTasks[ti.TaskID]; disabled {
+			if h := s.disabled[ti.TaskType]; h != nil {
+				h(runCtx, ti.ClusterID, ti.TaskID, props)
+			}
+			if _, exists := s.resolver.FindByID(ti.TaskID); !exists {
+				// Deleted tasks do not run again.
+				delete(s.disabledTasks, ti.TaskID)
+			}
 		}
 		s.mu.Unlock()
 	}()
@@ -735,6 +799,7 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 
 	s.mu.Lock()
 	s.resolver.Remove(t.ID)
+	s.markDisabledLocked(t, true)
 	delete(s.noContinue, t.ID)
 	// Metrics of a running task are deleted in Service.run when the run ends.
 	if _, running := s.runs[t.ID]; !running {
@@ -749,6 +814,7 @@ func (s *Service) DeleteTask(ctx context.Context, t *Task) error {
 		l.Unschedule(ctx, t.ID)
 		l.Stop(ctx, t.ID)
 	}
+	s.taskDisabled(ctx, t)
 
 	s.logger.Info(ctx, "Task deleted",
 		"cluster_id", t.ClusterID,
