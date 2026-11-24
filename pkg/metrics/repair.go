@@ -80,7 +80,12 @@ func (m RepairMetrics) all() []prometheus.Collector {
 
 // MustRegister shall be called to make the metrics visible by prometheus client.
 func (m RepairMetrics) MustRegister() RepairMetrics {
-	prometheus.MustRegister(m.all()...)
+	return m.MustRegisterWith(prometheus.DefaultRegisterer)
+}
+
+// MustRegisterWith registers all repair metrics with the given registerer.
+func (m RepairMetrics) MustRegisterWith(reg prometheus.Registerer) RepairMetrics {
+	reg.MustRegister(m.all()...)
 	return m
 }
 

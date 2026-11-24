@@ -32,6 +32,13 @@ func NewService(smSession gocqlx.Session, metrics metrics.TabletRepairMetrics, s
 	}
 }
 
+// ResetTaskProgress removes the per table progress of the task, so that a
+// new run is not reported with the progress of the previous one until it
+// plans its tables. It implements scheduler.RunStartHook.
+func (s *Service) ResetTaskProgress(_, taskID uuid.UUID) {
+	s.metrics.DeleteTaskProgress(taskID)
+}
+
 // GetTarget of tablet repair task.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, _ json.RawMessage) (Target, error) {
 	w, err := s.newTargetWorker(ctx, clusterID)

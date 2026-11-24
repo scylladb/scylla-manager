@@ -38,9 +38,11 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -318,6 +320,31 @@ func (h *schedulerTestHelper) assertMetrics(label, value string, present bool) {
 func (h *schedulerTestHelper) assertTaskMetrics(taskID uuid.UUID, present bool) {
 	h.t.Helper()
 	h.assertMetrics("task", taskID.String(), present)
+}
+
+// taskGaugeValues returns the values of all series of the gauge metric that
+// belong to the task.
+func (h *schedulerTestHelper) taskGaugeValues(name string, taskID uuid.UUID) []float64 {
+	h.t.Helper()
+
+	mfs, err := h.metricsReg.Gather()
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	var out []float64
+	for _, mf := range mfs {
+		if mf.GetName() != name {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "task" && l.GetValue() == taskID.String() {
+					out = append(out, m.GetGauge().GetValue())
+				}
+			}
+		}
+	}
+	return out
 }
 
 // taskStateValue returns the value of the "scheduler_task_state" metric of
@@ -2156,6 +2183,117 @@ func TestServiceScheduleIntegration(t *testing.T) {
 			if c.state == float64(metrics.TaskStateRunning) {
 				t.Errorf("call %d: task already reported as running", i)
 			}
+		}
+	})
+
+	t.Run("run start hooks reset the progress of the previous run", func(t *testing.T) {
+		testCases := []struct {
+			taskType scheduler.TaskType
+			// metric is the progress metric of the task type.
+			metric string
+			// deleted means the progress series are removed instead of set to 0.
+			deleted bool
+		}{
+			{taskType: scheduler.RepairTask, metric: "scylla_manager_repair_progress"},
+			{taskType: scheduler.TabletRepairTask, metric: "scylla_manager_tablet_repair_progress", deleted: true},
+			{taskType: scheduler.BackupTask, metric: "scylla_manager_backup_task_progress"},
+		}
+
+		for _, tc := range testCases {
+			t.Run(string(tc.taskType), func(t *testing.T) {
+				h := newSchedTestHelper(t, session)
+				defer h.close()
+				ctx := t.Context()
+				logger := log.NewDevelopment()
+
+				Print("Given: services registering run start hooks like the server does")
+				repairMetrics := metrics.NewRepairMetrics().MustRegisterWith(h.metricsReg)
+				tabletRepairMetrics := metrics.NewTabletRepairMetrics().MustRegisterWith(h.metricsReg)
+				backupMetrics := metrics.NewBackupMetrics().MustRegisterWith(h.metricsReg)
+				repairSvc, err := repair.NewService(
+					session,
+					repair.DefaultConfig(),
+					repairMetrics,
+					tabletRepairMetrics,
+					func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+						return h.client, nil
+					},
+					func(context.Context, uuid.UUID, ...cluster.SessionConfigOption) (gocqlx.Session, error) {
+						return gocqlx.Session{}, errors.New("not implemented")
+					},
+					testhelper.NewTestConfigCacheSvc(t, h.clusterID, h.client.Config().Hosts),
+					logger,
+				)
+				if err != nil {
+					t.Fatal(err)
+				}
+				backupSvc, err := backup.NewService(
+					session,
+					backup.Config{},
+					backupMetrics,
+					func(context.Context, uuid.UUID) (string, error) {
+						return "", errors.New("not implemented")
+					},
+					func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+						return h.client, nil
+					},
+					func(context.Context, uuid.UUID, ...cluster.SessionConfigOption) (gocqlx.Session, error) {
+						return gocqlx.Session{}, errors.New("not implemented")
+					},
+					func(context.Context, uuid.UUID, string) (*dynamodb.Client, error) {
+						return nil, errors.New("not implemented")
+					},
+					nil,
+					logger,
+				)
+				if err != nil {
+					t.Fatal(err)
+				}
+				h.service.SetRunStartHook(scheduler.RepairTask, repairSvc.ResetTaskProgress)
+				h.service.SetRunStartHook(scheduler.TabletRepairTask, repairSvc.TabletService.ResetTaskProgress)
+				h.service.SetRunStartHook(scheduler.BackupTask, backupSvc.ResetTaskProgress)
+
+				Print("And: task whose previous run ended at 100%")
+				task := h.makeTaskOfTypeWithStartDate(tc.taskType, future)
+				task.ID = uuid.Nil
+				if err := h.service.PutTask(ctx, task); err != nil {
+					t.Fatal(err)
+				}
+				switch tc.taskType {
+				case scheduler.RepairTask:
+					repairMetrics.SetProgress(h.clusterID, task.ID, 100)
+				case scheduler.TabletRepairTask:
+					tabletRepairMetrics.SetTableProgress(h.clusterID, task.ID, "ks", "t1", 100)
+					tabletRepairMetrics.SetTableProgress(h.clusterID, task.ID, "ks", "t2", 100)
+				case scheduler.BackupTask:
+					backupMetrics.SetTaskProgress(h.clusterID, task.ID, 100)
+				}
+				if v := h.taskGaugeValues(tc.metric, task.ID); len(v) == 0 || v[0] != 100 {
+					t.Fatalf("progress of the previous run = %v, expected 100", v)
+				}
+
+				Print("When: task runs again")
+				if err := h.service.StartTask(ctx, task); err != nil {
+					t.Fatal(err)
+				}
+
+				Print("Then: task is reported as running without the previous run's progress")
+				h.assertStatus(task, scheduler.StatusRunning)
+				if state := h.taskStateValue(task.ID); state != float64(metrics.TaskStateRunning) {
+					t.Fatalf("task state = %v, expected running", state)
+				}
+				v := h.taskGaugeValues(tc.metric, task.ID)
+				if tc.deleted {
+					if len(v) != 0 {
+						t.Errorf("progress = %v, expected no series", v)
+					}
+				} else if len(v) != 1 || v[0] != 0 {
+					t.Errorf("progress = %v, expected [0]", v)
+				}
+
+				h.runner.Done()
+				h.assertStatus(task, scheduler.StatusDone)
+			})
 		}
 	})
 

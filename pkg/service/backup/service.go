@@ -143,6 +143,13 @@ func GetRetention(taskID uuid.UUID, retentionMap RetentionMap) RetentionPolicy {
 	return defaultRetentionForDeletedTask()
 }
 
+// ResetTaskProgress sets the progress of the task to 0. It implements
+// scheduler.RunStartHook, so that a new run is not reported with the
+// progress of the previous one.
+func (s *Service) ResetTaskProgress(clusterID, taskID uuid.UUID) {
+	s.metrics.SetTaskProgress(clusterID, taskID, 0)
+}
+
 // GetTarget converts runner properties into backup Target.
 // It also ensures configuration for the backup providers is registered on the targeted hosts.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
