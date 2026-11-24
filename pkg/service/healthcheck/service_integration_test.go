@@ -7,6 +7,7 @@ package healthcheck
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/cluster"
@@ -482,6 +484,60 @@ func testStatusIntegration(t *testing.T, clusterID uuid.UUID, clusterSvc cluster
 		}
 		if !strings.HasPrefix(msg, "status: giving up after") {
 			t.Errorf("Status() error = %s, expected ~ status: giving up after", msg)
+		}
+	})
+
+	t.Run("remove metrics of a mode", func(t *testing.T) {
+		r := s.Runner()
+		modes := []struct {
+			mode   Mode
+			status *prometheus.GaugeVec
+			rtt    *prometheus.GaugeVec
+		}{
+			{mode: CQLMode, status: cqlStatus, rtt: cqlRTT},
+			{mode: RESTMode, status: restStatus, rtt: restRTT},
+			{mode: AlternatorMode, status: alternatorStatus, rtt: alternatorRTT},
+		}
+		props := func(m Mode) json.RawMessage {
+			return json.RawMessage(`{"mode":"` + string(m) + `"}`)
+		}
+		clusterSeries := func(g *prometheus.GaugeVec) int {
+			n := 0
+			apply(collect(g), func(ls labels, _ float64) {
+				if ls.cluster == clusterID.String() {
+					n++
+				}
+			})
+			return n
+		}
+
+		for _, removed := range modes {
+			t.Run(string(removed.mode), func(t *testing.T) {
+				Print("Given: all health checks ran")
+				for _, m := range modes {
+					if err := r.Run(context.Background(), clusterID, uuid.MustRandom(), uuid.MustRandom(), props(m.mode)); err != nil {
+						t.Fatalf("run %s check: %v", m.mode, err)
+					}
+					if clusterSeries(m.status) == 0 || clusterSeries(m.rtt) == 0 {
+						t.Fatalf("%s check reported no metrics", m.mode)
+					}
+				}
+
+				Print("When: metrics of one mode are removed")
+				r.RemoveMetrics(context.Background(), clusterID, uuid.MustRandom(), props(removed.mode))
+
+				Print("Then: only that mode's metrics of the cluster are gone")
+				for _, m := range modes {
+					status, rtt := clusterSeries(m.status), clusterSeries(m.rtt)
+					if m.mode == removed.mode {
+						if status != 0 || rtt != 0 {
+							t.Errorf("%s: %d status and %d rtt series left, expected none", m.mode, status, rtt)
+						}
+					} else if status == 0 || rtt == 0 {
+						t.Errorf("%s: %d status and %d rtt series, expected some", m.mode, status, rtt)
+					}
+				}
+			})
 		}
 	})
 
