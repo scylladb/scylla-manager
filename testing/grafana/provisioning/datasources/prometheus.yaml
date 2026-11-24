@@ -1,9 +1,10 @@
 apiVersion: 1
 
 datasources:
-  - name: Prometheus
+  # The dashboards of the ScyllaDB Monitoring stack reference the
+  # datasource by this name.
+  - name: prometheus
     type: prometheus
-    # Fixed uid so that provisioned dashboards can reference it.
     uid: scylla-manager-prometheus
     access: proxy
     # Resolved over the compose network, so it works for both
