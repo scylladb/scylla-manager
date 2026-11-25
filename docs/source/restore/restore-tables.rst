@@ -43,6 +43,8 @@ Prerequisites
 
 * All nodes in restore destination cluster should be in the ``UN`` state (See `nodetool status <https://docs.scylladb.com/manual/stable/operating-scylla/nodetool-commands/status.html>`_ for details).
 
+* ScyllaDB `automatic repair <https://docs.scylladb.com/manual/stable/features/automatic-repair.html>`_ must stay disabled on clusters managed by ScyllaDB Manager. See :ref:`unsupported ScyllaDB features <automatic-repair-unsupported>` for details.
+
 Procedure
 =========
 

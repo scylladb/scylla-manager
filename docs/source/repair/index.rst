@@ -19,6 +19,8 @@ To learn more about repairs please consult `this ScyllaDB University lesson <htt
 
 .. note:: If you are using ScyllaDB Manager deployed by ScyllaDB Operator, see dedicated `ScyllaDB Operator documentation <https://operator.docs.scylladb.com/stable/architecture/manager.html>`_.
 
+.. warning:: ScyllaDB `automatic repair <https://docs.scylladb.com/manual/stable/features/automatic-repair.html>`_ must stay disabled on clusters managed by ScyllaDB Manager. See :ref:`unsupported ScyllaDB features <automatic-repair-unsupported>` for details.
+
 ScyllaDB Manager automates the repair process and allows you to configure how and when repair occurs.
 *ScyllaDB Manager repair task* revolves around scheduling many *ScyllaDB repair jobs* with selected ``--intensity`` in ``--parallel``.
 *Repair task* is responsible for fully repairing all tables selected with ``--keyspace`` parameter, while a single *repair job* repairs
