@@ -54,6 +54,13 @@ func (w *schemaWorker) restoreFromSchemaFile(ctx context.Context) error {
 			// We are skipping them until we properly support their restoration.
 			continue
 		}
+		if strings.HasSuffix(row.Type, "_config") {
+			// Scylla 2026.4 added cluster, keyspace and table config to the output of
+			// DESC SCHEMA WITH INTERNALS (https://docs.scylladb.com/manual/master/cql/describe-schema.html#entity-types).
+			// Until proper handling is implemented on SM side, cluster config is
+			// skipped during schema restore.
+			continue
+		}
 		if row.Keyspace == "system_replicated_keys" {
 			// See https://github.com/scylladb/scylla-enterprise/issues/4168
 			continue
