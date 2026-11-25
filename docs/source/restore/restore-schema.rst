@@ -4,6 +4,8 @@ Restore schema
 
 .. note:: Currently, ScyllaDB Manager supports only entire schema restoration, so ``--keyspace`` flag is not allowed.
 
+.. warning:: Data related to `authentication <https://docs.scylladb.com/manual/stable/operating-scylla/security/authorization.html>`_, `service levels <https://docs.scylladb.com/manual/stable/features/workload-prioritization.html>`_ and `cluster configuration <https://docs.scylladb.com/manual/master/cql/cluster-config.html>`_ set via CQL is a part of the backed up CQL schema file, but it is not automatically restored as a part of the restore schema procedure. To restore it, it needs to be fetched from the backup location and applied manually via CQL.
+
 | In order to restore ScyllaDB cluster schema use :ref:`sctool restore <sctool-restore>` with ``--restore-schema`` flag.
 | Please note that the term *schema* specifically refers to the data residing in the ``system_schema keyspace``, such as keyspace and table definitions. All other data stored in keyspaces managed by ScyllaDB is restored as part of the :doc:`restore tables procedure <restore-tables>`.
 | The restore schema procedure works with any cluster size, so the backed-up cluster can have a different number of nodes than the restore destination cluster.
