@@ -233,6 +233,7 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	// - back up dst cluster
 	// - restore dst cluster schema to src cluster
 	// - validates that schema was correct at all stages
+	// - validates that cluster config (cluster, keyspace and table level) was not restored
 	h := newTestHelper(t, ManagedSecondClusterHosts(), ManagedClusterHosts())
 	hRev := newTestHelper(t, ManagedClusterHosts(), ManagedSecondClusterHosts())
 
@@ -269,6 +270,27 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 	TagAlternatorTable(t, h.srcCluster.altClient, altTab2, altTag)
 	UpdateAlternatorTableTTL(t, h.srcCluster.altClient, altTab1, altTTLAttr, true)
 	UpdateAlternatorTableTTL(t, h.srcCluster.altClient, altTab2, altTTLAttr, true)
+
+	Print("Prepare cluster config")
+	srcConfigRows := map[string]int{}
+	if CheckConstraint(t, ni.ScyllaVersion, ">= 2026.4") {
+		altKs := "alternator_" + altTab1
+		cfgOpt := "auto_repair_threshold_in_seconds"
+		// Cluster level config is not dropped with the schema
+		t.Cleanup(func() {
+			ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("ALTER CLUSTER WITH %s = NULL", cfgOpt))
+		})
+		ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("ALTER CLUSTER WITH %s = 1000", cfgOpt))
+		ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("ALTER KEYSPACE %q WITH %s = 2000", cqlKs, cfgOpt))
+		ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("ALTER TABLE %q.%q WITH %s = 3000", cqlKs, cqlTab, cfgOpt))
+		ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("ALTER KEYSPACE %q WITH %s = 4000", altKs, cfgOpt))
+		ExecStmt(t, h.srcCluster.rootSession, fmt.Sprintf("ALTER TABLE %q.%q WITH %s = 5000", altKs, altTab1, cfgOpt))
+		srcConfigRows = map[string]int{
+			"cluster_config":  1,
+			"keyspace_config": 2,
+			"table_config":    2,
+		}
+	}
 
 	Print("Save src CQL schema")
 	srcCQLSchema, err := query.DescribeSchemaWithInternals(h.srcCluster.rootSession)
@@ -335,6 +357,26 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		t.Fatal(errors.Wrap(err, "get src alternator schema from dst backup"))
 	}
 
+	Print("Validate that cluster config was backed up, but not restored")
+	isConfigRow := func(row query.DescribedSchemaRow) bool {
+		return strings.HasSuffix(row.Type, "_config")
+	}
+	configRows := func(schema query.DescribedSchema) map[string]int {
+		out := map[string]int{}
+		for _, row := range schema {
+			if isConfigRow(row) {
+				out[row.Type]++
+			}
+		}
+		return out
+	}
+	if got := configRows(srcCQLSchema); !maputil.Equal(got, srcConfigRows) {
+		t.Fatalf("Src CQL schema config rows: %v, expected: %v", got, srcConfigRows)
+	}
+	if got := configRows(dstCQLSchemaSrcBackup); len(got) > 0 {
+		t.Fatalf("Dst CQL schema from src backup contains config rows: %v", got)
+	}
+
 	Print("Validate that CQL schema contains objects with options")
 	var (
 		m1 = map[query.DescribedSchemaRow]struct{}{}
@@ -342,6 +384,10 @@ func TestRestoreSchemaRoundtripIntegration(t *testing.T) {
 		m3 = map[query.DescribedSchemaRow]struct{}{}
 	)
 	for _, row := range srcCQLSchema {
+		// Config rows are validated separately
+		if isConfigRow(row) {
+			continue
+		}
 		// Scylla 6.3 added roles and service levels to the output of
 		// DESC SCHEMA WITH INTERNALS (https://github.com/scylladb/scylladb/pull/20168).
 		// Those entities do not live in any particular keyspace, so that's how we identify them.
