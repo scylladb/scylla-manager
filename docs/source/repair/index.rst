@@ -27,8 +27,6 @@ ScyllaDB Manager automates the repair process and allows you to configure how an
 chosen (by ScyllaDB Manager) token ranges of a given table owned by a specific replica set. All nodes from this replica set take part in
 the repair job and any node can take part only in a single repair job at any given time.
 
-Note that ScyllaDB Manager stops `tablets <https://docs.scylladb.com/manual/stable/architecture/tablets.html>`_  migration for the duration of repair.
-
 When you create a cluster a repair task is automatically scheduled.
 This task is set to occur each week by default, but you can change it to another time, change its parameters or add additional repair tasks if needed.
 
