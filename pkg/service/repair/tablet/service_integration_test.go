@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"math"
 	"net/http"
 	"strings"
 	"sync"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/scylladb/go-log"
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
@@ -239,6 +241,81 @@ func TestTabletRepairIntegration(t *testing.T) {
 		}
 	}
 
+	t.Run("Progress metric", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			// previousRun means the task has already completed a run.
+			previousRun bool
+		}{
+			{name: "first run"},
+			{name: "run after a completed run", previousRun: true},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				testCtx, testCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+				defer testCancel()
+
+				Print("Given: service with metrics in a registry")
+				reg := prometheus.NewPedanticRegistry()
+				svc := tablet.NewService(
+					h.Session,
+					metrics.NewTabletRepairMetrics().MustRegisterWith(reg),
+					func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+						return h.Client, nil
+					},
+					h.Logger,
+				)
+				taskID := uuid.MustRandom()
+				h.Hrt.SetInterceptor(nil)
+				defer h.Hrt.SetInterceptor(nil)
+				if tc.previousRun {
+					Print("And: completed run of the task")
+					if err := svc.Run(testCtx, h.ClusterID, taskID, uuid.NewTime(), json.RawMessage{}); err != nil {
+						t.Fatal(err)
+					}
+				}
+
+				Print("When: task runs, starting like the scheduler does")
+				var (
+					mu       sync.Mutex
+					progress []float64
+				)
+				h.Hrt.SetInterceptor(httpx.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+					if !isTabletRepairReq(req) {
+						return nil, nil
+					}
+					mu.Lock()
+					defer mu.Unlock()
+					progress = append(progress, dashboardTaskProgress(t, reg, taskID))
+					return nil, nil
+				}))
+				svc.ResetTaskProgress(h.ClusterID, taskID)
+				if err := svc.Run(testCtx, h.ClusterID, taskID, uuid.NewTime(), json.RawMessage{}); err != nil {
+					t.Fatal(err)
+				}
+
+				Print("Then: when a table starts, task progress is the share of repaired tables")
+				mu.Lock()
+				defer mu.Unlock()
+				if len(progress) != len(allTables) {
+					t.Fatalf("tablet repair calls = %d, expected %d", len(progress), len(allTables))
+				}
+				for i, p := range progress {
+					expected := 100 * float64(i) / float64(len(allTables))
+					if math.Abs(p-expected) > 0.01 {
+						t.Errorf("table %d/%d: task progress = %.2f, expected %.2f", i+1, len(allTables), p, expected)
+					}
+				}
+
+				Print("And: task progress is 100 when the run ends")
+				if p := dashboardTaskProgress(t, reg, taskID); p != 100 {
+					t.Errorf("task progress after the run = %.2f, expected 100", p)
+				}
+			})
+		}
+	})
+
 	t.Run("Smoke", func(t *testing.T) {
 		testCtx, testCancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer testCancel()
@@ -365,4 +442,37 @@ func TestTabletRepairIntegration(t *testing.T) {
 		// Verify that those scylla tablet repair tasks won't break SM tablet repair task
 		smokeTest(t, testCtx)
 	})
+}
+
+// dashboardTaskProgress returns the progress of the task the way dashboards
+// compute it: avg by (task) (scylla_manager_tablet_repair_progress).
+// It returns NaN when the task has no progress series.
+func dashboardTaskProgress(t *testing.T, reg *prometheus.Registry, taskID uuid.UUID) float64 {
+	t.Helper()
+
+	mfs, err := reg.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var (
+		sum float64
+		cnt int
+	)
+	for _, mf := range mfs {
+		if mf.GetName() != "scylla_manager_tablet_repair_progress" {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "task" && l.GetValue() == taskID.String() {
+					sum += m.GetGauge().GetValue()
+					cnt++
+				}
+			}
+		}
+	}
+	if cnt == 0 {
+		return math.NaN()
+	}
+	return sum / float64(cnt)
 }

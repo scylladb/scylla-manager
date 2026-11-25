@@ -71,6 +71,10 @@ func (w *worker) init(ctx context.Context, target Target) {
 			w.logger.Info(ctx, "Plan to repair table", "keyspace", ks, "table", tab)
 			pr := newRunProgress(w.clusterID, w.taskID, w.runID, ks, tab)
 			w.upsertTableProgress(ctx, pr)
+			// Every planned table reports progress from the start, so that the
+			// progress of the task (average over its tables) counts the tables
+			// that are not repaired yet.
+			w.metrics.SetTableProgress(w.clusterID, w.taskID, ks, tab, 0)
 		}
 	}
 }
