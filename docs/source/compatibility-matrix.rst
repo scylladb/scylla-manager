@@ -9,6 +9,8 @@ The following table shows which version of ScyllaDB Manager supports which versi
 
    * - ScyllaDB Manager Version
      - ScyllaDB Version
+   * - 3.14
+     - 2025.1, 2026.1, 2026.2, 2026.3, 2026.4
    * - 3.13
      - 2025.1, 2026.1, 2026.2, 2026.3
    * - 3.12
@@ -29,3 +31,19 @@ The following table shows which version of ScyllaDB Manager supports which versi
      - 2024.1, 2024.2, 2025.1, 2025.2
    * - 3.4
      - 5.4, 6.0, 6.1, 6.2, 2023.1, 2024.1, 2024.2
+
+Unsupported ScyllaDB features
+-----------------------------
+
+The following ScyllaDB features are not supported on clusters managed by ScyllaDB Manager.
+
+.. _automatic-repair-unsupported:
+
+Automatic repair
+................
+
+ScyllaDB `automatic repair <https://docs.scylladb.com/manual/stable/features/automatic-repair.html>`_ must stay disabled on clusters managed by ScyllaDB Manager.
+This applies to the ``auto_repair_enabled`` option set via CQL on the cluster, keyspace or table level, and to the ``auto_repair_enabled_default`` option set in ``scylla.yaml``.
+
+Automatic repair schedules tablet repairs on its own and ScyllaDB Manager does not coordinate with it.
+It can cause conflicts with the :doc:`repair <repair/index>` and :doc:`restore <restore/index>` tasks.
