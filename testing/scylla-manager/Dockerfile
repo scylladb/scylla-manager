@@ -1,7 +1,6 @@
-FROM ubuntu
+FROM alpine:3.24.3
 
-# Install 3rd party tools
-RUN apt-get update && apt-get install -y tzdata \
-    && rm -rf /var/lib/apt/lists/*
+# Binaries are static and bind-mounted at runtime; only TZ data is needed.
+RUN apk add --no-cache tzdata
 
 ENV TZ="America/New_York"

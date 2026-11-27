@@ -33,6 +33,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
+      - -s -w
       - -extldflags '-static'
       - -X github.com/scylladb/scylla-manager/v3/pkg.version={{ .Version }}
 
@@ -50,6 +51,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
+      - -s -w
       - -extldflags '-static'
       - -X github.com/scylladb/scylla-manager/v3/pkg.version={{ .Version }}
 
@@ -67,6 +69,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
+      - -s -w
       - -extldflags '-static'
       - -X github.com/scylladb/scylla-manager/v3/pkg.version={{ .Version }}
 

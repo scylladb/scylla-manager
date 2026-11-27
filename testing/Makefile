@@ -10,6 +10,7 @@ SM_NODETOOL       := $(COMPOSE) exec -T scylla-manager-db nodetool
 YQ                := ../bin/yq
 CURRENT_UID       := $(shell id -u)
 CURRENT_GID       := $(shell id -g)
+DEV_ENV_LABEL     := scylla-manager-dev-env=true
 
 SCYLLA_VERSION?=scylla:latest
 IP_FAMILY?=IPV4
@@ -53,12 +54,12 @@ include .env
 .PHONY: build
 build: ## Build custom docker image
 	@echo "==> Building custom Scylla $(SCYLLA_VERSION) image for testing"
-	@docker build --network=host \
+	@docker build --network=host --label=$(DEV_ENV_LABEL) \
 		--build-arg=SCYLLA_VERSION=$(SCYLLA_VERSION) \
 		-t scylladb/agent-$(SCYLLA_VERSION) \
 		scylla
 	@echo "==> Building development image for Scylla Manager Server"
-	@docker build --network=host -t scylladb/scylla-manager-dev scylla-manager
+	@docker build --network=host --label=$(DEV_ENV_LABEL) -t scylladb/scylla-manager-dev scylla-manager
 
 .PHONY: up
 up: ## Start docker containers
@@ -158,6 +159,15 @@ down: ## Stop docker containers
 	@echo "==> Stopping containers"
 	@$(COMPOSE) down --volumes --remove-orphans
 	@docker network prune -f
+
+.PHONY: clean-images
+clean-images: ## Remove dev env images and the Scylla base images they were built from
+	@for img in $$(docker images --filter label=$(DEV_ENV_LABEL) --format '{{.Repository}}:{{.Tag}}' | grep -E '^(localhost/)?scylladb/agent-'); do \
+		base=$$(echo $$img | sed -E 's#^(localhost/)?scylladb/agent-#scylladb/#'); \
+		docker rmi $$img && docker rmi $$base || true; \
+	done
+	@docker rmi scylladb/scylla-manager-dev 2> /dev/null || true
+	@docker image prune -f --filter label=$(DEV_ENV_LABEL)
 
 .PHONY: status
 status: ## Cluster containers status and nodetool status
