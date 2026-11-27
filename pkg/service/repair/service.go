@@ -86,6 +86,13 @@ func (s *Service) Runner() Runner {
 // ErrEmptyRepair is returned when there is nothing to repair (e.g. repaired keyspaces are not replicated).
 var ErrEmptyRepair = errors.New("no replicas to repair")
 
+// ResetTaskProgress sets the progress of the task to 0. It implements
+// scheduler.RunStartHook, so that a new run is not reported with the
+// progress of the previous one.
+func (s *Service) ResetTaskProgress(clusterID, taskID uuid.UUID) {
+	s.metrics.SetProgress(clusterID, taskID, 0)
+}
+
 // GetTarget converts runner properties into repair Target.
 func (s *Service) GetTarget(ctx context.Context, clusterID uuid.UUID, properties json.RawMessage) (Target, error) {
 	props, err := parseTaskProperties(properties)

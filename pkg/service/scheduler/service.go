@@ -46,6 +46,12 @@ type PropertiesDecorator func(ctx context.Context, clusterID, taskID uuid.UUID, 
 // TaskCleaner performs task cleanup when suspending cluster with no continue.
 type TaskCleaner func(ctx context.Context, clusterID uuid.UUID) error
 
+// RunStartHook is called when a run starts, before the run is stored and the
+// task is reported as running. It lets the service that runs the task reset
+// what describes the previous run, such as its progress, so that the new run
+// is never reported with it.
+type RunStartHook func(clusterID, taskID uuid.UUID)
+
 type Service struct {
 	session gocqlx.Session
 	metrics metrics.SchedulerMetrics
@@ -54,6 +60,7 @@ type Service struct {
 
 	decorators map[TaskType]PropertiesDecorator
 	cleaners   map[TaskType]TaskCleaner
+	runStart   map[TaskType]RunStartHook
 	runners    map[TaskType]Runner
 	runs       map[uuid.UUID]Run
 	resolver   resolver
@@ -97,6 +104,7 @@ func NewService(session gocqlx.Session, metrics metrics.SchedulerMetrics, drawer
 
 		decorators: make(map[TaskType]PropertiesDecorator),
 		cleaners:   make(map[TaskType]TaskCleaner),
+		runStart:   make(map[TaskType]RunStartHook),
 		runners:    make(map[TaskType]Runner),
 		runs:       make(map[uuid.UUID]Run),
 		resolver:   newResolver(),
@@ -141,6 +149,14 @@ func (s *Service) TaskCleaner(tt TaskType) TaskCleaner {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.cleaners[tt]
+}
+
+// SetRunStartHook sets optional hook called when a run of a task of the type
+// starts, before the task is reported as running.
+func (s *Service) SetRunStartHook(tt TaskType, h RunStartHook) {
+	s.mu.Lock()
+	s.runStart[tt] = h
+	s.mu.Unlock()
 }
 
 // SetRunner assigns runner for a given task type.
@@ -555,6 +571,14 @@ func (s *Service) run(ctx RunContext) (runErr error) {
 
 	if !ok {
 		return util.ErrNotFound
+	}
+	// Before the run is stored as running, so that neither the task status
+	// nor the metrics show the new run with what the previous one left.
+	s.mu.Lock()
+	startHook := s.runStart[ti.TaskType]
+	s.mu.Unlock()
+	if startHook != nil {
+		startHook(ti.ClusterID, ti.TaskID)
 	}
 	if err := s.putRunAndUpdateTask(r); err != nil {
 		return errors.Wrap(err, "put run")

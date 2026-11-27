@@ -189,6 +189,11 @@ func (s *server) makeServices(ctx context.Context) error {
 	s.schedSvc.SetPropertiesDecorator(scheduler.BackupTask, s.backupSvc.TaskDecorator(s.schedSvc))
 	s.schedSvc.SetPropertiesDecorator(scheduler.ValidateBackupTask, s.backupSvc.ValidateBackupTaskDecorator(s.schedSvc))
 
+	// Reset the progress of the previous run before a new run is reported as running.
+	s.schedSvc.SetRunStartHook(scheduler.RepairTask, s.repairSvc.ResetTaskProgress)
+	s.schedSvc.SetRunStartHook(scheduler.TabletRepairTask, s.repairSvc.TabletService.ResetTaskProgress)
+	s.schedSvc.SetRunStartHook(scheduler.BackupTask, s.backupSvc.ResetTaskProgress)
+
 	// Perform additional cleanup when suspending cluster with no continue
 	s.schedSvc.SetTaskCleaner(scheduler.BackupTask, s.backupSvc.DeleteLocalSnapshots)
 

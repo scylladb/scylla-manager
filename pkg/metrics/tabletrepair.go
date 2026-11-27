@@ -29,7 +29,12 @@ func (m TabletRepairMetrics) all() []prometheus.Collector {
 
 // MustRegister shall be called to make the metrics visible by prometheus client.
 func (m TabletRepairMetrics) MustRegister() TabletRepairMetrics {
-	prometheus.MustRegister(m.all()...)
+	return m.MustRegisterWith(prometheus.DefaultRegisterer)
+}
+
+// MustRegisterWith registers all tablet repair metrics with the given registerer.
+func (m TabletRepairMetrics) MustRegisterWith(reg prometheus.Registerer) TabletRepairMetrics {
+	reg.MustRegister(m.all()...)
 	return m
 }
 
@@ -38,6 +43,11 @@ func (m TabletRepairMetrics) ResetClusterMetrics(clusterID uuid.UUID) {
 	for _, c := range m.all() {
 		setGaugeVecMatching(c.(*prometheus.GaugeVec), unspecifiedValue, clusterMatcher(clusterID))
 	}
+}
+
+// DeleteTaskProgress removes the "progress" series of the task.
+func (m TabletRepairMetrics) DeleteTaskProgress(taskID uuid.UUID) {
+	m.tableProgress.DeletePartialMatch(prometheus.Labels{"task": taskID.String()})
 }
 
 // SetTableProgress updates "progress" metric.

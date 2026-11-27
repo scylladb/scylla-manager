@@ -38,9 +38,11 @@ import (
 	"github.com/scylladb/scylla-manager/v3/pkg/metrics"
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/table"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/backup"
+	"github.com/scylladb/scylla-manager/v3/pkg/service/repair"
 	"github.com/scylladb/scylla-manager/v3/pkg/service/scheduler"
 	"github.com/scylladb/scylla-manager/v3/pkg/store"
 	. "github.com/scylladb/scylla-manager/v3/pkg/testutils"
+	"github.com/scylladb/scylla-manager/v3/pkg/testutils/testhelper"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/duration"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/timeutc"
 	"github.com/scylladb/scylla-manager/v3/pkg/util/uuid"
@@ -318,6 +320,94 @@ func (h *schedulerTestHelper) assertMetrics(label, value string, present bool) {
 func (h *schedulerTestHelper) assertTaskMetrics(taskID uuid.UUID, present bool) {
 	h.t.Helper()
 	h.assertMetrics("task", taskID.String(), present)
+}
+
+// taskGaugeValues returns the values of all series of the gauge metric that
+// belong to the task.
+func (h *schedulerTestHelper) taskGaugeValues(name string, taskID uuid.UUID) []float64 {
+	h.t.Helper()
+
+	mfs, err := h.metricsReg.Gather()
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	var out []float64
+	for _, mf := range mfs {
+		if mf.GetName() != name {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "task" && l.GetValue() == taskID.String() {
+					out = append(out, m.GetGauge().GetValue())
+				}
+			}
+		}
+	}
+	return out
+}
+
+// progressMetrics are the progress metrics of the services registered by
+// registerRunStartHooks.
+type progressMetrics struct {
+	repair       metrics.RepairMetrics
+	tabletRepair metrics.TabletRepairMetrics
+	backup       metrics.BackupMetrics
+}
+
+// registerRunStartHooks creates the repair and backup services with metrics
+// registered in the helper's registry and sets their run start hooks like
+// the server does.
+func (h *schedulerTestHelper) registerRunStartHooks() progressMetrics {
+	h.t.Helper()
+
+	logger := log.NewDevelopment()
+	pm := progressMetrics{
+		repair:       metrics.NewRepairMetrics().MustRegisterWith(h.metricsReg),
+		tabletRepair: metrics.NewTabletRepairMetrics().MustRegisterWith(h.metricsReg),
+		backup:       metrics.NewBackupMetrics().MustRegisterWith(h.metricsReg),
+	}
+	notImplementedSession := func(context.Context, uuid.UUID, ...cluster.SessionConfigOption) (gocqlx.Session, error) {
+		return gocqlx.Session{}, errors.New("not implemented")
+	}
+	scyllaClient := func(context.Context, uuid.UUID) (*scyllaclient.Client, error) {
+		return h.client, nil
+	}
+	repairSvc, err := repair.NewService(
+		h.session,
+		repair.DefaultConfig(),
+		pm.repair,
+		pm.tabletRepair,
+		scyllaClient,
+		notImplementedSession,
+		testhelper.NewTestConfigCacheSvc(h.t, h.clusterID, h.client.Config().Hosts),
+		logger,
+	)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	backupSvc, err := backup.NewService(
+		h.session,
+		backup.Config{},
+		pm.backup,
+		func(context.Context, uuid.UUID) (string, error) {
+			return "", errors.New("not implemented")
+		},
+		scyllaClient,
+		notImplementedSession,
+		func(context.Context, uuid.UUID, string) (*dynamodb.Client, error) {
+			return nil, errors.New("not implemented")
+		},
+		nil,
+		logger,
+	)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	h.service.SetRunStartHook(scheduler.RepairTask, repairSvc.ResetTaskProgress)
+	h.service.SetRunStartHook(scheduler.TabletRepairTask, repairSvc.TabletService.ResetTaskProgress)
+	h.service.SetRunStartHook(scheduler.BackupTask, backupSvc.ResetTaskProgress)
+	return pm
 }
 
 // taskStateValue returns the value of the "scheduler_task_state" metric of
@@ -2100,6 +2190,152 @@ func TestServiceScheduleIntegration(t *testing.T) {
 
 		Print("And: its last run is marked as aborted")
 		h.assertStatus(task, scheduler.StatusAborted)
+	})
+
+	t.Run("run start hook is called before the task is reported as running", func(t *testing.T) {
+		h := newSchedTestHelper(t, session)
+		defer h.close()
+		ctx := t.Context()
+
+		type call struct {
+			clusterID, taskID uuid.UUID
+			state             float64
+		}
+		var (
+			mu    sync.Mutex
+			calls []call
+		)
+		h.service.SetRunStartHook(mockTask, func(clusterID, taskID uuid.UUID) {
+			mu.Lock()
+			defer mu.Unlock()
+			calls = append(calls, call{clusterID: clusterID, taskID: taskID, state: h.taskStateValue(taskID)})
+		})
+		callCount := func() int {
+			mu.Lock()
+			defer mu.Unlock()
+			return len(calls)
+		}
+
+		Print("Given: task")
+		task := h.makeTaskWithStartDate(future)
+		task.ID = uuid.Nil
+		if err := h.service.PutTask(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+
+		Print("When: task runs twice")
+		for i := 1; i <= 2; i++ {
+			if err := h.service.StartTask(ctx, task); err != nil {
+				t.Fatal(err)
+			}
+			h.assertStatus(task, scheduler.StatusRunning)
+			if c := callCount(); c != i {
+				t.Fatalf("hook called %d times, expected %d", c, i)
+			}
+			h.runner.Done()
+			h.assertStatus(task, scheduler.StatusDone)
+		}
+
+		Print("Then: every call precedes the running state of its run")
+		mu.Lock()
+		defer mu.Unlock()
+		for i, c := range calls {
+			if c.clusterID != h.clusterID || c.taskID != task.ID {
+				t.Errorf("call %d: got cluster %s task %s, expected cluster %s task %s", i, c.clusterID, c.taskID, h.clusterID, task.ID)
+			}
+			if c.state == float64(metrics.TaskStateRunning) {
+				t.Errorf("call %d: task already reported as running", i)
+			}
+		}
+	})
+
+	t.Run("run start hooks reset the progress of the previous run", func(t *testing.T) {
+		testCases := []struct {
+			name     string
+			taskType scheduler.TaskType
+			// metric is the progress metric of the task type.
+			metric string
+			// deleted means the progress series are removed instead of set to 0.
+			deleted bool
+			// restoreRunning makes the restore exclusive lock refuse the run,
+			// so that it ends with ERROR before the runner starts.
+			restoreRunning bool
+		}{
+			{name: "repair", taskType: scheduler.RepairTask, metric: "scylla_manager_repair_progress"},
+			{name: "tablet repair", taskType: scheduler.TabletRepairTask, metric: "scylla_manager_tablet_repair_progress", deleted: true},
+			{name: "backup", taskType: scheduler.BackupTask, metric: "scylla_manager_backup_task_progress"},
+			{name: "repair refused by restore", taskType: scheduler.RepairTask, metric: "scylla_manager_repair_progress", restoreRunning: true},
+			{name: "tablet repair refused by restore", taskType: scheduler.TabletRepairTask, metric: "scylla_manager_tablet_repair_progress", deleted: true, restoreRunning: true},
+			{name: "backup refused by restore", taskType: scheduler.BackupTask, metric: "scylla_manager_backup_task_progress", restoreRunning: true},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				h := newSchedTestHelper(t, session)
+				defer h.close()
+				ctx := t.Context()
+
+				Print("Given: services registering run start hooks like the server does")
+				pm := h.registerRunStartHooks()
+
+				if tc.restoreRunning {
+					Print("And: runner wrapped in the restore exclusive lock like in the server, with a restore running")
+					lock := scheduler.NewTaskExclusiveLockPolicy(scheduler.RestoreTask, scheduler.One2OneRestoreTask)
+					h.service.SetRunner(tc.taskType, scheduler.PolicyRunner{Policy: lock, Runner: h.runner, TaskType: tc.taskType})
+					if err := lock.PreRun(h.clusterID, uuid.MustRandom(), uuid.NewTime(), scheduler.RestoreTask, json.RawMessage("{}")); err != nil {
+						t.Fatal(err)
+					}
+				}
+
+				Print("And: task whose previous run ended at 100%")
+				task := h.makeTaskOfTypeWithStartDate(tc.taskType, future)
+				task.ID = uuid.Nil
+				if err := h.service.PutTask(ctx, task); err != nil {
+					t.Fatal(err)
+				}
+				switch tc.taskType {
+				case scheduler.RepairTask:
+					pm.repair.SetProgress(h.clusterID, task.ID, 100)
+				case scheduler.TabletRepairTask:
+					pm.tabletRepair.SetTableProgress(h.clusterID, task.ID, "ks", "t1", 100)
+					pm.tabletRepair.SetTableProgress(h.clusterID, task.ID, "ks", "t2", 100)
+				case scheduler.BackupTask:
+					pm.backup.SetTaskProgress(h.clusterID, task.ID, 100)
+				}
+				if v := h.taskGaugeValues(tc.metric, task.ID); len(v) == 0 || v[0] != 100 {
+					t.Fatalf("progress of the previous run = %v, expected 100", v)
+				}
+
+				Print("When: task runs again")
+				if err := h.service.StartTask(ctx, task); err != nil {
+					t.Fatal(err)
+				}
+
+				if tc.restoreRunning {
+					Print("Then: refused run ends with ERROR and reports its own progress, not the previous run's")
+					h.assertStatus(task, scheduler.StatusError)
+				} else {
+					Print("Then: task is reported as running without the previous run's progress")
+					h.assertStatus(task, scheduler.StatusRunning)
+					if state := h.taskStateValue(task.ID); state != float64(metrics.TaskStateRunning) {
+						t.Fatalf("task state = %v, expected running", state)
+					}
+				}
+				v := h.taskGaugeValues(tc.metric, task.ID)
+				if tc.deleted {
+					if len(v) != 0 {
+						t.Errorf("progress = %v, expected no series", v)
+					}
+				} else if len(v) != 1 || v[0] != 0 {
+					t.Errorf("progress = %v, expected [0]", v)
+				}
+
+				if !tc.restoreRunning {
+					h.runner.Done()
+					h.assertStatus(task, scheduler.StatusDone)
+				}
+			})
+		}
 	})
 
 	t.Run("suspend and resume skip deleted tasks", func(t *testing.T) {
