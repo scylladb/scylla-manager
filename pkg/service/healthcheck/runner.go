@@ -44,6 +44,25 @@ func (r Runner) Run(ctx context.Context, clusterID, taskID, runID uuid.UUID, pro
 	}
 }
 
+// RemoveMetrics removes the metrics of the cluster reported by the health
+// check of the mode given in properties. It implements
+// scheduler.TaskDisabledHook: without it, a disabled or deleted health check
+// keeps reporting its last result.
+func (r Runner) RemoveMetrics(_ context.Context, clusterID, _ uuid.UUID, properties json.RawMessage) {
+	m, err := ModeFromProperties(properties)
+	if err != nil {
+		return
+	}
+	switch m {
+	case CQLMode:
+		r.cql.removeMetricsForCluster(clusterID)
+	case RESTMode:
+		r.rest.removeMetricsForCluster(clusterID)
+	case AlternatorMode:
+		r.alternator.removeMetricsForCluster(clusterID)
+	}
+}
+
 // ModeFromProperties return Mode of healthcheck task based on its properties.
 func ModeFromProperties(properties json.RawMessage) (Mode, error) {
 	p := taskProperties{}
@@ -130,16 +149,13 @@ func (r runner) statusOnPingError(ctx context.Context, clusterID uuid.UUID, host
 	return metricStatusDown
 }
 
+// removeMetricsForCluster removes the status and RTT series of the cluster.
+// Both are matched on their own: an RTT series can exist without its status
+// one when a removal falls between the two writes of a check.
 func (r runner) removeMetricsForCluster(clusterID uuid.UUID) {
-	apply(collect(r.metrics.status), func(ls labels, _ float64) {
-		if clusterID.String() != ls.cluster {
-			return
-		}
-
-		promLs := ls.promLabels()
-		r.metrics.status.Delete(promLs)
-		r.metrics.rtt.Delete(promLs)
-	})
+	cluster := prometheus.Labels{clusterKey: clusterID.String()}
+	r.metrics.status.DeletePartialMatch(cluster)
+	r.metrics.rtt.DeletePartialMatch(cluster)
 }
 
 func (r runner) removeMetricsForMissingHosts(clusterID uuid.UUID, addresses []string) {

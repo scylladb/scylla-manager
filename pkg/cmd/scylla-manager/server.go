@@ -175,7 +175,9 @@ func (s *server) makeServices(ctx context.Context) error {
 	s.schedSvc.SetRunner(scheduler.One2OneRestoreTask,
 		scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.one2OneRestoreSvc.Runner(), TaskType: scheduler.One2OneRestoreTask},
 	)
-	s.schedSvc.SetRunner(scheduler.HealthCheckTask, s.healthSvc.Runner())
+	healthRunner := s.healthSvc.Runner()
+	s.schedSvc.SetRunner(scheduler.HealthCheckTask, healthRunner)
+	s.schedSvc.SetTaskDisabledHook(scheduler.HealthCheckTask, healthRunner.RemoveMetrics)
 	s.schedSvc.SetRunner(scheduler.RepairTask,
 		scheduler.PolicyRunner{Policy: restoreExclusiveLock, Runner: s.repairSvc.Runner(), TaskType: scheduler.RepairTask})
 	s.schedSvc.SetRunner(scheduler.TabletRepairTask,

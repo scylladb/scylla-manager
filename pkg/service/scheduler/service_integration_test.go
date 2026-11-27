@@ -2102,6 +2102,130 @@ func TestServiceScheduleIntegration(t *testing.T) {
 		h.assertStatus(task, scheduler.StatusAborted)
 	})
 
+	t.Run("task disabled hook", func(t *testing.T) {
+		disable := func(ctx context.Context, h *schedulerTestHelper, task *scheduler.Task) error {
+			task.Enabled = false
+			return h.service.PutTask(ctx, task)
+		}
+		stopAndDisable := func(ctx context.Context, h *schedulerTestHelper, task *scheduler.Task) error {
+			return h.service.StopTask(ctx, task, true)
+		}
+		deleteTask := func(ctx context.Context, h *schedulerTestHelper, task *scheduler.Task) error {
+			return h.service.DeleteTask(ctx, task)
+		}
+		disableAndEnable := func(ctx context.Context, h *schedulerTestHelper, task *scheduler.Task) error {
+			if err := disable(ctx, h, task); err != nil {
+				return err
+			}
+			task.Enabled = true
+			return h.service.PutTask(ctx, task)
+		}
+		update := func(ctx context.Context, h *schedulerTestHelper, task *scheduler.Task) error {
+			task.Name = "renamed"
+			return h.service.PutTask(ctx, task)
+		}
+
+		testCases := []struct {
+			name    string
+			running bool
+			action  func(ctx context.Context, h *schedulerTestHelper, task *scheduler.Task) error
+			// finishRun ends the run after the action. Stopping and deleting
+			// a task end its run on their own.
+			finishRun bool
+			// calls is the number of hook calls expected right after the
+			// action, -1 when the run may already have ended by then.
+			calls int
+			// callsAfterRun is the number expected once the run ends,
+			// for the tasks that are running when the action happens.
+			callsAfterRun int
+		}{
+			{name: "disable pending task", action: disable, calls: 1},
+			{name: "delete pending task", action: deleteTask, calls: 1},
+			{name: "update enabled task", action: update, calls: 0},
+			{name: "disable running task", running: true, action: disable, finishRun: true, calls: 1, callsAfterRun: 2},
+			{name: "disable and enable running task", running: true, action: disableAndEnable, finishRun: true, calls: 1, callsAfterRun: 1},
+			{name: "stop and disable running task", running: true, action: stopAndDisable, calls: -1, callsAfterRun: 2},
+			{name: "delete running task", running: true, action: deleteTask, calls: -1, callsAfterRun: 2},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				h := newSchedTestHelper(t, session)
+				defer h.close()
+				ctx := t.Context()
+
+				var (
+					mu    sync.Mutex
+					calls []json.RawMessage
+				)
+				h.service.SetTaskDisabledHook(mockTask, func(_ context.Context, clusterID, _ uuid.UUID, properties json.RawMessage) {
+					if clusterID != h.clusterID {
+						t.Errorf("hook called for cluster %s, expected %s", clusterID, h.clusterID)
+					}
+					mu.Lock()
+					calls = append(calls, properties)
+					mu.Unlock()
+				})
+				callCount := func() int {
+					mu.Lock()
+					defer mu.Unlock()
+					return len(calls)
+				}
+				assertCalls := func(n int) {
+					t.Helper()
+					WaitCond(t, func() bool { return callCount() == n }, _interval, _wait)
+					// Make sure no more calls follow.
+					time.Sleep(10 * _interval)
+					if c := callCount(); c != n {
+						t.Fatalf("hook called %d times, expected %d", c, n)
+					}
+				}
+
+				Print("Given: task")
+				task := h.makeTaskWithStartDate(future)
+				if tc.running {
+					task = h.makeTaskWithStartDate(now())
+				}
+				task.ID = uuid.Nil
+				task.Properties = json.RawMessage(`{"mode":"cql"}`)
+				if err := h.service.PutTask(ctx, task); err != nil {
+					t.Fatal(err)
+				}
+				if tc.running {
+					h.assertStatus(task, scheduler.StatusRunning)
+				}
+
+				Print("When: action is performed")
+				if err := tc.action(ctx, h, task); err != nil {
+					t.Fatal(err)
+				}
+
+				if tc.calls >= 0 {
+					Print("Then: hook is called")
+					assertCalls(tc.calls)
+				}
+
+				if tc.running {
+					if tc.finishRun {
+						Print("When: run ends")
+						h.runner.Done()
+					}
+					Print("Then: hook is called again when the run ends")
+					assertCalls(tc.callsAfterRun)
+				}
+
+				Print("And: hook gets task properties")
+				mu.Lock()
+				for _, p := range calls {
+					if string(p) != `{"mode":"cql"}` {
+						t.Errorf("hook called with properties %s", p)
+					}
+				}
+				mu.Unlock()
+			})
+		}
+	})
+
 	t.Run("suspend and resume skip deleted tasks", func(t *testing.T) {
 		h := newSchedTestHelper(t, session)
 		defer h.close()
