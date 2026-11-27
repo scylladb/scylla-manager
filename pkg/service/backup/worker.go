@@ -95,6 +95,8 @@ type worker struct {
 	// It's required to provide Size as current disk size of files.
 	ResumeUploadProgress func(ctx context.Context, p *RunProgress)
 
+	// SSTables encryption keys mapped by host ID.
+	encryptionKeysByHost map[string]map[backupspec.EncryptionKey]struct{}
 	// Cache for host snapshotDirs
 	snapshotDirs map[string][]snapshotDir
 	mu           sync.Mutex
